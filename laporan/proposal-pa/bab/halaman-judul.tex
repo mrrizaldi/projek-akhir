@@ -1,0 +1,50 @@
+% =========================== HALAMAN SAMPUL ==========================
+% Gaya cover: hitam-putih polos, semua rata tengah kecuali baris header
+% (logo kiri, "PROPOSAL PROYEK AKHIR" tebal kanan).
+\newgeometry{left=2.5cm,right=2.5cm,top=2cm,bottom=2cm}
+\begin{titlepage}
+\begingroup
+\setstretch{1.0}
+\thispagestyle{empty}
+
+% ---- Baris header: logo kiri, judul dokumen kanan ----
+\noindent
+\begin{minipage}[c]{0.5\textwidth}
+  \includegraphics[height=2.2cm]{gambar/logo-pens.png}
+\end{minipage}%
+\begin{minipage}[c]{0.5\textwidth}
+  \raggedleft
+  {\fontsize{16}{20}\selectfont\bfseries PROPOSAL\\PROYEK AKHIR\par}
+\end{minipage}
+
+\vspace{2.5cm}
+\begin{center}
+  \begin{minipage}{0.9\textwidth}
+    \centering
+    {\fontsize{15}{19}\selectfont\bfseries\MakeUppercase{\JudulPA}\par}
+  \end{minipage}
+
+  \vspace{2.5cm}
+  {\normalfont\fontsize{12}{15}\selectfont\bfseries \NamaMahasiswa\par}
+  {\normalfont\fontsize{12}{15}\selectfont NRP. \NRP\par}
+
+  \vspace{2.0cm}
+  {\normalfont\fontsize{12}{15}\selectfont\bfseries DOSEN PEMBIMBING\par}
+  \vspace{0.6cm}
+  {\normalfont\fontsize{12}{15}\selectfont \PembimbingSatu\par}
+  \makeatletter\edef\@tmpnip{\NIPSatu}\ifx\@tmpnip\@empty\else{\normalfont\fontsize{12}{15}\selectfont NIP. \NIPSatu\par}\fi\makeatother
+  \vspace{0.4cm}
+  {\normalfont\fontsize{12}{15}\selectfont \PembimbingDua\par}
+  \makeatletter\edef\@tmpnip{\NIPDua}\ifx\@tmpnip\@empty\else{\normalfont\fontsize{12}{15}\selectfont NIP. \NIPDua\par}\fi\makeatother
+
+  \vfill
+  {\fontsize{12}{15}\selectfont\bfseries
+  PROGRAM STUDI SARJANA TERAPAN\par
+  TEKNIK INFORMATIKA\par
+  DEPARTEMEN TEKNIK INFORMATIKA DAN KOMPUTER\par
+  POLITEKNIK ELEKTRONIKA NEGERI SURABAYA\par
+  \Tahun\par}
+\end{center}
+\endgroup
+\end{titlepage}
+\restoregeometry

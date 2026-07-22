@@ -1,0 +1,54 @@
+% ============================================================
+% PAPER SIZE — A4 (tetap, 1 config per projek)
+% Ganti ukuran = ganti documentclass + size file di bawah.
+% ============================================================
+\documentclass[12pt,a4paper,fleqn,twoside,openright]{report}
+
+% ============================================================
+% PREAMBLE: size config dulu, lalu common
+%   size-a4 / size-a5 → geometry, spacing, macro font heading
+%   preamble          → packages + formatting (size-independent)
+% ============================================================
+\input{../shared/size-a4}
+\input{../shared/preamble}
+
+% Cover (gaya buku-kp, warna biru)
+\usepackage{tikz}
+\definecolor{coverblue}{HTML}{1F4E79}
+
+% ============================================================
+% DATA MAHASISWA & PROYEK AKHIR
+% ============================================================
+
+\newcommand{\JudulPA}{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia}
+\newcommand{\NamaMahasiswa}{Muhammad Rafi Rizaldi}
+\newcommand{\NRP}{3123600001}
+\newcommand{\PembimbingSatu}{Prof. M. Udin Harun Al Rasyid, S.Kom, Ph.D}
+\newcommand{\NIPSatu}{198108082005011001}
+\newcommand{\PembimbingDua}{Grezio Arifiyan Primajaya, S.Kom, M.Kom}
+\newcommand{\NIPDua}{199208262022031007}
+\newcommand{\Tahun}{2026}
+
+% ============================================================
+% DOKUMEN
+% ============================================================
+
+\begin{document}
+
+% --- HALAMAN JUDUL (tanpa nomor halaman) ---
+\pagestyle{empty}
+\input{bab/halaman-judul}
+
+% --- HALAMAN ISI (angka arab, tengah bawah) ---
+\pagenumbering{arabic}
+\pagestyle{mainmatter}
+
+\input{bab/bab1}
+\input{bab/bab2}
+\input{bab/bab3}
+
+% --- DAFTAR PUSTAKA ---
+\clearpage
+\bibliography{referensi}
+
+\end{document}

@@ -1,0 +1,209 @@
+% ============================================================
+% SHARED PREAMBLE (COMMON) — texdocs
+% Bagian formatting yang TIDAK bergantung ukuran kertas.
+% Di-input oleh main.tex SETELAH ../shared/size-a4 atau size-a5.
+% Size file menyediakan: geometry, \setstretch, dan macro:
+%   \FontChapterHead  \FontSectionHead  \FontKutipan
+% ============================================================
+
+% Layout & Font
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[indonesian]{babel}
+\usepackage{mathptmx}          % Times New Roman
+\usepackage{indentfirst}
+
+% Heading style
+\usepackage{titlesec}
+
+% Gambar
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+
+% Tabel
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\usepackage[table]{xcolor}
+\definecolor{headgray}{gray}{0.85}
+\usepackage{ragged2e}
+
+% Matematika
+\usepackage{amsmath}
+\usepackage{amssymb}
+
+% Header/footer
+\usepackage{fancyhdr}
+
+% List
+\usepackage{enumitem}
+\setlist[enumerate,1]{label=\arabic*., leftmargin=*, labelindent=1cm, itemsep=0.3ex, topsep=0.4ex, parsep=0pt}
+\setlist[itemize,1]{leftmargin=*, labelindent=1cm, itemsep=0.3ex, topsep=0.4ex, parsep=0pt}
+
+% Daftar isi
+\usepackage[titles]{tocloft}
+
+% Hyperlink
+\usepackage[hidelinks]{hyperref}
+
+% Daftar pustaka — IEEE style
+\usepackage[numbers,sort&compress]{natbib}
+\bibliographystyle{IEEEtran}
+
+% Kode program
+\usepackage{listings}
+\usepackage{color}
+
+% ============================================================
+% KONFIGURASI TIPOGRAFI
+% ============================================================
+
+% Line spacing (\setstretch) diset di size file.
+\setlength{\parindent}{0.5in}
+\setlength{\parskip}{0pt}
+\setlength{\mathindent}{10mm}
+
+\hyphenpenalty=10000
+\exhyphenpenalty=10000
+\setlength{\emergencystretch}{3em}
+
+% ============================================================
+% FORMAT HEADING (TITLESEC)
+% ============================================================
+
+\renewcommand{\chaptername}{BAB}
+
+\titleformat{\chapter}[display]
+  {\centering\bfseries\FontChapterHead}
+  {\MakeUppercase{\chaptername}\ \thechapter}
+  {0pt}
+  {\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{-20pt}{12pt}
+
+\titleformat{name=\chapter,numberless}[block]
+  {\centering\bfseries\FontChapterHead}
+  {}
+  {0pt}
+  {}
+\titlespacing*{name=\chapter,numberless}{0pt}{-20pt}{12pt}
+
+\titleformat{\section}
+  {\bfseries\FontSectionHead}
+  {\makebox[0.5in][l]{\thesection}}
+  {0pt}
+  {\MakeUppercase}
+\titlespacing*{\section}{0pt}{12pt}{6pt}
+
+\titleformat{\subsection}
+  {\bfseries\FontSectionHead}
+  {\makebox[0.5in][l]{\thesubsection}}
+  {0pt}
+  {}
+\titlespacing*{\subsection}{0pt}{12pt}{6pt}
+
+\setcounter{secnumdepth}{3}
+\renewcommand{\thesubsubsection}{\alph{subsubsection}.}
+\titleformat{\subsubsection}
+  {\normalfont\normalsize}
+  {\thesubsubsection}
+  {0.5em}
+  {}
+\titlespacing*{\subsubsection}{0pt}{12pt}{6pt}
+
+% ============================================================
+% FORMAT HALAMAN (FANCYHDR)
+% ============================================================
+
+\fancypagestyle{mainmatter}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[C]{\thepage}%
+  \renewcommand{\headrulewidth}{0pt}%
+  \renewcommand{\footrulewidth}{0pt}%
+}
+
+% ============================================================
+% FORMAT CAPTION
+% ============================================================
+
+\captionsetup[figure]{labelsep=period, font=bf, justification=centering}
+\captionsetup[table]{labelsep=period, font=bf, justification=centering}
+
+% ============================================================
+% PENOMORAN PER BAB
+% ============================================================
+
+\numberwithin{equation}{chapter}
+\numberwithin{figure}{chapter}
+\numberwithin{table}{chapter}
+
+\makeatletter
+\def\tagform@#1{\maketag@@@{\bfseries(Persamaan #1)}}
+\makeatother
+
+% ============================================================
+% NAMA-NAMA INDONESIA
+% ============================================================
+
+\renewcommand{\contentsname}{DAFTAR ISI}
+\renewcommand{\listfigurename}{DAFTAR GAMBAR}
+\renewcommand{\listtablename}{DAFTAR TABEL}
+\renewcommand{\bibname}{DAFTAR PUSTAKA}
+\addto\captionsindonesian{\renewcommand{\bibname}{DAFTAR PUSTAKA}}
+\renewcommand{\figurename}{Gambar}
+\renewcommand{\tablename}{Tabel}
+
+% ============================================================
+% FORMAT DAFTAR ISI (TOCLOFT)
+% ============================================================
+
+\renewcommand{\cftchapfont}{\bfseries}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{8pt}
+\setlength{\cftbeforeloftitleskip}{0pt}
+\setlength{\cftafterloftitleskip}{8pt}
+\setlength{\cftbeforelottitleskip}{0pt}
+\setlength{\cftafterlottitleskip}{8pt}
+
+% ============================================================
+% ENVIRONMENT KUTIPAN PANJANG
+% ============================================================
+
+\newenvironment{kutipan}{%
+  \begin{list}{}{%
+    \setlength{\leftmargin}{10mm}%
+    \setlength{\rightmargin}{10mm}%
+  }%
+  \item\relax\FontKutipan
+}{%
+  \end{list}
+}
+
+% ============================================================
+% KONFIGURASI LISTINGS
+% ============================================================
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{blue!70!black},
+  commentstyle=\itshape\color{green!50!black},
+  stringstyle=\color{red!60!black},
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  frame=single,
+  breaklines=true,
+  captionpos=b
+}

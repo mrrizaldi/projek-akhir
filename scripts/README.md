@@ -1,0 +1,1 @@
+# scripts/ — otomasi lintas-komponen.

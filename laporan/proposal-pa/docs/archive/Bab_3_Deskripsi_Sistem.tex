@@ -1,0 +1,186 @@
+% Bab 3 - Deskripsi Sistem
+% Format PENS: A5, margin atas/bawah 2,5 cm, kiri 3 cm, kanan 2 cm, 11pt, spasi 1,5.
+% Kompilasi: tectonic Bab_3_Deskripsi_Sistem.tex   (atau: xelatex / pdflatex)
+% Letakkan gambar_3_1.png ... gambar_3_4.png pada folder yang sama.
+\documentclass[11pt]{article}
+
+\usepackage[a5paper,top=2.5cm,bottom=2.5cm,left=3cm,right=2cm]{geometry}
+\usepackage{mathptmx}   % tipografi Times (ganti ke fontspec + "Times New Roman" bila ingin TNR eksak)
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{amsmath}
+\usepackage[table]{xcolor}
+\usepackage{array}
+\usepackage{caption}
+
+\onehalfspacing
+\setlength{\parindent}{1em}
+
+\captionsetup{labelsep=period, justification=centering, font=bf, skip=6pt}
+\renewcommand{\figurename}{Gambar}
+\renewcommand{\tablename}{Tabel}
+\renewcommand{\thefigure}{3.\arabic{figure}}
+\renewcommand{\thetable}{3.\arabic{table}}
+
+\newcommand{\bab}[1]{\begin{center}\textbf{#1}\end{center}}
+\newcommand{\Sect}[2]{\par\vspace{8pt}\noindent\textbf{#1\quad #2}\par\vspace{3pt}}
+\newcommand{\Subsec}[2]{\par\vspace{6pt}\noindent\textbf{#1\quad #2}\par\vspace{2pt}}
+\newcommand{\Subsub}[1]{\par\vspace{5pt}\noindent\textbf{#1}\par\nopagebreak\vspace{1pt}}
+\newcommand{\eqlabel}[1]{\hfill\textbf{(#1)}}
+
+\definecolor{headgray}{HTML}{DDE6E2}
+
+\begin{document}
+
+\bab{BAB 3}
+\bab{DESKRIPSI SISTEM}
+\vspace{6pt}
+
+Bab ini menguraikan rancangan sistem yang diusulkan untuk menjawab permasalahan pada Bab 1, meliputi model yang digunakan, desain sistem secara menyeluruh, variabel penelitian, teknik pengumpulan data, serta analisis data. Pembahasan diawali dengan penjelasan umum mengenai solusi yang ditawarkan, kemudian dilanjutkan dengan uraian teknis tiap komponen sistem secara rinci.
+
+\Sect{3.1}{DESKRIPSI SOLUSI}
+
+Sistem pemantauan detak jantung berbasis IoT pada umumnya mengirimkan sinyal mentah secara langsung ke server cloud untuk diproses [1]. Pendekatan terpusat ini menimbulkan latensi yang tinggi, beban komputasi yang menumpuk pada server, serta ketergantungan besar terhadap kestabilan koneksi internet, sehingga sistem rentan kehilangan data ketika jaringan terganggu [2]. Padahal, pemantauan kardiovaskular bersifat kontinu dan kritis terhadap waktu, sehingga keterlambatan maupun terputusnya aliran data dapat mengurangi efektivitas deteksi dini aritmia.
+
+Solusi yang ditawarkan pada proyek akhir ini adalah sistem pemantauan detak jantung kontinu yang melakukan deteksi dini aritmia secara langsung pada mikrokontroler (on-device inference) dengan pendekatan edge computing, serta didukung oleh pipeline edge-to-cloud yang tahan terhadap gangguan koneksi. Dengan memindahkan proses inferensi ke perangkat, sistem tidak lagi bergantung sepenuhnya pada cloud untuk mengambil keputusan.
+
+Terdapat empat fitur utama yang menjadi klaim orisinalitas solusi ini. Pertama, pra-pemrosesan sinyal ECG dilakukan secara real-time di perangkat menggunakan tapis Butterworth dan algoritma Pan-Tompkins. Kedua, inferensi aritmia dilakukan langsung di perangkat melalui model jaringan saraf konvolusional satu dimensi (1D-CNN) yang dikuantisasi ke INT8 agar ringan dijalankan pada ESP32. Ketiga, performa perangkat keras divalidasi secara terukur, meliputi latensi inferensi, penggunaan memori, dan konsumsi daya. Keempat, pipeline edge-to-cloud dirancang resilien dengan mekanisme buffering lokal dan protokol MQTT untuk menjaga kontinuitas serta keutuhan data.
+
+Keempat fitur tersebut secara langsung menjawab permasalahan yang diuraikan pada Bab 1. Pemrosesan dan inferensi di sisi edge menekan latensi serta mengurangi ketergantungan pada cloud, sementara pipeline yang resilien menjamin data tetap tersimpan dan terkirim utuh meskipun koneksi sempat terputus. Dengan demikian, sistem mampu menyediakan pemantauan aritmia yang responsif, hemat sumber daya, dan andal.
+
+\Sect{3.2}{DESAIN SISTEM}
+
+Desain sistem merupakan penjelasan teknis dari solusi yang berisi urutan proses untuk menyelesaikan permasalahan. Gambar 3.1 menunjukkan arsitektur sistem secara high-level view yang tersusun atas tiga lapisan, yaitu perangkat edge, jaringan, dan cloud.
+
+\begin{figure}[H]\centering
+\includegraphics[width=0.9\linewidth,height=0.85\textheight,keepaspectratio]{gambar_3_1.png}
+\caption{Arsitektur sistem secara high-level view}
+\end{figure}
+
+Gambar 3.1 menunjukkan bahwa sinyal ECG diakuisisi oleh sensor AD8232 lalu diproses sepenuhnya pada perangkat edge berbasis ESP32, mencakup pra-pemrosesan dan inferensi serta penyangga data dan komunikasi MQTT. Hasil deteksi dikirim melalui jaringan WiFi menuju broker MQTT di cloud untuk ditampilkan pada dashboard dan memicu notifikasi dini. Validasi performa perangkat keras dilakukan pada lapisan edge terhadap proses pra-pemrosesan hingga inferensi. Uraian rinci tiap komponen dijelaskan pada sub-bagian berikut.
+
+\Subsec{3.2.1}{Akuisisi dan Pra-pemrosesan Sinyal}
+
+Bagian ini mencakup keseluruhan proses dari pengambilan sinyal ECG hingga sinyal siap diklasifikasi oleh model. Gambar 3.2 menunjukkan diagram alir pra-pemrosesan dan inferensi pada perangkat.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{gambar_3_2.png}
+\caption{Diagram alir pra-pemrosesan dan inferensi pada perangkat}
+\end{figure}
+
+\Subsub{Akuisisi Sinyal ECG}
+
+Sinyal ECG diperoleh menggunakan modul sensor AD8232 yang dikonfigurasi pada Lead II. Lead II dipilih karena vektor listrik jantung sejajar dengan sudut pandang lead tersebut sehingga gelombang R muncul paling tinggi dan tegak, menjadikannya paling andal untuk analisis irama [3]. Konfigurasi single-lead juga memadai untuk deteksi aritmia sekaligus konsisten dengan kanal MLII pada dataset acuan. Sinyal analog kemudian dicuplik oleh ADC pada ESP32, dengan laju cuplik disesuaikan terhadap dataset acuan, yaitu 360 Hz.
+
+\Subsub{Penapisan Butterworth}
+
+Sinyal ECG mentah mengandung derau berupa pergeseran garis dasar (baseline wander) pada frekuensi rendah serta derau otot dan interferensi listrik pada frekuensi tinggi. Tapis Butterworth bandpass dengan frekuensi cutoff 0,5--40 Hz digunakan untuk membuang kedua jenis derau tersebut sambil mempertahankan pita ECG yang berguna [4]. Tapis berorde 2--4 dinilai memadai dan diimplementasikan sebagai second-order section (biquad) yang bersifat kausal, sehingga ringan secara komputasi dan dapat diproses sampel demi sampel secara real-time pada mikrokontroler.
+
+\Subsub{Deteksi R-peak dengan Algoritma Pan-Tompkins}
+
+Algoritma Pan-Tompkins digunakan untuk menentukan lokasi R-peak pada sinyal yang telah bersih. Algoritma ini menonjolkan energi kompleks QRS melalui rangkaian tahapan, yaitu penapisan pita 5--15 Hz, turunan, pengkuadratan, integrasi jendela bergerak, serta ambang adaptif dengan periode refraktori [5]. Keluaran algoritma berupa lokasi R-peak yang selanjutnya menjadi titik acuan segmentasi. Perlu ditekankan bahwa algoritma ini hanya menentukan lokasi R-peak dan tidak melakukan pemotongan sinyal.
+
+\Subsub{Segmentasi dan Normalisasi}
+
+Berdasarkan setiap lokasi R-peak, sinyal dipotong menjadi window berukuran tetap sepanjang 250 sampel, yaitu 90 sampel sebelum dan 160 sampel sesudah R-peak, sehingga gelombang P di awal dan gelombang T di akhir detak ikut terekam. Setiap window selanjutnya dinormalisasi menggunakan z-score sebagaimana ditunjukkan pada Persamaan 3.1, agar model berfokus pada bentuk sinyal dan tidak terpengaruh oleh perbedaan amplitudo antarperangkat maupun antarpasien.
+
+\par\vspace{4pt}\noindent\hspace{10mm}$x' = \dfrac{x-\mu}{\sigma}$\eqlabel{Persamaan 3.1}\par\vspace{4pt}
+
+Persamaan 3.1 menunjukkan proses normalisasi, dengan $x$ adalah nilai sampel, $\mu$ adalah rata-rata window, dan $\sigma$ adalah simpangan baku window. Penambahan konstanta kecil pada penyebut dilakukan untuk menghindari pembagian dengan nol.
+
+\Subsec{3.2.2}{Inferensi Aritmia di Perangkat}
+
+Bagian ini menguraikan model yang digunakan untuk mengklasifikasikan setiap detak, mulai dari penyiapan data, arsitektur model, hingga proses pelatihan dan kuantisasi.
+
+\Subsub{Dataset dan Pelabelan}
+
+Dataset yang digunakan adalah MIT-BIH Arrhythmia Database, yang terdiri atas 48 rekaman berdurasi sekitar 30 menit, tersampel pada 360 Hz, dengan kanal utama MLII dan anotasi per-detak oleh kardiolog [6]. Tugas klasifikasi dirumuskan secara biner, yaitu Normal dan Aritmia, sejalan dengan tujuan deteksi dini. Pemetaan simbol anotasi MIT-BIH menjadi label biner ditunjukkan pada Tabel 3.1.
+
+\begin{table}[H]\centering\small
+\begin{tabular}{|p{2.2cm}|p{4.0cm}|p{2.2cm}|}
+\hline
+\rowcolor{headgray}\textbf{Simbol Anotasi} & \textbf{Jenis Detak} & \textbf{Label Biner}\\\hline
+N & Detak sinus normal & Normal\\\hline
+V & Kontraksi ventrikular prematur & Aritmia\\\hline
+S & Detak supraventrikular & Aritmia\\\hline
+F & Detak fusi & Aritmia\\\hline
+Q & Detak tidak tergolong & Aritmia\\\hline
+\end{tabular}
+\caption{Pemetaan simbol anotasi MIT-BIH menjadi label biner}
+\end{table}
+
+Tabel 3.1 menunjukkan bahwa hanya detak sinus normal yang dikategorikan sebagai Normal, sedangkan seluruh detak menyimpang dikategorikan sebagai Aritmia. Penggolongan beberapa kelainan konduksi mengikuti standar yang akan dikonfirmasi lebih lanjut pada pelaksanaan eksperimen.
+
+\Subsub{Arsitektur Model 1D-CNN}
+
+Model klasifikasi dirancang menggunakan 1D-CNN yang ringkas. Gambar 3.3 menunjukkan arsitektur model yang diusulkan, terdiri atas tiga blok konvolusi dengan 16, 32, dan 32 filter serta ukuran kernel 7, 5, dan 3, yang masing-masing diikuti fungsi aktivasi ReLU dan max-pooling. Lapisan tersebut kemudian diringkas oleh Global Average Pooling, dilanjutkan lapisan Dense berisi 16 neuron, dan lapisan keluaran dengan fungsi aktivasi sigmoid sebagaimana Persamaan 3.2.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{gambar_3_3.png}
+\caption{Arsitektur model 1D-CNN yang diusulkan}
+\end{figure}
+
+\par\vspace{4pt}\noindent\hspace{10mm}$\hat{y} = \dfrac{1}{1+e^{-z}}$\eqlabel{Persamaan 3.2}\par\vspace{4pt}
+
+Persamaan 3.2 menunjukkan fungsi sigmoid pada lapisan keluaran, dengan $z$ adalah keluaran lapisan sebelumnya dan $\hat{y}$ adalah peluang sebuah detak tergolong aritmia. Nilai $\hat{y}$ di atas 0,5 diklasifikasikan sebagai Aritmia. Penggunaan Global Average Pooling dipilih untuk menekan jumlah parameter secara drastis dibandingkan perataan langsung (flatten), sehingga model tetap berukuran kecil dan tahan terhadap overfitting. Total parameter model hanya sekitar enam ribu.
+
+\Subsub{Pelatihan dan Kuantisasi INT8}
+
+Model dilatih menggunakan fungsi loss binary cross-entropy dan optimizer Adam. Pembagian data dilakukan secara antar-pasien (inter-patient) mengikuti skema DS1 untuk pelatihan dan DS2 untuk pengujian, agar evaluasi mencerminkan kondisi nyata dan tidak terlalu optimistis. Ketidakseimbangan jumlah detak diatasi dengan pembobotan kelas (class weight) supaya model tidak mengabaikan kelas aritmia yang minoritas.
+
+Setelah dilatih, model dikuantisasi penuh ke INT8 melalui post-training quantization dengan bantuan representative dataset untuk mengkalibrasi rentang nilai, lalu dikonversi ke format TensorFlow Lite Micro [7]. Ukuran model hasil kuantisasi berada di bawah 20 KB, jauh lebih kecil dari kapasitas SRAM ESP32 yang sekitar 520 KB, sehingga model muat dengan tetap menyisakan ruang yang memadai untuk tensor arena dan buffer data.
+
+\Subsec{3.2.3}{Pipeline Edge-to-Cloud yang Resilien}
+
+Bagian ini menjelaskan integrasi seluruh proses ke dalam alur kerja firmware sekaligus mekanisme ketahanannya terhadap gangguan koneksi. Gambar 3.4 menunjukkan diagram alir runtime firmware beserta jalur penanganan kondisi daring dan luring.
+
+\begin{figure}[H]\centering
+\includegraphics[width=\linewidth,height=0.85\textheight,keepaspectratio]{gambar_3_4.png}
+\caption{Diagram alir runtime firmware dan jalur resilien}
+\end{figure}
+
+\Subsub{Buffering Lokal}
+
+Hasil deteksi disimpan sementara pada ring buffer di RAM. Apabila koneksi terputus dalam waktu lama hingga kapasitas RAM penuh, data dilimpahkan ke penyimpanan non-volatil seperti flash internal (SPIFFS) atau kartu SD, sehingga data tetap aman meskipun perangkat sempat kehilangan daya.
+
+\Subsub{Komunikasi MQTT}
+
+Pengiriman data ke cloud menggunakan protokol MQTT menuju broker. Tingkat layanan QoS 1 digunakan agar setiap pesan dijamin sampai, sedangkan mekanisme Last-Will-Testament dimanfaatkan agar broker dapat mengetahui ketika perangkat terputus secara tiba-tiba.
+
+\Subsub{Mekanisme Reconnect dan Flush}
+
+Ketika koneksi pulih, perangkat melakukan penyambungan ulang lalu mengosongkan buffer (flush) dengan mengirimkan seluruh data tertunda secara berurutan. Mekanisme inilah yang menjamin kontinuitas dan keutuhan data, sehingga klaim ketahanan pipeline dapat dibuktikan secara terukur, bukan sekadar asumsi.
+
+\Sect{3.3}{VARIABEL PENELITIAN}
+
+Variabel bebas pada penelitian ini meliputi tingkat derau pada sinyal, panjang window segmentasi, tingkat kuantisasi model, serta kondisi koneksi jaringan untuk skenario pengujian ketahanan. Adapun variabel terikat meliputi akurasi, precision, recall, dan F1-score model; latensi inferensi; penggunaan memori (RAM); konsumsi daya; serta tingkat kehilangan data pada pipeline. Variabel terikat inilah yang menjadi tolok ukur keberhasilan sistem sesuai dengan tujuan penelitian.
+
+\Sect{3.4}{TEKNIK PENGUMPULAN DATA}
+
+Pengumpulan data dilakukan melalui dua jenis sumber. Pertama, data sekunder berupa rekaman ECG dari MIT-BIH Arrhythmia Database yang digunakan untuk pelatihan dan pengujian model. Kedua, data primer berupa hasil pengukuran perangkat keras, yaitu latensi yang diukur menggunakan timestamp internal mikrokontroler, penggunaan memori yang diperoleh dari arena TensorFlow Lite Micro dan heap bebas, serta konsumsi daya yang diukur menggunakan modul sensor arus INA219 atau USB power meter.
+
+Khusus untuk pengujian ketahanan pipeline, data dikumpulkan melalui skenario uji reliabilitas. Sistem dijalankan dalam kondisi streaming normal, kemudian koneksi WiFi diputus secara paksa selama durasi tertentu, lalu dipulihkan kembali. Selama proses tersebut diamati apakah data tetap tersimpan secara lokal dan apakah seluruh data tertunda berhasil terkirim utuh setelah koneksi pulih.
+
+\Sect{3.5}{ANALISIS DATA}
+
+Analisis data dilakukan sesuai dengan aspek yang diukur pada tiap rumusan masalah. Tabel 3.2 merangkum rencana pengukuran beserta metrik, cara pengukuran, dan target indikatifnya.
+
+\begin{table}[H]\centering\footnotesize
+\begin{tabular}{|p{2.0cm}|p{2.0cm}|p{2.6cm}|p{2.0cm}|}
+\hline
+\rowcolor{headgray}\textbf{Aspek} & \textbf{Metrik} & \textbf{Cara Pengukuran} & \textbf{Target Indikatif}\\\hline
+Kualitas model & Accuracy, precision, recall, F1 & Evaluasi pada data uji DS2 & Recall aritmia tinggi\\\hline
+Dampak kuantisasi & Selisih metrik float32 vs INT8 & Bandingkan sebelum/sesudah kuantisasi & Penurunan kecil\\\hline
+Latensi inferensi & Waktu per inferensi (ms) & Timestamp internal MCU & Memenuhi real-time\\\hline
+Penggunaan RAM & Tensor arena + heap bebas & API arena dan heap ESP32 & Muat di SRAM\\\hline
+Ukuran model & Ukuran berkas model (KB) & Ukuran berkas TFLite & Kecil, muat di flash\\\hline
+Konsumsi daya & Arus/daya rata-rata & INA219 atau USB power meter & Hemat daya\\\hline
+Reliabilitas & Kehilangan data, RPO, waktu pulih & Skenario putus koneksi & Tanpa kehilangan data\\\hline
+\end{tabular}
+\caption{Rencana pengukuran dan analisis data}
+\end{table}
+
+Kualitas model dianalisis menggunakan confusion matrix serta nilai precision, recall, dan F1-score pada data uji DS2, dengan recall kelas aritmia sebagai indikator utama keberhasilan deteksi dini. Dampak kuantisasi dianalisis dengan membandingkan metrik model sebelum dan sesudah kuantisasi INT8. Performa perangkat keras dianalisis dari latensi inferensi, penggunaan RAM, ukuran model, dan konsumsi daya. Adapun reliabilitas pipeline dianalisis dari tingkat kehilangan data, recovery point objective (RPO), dan waktu pemulihan pada skenario putus koneksi. Keseluruhan hasil analisis inilah yang menjadi bukti pemenuhan tujuan penelitian.
+
+\end{document}

@@ -1,0 +1,72 @@
+\chapter{Pendahuluan}
+\label{chap:pendahuluan}
+
+\section{Latar Belakang}
+\label{sec:latar-belakang}
+
+Penyakit kardiovaskular (\textit{cardiovascular disease}, CVD) merupakan penyebab utama kematian secara global. Menurut data Organisasi Kesehatan Dunia (WHO), diperkirakan 17,9 juta orang meninggal akibat CVD setiap tahunnya, mewakili sekitar 32\% dari seluruh kematian di dunia~\cite{who_cvd}. Angka ini menunjukkan urgensi pengembangan sistem deteksi dini yang dapat membantu mengurangi angka mortalitas akibat penyakit jantung.
+
+Aritmia merupakan salah satu manifestasi CVD yang paling berbahaya karena seringkali terjadi tanpa gejala yang jelas (\textit{asimptomatik}) hingga berujung pada komplikasi serius seperti \textit{stroke}, gagal jantung, atau bahkan kematian jantung mendadak (\textit{sudden cardiac death}). Oleh karena itu, deteksi dini aritmia melalui monitoring elektrokardiogram (ECG) secara kontinu menjadi sangat penting untuk memungkinkan intervensi medis yang tepat waktu~\cite{sheeba_rani_2026}.
+
+Metode monitoring jantung konvensional, seperti perangkat Holter monitor, memiliki beberapa keterbatasan signifikan. Perangkat Holter umumnya mahal, berukuran relatif besar, memerlukan kunjungan ke fasilitas kesehatan untuk pemasangan dan pengambilan data, serta hanya mampu merekam dalam durasi terbatas (24--48 jam). Hal ini menjadikan monitoring jantung kontinu jangka panjang sulit diakses masyarakat luas, terutama di daerah dengan akses kesehatan terbatas.
+
+Perkembangan teknologi Internet of Things (IoT) dan perangkat \textit{wearable} membuka peluang baru untuk monitoring kesehatan yang lebih terjangkau dan aksesibel. Integrasi dengan paradigma \textit{edge computing} memungkinkan pemrosesan data dilakukan langsung di perangkat (\textit{on-device}), mengurangi ketergantungan pada infrastruktur \textit{cloud} dan meminimalkan latensi respons~\cite{tinyml_iot_review}.
+
+Namun demikian, mayoritas sistem IoT untuk monitoring kesehatan saat ini masih menganut arsitektur \textit{cloud-centric}, di mana seluruh data sensor dikirim ke server cloud untuk diproses. Pendekatan ini memiliki beberapa kelemahan kritis, yaitu latensi tinggi yang tidak dapat diterima untuk aplikasi deteksi aritmia \textit{real-time}, ketergantungan pada konektivitas internet yang stabil, potensi masalah privasi data kesehatan, serta konsumsi daya dan bandwidth yang tinggi. Selain itu, model kecerdasan buatan untuk deteksi aritmia umumnya dievaluasi pada lingkungan PC server, tanpa mempertimbangkan batasan yang ada pada mikrokontroler, dan pipeline data dari \textit{edge} ke \textit{cloud} belum dirancang dengan mekanisme resiliensi terhadap gangguan jaringan~\cite{resilient_edge_cloud}.
+
+Berdasarkan permasalahan tersebut, penelitian ini mengajukan solusi berupa implementasi sistem monitoring detak jantung kontinu berbasis IoT \textit{edge computing} menggunakan pendekatan Tiny Machine Learning (TinyML). Sistem ini menjalankan preprocessing sinyal ECG dan inferensi model deteksi aritmia secara langsung pada mikrokontroler ESP32-S3, serta membangun pipeline \textit{edge-to-cloud} yang resilien dengan mekanisme \textit{local buffering} menggunakan protokol MQTT.
+
+\section{Permasalahan}
+\label{sec:permasalahan}
+
+Berdasarkan latar belakang yang telah diuraikan, rumusan masalah dalam penelitian ini adalah sebagai berikut:
+\begin{enumerate}
+  \item Bagaimana merancang algoritma \textit{preprocessing} sinyal ECG yang ringan dan efisien untuk dijalankan secara \textit{real-time} pada mikrokontroler berdaya rendah?
+  \item Bagaimana mengimplementasikan model TinyML teroptimasi untuk deteksi aritmia secara \textit{on-device} pada mikrokontroler ESP32-S3?
+  \item Bagaimana membangun pipeline IoT \textit{edge-to-cloud} yang resilien dengan mekanisme \textit{buffering} lokal saat terjadi gangguan jaringan?
+\end{enumerate}
+
+\section{Tujuan}
+\label{sec:tujuan}
+
+Penelitian ini mengajukan pendekatan baru untuk deteksi dini aritmia dengan menjalankan preprocessing sinyal ECG dan inferensi model TinyML secara langsung pada mikrokontroler ESP32-S3, serta membangun pipeline \textit{edge-to-cloud} yang resilien sebagai klaim orisinalitas. Secara lebih rinci, tujuan penelitian ini adalah sebagai berikut:
+\begin{enumerate}
+  \item Mengimplementasikan algoritma preprocessing ECG ringan yang mampu berjalan secara \textit{real-time} pada mikrokontroler berdaya rendah.
+  \item Menerapkan model TinyML terkompresi (kuantisasi INT8) untuk deteksi aritmia secara \textit{on-device} pada ESP32-S3 tanpa ketergantungan pada komputasi \textit{cloud}.
+  \item Membangun pipeline \textit{edge-to-cloud} yang resilien menggunakan protokol MQTT dengan mekanisme \textit{local buffering} untuk menjamin kontinuitas data monitoring saat koneksi terputus.
+\end{enumerate}
+
+\section{Manfaat}
+\label{sec:manfaat}
+
+Manfaat yang diharapkan dari penelitian ini adalah:
+\begin{enumerate}
+  \item Menghasilkan \emph{prototype} monitoring aritmia \textit{real-time} yang lebih terjangkau dan portabel dibandingkan perangkat medis konvensional.
+  \item Membuktikan kelayakan penerapan TinyML pada mikrokontroler ESP32-S3 untuk domain kesehatan, khususnya deteksi aritmia berbasis sinyal ECG.
+  \item Menjadi referensi implementasi \textit{edge computing} untuk sistem monitoring biomedis berbasis IoT \textit{open-source} yang dapat dikembangkan lebih lanjut oleh peneliti dan praktisi.
+\end{enumerate}
+
+\section{Sistematika Penulisan}
+\label{sec:sistematika}
+
+Sistematika penulisan penelitian ini disusun sebagai berikut:
+
+\noindent
+\textbf{\makebox[1.5cm][l]{BAB 1}PENDAHULUAN}\\
+\hspace*{1.5cm} Bab ini berisi latar belakang masalah yang melatarbelakangi penelitian, perumusan masalah, tujuan, manfaat, serta sistematika penulisan laporan secara keseluruhan. Bab ini memberikan gambaran umum mengenai urgensi pengembangan sistem monitoring aritmia berbasis IoT \textit{edge computing} dengan pendekatan TinyML.
+
+\noindent
+\textbf{\makebox[1.5cm][l]{BAB 2}KAJIAN PUSTAKA}\\
+\hspace*{1.5cm} Bab ini menguraikan teori-teori dasar dan literatur yang relevan dengan topik penelitian, meliputi teknologi Internet of Things (IoT), \textit{edge computing}, Tiny Machine Learning (TinyML), mikrokontroler ESP32-S3, sensor ECG AD8232, protokol MQTT, serta konsep deteksi aritmia jantung. Selain itu, dibahas pula studi penelitian terdahulu yang menjadi landasan teori dan pembanding.
+
+\noindent
+\textbf{\makebox[1.5cm][l]{BAB 3}DESKRIPSI SISTEM}\\
+\hspace*{1.5cm} Bab ini menjelaskan rancangan sistem secara keseluruhan, termasuk desain arsitektur \textit{edge-to-cloud}, perancangan perangkat keras \textit{wearable} berbasis ESP32-S3, pipeline preprocessing sinyal ECG pada mikrokontroler, implementasi model TinyML untuk deteksi aritmia secara \textit{on-device}, serta mekanisme \textit{local buffering} menggunakan protokol MQTT untuk menjamin resiliensi data saat koneksi terputus.
+
+\noindent
+\textbf{\makebox[1.5cm][l]{BAB 4}EKSPERIMEN DAN ANALISIS}\\
+\hspace*{1.5cm} Bab ini menguraikan tahapan pengujian sistem, mulai dari verifikasi fungsionalitas algoritma preprocessing ECG secara \textit{real-time} pada mikrokontroler berdaya rendah, evaluasi performa model TinyML terkompresi (kuantisasi INT8) untuk deteksi aritmia pada ESP32-S3, hingga uji resiliensi pipeline \textit{edge-to-cloud} dengan mekanisme \textit{local buffering} saat terjadi gangguan jaringan.
+
+\noindent
+\textbf{\makebox[1.5cm][l]{BAB 5}PENUTUP}\\
+\hspace*{1.5cm} Bab ini menyimpulkan hasil penelitian berdasarkan rumusan masalah yang telah ditetapkan, mengidentifikasi keterbatasan sistem, serta memberikan saran pengembangan ke depan seperti penambahan deteksi jenis aritmia lain, optimasi model TinyML, dan perluasan pengujian pada skenario klinis.

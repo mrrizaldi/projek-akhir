@@ -1,0 +1,36 @@
+# ===== Python (model/) =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+.ipynb_checkpoints/
+
+# ===== Data & artefak intermediate (regenerable) =====
+# dataset MIT-BIH — JANGAN di-commit
+model/data/raw/
+# array beat/label/RR intermediate
+model/data/processed/*.npz
+model/artifacts/**/*.log
+# Gate B = B1: figure final (*.png) & model_int8.h/.tflite SENGAJA di-commit.
+# Jangan tambah aturan yang meng-ignore mereka.
+
+# ===== PlatformIO / firmware (C/C++) =====
+firmware/.pio/
+firmware/.pioenvs/
+firmware/.piolibdeps/
+
+# ===== LaTeX (build output) =====
+*.aux
+*.log
+*.out
+*.toc
+*.synctex.gz
+*.fdb_latexmk
+*.fls
+# arahkan SEMUA output PDF ke folder build/ (lihat catatan dua-PDF)
+**/build/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db

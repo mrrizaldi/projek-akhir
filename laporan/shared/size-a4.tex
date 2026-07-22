@@ -1,0 +1,17 @@
+% ============================================================
+% SIZE CONFIG — A4
+% Di-input SEBELUM ../shared/preamble (common).
+% Mendefinisikan: geometry, line spacing, dan macro font heading
+% yang dikonsumsi oleh preamble.tex.
+% Pasangan: documentclass[12pt,a4paper,...] di main.tex.
+% ============================================================
+
+\usepackage[top=3.0cm, bottom=3.0cm, left=4.0cm, right=3.0cm]{geometry}
+
+\usepackage{setspace}
+\setstretch{1.5}
+
+% Macro font yang dipakai preamble (lihat shared/preamble.tex)
+\newcommand{\FontChapterHead}{\fontsize{14}{16}\selectfont}
+\newcommand{\FontSectionHead}{\fontsize{12}{16.5}\selectfont}
+\newcommand{\FontKutipan}{\fontsize{11}{13}\selectfont}

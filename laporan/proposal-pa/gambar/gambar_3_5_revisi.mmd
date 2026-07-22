@@ -1,0 +1,61 @@
+%% Gambar 3.5 (revisi) - Flowchart runtime firmware dan jalur resilien
+%% Perubahan dari versi lama:
+%% - Hapus semua cabang ke kartu SD / SPIFFS
+%% - Buffer lokal sepenuhnya di PSRAM (volatile), kebijakan overwrite-oldest saat penuh
+%% - Transmisi real-time per-rekaman saat online; batch offload (50-100 rekaman/paket) saat reconnect
+%% - Deteksi half-open connection via monitoring latensi PUBACK
+%% - Ditambah subgraph sisi cloud (ThingsBoard Rule Engine) untuk unpack batch + dedup native by ts
+
+flowchart TD
+
+    subgraph EDGE["Perangkat Edge (ESP32-S3)"]
+        direction TB
+
+        A(["Mulai / Akuisisi ECG (ADC)"]) --> B["Filter Butterworth bandpass"]
+        B --> C["Deteksi R-peak (Pan-Tompkins)"]
+        C --> D{"R-peak terdeteksi?"}
+        D -- tidak --> A
+        D -- ya --> E["Segmentasi + normalisasi (z-score)"]
+        E --> F["Inferensi CNN INT8"]
+        F --> G{"Koneksi MQTT online?"}
+
+        G -- ya --> H["Publikasi real-time\nper-rekaman, QoS-1"]
+        H --> I{"PUBACK diterima\ndalam batas waktu?"}
+        I -- ya --> A
+        I -- tidak/timeout --> J["Tandai koneksi bermasalah\n(indikasi half-open)"]
+
+        G -- tidak --> K["Enqueue ke ring buffer PSRAM (FIFO)"]
+        K --> L{"Buffer PSRAM penuh?\n(~27.000 rekaman)"}
+        L -- ya --> M["Overwrite rekaman tertua"]
+        L -- tidak --> A
+        M --> A
+
+        J --> N["Reconnect paksa"]
+        N --> O{"CONNACK diterima?"}
+        O -- tidak --> N
+        O -- ya --> P["Mulai Batch Offload Flush"]
+
+        P --> Q["Baca 50-100 rekaman dari read pointer PSRAM"]
+        Q --> R["Kemas jadi array JSON [{ts, values}, ...]"]
+        R --> S["Publish batch, QoS-1"]
+        S --> T{"PUBACK batch diterima?"}
+        T -- tidak/timeout --> S
+        T -- ya --> U["Geser read pointer"]
+        U --> V{"Ring buffer PSRAM kosong?"}
+        V -- tidak --> Q
+        V -- ya --> A
+    end
+
+    H -.->|payload single record| BROKER
+    S -.->|payload array batch| BROKER
+
+    subgraph CLOUD["Cloud (ThingsBoard CE)"]
+        direction TB
+        BROKER["Broker MQTT bawaan"] --> RULE["Rule Engine:\nnode Save Timeseries"]
+        RULE --> PARSE{"Format payload?"}
+        PARSE -- "single {ts, values}" --> SAVE1["Simpan 1 titik ke ts_kv"]
+        PARSE -- "array [{ts, values}, ...]" --> SAVE2["Unpack native, simpan\ntiap titik dgn ts asli"]
+        SAVE1 --> DEDUP["Upsert by (entity, key, ts)\ndedup implisit oleh storage"]
+        SAVE2 --> DEDUP
+        DEDUP --> DASH["Dashboard + Alarm Rule\n(label = 1 -> notifikasi)"]
+    end
