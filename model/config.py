@@ -1,7 +1,11 @@
-"""Konstanta global model. Isi nilai final sesuai PRD §4 (Fase 0).
-
-TODO manual:
-  FS, BANDPASS_*, WIN_PRE/WIN_POST/WIN_LEN, CHANNEL, SEED,
-  NORMAL_SYMBOLS/ARRHYTHMIA_SYMBOLS, AAMI_MAP, DS1/DS2/PACED_EXCLUDED.
-Cross-check daftar DS1/DS2 ke de Chazal 2004 sebelum dipakai (gated).
-"""
+FS = 360 # Hz, sampling MIT-BIH
+BANDPASS_LOW = 0.5 # Hz, cutoff bawah Butterworth
+BANDPASS_HIGH = 40.0 # Hz, cutoff atas Butterworth
+BANDPASS_ORDER = 4 # orde 2–4
+WIN_PRE = 90 # sampel sebelum R-peak
+WIN_POST = 160 # sampel sesudah R-peak
+WIN_LEN = WIN_PRE + WIN_POST # = 250 
+CHANNEL = "MLII" # kanal utama MIT-BIH
+SEED = 42 # randomness
+NORMAL_SYMBOLS = {"N"}
+ARRHYTHMIA_SYMBOLS = {"V", "S", "F", "Q"}

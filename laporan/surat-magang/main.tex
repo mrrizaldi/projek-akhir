@@ -1,0 +1,138 @@
+% ============================================================
+% Lembar Persetujuan Pengajuan Magang Semester 7
+% Standalone (article, Times) — tidak pakai shared/preamble.tex
+% Build: make pdf  → output/main.pdf
+% ============================================================
+\documentclass[12pt]{article}
+
+\usepackage[a4paper, margin=1in]{geometry}
+\usepackage{graphicx}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{setspace}
+\usepackage[T1]{fontenc}
+\usepackage{mathptmx} % Times New Roman, sama dengan projek lain di repo ini
+
+\pagestyle{empty}
+
+% Kolom seragam untuk blok identitas: label lebar tetap (titik dua sejajar),
+% isi rata kiri yang boleh turun baris, NIP/NRP kolom natural (tidak pernah pecah).
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+% Lebar kolom NIP/NRP dikunci = lebar string NIP terpanjang, supaya NIP dan NRP
+% mulai di titik yang sama dan tidak pernah pecah baris.
+\newlength{\KolomNip}
+
+
+% ================= DATA =================
+\newcommand{\NamaPembimbingSatu}{Prof. M. Udin Harun Al Rasyid, S.Kom, Ph.D}
+\newcommand{\NipPembimbingSatu}{198108082005011001}
+\newcommand{\NamaPembimbingDua}{Grezio Arifiyan Primajaya, S.Kom, M.Kom}
+\newcommand{\NipPembimbingDua}{199208262022031007}
+
+\newcommand{\NamaMahasiswa}{Muhammad Rafi Rizaldi}
+\newcommand{\NrpMahasiswa}{3123600001}
+\newcommand{\Jurusan}{Teknik Informatika}
+\newcommand{\JudulProyekAkhir}{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia}
+
+\newcommand{\NamaPerusahaan}{PT Aigra Eon Indonesia}
+\newcommand{\TanggalMulai}{3 Agustus 2026}
+\newcommand{\TanggalSelesai}{3 Desember 2026}
+\newcommand{\TanggalSurat}{30 Juli 2026}
+
+\newcommand{\LogoPens}{../proposal-pa/gambar/logo-pens.png}
+
+% ================= DOKUMEN =================
+\begin{document}
+
+% diukur di dalam document supaya font (Times 12pt) sudah aktif
+\settowidth{\KolomNip}{NIP. 199208262022031007}
+
+% ---------- Kop / header berbingkai ----------
+\noindent
+% tabularx: kolom teks (X) memakan sisa lebar, jadi kop mentok margin kiri-kanan
+\begin{tabularx}{\textwidth}{|c|>{\centering\arraybackslash}X|}
+\hline
+\raisebox{-0.5\height}{%
+  \IfFileExists{\LogoPens}%
+    {\includegraphics[width=2.2cm]{\LogoPens}}%
+    {\parbox[c][2.4cm][c]{2.2cm}{\centering LOGO\\PENS}}%
+} &
+\textbf{Politeknik Elektronika Negeri Surabaya}\par
+\vspace{2pt}\hrule\vspace{6pt}
+\textbf{LEMBAR PERSETUJUAN}\par
+\textbf{PENGAJUAN MAGANG SEMESTER 7}
+\\ \hline
+\end{tabularx}
+
+\vspace{1.5cm}
+
+% ---------- Judul ----------
+\begin{center}
+  {\large\bfseries LEMBAR PERSETUJUAN\\
+  PENGAJUAN MAGANG SEMESTER 7}
+\end{center}
+
+\vspace{0.8cm}
+
+\noindent Yang bertanda tangan di bawah ini :
+
+\vspace{0.4cm}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}p{4.2cm}@{ : }Y@{\hspace{10pt}}p{\KolomNip}@{}}
+Nama Pembimbing 1 & \NamaPembimbingSatu & NIP. \NipPembimbingSatu \\[4pt]
+Nama Pembimbing 2 & \NamaPembimbingDua  & NIP. \NipPembimbingDua  \\
+\end{tabularx}
+
+\vspace{0.3cm}
+
+\noindent Sebagai Dosen Pembimbing dari mahasiswa :
+
+\vspace{0.3cm}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}p{4.2cm}@{ : }Y@{\hspace{10pt}}p{\KolomNip}@{}}
+Nama    & \NamaMahasiswa & NRP. \NrpMahasiswa \\[4pt]
+Jurusan & \Jurusan       & \\
+\end{tabularx}
+
+\vspace{4pt}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}p{4.2cm}@{ : }Y@{}}
+Judul Proyek Akhir & \JudulProyekAkhir \\
+\end{tabularx}
+
+\vspace{0.5cm}
+
+\noindent Dengan ini menyatakan :
+
+\vspace{0.2cm}
+
+\noindent
+Menyetujui mahasiswa tersebut di atas untuk mengajukan magang di perusahaan
+\textbf{\NamaPerusahaan} untuk periode magang sejak tanggal \TanggalMulai{}
+sampai tanggal \TanggalSelesai.
+
+\vspace{0.3cm}
+
+\noindent Demikian untuk diketahui.
+
+\vspace{1cm}
+
+% ---------- Tanggal & tanda tangan ----------
+\begin{center}
+Surabaya, \TanggalSurat\\
+Mengetahui / Menyetujui,
+\end{center}
+
+\vspace{0.5cm}
+
+\noindent
+\begin{tabularx}{\textwidth}{@{}>{\centering\arraybackslash}X >{\centering\arraybackslash}X@{}}
+Dosen Pembimbing 1 & Dosen Pembimbing 2 \\[2.2cm]
+(\NamaPembimbingSatu) & (\NamaPembimbingDua) \\
+{\small NIP. \NipPembimbingSatu} & {\small NIP. \NipPembimbingDua} \\
+\end{tabularx}
+
+\end{document}

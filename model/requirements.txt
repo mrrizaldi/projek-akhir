@@ -4,3 +4,4 @@ wfdb
 tensorflow
 scikit-learn
 matplotlib
+pytest             # assert DoD tiap fase

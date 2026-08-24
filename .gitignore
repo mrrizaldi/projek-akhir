@@ -10,7 +10,7 @@ venv/
 # dataset MIT-BIH — JANGAN di-commit
 model/data/raw/
 # array beat/label/RR intermediate
-model/data/processed/*.npz
+model/data/processed/
 model/artifacts/**/*.log
 # Gate B = B1: figure final (*.png) & model_int8.h/.tflite SENGAJA di-commit.
 # Jangan tambah aturan yang meng-ignore mereka.
@@ -28,8 +28,7 @@ firmware/.piolibdeps/
 *.synctex.gz
 *.fdb_latexmk
 *.fls
-# arahkan SEMUA output PDF ke folder build/ (lihat catatan dua-PDF)
-**/build/
+# output PDF laporan ada di laporan/*/output/ — di-ignore oleh laporan/.gitignore
 
 # ===== OS =====
 .DS_Store
