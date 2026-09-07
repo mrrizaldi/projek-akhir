@@ -34,9 +34,10 @@ make split     # Fase 3 → train/test.npz
 Maksimal ~5 baris per fase: angka DoD, keputusan di-lock, jebakan ketemu.
 Naratif panjang → langsung ke Bab 4 laporan, jangan di sini.
 
-- [~] **Fase 0** — dataset MIT-BIH ter-download di `data/raw/mitdb/`; eksplorasi
-  record 100 sudah jalan. Sisa: `load_record()` di `src/io_mitdb.py` + DoD
-  (panjang sinyal ~650.000, ~2.200 R-peak, `fs == 360`, simbol non-beat dibuang).
+- [x] **Fase 0** — 48 record lengkap. Rec 100 → 650.000 sampel, 2.273 beat,
+  `fs == 360`, simbol tersisa `{A, N, V}`. Rec 114 (MLII index 1): garis mendarat
+  pas di puncak R (`make plot0 REC=114`) + di-assert mekanis vs `p_signal[:, 1]`.
+  Rec 102/104 (tanpa MLII) ditolak `ValueError`. `make test` → 9 passed.
 - [ ] **Fase 1** — preprocessing (golden reference)
 - [ ] **Fase 2** — beat, label biner, fitur RR
 - [ ] **Fase 3** — split inter-patient DS1/DS2
@@ -63,11 +64,19 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Strategi imbalance | *(belum)* | class_weight **atau** oversampling, jangan dua-duanya |
 | Dropout Dense 16 | *(belum)* | |
 | Tipe I/O INT8 | *(belum)* | konsisten dengan rencana firmware |
-| Record kanal anomali | *(belum)* | catat record yang MLII bukan index 0 |
+| Record kanal anomali | 114 (MLII idx 1); 102 & 104 tanpa MLII → `raise` | 102/104 paced, dibuang di Fase 3 juga |
+| Filter non-beat | whitelist `BEAT_SYMBOLS` di `config.py` | simbol tak dikenal ikut kebuang, bukan lolos |
 
 ## Jebakan yang sudah ketemu
 
-*(isi sambil jalan: gejala → sebab → cara hindar)*
+- **`wfdb.io.annotation.is_qrs` tidak bisa dipakai buat filter non-beat.**
+  Gejala: `[`, `]`, `x`, `)` lolos sebagai "beat". Sebab: tabel wfdb menandai
+  penanda awal/akhir ventricular flutter & non-conducted P-wave sebagai QRS.
+  Hindari: whitelist eksplisit `config.BEAT_SYMBOLS` (15 simbol AAMI).
+- **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
+  dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
+  `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat
+  `scripts/plot_fase0.py`); `conftest.py` sudah menangani sisi pytest.
 
 ## Kanal knowledge
 

@@ -1,6 +1,7 @@
 # Orkestrator jalur model. Urutan fase mengikuti PRD_Model_Aritmia_TinyML.pdf.
 # Logika algoritma ada di src/ (modul) & scripts/ (eksekusi) — bukan di sini.
 PY := python
+REC ?= 100          # record buat target plot: make plot0 REC=114
 
 .PHONY: data check plot0 plot1 prep split train eval quantize export test clean help
 
@@ -13,11 +14,11 @@ data:  ## download MIT-BIH ke data/raw/mitdb (sekali jalan)
 check: ## cek kelengkapan .hea/.dat/.atr
 	$(PY) scripts/check_dataset.py
 plot0: ## verifikasi Fase 0 — overlay R-peak anotasi
-	$(PY) scripts/plot_fase0.py 100
+	$(PY) scripts/plot_fase0.py $(REC)
 
 ## ── Fase 1 — preprocessing (golden reference) ────────────────────────────────
 plot1: ## verifikasi Fase 1 — raw vs bandpass, window N vs V
-	$(PY) scripts/plot_fase1.py 100
+	$(PY) scripts/plot_fase1.py $(REC)
 
 ## ── Fase 2 — beat, label, fitur RR ───────────────────────────────────────────
 data/processed/per_record/.stamp: config.py src/preprocessing.py src/features_rr.py

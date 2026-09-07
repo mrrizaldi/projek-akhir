@@ -1,63 +1,45 @@
-## Download MIT-BIH Arrhythmia Database
-# import wfdb
-# wfdb.dl_database('mitdb', dl_dir='data/raw/mitdb')
+"""Fase 0 — loader MIT-BIH. Modul MURNI: masuk record_id, keluar array.
 
+Tanpa kode top-level, tanpa plot, tanpa print — supaya import-safe dan bisa
+di-assert tanpa menyeret pemuatan record 30 menit. Eksekusi/plot ada di
+scripts/plot_fase0.py.
+"""
 import os
 
 import numpy as np
 import wfdb
-import matplotlib.pyplot as plt
 
-# tes = os.path.dirname(__file__)
-# print(tes)
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "mitdb")
-print(DATA_DIR)
+from config import CHANNEL, FS, RAW_DIR, BEAT_SYMBOLS
 
-# tes = os.path.join(DATA_DIR, "101.atr")
-tes = os.path.join(DATA_DIR, "100")
-record = wfdb.rdrecord(tes)
-annotation = wfdb.rdann(tes, "atr")
 
-# print(record)
-print(f"   Nama           : {record.record_name}")
-print(f"   Jumlah kanal   : {record.n_sig}  → {record.sig_name}")
-print(f"   Sampling rate  : {record.fs} Hz")
-print(f"   Durasi         : {record.sig_len / record.fs:.1f} detik "
-      f"({record.sig_len / record.fs / 60:.1f} menit)")
-print(f"   Shape sinyal   : {record.p_signal.shape}")
-print(f"   Jumlah anotasi : {len(annotation.symbol)}")
+def load_record(record_id: str, raw_dir: str = RAW_DIR):
+    """Baca satu record MIT-BIH.
 
-## plotting
-fs = record.fs
-plot_duration = 30
-n_sampel = fs * plot_duration
+    Returns:
+        signal (np.ndarray, [N] float32): sinyal kanal MLII.
+        r_locations (np.ndarray, [M] int64): indeks sampel R-peak (anotasi).
+        symbols (list[str], len M): simbol anotasi per beat.
+        fs (int): sampling frequency (dijamin == FS).
 
-signal = record.p_signal[:n_sampel, 0]  # kanal MLII
-time = np.arange(n_sampel) / fs
+    Raises:
+        ValueError: record tidak punya kanal CHANNEL, atau fs != FS.
+    """
+    path = os.path.join(raw_dir, str(record_id))
+    record = wfdb.rdrecord(path)
+    annotation = wfdb.rdann(path, "atr")
 
-# Ambil anotasi dalam window 30 detik
-ann_mask = annotation.sample < n_sampel
-ann_samples = annotation.sample[ann_mask]
-ann_symbols = np.array(annotation.symbol)[ann_mask]
+    if record.fs != FS:
+        raise ValueError(f"record {record_id}: fs={record.fs}, harus {FS}")
 
-plt.figure(figsize=(14, 4))
-plt.plot(time, signal, color="#2563eb", linewidth=0.8, label="ECG (MLII)")
+    if CHANNEL not in record.sig_name:
+        raise ValueError(
+            f"record {record_id}: kanal {CHANNEL} tidak ada, hanya {record.sig_name}"
+        )
 
-# Tandai setiap R-peak dengan simbol anotasinya
-for s, sym in zip(ann_samples, ann_symbols):
-    color = "#ef4444" if sym != "N" else "#22c55e"
-    plt.axvline(x=s / fs, color=color, alpha=0.4, linewidth=0.8)
-    plt.text(s / fs, signal[s] + 0.05, sym, fontsize=6, color=color,
-             ha="center", va="bottom")
+    channel = record.sig_name.index(CHANNEL)
+    signal = record.p_signal[:, channel].astype(np.float32)
 
-plt.xlabel("Waktu (detik)")
-plt.ylabel("Amplitudo (mV)")
-plt.title(f"ECG Rekaman '100' — 30 detik pertama\n"
-          f"Hijau = Normal (N), Merah = Aritmia")
-plt.legend()
-plt.tight_layout()
+    symbols = np.asarray(annotation.symbol)
+    is_beat = np.isin(symbols, list(BEAT_SYMBOLS))
 
-out_path = os.path.join(os.path.dirname(__file__), "ecg_sample.png")
-plt.savefig(out_path, dpi=120)
-print(f"\n✅ Plot disimpan ke: scripts/ecg_sample.png")
-print("\n🎉 Dataset OK! Siap diproses.\n")
+    return signal, annotation.sample[is_beat], symbols[is_beat].tolist(), record.fs
