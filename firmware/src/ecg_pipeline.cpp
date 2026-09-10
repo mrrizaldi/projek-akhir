@@ -1,30 +1,73 @@
 // Port golden reference preprocessing ke C. Kontrak & aturan: include/ecg_pipeline.h
-//
-// STUB — logika algoritma ditulis manual (aturan #1 CLAUDE.md).
-// Jalankan `pio test -e native` untuk melihat apa yang belum cocok.
+// Diverifikasi terhadap Python oleh test/test_preproc/ (pio test -e native).
 #include "ecg_pipeline.h"
+
+#include <math.h>
 
 void ecg_bandpass(const float *in, float *out, size_t n, float *state)
 {
-    // TODO: kaskade ECG_N_SOS biquad, bentuk langsung II transposed:
-    //   y      = b0*x + s0
-    //   s0_baru = b1*x - a1*y + s1
-    //   s1_baru = b2*x - a2*y
-    // keluaran section ke-k jadi masukan section ke-(k+1).
-    (void)in; (void)out; (void)n; (void)state;
+    for (size_t i = 0; i < n; i++) {
+        float x = in[i];
+        for (int k = 0; k < ECG_N_SOS; k++) {
+            const float *c = &ecg_sos[k * 6];   // b0 b1 b2 a0 a1 a2, a0 == 1
+            float *s = &state[k * 2];
+            float y = c[0] * x + s[0];
+            s[0] = c[1] * x - c[4] * y + s[1];
+            s[1] = c[2] * x - c[5] * y;
+            x = y;
+        }
+        out[i] = x;
+    }
 }
 
 int ecg_window_zscore(const float *filtered, size_t n, int r, float *out)
 {
-    // TODO: cek batas, hitung mean & std populasi atas ECG_WIN_LEN_ sampel,
-    // lalu (x - mean) / (std + ECG_ZSCORE_EPS).
-    (void)filtered; (void)n; (void)r; (void)out;
-    return 0;
+    const int start = r - ECG_WIN_PRE;
+    if (start < 0 || (size_t)(start + ECG_WIN_LEN_) > n) {
+        return 0;
+    }
+    const float *w = filtered + start;
+
+    double jumlah = 0.0;
+    for (int i = 0; i < ECG_WIN_LEN_; i++) {
+        jumlah += w[i];
+    }
+    const double mean = jumlah / ECG_WIN_LEN_;
+
+    double kuadrat = 0.0;
+    for (int i = 0; i < ECG_WIN_LEN_; i++) {
+        const double d = w[i] - mean;
+        kuadrat += d * d;
+    }
+    const double std_pop = sqrt(kuadrat / ECG_WIN_LEN_);   // pembagi N, bukan N-1
+
+    for (int i = 0; i < ECG_WIN_LEN_; i++) {
+        out[i] = (float)((w[i] - mean) / (std_pop + ECG_ZSCORE_EPS));
+    }
+    return 1;
 }
 
 int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3])
 {
-    // TODO: rr_prev, rr_ratio (jendela kausal <=10, menyusut di awal), drr.
-    (void)r; (void)n_r; (void)i; (void)fs; (void)out;
-    return 0;
+    if (i < 2 || i >= n_r) {
+        return 0;
+    }
+    const double dt = 1.0 / (double)fs;
+    const double rr_prev = (r[i] - r[i - 1]) * dt;
+    const double rr_sebelumnya = (r[i - 1] - r[i - 2]) * dt;
+
+    // Rata-rata KAUSAL atas <= ECG_RR_LOCAL_WINDOW interval terakhir, termasuk
+    // interval ini. Jendela MENYUSUT di awal — jangan di-pad.
+    const size_t j = i - 1;                       // d[j] = RR_prev beat i
+    const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
+    double jumlah = 0.0;
+    for (size_t k = start; k <= j; k++) {
+        jumlah += (r[k + 1] - r[k]) * dt;
+    }
+    const double rata_lokal = jumlah / (double)(j - start + 1);
+
+    out[0] = (float)rr_prev;
+    out[1] = (float)(rr_prev / rata_lokal);
+    out[2] = (float)(rr_prev - rr_sebelumnya);
+    return 1;
 }

@@ -83,18 +83,44 @@ void test_zscore_sifat(void)
     TEST_ASSERT_FLOAT_WITHIN(1e-3f, 1.0f, sqrtf(var / GOLDEN_WIN_LEN));
 }
 
-// Tahap 3 — fitur RR. Beat 0 & 1 golden sudah punya tetangga (diambil dari
-// record utuh), jadi indeks di sini relatif ke daftar r yang sama.
+// Tahap 3 — fitur RR. golden_rr dihitung dari golden_r yang sama, jadi C punya
+// input identik dengan Python. Beat 0 & 1 tak punya RR_prev/dRR → dilewati.
 void test_rr_features(void)
 {
     float rr[3];
-    for (int b = 2; b < GOLDEN_N_BEAT; b++) {
+    for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT; b++) {
         TEST_ASSERT_TRUE_MESSAGE(
             ecg_rr_features(golden_r, GOLDEN_N_BEAT, b, ECG_FS, rr),
             "rr_features seharusnya berhasil untuk i >= 2");
-        // Catatan: golden_rr dihitung dari r record UTUH; beat 0-1 di daftar ini
-        // memakai tetangga di luar potongan, jadi yang dibandingkan mulai b=2.
-        bandingkan("rr", rr, golden_rr + (size_t)b * GOLDEN_N_RR, 1, 1e-3f);
+        bandingkan("rr", rr, golden_rr + (size_t)b * GOLDEN_N_RR,
+                   GOLDEN_N_RR, 1e-4f);
+    }
+}
+
+// Beat 0 & 1 wajib DITOLAK, bukan diisi nilai asal — dRR=0 itu nilai sah
+// (ritme stabil), jadi sentinel 0 akan bentrok dengan data asli.
+void test_rr_menolak_beat_awal(void)
+{
+    float rr[3];
+    TEST_ASSERT_FALSE(ecg_rr_features(golden_r, GOLDEN_N_BEAT, 0, ECG_FS, rr));
+    TEST_ASSERT_FALSE(ecg_rr_features(golden_r, GOLDEN_N_BEAT, 1, ECG_FS, rr));
+}
+
+// Uji rantai UTUH: mentah -> bandpass C -> z-score C, dibandingkan ke window
+// golden. Ini yang membuktikan selisih presisi float32 di filter tidak merambat
+// jadi masalah di masukan model — z-score membagi dengan std, jadi galat
+// bersama ikut ternormalisasi.
+void test_pipeline_utuh(void)
+{
+    float state[ECG_N_SOS * 2];
+    memset(state, 0, sizeof(state));
+    ecg_bandpass(golden_raw, buf_filtered, GOLDEN_N, state);
+
+    for (int b = 0; b < GOLDEN_N_BEAT; b++) {
+        TEST_ASSERT_TRUE(ecg_window_zscore(buf_filtered, GOLDEN_N, golden_r[b], buf_window));
+        bandingkan("pipeline utuh", buf_window,
+                   golden_window + (size_t)b * GOLDEN_WIN_LEN,
+                   GOLDEN_WIN_LEN, GOLDEN_TOL_ZSCORE);
     }
 }
 
@@ -107,5 +133,7 @@ int main(int argc, char **argv)
     RUN_TEST(test_window_zscore);
     RUN_TEST(test_zscore_sifat);
     RUN_TEST(test_rr_features);
+    RUN_TEST(test_rr_menolak_beat_awal);
+    RUN_TEST(test_pipeline_utuh);
     return UNITY_END();
 }

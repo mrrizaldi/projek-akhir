@@ -9,6 +9,7 @@
 #define ECG_WIN_POST 160
 #define ECG_WIN_LEN_ 250
 #define ECG_ZSCORE_EPS 1e-8f
+#define ECG_RR_LOCAL_WINDOW 10
 
 // Butterworth bandpass 0.5-40.0 Hz orde 4,
 // 4 second-order section: {b0, b1, b2, a0, a1, a2} per baris.

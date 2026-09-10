@@ -25,7 +25,7 @@ import tensorflow as tf  # noqa: E402
 
 from config import (  # noqa: E402
     ARTIFACT_DIR, FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER,
-    N_RR_FEATURES, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
+    N_RR_FEATURES, RR_LOCAL_WINDOW_BEATS, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
 )
 from src.io_mitdb import load_record  # noqa: E402
 from src.preprocessing import (  # noqa: E402
@@ -36,7 +36,8 @@ from src.quantize import predict_tflite  # noqa: E402
 from scripts.prep_beats import valid_beat_indices  # noqa: E402
 
 RECORD = "208"
-N_SAMPLES = 1800                      # 5 detik @360 Hz
+N_SAMPLES = 2400                      # 6,7 detik @360 Hz
+RR_FIRST = 2                          # beat 0-1 tak punya RR_prev/dRR
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 H_PREPROC = os.path.join(ROOT, "firmware", "include", "ecg_preproc.h")
 H_GOLDEN = os.path.join(ROOT, "firmware", "test", "golden_ref.h")
@@ -64,13 +65,20 @@ def main() -> None:
         raise ValueError("tidak ada beat yang muat di potongan")
 
     windows = zscore_per_window(segment_beats(filtered, r[dipakai]))
-    rr = compute_rr_features(r)[dipakai]
     label = [to_binary_label(to_aami_class(sym[i])) for i in dipakai]
 
+    # RR dihitung dari daftar R-peak POTONGAN ini saja, bukan record utuh — C
+    # cuma punya beat yang ada di sini. Input sama → keluaran harus sama.
+    # Konsekuensinya beat 0 & 1 tidak punya RR (NaN); diisi 0 dan tidak diuji.
+    rr = compute_rr_features(np.asarray(r)[dipakai])
+    rr_bersih = np.nan_to_num(rr, nan=0.0)
+
     keras = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
-    p_fp32 = keras.predict([windows.reshape(-1, WIN_LEN, 1), rr], verbose=0).ravel()
+    p_fp32 = keras.predict([windows.reshape(-1, WIN_LEN, 1), rr_bersih], verbose=0).ravel()
     p_int8 = predict_tflite(os.path.join(ARTIFACT_DIR, "model_int8.tflite"),
-                            windows.reshape(-1, WIN_LEN, 1), rr)
+                            windows.reshape(-1, WIN_LEN, 1), rr_bersih)
+    p_fp32[:RR_FIRST] = 0.0
+    p_int8[:RR_FIRST] = 0.0
 
     os.makedirs(os.path.dirname(H_PREPROC), exist_ok=True)
     os.makedirs(os.path.dirname(H_GOLDEN), exist_ok=True)
@@ -87,6 +95,7 @@ def main() -> None:
 #define ECG_WIN_POST {WIN_POST}
 #define ECG_WIN_LEN_ {WIN_LEN}
 #define ECG_ZSCORE_EPS 1e-8f
+#define ECG_RR_LOCAL_WINDOW {RR_LOCAL_WINDOW_BEATS}
 
 // Butterworth bandpass {BANDPASS_LOW}-{BANDPASS_HIGH} Hz orde {BANDPASS_ORDER},
 // {len(sos)} second-order section: {{b0, b1, b2, a0, a1, a2}} per baris.
@@ -109,11 +118,16 @@ def main() -> None:
 #define GOLDEN_WIN_LEN {WIN_LEN}
 #define GOLDEN_N_RR {N_RR_FEATURES}
 #define GOLDEN_THRESHOLD {THRESHOLD}f
+// Beat 0 & 1 tak punya RR_prev/dRR — baris rr & prob-nya 0, jangan diuji.
+#define GOLDEN_RR_FIRST {RR_FIRST}
 
-// Toleransi: float32 di C dan di numpy beda urutan operasi, jadi jangan uji
-// kesetaraan persis. Yang TIDAK boleh adalah beda sistematis (geseran indeks,
-// std populasi vs sampel, koefisien tertukar).
-#define GOLDEN_TOL_FILTER 1e-4f
+// Toleransi: golden ini float64 (scipy), device float32 (ESP32-S3 punya FPU
+// single-precision; double di-emulasi software = lambat). Di filter IIR yang
+// rekursif, selisih presisi itu MENUMPUK — terukur ~2e-4 pada amplitudo ~0,4.
+// Bukan bug: yang haram adalah beda SISTEMATIS (geseran indeks, koefisien
+// tertukar, a0 ikut terbaca). test_pipeline_utuh membuktikan selisih ini tidak
+// merambat ke window ter-z-score, yang justru yang dimakan model.
+#define GOLDEN_TOL_FILTER 1e-3f
 #define GOLDEN_TOL_ZSCORE 1e-3f
 #define GOLDEN_TOL_PROB   2e-2f
 
@@ -129,7 +143,7 @@ const int golden_label[GOLDEN_N_BEAT] = {{{", ".join(str(v) for v in label)}}};
 // Tahap 2 — window ter-z-score, {len(dipakai)} beat x {WIN_LEN} sampel (baris demi baris)
 {_larik("golden_window", windows)}
 // Tahap 3 — fitur RR per beat: RR_prev, RR_ratio, dRR
-{_larik("golden_rr", rr, 3)}
+{_larik("golden_rr", rr_bersih, 3)}
 // Tahap 4 — probabilitas keluaran model
 {_larik("golden_prob_fp32", p_fp32, 4)}
 {_larik("golden_prob_int8", p_int8, 4)}
