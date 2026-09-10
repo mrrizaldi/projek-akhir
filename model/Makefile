@@ -1,9 +1,9 @@
 # Orkestrator jalur model. Urutan fase mengikuti PRD_Model_Aritmia_TinyML.pdf.
 # Logika algoritma ada di src/ (modul) & scripts/ (eksekusi) — bukan di sini.
-PY := python
+PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 REC ?= 100          # record buat target plot: make plot0 REC=114
 
-.PHONY: data check plot0 plot1 prep split train eval quantize export test clean help
+.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc test clean help
 
 help:
 	@grep -E '^[a-z0-9]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
@@ -17,8 +17,10 @@ plot0: ## verifikasi Fase 0 — overlay R-peak anotasi
 	$(PY) scripts/plot_fase0.py $(REC)
 
 ## ── Fase 1 — preprocessing (golden reference) ────────────────────────────────
-plot1: ## verifikasi Fase 1 — raw vs bandpass, window N vs V
+plot1: ## verifikasi Fase 1a — raw vs bandpass (domain waktu + PSD)
 	$(PY) scripts/plot_fase1.py $(REC)
+plot1seg: ## verifikasi Fase 1b — segmentasi + z-score per window
+	$(PY) scripts/plot_fase1_segment.py $(REC)
 
 ## ── Fase 2 — beat, label, fitur RR ───────────────────────────────────────────
 data/processed/per_record/.stamp: config.py src/preprocessing.py src/features_rr.py
@@ -40,8 +42,12 @@ quantize: ## PTQ INT8 + evaluasi ulang + tabel delta
 export: ## salin artefak ke firmware/ & laporan/
 	bash ../scripts/export_artifacts.sh
 
+## ── Fase 8 — checklist PoC ───────────────────────────────────────────────────
+poc: ## verifikasi 8 item DoD PRD secara mekanis
+	$(PY) scripts/check_poc.py
+
 ## ── Verifikasi & bersih-bersih ───────────────────────────────────────────────
 test: ## assert DoD yang berupa angka
-	pytest tests/ -q
+	$(PY) -m pytest tests/ -q
 clean: ## hapus artefak turunan; data/raw & model terlatih AMAN
 	rm -rf data/processed artifacts/metrics/*.png artifacts/metrics/*.csv
