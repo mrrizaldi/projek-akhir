@@ -1,5 +1,41 @@
-"""train — lihat spesifikasi lengkap di PRD_Model_Aritmia_TinyML.pdf.
+"""train — Fase 5: class weight + loop training. Walkthrough: docs/train-walkthrough.md"""
+import numpy as np
+from tensorflow.keras import callbacks, metrics
 
-TODO (manual): implementasikan sesuai fase terkait di PRD.
-Jangan vibe-coding; ikuti kontrak fungsi & jebakan yang tercatat.
-"""
+from config import BATCH_SIZE, EARLY_STOP_MONITOR, EARLY_STOP_PATIENCE, EPOCHS
+
+
+def make_class_weights(y) -> dict:
+    y = np.asarray(y).astype(int)
+    counts = np.bincount(y, minlength=2)
+    if (counts == 0).any():
+        raise ValueError(f"satu kelas kosong: Normal={counts[0]}, Aritmia={counts[1]}")
+    return {c: len(y) / (2.0 * counts[c]) for c in (0, 1)}
+
+
+def compile_model(model):
+    model.compile(
+        optimizer="adam",
+        loss="binary_crossentropy",
+        metrics=[
+            metrics.Recall(name="recall"),
+            metrics.Precision(name="precision"),
+            metrics.AUC(name="auc"),
+        ],
+    )
+    return model
+
+
+def train(model, train_data: dict, val_data: dict,
+          epochs: int = EPOCHS, batch_size: int = BATCH_SIZE):
+    compile_model(model)
+    stop = callbacks.EarlyStopping(
+        monitor=EARLY_STOP_MONITOR, mode="max",
+        patience=EARLY_STOP_PATIENCE, restore_best_weights=True,
+    )
+    return model.fit(
+        [train_data["X_morph"], train_data["X_rr"]], train_data["y"],
+        validation_data=([val_data["X_morph"], val_data["X_rr"]], val_data["y"]),
+        class_weight=make_class_weights(train_data["y"]),
+        epochs=epochs, batch_size=batch_size, callbacks=[stop], verbose=2,
+    )
