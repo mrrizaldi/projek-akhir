@@ -24,6 +24,9 @@ from config import (  # noqa: E402
     REP_SAMPLES, THRESHOLD,
 )
 from src.evaluate import evaluate_probabilities, roc_auc  # noqa: E402
+import tensorflow as tf  # noqa: E402
+
+from src.model import build_deploy_model  # noqa: E402
 from src.quantize import (  # noqa: E402
     predict_tflite, quantize_int8, representative_dataset_gen, stratified_indices,
 )
@@ -50,8 +53,11 @@ def main() -> None:
           f"(Normal {int((ds1['y'][idx] == 0).sum())}, "
           f"Aritmia {int((ds1['y'][idx] == 1).sum())})   int8_io={INT8_IO}")
 
-    blob = quantize_int8(keras_path, representative_dataset_gen(
-        ds1["X_morph"], ds1["X_rr"], ds1["y"], REP_SAMPLES))
+    # Model latih (GlobalAveragePooling + Dense) → varian deploy dengan bobot
+    # sama tapi op yang dihitung benar oleh TFLite Micro. Lihat walkthrough §3.
+    deploy = build_deploy_model(tf.keras.models.load_model(keras_path))
+    blob = quantize_int8(deploy, representative_dataset_gen(
+        ds1["X_morph"], ds1["X_rr"], ds1["y"], REP_SAMPLES, rr_shape=(1, 3)))
     with open(tflite_path, "wb") as f:
         f.write(blob)
     ukuran_kb = len(blob) / 1024

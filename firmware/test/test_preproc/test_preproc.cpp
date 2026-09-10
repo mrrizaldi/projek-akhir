@@ -124,9 +124,8 @@ void test_pipeline_utuh(void)
     }
 }
 
-int main(int argc, char **argv)
+static void jalankan(void)
 {
-    (void)argc; (void)argv;
     UNITY_BEGIN();
     RUN_TEST(test_bandpass);
     RUN_TEST(test_bandpass_streaming);
@@ -135,5 +134,15 @@ int main(int argc, char **argv)
     RUN_TEST(test_rr_features);
     RUN_TEST(test_rr_menolak_beat_awal);
     RUN_TEST(test_pipeline_utuh);
-    return UNITY_END();
+    UNITY_END();
 }
+
+// Test yang sama jalan di dua tempat: `pio test -e native` (PC) dan
+// `pio test -e esp32-s3` (FPU sungguhan). Arduino tidak punya main().
+#ifdef ARDUINO
+#include <Arduino.h>
+void setup() { Serial.begin(115200); delay(2000); jalankan(); }
+void loop() {}
+#else
+int main(int argc, char **argv) { (void)argc; (void)argv; jalankan(); return 0; }
+#endif

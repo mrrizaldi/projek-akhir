@@ -150,7 +150,7 @@ def main() -> None:
     cek("Split inter-patient disjoint + paced dibuang", split_terverifikasi)
     cek("Model hybrid ~6.000 param, 2 input", model_hybrid)
     cek("Metrik float32 DS2 ada & recall tidak ~0", metrik_fp32)
-    cek("Model INT8 < 20 KB, full-INT8", model_int8)
+    cek(f"Model INT8 < {MAX_MODEL_KB} KB, full-INT8", model_int8)
     cek("Tabel delta float32 vs INT8 lengkap", tabel_delta)
     cek("Semua decision point tercatat", decision_tercatat)
 

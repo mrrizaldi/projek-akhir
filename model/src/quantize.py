@@ -18,23 +18,29 @@ def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
     return np.sort(np.concatenate(idx))
 
 
-def representative_dataset_gen(X_morph, X_rr, y, n: int = REP_SAMPLES, seed: int = SEED):
+def representative_dataset_gen(X_morph, X_rr, y, n: int = REP_SAMPLES,
+                               seed: int = SEED, rr_shape=None):
     """Generator kalibrasi. Yield DICT bernama — list posisional bikin converter
-    salah memasangkan tensor pada model dua-input (JEBAKAN #3)."""
+    salah memasangkan tensor pada model dua-input (JEBAKAN #3).
+
+    rr_shape: bentuk per-sampel input ritme; model deploy memakai (1, 3).
+    """
     idx = stratified_indices(y, n, seed)
+    bentuk = (1,) + tuple(rr_shape) if rr_shape else None
 
     def gen():
         for i in idx:
+            rr = X_rr[i:i + 1].astype(np.float32)
             yield {
                 "morphology": X_morph[i:i + 1].astype(np.float32),
-                "rhythm": X_rr[i:i + 1].astype(np.float32),
+                "rhythm": rr.reshape(bentuk) if bentuk else rr,
             }
 
     return gen
 
 
-def quantize_int8(keras_model_path: str, rep_gen, int8_io: bool = INT8_IO) -> bytes:
-    model = tf.keras.models.load_model(keras_model_path)
+def quantize_int8(model, rep_gen, int8_io: bool = INT8_IO) -> bytes:
+    """model: keras Model (pakai build_deploy_model, bukan model latih langsung)."""
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = rep_gen
@@ -60,7 +66,9 @@ def _dequantize(q, detail):
 def predict_tflite(tflite_path: str, X_morph, X_rr) -> np.ndarray:
     interp = tf.lite.Interpreter(model_path=tflite_path)
     interp.allocate_tensors()
-    inputs = sorted(interp.get_input_details(), key=lambda d: len(d["shape"]))
+    # Bedakan lewat JUMLAH ELEMEN, bukan jumlah dimensi: di model deploy
+    # ritme berbentuk (1,1,3) — sama-sama 3 dimensi dengan morfologi.
+    inputs = sorted(interp.get_input_details(), key=lambda d: int(np.prod(d["shape"])))
     rr_in, morph_in = inputs[0], inputs[1]
     out = interp.get_output_details()[0]
 
@@ -69,7 +77,8 @@ def predict_tflite(tflite_path: str, X_morph, X_rr) -> np.ndarray:
         interp.set_tensor(morph_in["index"],
                           _quantize(X_morph[i:i + 1].astype(np.float32), morph_in))
         interp.set_tensor(rr_in["index"],
-                          _quantize(X_rr[i:i + 1].astype(np.float32), rr_in))
+                          _quantize(X_rr[i:i + 1].astype(np.float32), rr_in)
+                          .reshape(rr_in["shape"]))
         interp.invoke()
         prob[i] = _dequantize(interp.get_tensor(out["index"]), out).ravel()[0]
     return prob
