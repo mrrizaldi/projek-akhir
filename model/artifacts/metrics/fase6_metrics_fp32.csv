@@ -1,0 +1,2 @@
+model,threshold,tp,fn,fp,tn,accuracy,precision,recall,specificity,f1,auc
+float32,0.35,3630,1820,3750,40454,0.887824,0.491870,0.666055,0.915166,0.565861,0.886612
