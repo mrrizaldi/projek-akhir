@@ -152,6 +152,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Simbol di luar `AAMI_MAP` | **`KeyError`** (tidak di-default ke Q) | whitelist `BEAT_SYMBOLS` sudah saring di hulu; simbol asing = bocor, harus berisik |
 | Record dibuang | `PACED_EXCLUDED` di `config.py` | 102/104 teknis (tanpa MLII), 107/217 metodologis (paced) |
 | Strategi imbalance | **`class_weight` balanced**, dihitung sendiri: `w_c = N/(2·n_c)` → Normal 0,556 / Aritmia 4,947 | tidak menyentuh data & tidak menggandakan beat pasien yang sama (oversampling = model hafal individu, lawan semangat inter-patient); PRD melarang dipakai bareng oversampling |
+| `pyserial` | **dipakai** (disetujui) — di `requirements.txt` | menarik rekaman dari board lewat serial; tidak ada padanan stdlib, dan semua alat jadi satu venv |
 | `sklearn` untuk class weight | **tidak dipakai** — 3 baris numpy | rumus `balanced` cuma `N/(2·n_c)`; gate point CLAUDE.md: jangan tambah dependency (apalagi sebesar sklearn) untuk yang beberapa baris sudah selesai |
 | Monitor EarlyStopping | **`val_auc`** (mode max, patience 8, `restore_best_weights`) | `val_recall` bisa dicurangi (tebak Aritmia semua → recall 1,0); `val_loss` sudah terdistorsi `class_weight` jadi tak lagi bisa ditafsir; AUC bebas threshold & tak bisa dipalsukan satu kelas |
 | Metrik yang dipantau | **recall, precision, AUC** — accuracy TIDAK | accuracy 89,9% bisa dicapai dengan menebak Normal terus; menampilkannya cuma mengundang salah baca |

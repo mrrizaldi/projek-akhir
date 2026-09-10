@@ -100,11 +100,7 @@ Keluarannya:
 Kalau kamu lupa menekan REC untuk berhenti, `make pull` menghentikan &
 menyimpannya dulu secara otomatis.
 
-**Kenapa `make pull` memakai Python PlatformIO**, bukan `.venv`: dia butuh
-`pyserial`, yang sengaja tidak ditambahkan ke `requirements.txt` (gate point
-dependency di `CLAUDE.md`). PlatformIO sudah membawanya. Skrip `pull_recording.py`
-karena itu cuma memakai stdlib + pyserial — tanpa numpy.
-
+Semuanya jalan di `.venv` yang sama — `pyserial` sudah masuk `requirements.txt`.
 Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
 
 ---

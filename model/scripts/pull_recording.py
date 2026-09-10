@@ -1,17 +1,9 @@
 """Tarik rekaman dari board ke data/recordings/<tanggal-jam>.csv.
 
-    make pull                  (atau langsung, lihat catatan interpreter)
-
-CATATAN INTERPRETER: skrip ini butuh `pyserial`, yang TIDAK ada di .venv model
-(dan sengaja tidak ditambahkan — lihat gate point dependency di CLAUDE.md).
-Jalankan dengan Python milik PlatformIO yang sudah punya pyserial:
-
-    ~/.platformio/penv/bin/python scripts/pull_recording.py
-
-Makanya skrip ini HANYA memakai stdlib + pyserial — tanpa numpy/matplotlib.
-Analisis dikerjakan terpisah oleh scripts/analyze_recording.py di .venv model.
+    make pull        (atau: .venv/bin/python scripts/pull_recording.py)
 
 Kalau board masih merekam, skrip menghentikan & menyimpannya dulu.
+Port lain: ECG_PORT=/dev/ttyACM1 make pull
 """
 import datetime
 import os
@@ -28,8 +20,8 @@ def main() -> None:
     try:
         import serial
     except ImportError:
-        sys.exit("pyserial tidak ada. Jalankan dengan:\n"
-                 "  ~/.platformio/penv/bin/python scripts/pull_recording.py")
+        sys.exit("pyserial tidak ada. Pasang dengan:\n"
+                 "  .venv/bin/pip install -r requirements.txt")
 
     try:
         s = serial.Serial(PORT, BAUD, timeout=2)

@@ -43,10 +43,8 @@ export: ## salin artefak ke firmware/ & laporan/
 	bash ../scripts/export_artifacts.sh
 
 ## ── Akuisisi dari device ─────────────────────────────────────────────────────
-# pull pakai Python PlatformIO (punya pyserial); analisis pakai .venv (numpy).
-PIOPY := $(HOME)/.platformio/penv/bin/python
 pull: ## tarik rekaman dari board -> data/recordings/<tanggal-jam>.csv
-	$(PIOPY) scripts/pull_recording.py
+	$(PY) scripts/pull_recording.py
 analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv
 	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE)))
 
