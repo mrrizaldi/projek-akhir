@@ -1,14 +1,3 @@
-"""preprocessing — Fase 1: filter kausal + Pan-Tompkins + segmentasi + z-score.
-
-Modul MURNI: masuk array, keluar array. Tanpa print/plot/tulis file — itu ada
-di scripts/plot_fase1.py. Spesifikasi lengkap: PRD_Model_Aritmia_TinyML.pdf hal 7-9.
-
-Urutan pemakaian:
-    apply_bandpass(load_record().signal, design_bandpass_sos())
-        -> segment_beats(..., r_locations dari io_mitdb.load_record())
-        -> zscore_per_window(...)
-    pan_tompkins_detect() TIDAK di jalur ini — lihat catatan perannya sendiri.
-"""
 import numpy as np
 from scipy.signal import butter, sosfilt, lfilter
 
