@@ -79,11 +79,11 @@ Naratif panjang → langsung ke Bab 4 laporan, jangan di sini.
   **V 0,9332 / S 0,3034 / F 0,1675**. Median recall per pasien 0,8933 tapi rec 232
   (1.381 aritmia S, 25% total DS2) cuma 0,2042 → menyeret agregat beat-level.
   `make test` → 42 passed.
-- [x] **Fase 7** — PTQ INT8 full end-to-end (int8 in/out, 0 tensor float32;
-  30 int8 + 12 int32 bias). **17,84 KB < 20 KB** (dari 25,07 KB fp32). Kalibrasi
-  300 sampel DS1 stratified (270 N / 30 A), seed dikunci. **Delta DS2 @0,35:
-  recall −0,0121, AUC −0,0004, precision +0,0395, F1 +0,0205** (FP −607, FN +66
-  → metrik agregat naik karena data 89% Normal; AUC yang jujur bilang setara).
+- [x] **Fase 7** — PTQ INT8 full end-to-end (int8 in/out, 0 tensor float32).
+  **22,91 KB < 25 KB** (batas dinaikkan dari 20, lihat decision point). Yang
+  dikuantisasi adalah **varian deploy** (`build_deploy_model`), bukan model latih
+  — TFLM salah hitung op `MEAN`. Kalibrasi 300 sampel DS1 stratified, seed
+  dikunci. **Delta DS2 @0,35: recall −0,0112, AUC −0,0004, precision +0,0383**.
   `make test` → 49 passed.
 - [x] **Fase 8** — `make poc` → **8/8 item DoD terverifikasi mekanis**
   (`scripts/check_poc.py`, exit code != 0 kalau ada yang gagal — bukan centang
@@ -114,11 +114,20 @@ Peta masuk + urutan baca: [`docs/README.md`](docs/README.md).
 | 5 | `src/train.py` | [`docs/train-walkthrough.md`](docs/train-walkthrough.md) |
 | 6 | `src/evaluate.py` | [`docs/evaluate-walkthrough.md`](docs/evaluate-walkthrough.md) |
 | 7 | `src/quantize.py` | [`docs/quantize-walkthrough.md`](docs/quantize-walkthrough.md) |
+| HW | `firmware/src/ecg_pipeline.cpp` | [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) |
 
 Kerangka yang dipakai (ikuti, jangan bikin format baru tiap fase):
 peta besar (diagram alur) → fungsi per fungsi dengan kode + rumus → keputusan
 yang diambil beserta alternatif yang ditolak → yang sengaja TIDAK dilakukan →
 angka nyata → cek pemahaman → skrip pendukung.
+
+- [x] **HW-1** — port preprocessing ke C + inferensi di ESP32-S3 sungguhan.
+  `pio test -e native` 7/7, `pio test -e esp32-s3` PASSED — probabilitas device
+  **cocok PC digit demi digit** (0,9727 / 0,0039 / 0,9883 / 0,9805 / 0,0117 /
+  0,9609). **26,0 ms per detak** (3,3% duty cycle), tensor arena 12.756 B,
+  RAM 54.468 B (16,6%), Flash 356.025 B (5,4%). Board id
+  `4d_systems_esp32s3_gen4_r8n16`, port `/dev/ttyACM0`.
+- [ ] **HW-2** — akuisisi AD8232 + MQTT + ring buffer PSRAM
 
 ## Decision point yang sudah di-lock
 
@@ -153,6 +162,12 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | QAT | **tidak dipakai** | PTQ sudah lolos target (delta recall 1,21% < 2%, 17,84 KB); QAT = latih ulang + sumber variasi baru untuk keuntungan yang belum tentu ada |
 | Validation set | **DS1 record 101, 114, 201, 220, 223** (`VAL_RECORDS`; 10.348 beat = 20,3% DS1, aritmia 10,11% ≈ rasio DS1, S=310 V=714) | val jadi simulasi jujur "pasien baru" → angkanya layak dipakai pilih epoch & kalibrasi threshold; DS2 tetap haram sampai Fase 6 |
 | Rec 208 wajib di train | **ya** — jangan pernah masuk val/exclude | 372 dari 414 beat kelas F di DS1 ada di record ini; tanpa dia kelas F nyaris hilang dari training |
+| Model yang dikuantisasi | **varian deploy** (`build_deploy_model`), bukan model latih | TFLM menghitung op `MEAN` beda dari TFLite: PC 0,973 vs device 0,336, tanpa error. Bobot disalin apa adanya (identik 1,19e-07), nol latih ulang |
+| Pengganti GlobalAveragePooling | **`DepthwiseConv1D(31)` bobot 1/31**, bukan `AveragePooling1D` | op pooling MEWARISI skala kuantisasi input (0,332); rata-rata 31 nilai jauh lebih kecil → ~3 bit resolusi hilang, recall DS2 0,655→0,528. Op konvolusi dapat skala output sendiri (0,0429, sama dgn `MEAN`) |
+| `Flatten`/`Reshape` di model deploy | **dihindari** — kepala klasifikasi tetap 3-D, `Dense`→`Conv1D` kernel 1 | keduanya memunculkan `SHAPE`/`PACK`/`STRIDED_SLICE` (shape dinamis); TFLM tak punya alokasi dinamis → device memberi 0,418 vs 0,945 |
+| Batas ukuran model | **25 KB** (dari 20 KB) | varian deploy yang benar memakan 22,91 KB; flash ESP32-S3 16 MB, batas ini soal disiplin bukan kapasitas. Disetujui eksplisit |
+| Library TFLM | **`spaziochirale/Chirale_TensorFLowLite`** 2.0.0 | rilis terbaru di registry PlatformIO, jalan dgn framework Arduino. Kernel referensi (belum ESP-NN) → 26 ms/detak jadi baseline; pindah `esp-tflite-micro` kalau daya jadi kendala |
+| Board PlatformIO | **`4d_systems_esp32s3_gen4_r8n16`** | bukan tebakan — id dari projek uji yang sudah pernah ter-flash & jalan di hardware ini (Jul 2026) |
 | Record kanal anomali | 114 (MLII idx 1); 102 & 104 tanpa MLII → `raise` | 102/104 paced, dibuang di Fase 3 juga |
 | Filter non-beat | whitelist `BEAT_SYMBOLS` di `config.py` | simbol tak dikenal ikut kebuang, bukan lolos |
 
@@ -177,6 +192,23 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   **Bukan bug, jangan dikoreksi.** Geserannya konsisten (median 94, mean 94,03),
   jadi model belajar posisi itu dan firmware menghasilkan hal sama selama
   koefisien SOS identik. Mengoreksi di Python tanpa koreksi di C = mismatch.
+- **TFLite Micro menghitung op `MEAN` beda dari TFLite biasa.** Gejala: model,
+  bobot, input, dan parameter kuantisasi identik, tapi PC 0,9727 vs device
+  0,3359 — semua probabilitas tertekan ke tengah, **tanpa error apa pun**.
+  Sebab: `GlobalAveragePooling1D` → op `MEAN`; dua library TFLM berbeda memberi
+  angka salah yang IDENTIK, jadi ini sifat TFLM, bukan bug library. Hindari:
+  `build_deploy_model` menukar ke `DepthwiseConv1D` berbobot 1/31 (rata-rata yang
+  sama, op konvolusi). Ketahuan cuma karena ada golden reference PC↔device.
+- **Op pooling mewarisi skala kuantisasi input; op konvolusi punya skala sendiri.**
+  Gejala: `AveragePooling1D` cocok di 6 beat uji golden, tapi recall DS2 jatuh
+  0,655 → 0,528. Sebab: skala input 0,332 dipakai juga untuk output, padahal
+  rata-rata 31 nilai jauh lebih kecil → ~3 bit resolusi terbuang. Hindari: pakai
+  op konvolusi untuk rata-rata. Pelajaran umum: **cocok di segelintir sampel uji
+  ≠ benar**; verifikasi ukuran-penuh tetap perlu.
+- **Serial monitor merebut `/dev/ttyACM0`.** Gejala: `esptool` gagal dengan
+  `Errno 11: Could not exclusively lock port` — pesannya tidak pernah menyebut
+  "monitor". Sebab: tombol *Upload and Monitor* VS Code masih hidup. Hindari:
+  `lsof /dev/ttyACM0` untuk menemukan PID-nya.
 - **`.venv` tidak kepakai walau ada.** Gejala: `make plot1` →
   `ModuleNotFoundError: No module named 'numpy'`. Sebab: `PY := python` ambil
   pyenv shim, bukan `.venv/bin/python`. Hindari: `PY` di Makefile sekarang

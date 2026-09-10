@@ -198,6 +198,14 @@ mengecewakan di Fase 6.
 
 ---
 
+## 5b. Ada varian kedua yang tidak dilatih
+
+`build_deploy_model()` di file yang sama menghasilkan model dengan **bobot
+identik** tapi dua op ditukar, karena TFLite Micro menghitung `MEAN`
+(GlobalAveragePooling) berbeda dari TFLite biasa. Bukan model baru, bukan latih
+ulang — penerjemah antara "bentuk yang enak dilatih" dan "bentuk yang dijalankan
+runtime kecil dengan benar". Lihat [`firmware-walkthrough`](firmware-walkthrough.md) §5.
+
 ## 6. Cek pemahaman
 
 1. `padding="same"` diganti `"valid"`. Panjang tiap tahap jadi berapa, dan

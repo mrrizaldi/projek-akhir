@@ -21,7 +21,7 @@ model_fp32.keras (6.417 param, 25,07 KB float32)
         │  PTQ — Post-Training Quantization
         │  butuh: representative dataset (300 sampel DS1, stratified)
         ▼
-model_int8.tflite   17,84 KB   ← DoD: < 20 KB ✓
+model_int8.tflite   22,91 KB   ← batas 25 KB ✓  (varian deploy, §4b)
         │
         │  evaluasi ULANG di DS2 yang SAMA, threshold yang SAMA (0,35)
         ▼
@@ -166,6 +166,34 @@ di-hardcode manual di `main.cpp`, karena berubah tiap kali model dilatih ulang.
 
 ---
 
+## 4b. Yang dikuantisasi bukan model latih, tapi varian deploy
+
+```python
+deploy = build_deploy_model(tf.keras.models.load_model(keras_path))
+blob = quantize_int8(deploy, ...)
+```
+
+Model latih memakai `GlobalAveragePooling1D` → op `MEAN`, dan **TFLite Micro
+menghitung `MEAN` berbeda dari TFLite biasa**. Di PC hasilnya 0,973; di ESP32-S3
+model yang sama memberi 0,336 — tanpa error apa pun.
+
+`build_deploy_model` menukar dua op, bobot disalin apa adanya (identik sampai
+1,19e-07 di float32, jadi **tanpa latih ulang**):
+
+| Model latih | Model deploy | Kenapa |
+|---|---|---|
+| `GlobalAveragePooling1D` (`MEAN`) | `DepthwiseConv1D(31)` bobot 1/31 | konvolusi = rata-rata yang sama, tapi dapat skala kuantisasi output sendiri |
+| `Dense` | `Conv1D` kernel 1 | tetap 3-D → tidak butuh `Flatten` (yang memunculkan op shape-dinamis) |
+
+`AveragePooling1D` sempat dicoba dan **ditolak**: op pooling mewarisi skala
+input (0,332), sedangkan rata-rata 31 nilai jauh lebih kecil dari rentang itu →
+~3 bit resolusi terbuang dan recall DS2 jatuh 0,655 → 0,528. Konvolusi mendapat
+skala output sendiri (0,0429, sama persis dengan pilihan `MEAN`).
+
+Cerita lengkap pengejaran bug ini: [`firmware-walkthrough`](firmware-walkthrough.md) §5.
+
+---
+
 ## 5. `predict_tflite()` — jebakan ketiga: lupa dequantize
 
 ```python
@@ -195,19 +223,19 @@ bulat −128..127 yang dibandingkan dengan threshold 0,35 → semua terprediksi 
 
 ## 6. Tabel delta — hasil akhir
 
-Ukuran: **18.264 byte = 17,84 KB** (< 20 KB ✓), dari 25,07 KB float32.
+Ukuran: **23.456 byte = 22,91 KB** (< 25 KB ✓), dari 25,07 KB float32.
 
 | Metrik | Float32 | INT8 | Delta |
 |---|---|---|---|
-| accuracy | 0,8878 | 0,8987 | **+0,0109** |
-| precision | 0,4919 | 0,5314 | **+0,0395** |
-| **recall** | 0,6661 | 0,6539 | **−0,0121** |
-| F1 | 0,5659 | 0,5863 | **+0,0205** |
-| specificity | 0,9152 | 0,9289 | **+0,0137** |
+| accuracy | 0,8878 | 0,8984 | **+0,0106** |
+| precision | 0,4919 | 0,5302 | **+0,0383** |
+| **recall** | 0,6661 | 0,6549 | **−0,0112** |
+| F1 | 0,5659 | 0,5859 | **+0,0201** |
+| specificity | 0,9152 | 0,9284 | **+0,0133** |
 | AUC | 0,8866 | 0,8862 | **−0,0004** |
-| TP/FN/FP/TN | 3630/1820/3750/40454 | 3564/1886/3143/41061 | — |
+| TP/FN/FP/TN | 3630/1820/3750/40454 | 3569/1881/3163/41041 | — |
 
-**Recall turun 1,21%** — di bawah ambang "ideal < 1–2%" yang disebut PRD.
+**Recall turun 1,12%** — di bawah ambang "ideal < 1–2%" yang disebut PRD.
 Kelayakannya terbukti dengan angka, bukan asumsi.
 
 ### Cara membaca angka yang naik
@@ -263,4 +291,4 @@ sumber variasi baru untuk keuntungan yang belum tentu ada.
 
 ---
 
-**[← Fase 6 — evaluate](evaluate-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **—**
+**[← Fase 6 — evaluate](evaluate-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[firmware — port ke ESP32-S3 →](firmware-walkthrough.md)**

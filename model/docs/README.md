@@ -43,6 +43,9 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
         ▼
    [8]     check_poc.py       8/8 DoD terverifikasi
            export_model_h.py  → firmware/include/model_int8.h
+        │
+  [HW]  │  ecg_pipeline.cpp   port preprocessing ke C, diadu ke golden Python
+        ▼  TFLite Micro       inferensi di ESP32-S3: 26,0 ms/detak
 ```
 
 ---
@@ -62,6 +65,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | 5 | [train](train-walkthrough.md) | Kenapa accuracy dilarang, bagaimana class weight bekerja, kenapa monitor AUC |
 | 6 | [evaluate](evaluate-walkthrough.md) | Kenapa threshold dikunci sebelum DS2, kelas aritmia mana yang gagal & kenapa |
 | 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
+| HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
 
 Fase 8 tidak punya walkthrough — isinya verifikasi, bukan konsep baru.
 Jalankan `make poc` dan baca `scripts/check_poc.py`.
@@ -78,6 +82,7 @@ Kalau waktumu sempit, empat ini yang paling menentukan:
 | **Alignment window ↔ label** | `assert len(a)==len(b)` LOLOS, recall ~0 di Fase 6 | [2](features-rr-walkthrough.md) §3, [2b](prep-beats-walkthrough.md) §1-2 |
 | **Kebocoran identitas pasien** | Akurasi 99% yang tidak berarti apa-apa | [3](dataset-walkthrough.md) §1 |
 | **Threshold dituning di DS2** | Angka bagus yang gugur saat ditanya penguji | [6](evaluate-walkthrough.md) §0 |
+| **Op sama, hasil beda di TFLM** | Model benar di PC, keyakinan runtuh di device | [HW](firmware-walkthrough.md) §5 |
 
 Tiga dari empat **tidak menghasilkan error apa pun**. Itu benang merahnya: bug
 paling mahal di ML bukan yang crash, tapi yang menghasilkan angka bagus dari
@@ -90,11 +95,12 @@ prosedur yang salah.
 ```
 dataset     44 record, 100.619 beat, 10,5% aritmia (dibuang 114 = 44x2 + 26 tepi)
 split       DS1 50.965 (10,1%) | DS2 49.654 (11,0%) | val 10.348 dari DS1
-model       6.417 param, float32 25,07 KB → INT8 17,84 KB
+model       6.417 param, float32 25,07 KB → INT8 22,91 KB (varian deploy)
 threshold   0,35  (kriteria F1 maksimum, dikalibrasi di VAL)
 VAL         recall 0,8117  precision 0,8132  F1 0,8124
 DS2 fp32    recall 0,6661  precision 0,4919  F1 0,5659  AUC 0,8866
-DS2 INT8    recall 0,6539  precision 0,5314  F1 0,5863  AUC 0,8862
+DS2 INT8    recall 0,6549  precision 0,5302  F1 0,5859  AUC 0,8862
+device      26,0 ms/detak, tensor arena 12.756 B, cocok PC digit demi digit
 per kelas   V 0,9332 | S 0,3034 | F 0,1675
 ```
 
@@ -122,6 +128,8 @@ make quantize               # Fase 7  → model_int8.tflite + tabel delta
 make poc                    # Fase 8  → checklist 8/8
 make export                 # → firmware/include/model_int8.h
 make test                   # 49 test
+cd ../firmware && pio test -e native      # 7 test preprocessing di PC
+                  pio test -e esp32-s3    # + inferensi di board
 ```
 
 Seed dikunci (`config.SEED = 42`), jadi angka di atas harus keluar sama.
