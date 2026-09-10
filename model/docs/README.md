@@ -45,7 +45,8 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
            export_model_h.py  → firmware/include/model_int8.h
         │
   [HW]  │  ecg_pipeline.cpp   port preprocessing ke C, diadu ke golden Python
-        ▼  TFLite Micro       inferensi di ESP32-S3: 26,0 ms/detak
+        │  TFLite Micro       inferensi di ESP32-S3: 26,0 ms/detak
+        ▼  akuisisi           AD8232 -> make pull -> make analisis -> grafik
 ```
 
 ---
@@ -66,6 +67,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | 6 | [evaluate](evaluate-walkthrough.md) | Kenapa threshold dikunci sebelum DS2, kelas aritmia mana yang gagal & kenapa |
 | 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
 | HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
+| HW | [akuisisi](akuisisi-walkthrough.md) | **Panduan kerja**: merekam dari badan, menarik data, menilai kualitas, membuat grafik |
 
 Fase 8 tidak punya walkthrough — isinya verifikasi, bukan konsep baru.
 Jalankan `make poc` dan baca `scripts/check_poc.py`.

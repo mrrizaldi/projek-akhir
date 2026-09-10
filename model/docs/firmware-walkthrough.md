@@ -242,4 +242,4 @@ pembahasan yang bagus di laporan.
 
 ---
 
-**[← Fase 7 — quantize](quantize-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **—**
+**[← Fase 7 — quantize](quantize-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[akuisisi sinyal →](akuisisi-walkthrough.md)**
