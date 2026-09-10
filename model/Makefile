@@ -3,7 +3,7 @@
 PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 REC ?= 100          # record buat target plot: make plot0 REC=114
 
-.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc test clean help
+.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc pull analisis test clean help
 
 help:
 	@grep -E '^[a-z0-9]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
@@ -41,6 +41,14 @@ quantize: ## PTQ INT8 + evaluasi ulang + tabel delta
 	$(PY) scripts/quantize_int8.py
 export: ## salin artefak ke firmware/ & laporan/
 	bash ../scripts/export_artifacts.sh
+
+## ── Akuisisi dari device ─────────────────────────────────────────────────────
+# pull pakai Python PlatformIO (punya pyserial); analisis pakai .venv (numpy).
+PIOPY := $(HOME)/.platformio/penv/bin/python
+pull: ## tarik rekaman dari board -> data/recordings/<tanggal-jam>.csv
+	$(PIOPY) scripts/pull_recording.py
+analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv
+	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE)))
 
 ## ── Fase 8 — checklist PoC ───────────────────────────────────────────────────
 poc: ## verifikasi 8 item DoD PRD secara mekanis
