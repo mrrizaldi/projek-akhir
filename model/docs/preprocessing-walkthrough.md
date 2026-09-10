@@ -1,7 +1,8 @@
 # Walkthrough `src/preprocessing.py` — Fase 1
 
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 7–9. Semua angka & gambar di sini dari
+`PRD_Model_Aritmia_TinyML.pdf` hal. 7–9. Lanjutan dari
+[`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md) (Fase 0). Semua angka & gambar di sini dari
 **record 100, 5 detik pertama** (`fs = 360 Hz` → 1800 sampel).
 
 Reproduksi gambar:
@@ -358,3 +359,7 @@ delay deteksi median = 40 sampel = 111 ms
 | `python scripts/plot_fase1_segment.py 100` | 8 window, sebelum vs sesudah z-score |
 | `python scripts/bench_pantompkins.py 100` | Deteksi vs anotasi + Se/P+ |
 | `python scripts/plot_walkthrough.py 100` | Dua gambar di dokumen ini |
+
+---
+
+**[← Fase 0 — io_mitdb](io-mitdb-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 2 — features_rr →](features-rr-walkthrough.md)**
