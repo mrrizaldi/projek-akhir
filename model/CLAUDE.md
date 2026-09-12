@@ -113,6 +113,7 @@ Peta masuk + urutan baca: [`docs/README.md`](docs/README.md).
 | 4 | `src/model.py` | [`docs/model-walkthrough.md`](docs/model-walkthrough.md) |
 | 5 | `src/train.py` | [`docs/train-walkthrough.md`](docs/train-walkthrough.md) |
 | 6 | `src/evaluate.py` | [`docs/evaluate-walkthrough.md`](docs/evaluate-walkthrough.md) |
+| 6b | `scripts/eval_detected_segmentation.py` | [`docs/segmentasi-deteksi-walkthrough.md`](docs/segmentasi-deteksi-walkthrough.md) |
 | 7 | `src/quantize.py` | [`docs/quantize-walkthrough.md`](docs/quantize-walkthrough.md) |
 | HW | `firmware/src/ecg_pipeline.cpp` | [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) |
 
@@ -121,6 +122,14 @@ peta besar (diagram alur) → fungsi per fungsi dengan kode + rumus → keputusa
 yang diambil beserta alternatif yang ditolak → yang sengaja TIDAK dilakukan →
 angka nyata → cek pemahaman → skrip pendukung.
 
+- [x] **Fase 6b** (di luar PRD) — biaya segmentasi on-device diukur. Offset
+  detektor dikalibrasi di DS1 (median **38 sampel**, std 13). Dengan koreksi
+  lengkap (kompensasi + penyelarasan puncak + kembalikan group delay 4 →
+  R di indeks **94**): klasifikasi **recall 0,6821 precision 0,4794 F1 0,5631**
+  ≈ Fase 6 (0,6661/0,4919/0,5659) — segmentasi TIDAK merusak klasifikasi.
+  **Recall sistem 0,5656** (turun 10 poin, semuanya dari beat tak terdeteksi).
+  Sensitivity detektor **Normal 0,9614 vs Aritmia 0,8296; kelas S cuma 0,6494**.
+  DS2 dilihat kedua kalinya di sini — murni mengukur, nol parameter diambil.
 - [x] **HW-1** — port preprocessing ke C + inferensi di ESP32-S3 sungguhan.
   `pio test -e native` 7/7, `pio test -e esp32-s3` PASSED — probabilitas device
   **cocok PC digit demi digit** (0,9727 / 0,0039 / 0,9883 / 0,9805 / 0,0117 /
@@ -169,6 +178,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Batas ukuran model | **25 KB** (dari 20 KB) | varian deploy yang benar memakan 22,91 KB; flash ESP32-S3 16 MB, batas ini soal disiplin bukan kapasitas. Disetujui eksplisit |
 | Library TFLM | **`spaziochirale/Chirale_TensorFLowLite`** 2.0.0 | rilis terbaru di registry PlatformIO, jalan dgn framework Arduino. Kernel referensi (belum ESP-NN) → 26 ms/detak jadi baseline; pindah `esp-tflite-micro` kalau daya jadi kendala |
 | Board PlatformIO | **`4d_systems_esp32s3_gen4_r8n16`** | bukan tebakan — id dari projek uji yang sudah pernah ter-flash & jalan di hardware ini (Jul 2026) |
+| Segmentasi on-device | **kompensasi 38 + penyelarasan puncak ±25 + kurangi group delay 4** | tanpa salah satunya R tidak mendarat di indeks 94 dan precision jatuh 4× (0,479→0,124); offset dikalibrasi di DS1 |
 | Record kanal anomali | 114 (MLII idx 1); 102 & 104 tanpa MLII → `raise` | 102/104 paced, dibuang di Fase 3 juga |
 | Filter non-beat | whitelist `BEAT_SYMBOLS` di `config.py` | simbol tak dikenal ikut kebuang, bukan lolos |
 
@@ -210,6 +220,19 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   `Errno 11: Could not exclusively lock port` — pesannya tidak pernah menyebut
   "monitor". Sebab: tombol *Upload and Monitor* VS Code masih hidup. Hindari:
   `lsof /dev/ttyACM0` untuk menemukan PID-nya.
+- **Model runtuh kalau R-peak meleset 4 sampel (11 ms).** Gejala: precision
+  0,479 → 0,124, simetris ke dua arah (R di indeks 90 atau 98, bukan 94).
+  Sebab: tiga `MaxPooling1D(2)` = stride total 8, jadi geseran 4 sampel itu
+  SETENGAH bin pooling — fase representasi yang masuk GAP berubah. Model tak
+  pernah melihat variasi ini karena training memakai anotasi yang presisi.
+  Hindari: firmware wajib menaruh R di indeks 94 (lihat decision point).
+  Perbaikan jangka panjang: latih ulang dengan augmentasi geseran ±4 sampel.
+- **Refraktori 200 ms Pan-Tompkins memblokir beat prematur.** Gejala:
+  sensitivity detektor kelas S cuma 0,6494 vs Normal 0,9614. Sebab: beat
+  supraventrikular datang terlalu cepat setelah detak sebelumnya, tepat di
+  jendela refraktori. Efeknya berlipat dengan recall klasifikasi S yang sudah
+  0,3034. Trade-off menurunkan refraktori bisa diukur dgn
+  `scripts/eval_detected_segmentation.py`.
 - **`.venv` tidak kepakai walau ada.** Gejala: `make plot1` →
   `ModuleNotFoundError: No module named 'numpy'`. Sebab: `PY := python` ambil
   pyenv shim, bukan `.venv/bin/python`. Hindari: `PY` di Makefile sekarang

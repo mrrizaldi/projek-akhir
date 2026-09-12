@@ -70,3 +70,31 @@ def roc_auc(y_true, y_prob) -> float:
             ranks[order[i:j + 1]] = (i + j + 2) / 2.0
         i = j + 1
     return float((ranks[y_true == 1].sum() - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
+
+
+def pair_detected(detected, annotation, tolerance_samples: int):
+    """Pasangkan tiap DETEKSI ke anotasi terdekat dalam toleransi (greedy 1-ke-1).
+
+    Kebalikan arah dari bench_pantompkins.match_peaks, yang memasangkan dari sisi
+    anotasi. Di sini sisi deteksi yang jadi acuan karena alat memang bekerja dari
+    deteksi: tiap R-peak yang ia temukan akan diklasifikasi, ada beat aslinya
+    atau tidak.
+
+    Returns:
+        idx_anotasi: np.ndarray[int] sepanjang `detected`; -1 = deteksi palsu
+        (tidak ada beat asli dalam toleransi).
+    """
+    detected = np.asarray(detected)
+    annotation = np.asarray(annotation)
+    hasil = np.full(len(detected), -1, dtype=np.int64)
+    terpakai = np.zeros(len(annotation), dtype=bool)
+    for k, d in enumerate(detected):
+        if len(annotation) == 0:
+            break
+        selisih = np.abs(annotation - d).astype(np.int64)
+        selisih[terpakai] = np.iinfo(np.int64).max
+        i = int(np.argmin(selisih))
+        if selisih[i] <= tolerance_samples:
+            terpakai[i] = True
+            hasil[k] = i
+    return hasil

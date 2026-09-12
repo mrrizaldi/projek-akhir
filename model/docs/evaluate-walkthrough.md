@@ -222,4 +222,4 @@ lalu jelaskan sebarannya.
 
 ---
 
-**[← Fase 5 — train](train-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 7 — quantize →](quantize-walkthrough.md)**
+**[← Fase 5 — train](train-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 6b — segmentasi deteksi →](segmentasi-deteksi-walkthrough.md)**
