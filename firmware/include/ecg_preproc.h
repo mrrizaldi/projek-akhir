@@ -9,6 +9,10 @@
 #define ECG_WIN_POST 160
 #define ECG_WIN_LEN_ 250
 #define ECG_ZSCORE_EPS 1e-8f
+// Juga didefinisikan di model_int8.h — dijaga supaya tidak bentrok.
+#ifndef ECG_N_RR
+#define ECG_N_RR 3
+#endif
 #define ECG_RR_LOCAL_WINDOW 10
 
 // Pan-Tompkins (deteksi R-peak on-device).

@@ -142,7 +142,16 @@ angka nyata → cek pemahaman → skrip pendukung.
   `pio run -e esp32-s3` RAM 6,8% Flash 4,9%. Firmware akuisisi (timer 360 Hz,
   2 tombol, LittleFS, LED kualitas sinyal) sudah jalan; 7 rekaman percobaan
   tersimpan di `data/recordings/`.
-- [ ] **HW-3** — rangkai alur hidup (ADC → deteksi → window → inferensi) + MQTT
+- [x] **HW-3** — alur hidup dirangkai (`src/ecg_live.cpp`): sampel masuk satu per
+  satu → bandpass streaming → deteksi tiap 1 detik atas ring 4 detik →
+  penyelarasan → window + RR → beat keluar. Inferensi di pemanggil, jadi modul
+  bisa diuji di native tanpa TFLM. Diuji dgn memutar ulang `golden_raw` (tanpa
+  elektroda): **6 beat keluar, 6 cocok anotasi, 6 prediksi BENAR**.
+  **Beban rata-rata 82 us/sampel dari anggaran 2778 us = 3,0%**, tapi puncak
+  burst **33,4 ms** (deteksi + inferensi bersamaan) → ADC WAJIB diumpankan ISR
+  ke antrean min 13 sampel, kalau tidak sampel bolong dan RR rusak.
+  `pio test -e native` 11/11, device 5/5.
+- [ ] **HW-4** — akuisisi ISR + alur hidup jadi satu firmware, lalu MQTT
 
 ## Decision point yang sudah di-lock
 
@@ -239,6 +248,12 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   jendela refraktori. Efeknya berlipat dengan recall klasifikasi S yang sudah
   0,3034. Trade-off menurunkan refraktori bisa diukur dgn
   `scripts/eval_detected_segmentation.py`.
+- **Beban alur hidup bursty, bukan merata.** Gejala: rata-rata cuma 82 us/sampel
+  (3% anggaran) tapi satu sampel bisa memakan 33,4 ms — 12x anggaran. Sebab:
+  deteksi berjalan sekaligus atas ring 4 detik, dan kebetulan bersamaan dengan
+  inferensi beat yang baru ditemukan. Hindari: akuisisi ADC di timer ISR menaruh
+  ke antrean (min 13 sampel), pemrosesan menguras di loop utama. Kalau berurutan
+  di satu alur, ~12 sampel hilang tiap detik dan interval RR rusak.
 - **`.venv` tidak kepakai walau ada.** Gejala: `make plot1` →
   `ModuleNotFoundError: No module named 'numpy'`. Sebab: `PY := python` ambil
   pyenv shim, bukan `.venv/bin/python`. Hindari: `PY` di Makefile sekarang

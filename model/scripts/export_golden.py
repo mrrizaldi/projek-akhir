@@ -108,6 +108,10 @@ def main() -> None:
 #define ECG_WIN_POST {WIN_POST}
 #define ECG_WIN_LEN_ {WIN_LEN}
 #define ECG_ZSCORE_EPS 1e-8f
+// Juga didefinisikan di model_int8.h — dijaga supaya tidak bentrok.
+#ifndef ECG_N_RR
+#define ECG_N_RR {N_RR_FEATURES}
+#endif
 #define ECG_RR_LOCAL_WINDOW {RR_LOCAL_WINDOW_BEATS}
 
 // Pan-Tompkins (deteksi R-peak on-device).

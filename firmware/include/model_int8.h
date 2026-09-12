@@ -5,7 +5,9 @@
 #define MODEL_INT8_H
 
 #define ECG_WIN_LEN 250
+#ifndef ECG_N_RR
 #define ECG_N_RR 3
+#endif
 #define ECG_THRESHOLD 0.35f
 
 // Kuantisasi affine: q = round(x / scale) + zero_point ; x = (q - zero_point) * scale

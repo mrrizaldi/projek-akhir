@@ -20,6 +20,7 @@
 
 #include "model_int8.h"      // GENERATED: bobot + scale/zero_point
 #include "ecg_pipeline.h"
+#include "ecg_live.h"
 #include "../golden_ref.h"
 
 // Tensor arena WAJIB di RAM internal, bukan PSRAM: inferensi menyentuhnya
@@ -180,6 +181,78 @@ void test_diagnostik_input_golden(void)
                   in_rr->data.int8[0], in_rr->data.int8[1], in_rr->data.int8[2]);
 }
 
+// ALUR HIDUP UJUNG KE UJUNG: sampel mentah -> bandpass -> deteksi ->
+// penyelarasan -> window -> RR -> inferensi, semuanya di board.
+// golden_raw diputar ulang seolah datang dari ADC, jadi tidak butuh elektroda.
+void test_alur_hidup(void)
+{
+    static ecg_beat_t beat;
+    ecg_live_reset();
+    int keluar = 0, cocok = 0, benar = 0;
+    uint32_t us_maks = 0;
+    const uint32_t t_mulai = micros();
+
+    for (int i = 0; i < GOLDEN_N; i++) {
+        const uint32_t t0 = micros();
+        const int ada = ecg_live_push(golden_raw[i], &beat);
+        uint32_t dt = micros() - t0;
+        if (!ada) { if (dt > us_maks) us_maks = dt; continue; }
+        (void)dt;
+
+        for (int k = 0; k < GOLDEN_WIN_LEN; k++)
+            in_morph->data.int8[k] = ke_int8(beat.window[k], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+        for (int k = 0; k < GOLDEN_N_RR; k++)
+            in_rr->data.int8[k] = ke_int8(beat.rr[k], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+        TEST_ASSERT_EQUAL(kTfLiteOk, interpreter->Invoke());
+        const float p = (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
+        const int prediksi = (p >= GOLDEN_THRESHOLD) ? 1 : 0;
+
+        dt = micros() - t0;
+        if (dt > us_maks) us_maks = dt;
+        keluar++;
+
+        for (int b = 0; b < GOLDEN_N_BEAT; b++) {
+            if (abs(beat.r_abs - golden_r[b]) <= 20) {
+                cocok++;
+                if (prediksi == golden_label[b]) benar++;
+                Serial.printf("  beat r=%4d (%s) p=%.4f -> %d, seharusnya %d %s\n",
+                              beat.r_abs, golden_sym[b], p, prediksi, golden_label[b],
+                              prediksi == golden_label[b] ? "OK" : "SALAH");
+                break;
+            }
+        }
+    }
+
+    const uint32_t us_jalan = micros() - t_mulai;
+    const uint32_t us_rata = us_jalan / GOLDEN_N;
+    const float beban = 100.0f * us_rata / 2778.0f;
+    const uint32_t antrean = (us_maks + 2777) / 2778;   // sampel menumpuk saat burst
+
+    Serial.printf("\n=== ALUR HIDUP ===\n");
+    Serial.printf("beat keluar   : %d (%d cocok anotasi, %d prediksi benar)\n",
+                  keluar, cocok, benar);
+    Serial.printf("total         : %lu us untuk %d sampel (%.1f detik sinyal)\n",
+                  (unsigned long)us_jalan, GOLDEN_N, (float)GOLDEN_N / ECG_FS);
+    Serial.printf("rata-rata     : %lu us/sampel dari anggaran 2778 us -> beban %.1f%%\n",
+                  (unsigned long)us_rata, beban);
+    Serial.printf("puncak burst  : %lu us (deteksi 4 detik + inferensi bersamaan)\n",
+                  (unsigned long)us_maks);
+    Serial.printf("antrean min   : %lu sampel agar tidak bolong saat burst\n",
+                  (unsigned long)antrean);
+    Serial.printf("==================\n");
+
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, cocok, "terlalu sedikit beat cocok anotasi");
+    TEST_ASSERT_EQUAL_MESSAGE(cocok, benar, "ada prediksi yang beda dari jawaban PC");
+
+    // Yang menentukan kelayakan real-time adalah RATA-RATA, bukan puncak:
+    // akuisisi diumpankan ISR ke antrean, jadi burst cuma menumpuk sampel
+    // sementara lalu terkuras. Puncaknya dilaporkan supaya antrean bisa disizing.
+    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(2778, us_rata,
+        "rata-rata > 2778 us/sampel — tidak mungkin real-time pada 360 Hz");
+    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(ECG_LIVE_RING, antrean * 4,
+        "burst terlalu panjang untuk ring 4 detik");
+}
+
 // Angka untuk Bab 4: latensi per detak & pemakaian arena.
 void test_latensi_dan_memori(void)
 {
@@ -215,6 +288,7 @@ void setup()
     RUN_TEST(test_diagnostik_input_golden);
     RUN_TEST(test_inferensi_cocok_dengan_pc);
     RUN_TEST(test_latensi_dan_memori);
+    RUN_TEST(test_alur_hidup);
     UNITY_END();
 }
 

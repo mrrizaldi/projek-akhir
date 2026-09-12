@@ -7,10 +7,12 @@
 #include <unity.h>
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #include "../golden_ref.h"
 #include "ecg_pipeline.h"
+#include "ecg_live.h"
 
 static float buf_filtered[GOLDEN_N];
 static float buf_window[GOLDEN_WIN_LEN];
@@ -167,6 +169,56 @@ void test_align_r_menaruh_puncak_di_94(void)
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, diuji, "terlalu sedikit beat teruji");
 }
 
+// ── Alur hidup ──────────────────────────────────────────────────────────────
+// Putar ulang golden_raw sampel demi sampel, seolah datang dari ADC 360 Hz.
+// Tidak butuh elektroda maupun TFLM — inferensi diuji terpisah di device.
+static ecg_beat_t beat;
+
+void test_live_mengeluarkan_beat(void)
+{
+    ecg_live_reset();
+    int keluar = 0, cocok = 0, puncak_benar = 0;
+
+    for (int i = 0; i < GOLDEN_N; i++) {
+        if (!ecg_live_push(golden_raw[i], &beat)) continue;
+        keluar++;
+
+        // R mendarat di indeks 94 seperti window training?
+        int puncak = 94 - 20;
+        for (int k = 94 - 20; k <= 94 + 20; k++)
+            if (beat.window[k] > beat.window[puncak]) puncak = k;
+        if (puncak >= 92 && puncak <= 96) puncak_benar++;
+
+        // Cocok dengan salah satu R-peak anotasi yang kita ketahui?
+        for (int b = 0; b < GOLDEN_N_BEAT; b++)
+            if (abs(beat.r_abs - golden_r[b]) <= 20) { cocok++; break; }
+    }
+
+    char pesan[128];
+    snprintf(pesan, sizeof(pesan), "%d beat keluar, %d cocok anotasi, %d puncak di 94",
+             keluar, cocok, puncak_benar);
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, keluar, pesan);
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, cocok, pesan);
+    TEST_ASSERT_EQUAL_MESSAGE(keluar, puncak_benar, pesan);
+    TEST_ASSERT_EQUAL_INT(keluar, ecg_live_total_beat());
+}
+
+// Dua beat pertama tidak boleh keluar: belum punya RR_prev/dRR. Aturan yang
+// sama dengan valid_beat_indices di prep_beats.py.
+void test_live_membuang_dua_beat_pertama(void)
+{
+    ecg_live_reset();
+    int keluar = 0;
+    for (int i = 0; i < GOLDEN_N; i++) {
+        if (ecg_live_push(golden_raw[i], &beat)) {
+            keluar++;
+            TEST_ASSERT_TRUE_MESSAGE(beat.rr[0] > 0.15f && beat.rr[0] < 3.0f,
+                                     "RR_prev di luar rentang fisiologis");
+        }
+    }
+    TEST_ASSERT_TRUE(keluar < GOLDEN_N_DETEKSI);   // lebih sedikit dari deteksi mentah
+}
+
 static void jalankan(void)
 {
     UNITY_BEGIN();
@@ -179,6 +231,8 @@ static void jalankan(void)
     RUN_TEST(test_pipeline_utuh);
     RUN_TEST(test_detect_r);
     RUN_TEST(test_align_r_menaruh_puncak_di_94);
+    RUN_TEST(test_live_mengeluarkan_beat);
+    RUN_TEST(test_live_membuang_dua_beat_pertama);
     UNITY_END();
 }
 

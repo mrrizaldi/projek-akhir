@@ -52,7 +52,9 @@ def main() -> None:
 #define MODEL_INT8_H
 
 #define ECG_WIN_LEN {WIN_LEN}
+#ifndef ECG_N_RR
 #define ECG_N_RR {N_RR_FEATURES}
+#endif
 #define ECG_THRESHOLD {THRESHOLD}f
 
 // Kuantisasi affine: q = round(x / scale) + zero_point ; x = (q - zero_point) * scale

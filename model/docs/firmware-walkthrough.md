@@ -239,6 +239,73 @@ latih, keluar varian dengan bobot disalin apa adanya. **Tidak ada latih ulang.**
 
 ---
 
+## 5b. Alur hidup (`ecg_live.cpp`)
+
+Menggabungkan semua yang sudah terverifikasi jadi satu jalur: sampel ADC masuk
+satu per satu, beat siap-klasifikasi keluar.
+
+```c
+int ecg_live_push(float sampel_mentah, ecg_beat_t *beat);
+```
+
+Di dalamnya:
+
+```
+sampel mentah
+   → ecg_bandpass (state bertahan)  → ring 4 detik
+   → tiap 1 detik: ecg_detect_r atas seluruh ring
+   → ecg_align_r  (R mendarat di indeks 94)
+   → ecg_window_zscore + ecg_rr_features
+   → beat keluar
+```
+
+**Inferensi sengaja TIDAK di dalam modul ini.** Pemanggil yang menjalankannya,
+sehingga `ecg_live` bisa diuji di `pio test -e native` tanpa TFLite Micro sama
+sekali — dan itu memisahkan bug logika alur dari bug inferensi.
+
+Dua beat pertama tiap sesi tidak pernah keluar: belum punya `RR_prev`/`dRR`,
+aturan yang sama persis dengan `valid_beat_indices` di `prep_beats.py`.
+
+### Diuji tanpa elektroda
+
+`golden_raw` diputar ulang sampel demi sampel seolah datang dari ADC 360 Hz.
+Karena jawabannya sudah diketahui, seluruh rantai bisa diverifikasi:
+
+```
+beat keluar   : 6 (6 cocok anotasi, 6 prediksi benar)
+  r= 697 (F) p=0.9961 -> 1   r=1378 (V) p=0.9922 -> 1
+  r= 853 (V) p=0.9805 -> 1   r=1579 (V) p=0.9805 -> 1
+  r=1181 (N) p=0.0039 -> 0   r=1860 (N) p=0.0117 -> 0
+```
+
+Mode putar-ulang ini bukan alat sementara. Setelah elektroda ada pun, dia
+satu-satunya cara menguji firmware secara **deterministik** — sinyal tubuh tidak
+pernah sama dua kali, jadi perubahan hasil tidak bisa dibedakan antara "kode
+berubah" dan "jantung berbeda". Dia juga memisahkan dua jenis kegagalan: kalau
+putar-ulang benar tapi sinyal nyata kacau, masalahnya di akuisisi/analog.
+
+### Bebannya bursty — dan itu menentukan arsitektur firmware
+
+```
+rata-rata    :     82 us/sampel dari anggaran 2778 us  → beban 3,0%
+puncak burst : 33.428 us (deteksi 4 detik + inferensi bersamaan)
+antrean min  : 13 sampel
+```
+
+Rata-ratanya sangat longgar, tapi **puncaknya 12× anggaran satu sampel**. Kalau
+akuisisi dan pemrosesan berjalan di satu alur berurutan, 12 sampel akan hilang
+tiap kali deteksi berjalan — dan sampel yang hilang merusak interval RR, fitur
+yang paling menentukan kelas S.
+
+Konsekuensinya untuk firmware produksi: **ADC harus diumpankan timer ISR ke
+antrean**, dan `ecg_live_push` menguras antrean itu di loop utama. Burst cuma
+menumpuk ~13 sampel sementara, lalu terkuras karena beban rata-rata 3%.
+
+Yang di-assert test bukan puncaknya, melainkan rata-rata — puncaknya dilaporkan
+supaya antreannya bisa disizing dengan angka, bukan tebakan.
+
+---
+
 ## 6. Angka device
 
 ```
@@ -275,7 +342,7 @@ pembahasan yang bagus di laporan.
 
 | Perintah | Melihat apa |
 |---|---|
-| `pio test -e native` | 9 test preprocessing di PC (termasuk deteksi R) |
+| `pio test -e native` | 11 test di PC (preprocessing, deteksi R, alur hidup) |
 | `pio test -e esp32-s3` | preprocessing + inferensi di board |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG) |
 | `pio run` | build firmware, lihat RAM/Flash |
