@@ -25,11 +25,16 @@ import tensorflow as tf  # noqa: E402
 
 from config import (  # noqa: E402
     ARTIFACT_DIR, FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER,
-    N_RR_FEATURES, RR_LOCAL_WINDOW_BEATS, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
+    GROUP_DELAY_SAMPLES, N_RR_FEATURES, PT_BAND_HIGH, PT_BAND_LOW, PT_BAND_ORDER,
+    PT_DETECTOR_OFFSET, PT_MWI_WINDOW_MS, PT_REFINE_WIN, PT_REFRACTORY_MS,
+    RR_LOCAL_WINDOW_BEATS, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
 )
 from src.io_mitdb import load_record  # noqa: E402
+from scipy.signal import butter  # noqa: E402
+
 from src.preprocessing import (  # noqa: E402
-    apply_bandpass, design_bandpass_sos, segment_beats, zscore_per_window,
+    apply_bandpass, design_bandpass_sos, pan_tompkins_detect, segment_beats,
+    zscore_per_window,
 )
 from src.features_rr import compute_rr_features, to_aami_class, to_binary_label  # noqa: E402
 from src.quantize import predict_tflite  # noqa: E402
@@ -80,6 +85,14 @@ def main() -> None:
     p_fp32[:RR_FIRST] = 0.0
     p_int8[:RR_FIRST] = 0.0
 
+    sos_pt = butter(PT_BAND_ORDER, [PT_BAND_LOW, PT_BAND_HIGH],
+                    btype="bandpass", fs=FS, output="sos")
+    mwi_len = max(1, round(PT_MWI_WINDOW_MS / 1000 * FS))
+    refraktori = max(1, round(PT_REFRACTORY_MS / 1000 * FS))
+    n_sos_pt = len(sos_pt)
+    larik_sos_pt = _larik("ecg_pt_sos", sos_pt, 6)
+    r_deteksi = pan_tompkins_detect(filtered, FS)
+
     os.makedirs(os.path.dirname(H_PREPROC), exist_ok=True)
     os.makedirs(os.path.dirname(H_GOLDEN), exist_ok=True)
 
@@ -97,6 +110,17 @@ def main() -> None:
 #define ECG_ZSCORE_EPS 1e-8f
 #define ECG_RR_LOCAL_WINDOW {RR_LOCAL_WINDOW_BEATS}
 
+// Pan-Tompkins (deteksi R-peak on-device).
+#define ECG_PT_MWI_LEN {mwi_len}
+#define ECG_PT_REFRACTORY {refraktori}
+#define ECG_PT_N_SOS {n_sos_pt}
+{larik_sos_pt}
+// Penyelarasan R-peak. Urutan WAJIB, salah satu terlewat -> precision jatuh 4x:
+//   r - ECG_PT_OFFSET  ->  puncak dlm +-ECG_PT_REFINE  ->  - ECG_GROUP_DELAY
+#define ECG_PT_OFFSET {PT_DETECTOR_OFFSET}
+#define ECG_PT_REFINE {PT_REFINE_WIN}
+#define ECG_GROUP_DELAY {GROUP_DELAY_SAMPLES}
+
 // Butterworth bandpass {BANDPASS_LOW}-{BANDPASS_HIGH} Hz orde {BANDPASS_ORDER},
 // {len(sos)} second-order section: {{b0, b1, b2, a0, a1, a2}} per baris.
 // KAUSAL — jalankan maju saja, jangan pernah maju-mundur (filtfilt).
@@ -105,6 +129,9 @@ def main() -> None:
 {_larik("ecg_sos", sos, 6)}
 #endif  // ECG_PREPROC_H
 """)
+
+    n_deteksi = len(r_deteksi)
+    isi_deteksi = ", ".join(str(int(v)) for v in r_deteksi)
 
     with open(H_GOLDEN, "w") as f:
         f.write(f"""// GENERATED oleh model/scripts/export_golden.py — JANGAN EDIT TANGAN.
@@ -144,12 +171,18 @@ const int golden_label[GOLDEN_N_BEAT] = {{{", ".join(str(v) for v in label)}}};
 {_larik("golden_window", windows)}
 // Tahap 3 — fitur RR per beat: RR_prev, RR_ratio, dRR
 {_larik("golden_rr", rr_bersih, 3)}
+// Tahap 3b — R-peak hasil Pan-Tompkins atas golden_filtered (indeks MENTAH,
+// belum dikompensasi/diselaraskan). Kode C harus menghasilkan deret yang sama.
+#define GOLDEN_N_DETEKSI {n_deteksi}
+const int golden_r_deteksi[GOLDEN_N_DETEKSI] = {{{isi_deteksi}}};
+
 // Tahap 4 — probabilitas keluaran model
 {_larik("golden_prob_fp32", p_fp32, 4)}
 {_larik("golden_prob_int8", p_int8, 4)}
 #endif  // GOLDEN_REF_H
 """)
 
+    print(f"Pan-Tompkins atas potongan: {len(r_deteksi)} R-peak -> {list(map(int, r_deteksi))}")
     print(f"record {RECORD}, {N_SAMPLES} sampel, {len(dipakai)} beat: "
           f"{', '.join(sym[i] for i in dipakai)}")
     for n, (i, pf, pi) in enumerate(zip(dipakai, p_fp32, p_int8)):

@@ -1185,6 +1185,11 @@ const float golden_rr[24] = {
   5.50000012e-01f, 8.79999995e-01f, -2.30555549e-01f
 };
 
+// Tahap 3b — R-peak hasil Pan-Tompkins atas golden_filtered (indeks MENTAH,
+// belum dikompensasi/diselaraskan). Kode C harus menghasilkan deret yang sama.
+#define GOLDEN_N_DETEKSI 11
+const int golden_r_deteksi[GOLDEN_N_DETEKSI] = {100, 260, 505, 718, 907, 1203, 1432, 1635, 1882, 2115, 2301};
+
 // Tahap 4 — probabilitas keluaran model
 const float golden_prob_fp32[8] = {
   0.00000000e+00f, 0.00000000e+00f, 9.76256371e-01f, 5.06190769e-03f,

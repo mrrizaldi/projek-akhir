@@ -136,7 +136,13 @@ angka nyata → cek pemahaman → skrip pendukung.
   0,9609). **26,0 ms per detak** (3,3% duty cycle), tensor arena 12.756 B,
   RAM 54.468 B (16,6%), Flash 356.025 B (5,4%). Board id
   `4d_systems_esp32s3_gen4_r8n16`, port `/dev/ttyACM0`.
-- [ ] **HW-2** — akuisisi AD8232 + MQTT + ring buffer PSRAM
+- [x] **HW-2** — Pan-Tompkins diport ke C (`ecg_detect_r`, `ecg_align_r`).
+  Deteksi cocok Python **11/11 puncak** di golden; penyelarasan menaruh R di
+  indeks 94 (diuji sebagai sifat, bukan angka). `pio test -e native` 9/9,
+  `pio run -e esp32-s3` RAM 6,8% Flash 4,9%. Firmware akuisisi (timer 360 Hz,
+  2 tombol, LittleFS, LED kualitas sinyal) sudah jalan; 7 rekaman percobaan
+  tersimpan di `data/recordings/`.
+- [ ] **HW-3** — rangkai alur hidup (ADC → deteksi → window → inferensi) + MQTT
 
 ## Decision point yang sudah di-lock
 

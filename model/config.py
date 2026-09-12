@@ -99,3 +99,10 @@ INT8_IO = True           # True = full-INT8 end-to-end; harus konsisten dgn firm
 # (tanpa MEAN & tanpa shape dinamis) yang jalan benar di TFLM memakan 20,8 KB.
 # Flash ESP32-S3 16 MB — batas ini soal disiplin, bukan kapasitas.
 MAX_MODEL_KB = 25
+
+# Fase 6b — penyelarasan R-peak untuk segmentasi ON-DEVICE (docs/segmentasi-deteksi).
+# Urutan wajib: r - PT_DETECTOR_OFFSET -> puncak dlm +-PT_REFINE_WIN -> - GROUP_DELAY.
+# Salah satu terlewat: R tidak mendarat di indeks 94 dan precision jatuh 4x.
+PT_DETECTOR_OFFSET = 38   # median (deteksi - anotasi) di DS1; std 13
+PT_REFINE_WIN = 25        # +-70 ms, cari puncak R sebenarnya
+GROUP_DELAY_SAMPLES = 4   # geseran bandpass kausal 0,5-40 Hz (JEBAKAN Fase 1)

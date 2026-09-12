@@ -33,6 +33,22 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out);
 // Butuh i >= 2. Return 0 kalau belum cukup beat.
 int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3]);
 
+// Deteksi R-peak Pan-Tompkins atas sinyal yang SUDAH di-bandpass 0,5-40 Hz.
+// Kaskade: bandpass 5-15 Hz -> turunan -> kuadrat -> integrasi 150 ms ->
+// ambang adaptif + refraktori 200 ms.
+//
+// `scratch` disediakan pemanggil, n float — tidak ada alokasi dinamis.
+// Menulis indeks MENTAH (belum dikompensasi) ke out[], mengembalikan jumlahnya.
+int ecg_detect_r(const float *filtered, size_t n, float *scratch,
+                 int *out, int out_maks);
+
+// Ubah indeks mentah detektor jadi indeks siap potong window.
+//   r - ECG_PT_OFFSET  ->  puncak sebenarnya dlm +-ECG_PT_REFINE  ->  - ECG_GROUP_DELAY
+// Hasilnya menaruh puncak R di indeks 94 dalam window, sama seperti saat
+// training. Meleset 4 sampel saja menjatuhkan precision dari 0,48 ke 0,12
+// (docs/segmentasi-deteksi-walkthrough.md).
+int ecg_align_r(const float *filtered, size_t n, int r_kasar);
+
 #ifdef __cplusplus
 }
 #endif

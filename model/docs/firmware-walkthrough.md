@@ -95,6 +95,47 @@ const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW -
 Kalau suatu saat angkanya diubah di Python dan C masih 10, tidak ada yang crash —
 Python dan C cuma diam-diam menghitung ritme berbeda.
 
+### `ecg_detect_r` — Pan-Tompkins, lima tahap
+
+```c
+pt_bandpass(filtered, scratch, n);        // 5-15 Hz, 2 biquad, kausal
+pt_derivative(scratch, n);                // (x[i] + 2x[i-1] - 2x[i-3] - x[i-4]) * fs/8
+for (...) scratch[i] *= scratch[i];       // kuadrat
+pt_mwi(scratch, n);                       // rata-rata bergerak 54 sampel (150 ms)
+// lalu ambang adaptif + refraktori 200 ms
+```
+
+`scratch` disediakan pemanggil (n float) — **tanpa alokasi dinamis**, syarat wajar
+di MCU dan sekaligus membuat pemakaian memorinya terlihat di tempat pemanggilan.
+
+Dua detail yang gampang meleset saat porting:
+
+- **Akumulator MWI pakai `double`.** Rata-rata bergerak menjumlahkan dan
+  mengurangi ratusan ribu kali; dengan `float` galatnya menumpuk sampai ambang
+  adaptif ikut bergeser.
+- **Kernel turunan sudah digeser 2 sampel** agar kausal (bentuk aslinya butuh
+  `x[i+1]`, `x[i+2]`). Geseran itu bagian dari kontrak, bukan koreksi.
+
+Deteksi C cocok dengan Python pada 11 dari 11 puncak di `golden_raw`.
+
+### `ecg_align_r` — tiga koreksi yang tidak boleh terlewat
+
+```c
+int lo = r_kasar - ECG_PT_OFFSET;                    // 38: median delay (kalibrasi DS1)
+int puncak = argmax(filtered, lo - 25 .. lo + 25);   // puncak R sebenarnya
+return puncak - ECG_GROUP_DELAY;                     // 4: geseran bandpass kausal
+```
+
+Hasilnya menaruh R di indeks **94** dalam window, sama seperti window training.
+Meleset 4 sampel ke arah mana pun dan precision jatuh dari 0,479 ke 0,124 —
+angkanya diukur di [Fase 6b](segmentasi-deteksi-walkthrough.md) §2.
+
+Test `test_align_r_menaruh_puncak_di_94` menjaganya sebagai sifat, bukan sebagai
+angka: dia memotong window dari hasil `ecg_align_r` lalu memastikan puncaknya
+mendarat di 94. Pencariannya dibatasi ±20 di sekitar 94 — `argmax` global tidak
+bisa dipakai karena record 208 punya detak berdekatan (697 → 853) sehingga
+window 250 sampel sering memuat R tetangga yang lebih tinggi.
+
 ---
 
 ## 3. Toleransi: float32 vs float64, dan kenapa itu tidak menular
@@ -234,7 +275,7 @@ pembahasan yang bagus di laporan.
 
 | Perintah | Melihat apa |
 |---|---|
-| `pio test -e native` | 7 test preprocessing di PC |
+| `pio test -e native` | 9 test preprocessing di PC (termasuk deteksi R) |
 | `pio test -e esp32-s3` | preprocessing + inferensi di board |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG) |
 | `pio run` | build firmware, lihat RAM/Flash |

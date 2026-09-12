@@ -124,6 +124,49 @@ void test_pipeline_utuh(void)
     }
 }
 
+// Tahap 3c — deteksi R-peak. Diadu ke deret indeks dari Python.
+static float buf_scratch[GOLDEN_N];
+static int buf_r[64];
+
+void test_detect_r(void)
+{
+    const int n = ecg_detect_r(golden_filtered, GOLDEN_N, buf_scratch, buf_r, 64);
+    char pesan[96];
+    snprintf(pesan, sizeof(pesan), "dapat %d R-peak, harus %d", n, GOLDEN_N_DETEKSI);
+    TEST_ASSERT_EQUAL_MESSAGE(GOLDEN_N_DETEKSI, n, pesan);
+    for (int i = 0; i < n; i++) {
+        // Toleransi 1 sampel: beda pembulatan float bisa menggeser puncak lokal.
+        snprintf(pesan, sizeof(pesan), "peak %d: dapat %d, harus %d",
+                 i, buf_r[i], golden_r_deteksi[i]);
+        TEST_ASSERT_INT_WITHIN_MESSAGE(1, golden_r_deteksi[i], buf_r[i], pesan);
+    }
+}
+
+// Sifat yang HARUS berlaku: setelah penyelarasan, puncak R mendarat di indeks
+// 94 dalam window — persis seperti window training. Meleset 4 sampel saja
+// menjatuhkan precision model 4x.
+void test_align_r_menaruh_puncak_di_94(void)
+{
+    const int n = ecg_detect_r(golden_filtered, GOLDEN_N, buf_scratch, buf_r, 64);
+    int diuji = 0;
+    for (int i = 0; i < n; i++) {
+        const int r = ecg_align_r(golden_filtered, GOLDEN_N, buf_r[i]);
+        if (r - ECG_WIN_PRE < 0 || r + ECG_WIN_POST > GOLDEN_N) continue;
+        TEST_ASSERT_TRUE(ecg_window_zscore(golden_filtered, GOLDEN_N, r, buf_window));
+        // Cari puncak DI SEKITAR 94 saja. argmax global tidak bisa dipakai:
+        // record 208 punya detak berdekatan (697 -> 853), jadi window 250 sampel
+        // sering memuat R tetangga yang lebih tinggi.
+        int puncak = 94 - 20;
+        for (int k = 94 - 20; k <= 94 + 20; k++)
+            if (buf_window[k] > buf_window[puncak]) puncak = k;
+        char pesan[96];
+        snprintf(pesan, sizeof(pesan), "beat %d: puncak di %d, harus 94", i, puncak);
+        TEST_ASSERT_INT_WITHIN_MESSAGE(2, 94, puncak, pesan);
+        diuji++;
+    }
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, diuji, "terlalu sedikit beat teruji");
+}
+
 static void jalankan(void)
 {
     UNITY_BEGIN();
@@ -134,6 +177,8 @@ static void jalankan(void)
     RUN_TEST(test_rr_features);
     RUN_TEST(test_rr_menolak_beat_awal);
     RUN_TEST(test_pipeline_utuh);
+    RUN_TEST(test_detect_r);
+    RUN_TEST(test_align_r_menaruh_puncak_di_94);
     UNITY_END();
 }
 

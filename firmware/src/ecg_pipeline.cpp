@@ -71,3 +71,116 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3])
     out[2] = (float)(rr_prev - rr_sebelumnya);
     return 1;
 }
+
+// ── Pan-Tompkins ────────────────────────────────────────────────────────────
+// Port dari model/src/preprocessing.py. Tiap tahap kausal, jadi bisa dijalankan
+// per potongan nanti; versi ini masih blok penuh supaya mudah diadu ke golden.
+
+static void pt_bandpass(const float *in, float *out, size_t n)
+{
+    float state[ECG_PT_N_SOS * 2] = {0.0f};
+    for (size_t i = 0; i < n; i++) {
+        float x = in[i];
+        for (int k = 0; k < ECG_PT_N_SOS; k++) {
+            const float *c = &ecg_pt_sos[k * 6];
+            float *s = &state[k * 2];
+            const float y = c[0] * x + s[0];
+            s[0] = c[1] * x - c[4] * y + s[1];
+            s[1] = c[2] * x - c[5] * y;
+            x = y;
+        }
+        out[i] = x;
+    }
+}
+
+// y[i] = (x[i] + 2x[i-1] - 2x[i-3] - x[i-4]) * fs/8  — kernel klasik yang
+// digeser 2 sampel agar kausal (lihat docs/preprocessing-walkthrough §3.2).
+static void pt_derivative(float *x, size_t n)
+{
+    const float skala = (float)ECG_FS / 8.0f;
+    float h[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    for (size_t i = 0; i < n; i++) {
+        const float xi = x[i];
+        x[i] = (xi + 2.0f * h[0] - 2.0f * h[2] - h[3]) * skala;
+        h[3] = h[2];
+        h[2] = h[1];
+        h[1] = h[0];
+        h[0] = xi;
+    }
+}
+
+static void pt_mwi(float *x, size_t n)
+{
+    float buf[ECG_PT_MWI_LEN] = {0.0f};
+    double jumlah = 0.0;                 // double: 100k penjumlahan float meleleh
+    int pos = 0;
+    for (size_t i = 0; i < n; i++) {
+        jumlah += x[i] - buf[pos];
+        buf[pos] = x[i];
+        pos = (pos + 1) % ECG_PT_MWI_LEN;
+        x[i] = (float)(jumlah / ECG_PT_MWI_LEN);
+    }
+}
+
+int ecg_detect_r(const float *filtered, size_t n, float *scratch,
+                 int *out, int out_maks)
+{
+    if (n < 3) {
+        return 0;
+    }
+    pt_bandpass(filtered, scratch, n);
+    pt_derivative(scratch, n);
+    for (size_t i = 0; i < n; i++) {
+        scratch[i] *= scratch[i];
+    }
+    pt_mwi(scratch, n);
+
+    // Inisialisasi ambang dari 2 detik pertama: asumsinya ada minimal 1 QRS.
+    const size_t n_awal = (n < (size_t)(2 * ECG_FS)) ? n : (size_t)(2 * ECG_FS);
+    double spki = scratch[0], jumlah = 0.0;
+    for (size_t i = 0; i < n_awal; i++) {
+        if (scratch[i] > spki) spki = scratch[i];
+        jumlah += scratch[i];
+    }
+    double npki = jumlah / n_awal;
+
+    int jml = 0;
+    long terakhir = -(long)ECG_PT_REFRACTORY;
+    for (size_t i = 1; i + 1 < n; i++) {
+        // Puncak lokal, asimetris (> kiri, >= kanan) supaya plateau datar tidak
+        // menghasilkan nol puncak maupun puncak ganda.
+        if (!(scratch[i] > scratch[i - 1] && scratch[i] >= scratch[i + 1])) {
+            continue;
+        }
+        if ((long)i - terakhir < (long)ECG_PT_REFRACTORY) {
+            continue;
+        }
+        const double v = scratch[i];
+        const double ambang = npki + 0.25 * (spki - npki);
+        if (v > ambang) {
+            spki = 0.125 * v + 0.875 * spki;
+            if (jml < out_maks) out[jml] = (int)i;
+            jml++;
+            terakhir = (long)i;
+        } else {
+            npki = 0.125 * v + 0.875 * npki;
+        }
+    }
+    return (jml < out_maks) ? jml : out_maks;
+}
+
+int ecg_align_r(const float *filtered, size_t n, int r_kasar)
+{
+    int lo = r_kasar - ECG_PT_OFFSET;
+    int a = lo - ECG_PT_REFINE;
+    int b = lo + ECG_PT_REFINE;
+    if (a < 0) a = 0;
+    if (b > (int)n - 1) b = (int)n - 1;
+    if (a > b) return lo - ECG_GROUP_DELAY;
+
+    int puncak = a;
+    for (int i = a + 1; i <= b; i++) {
+        if (filtered[i] > filtered[puncak]) puncak = i;
+    }
+    return puncak - ECG_GROUP_DELAY;
+}

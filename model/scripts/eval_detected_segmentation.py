@@ -23,7 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf  # noqa: E402
 
 from config import (  # noqa: E402
-    ARTIFACT_DIR, DS1, DS2, FS, METRICS_DIR, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
+    ARTIFACT_DIR, DS1, DS2, FS, GROUP_DELAY_SAMPLES, METRICS_DIR,
+    PT_REFINE_WIN, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
 )
 from src.evaluate import binary_metrics, confusion_counts, pair_detected  # noqa: E402
 from src.features_rr import compute_rr_features, to_aami_class, to_binary_label  # noqa: E402
@@ -34,9 +35,6 @@ from src.preprocessing import (  # noqa: E402
 )
 
 TOLERANSI_MS = 150
-REFINE_WIN = 25       # +-70 ms: cari puncak R sebenarnya di sekitar tebakan detektor
-GROUP_DELAY = 4       # filter kausal menggeser R +4 sampel (Fase 1); window training
-                      # menaruh R di indeks 94, dan model SANGAT peka pada itu.
 
 
 def haluskan(r_kasar, filtered):
@@ -48,10 +46,10 @@ def haluskan(r_kasar, filtered):
     """
     hasil = []
     for lo in r_kasar:
-        a = max(0, lo - REFINE_WIN)
-        b = lo + REFINE_WIN + 1
+        a = max(0, lo - PT_REFINE_WIN)
+        b = lo + PT_REFINE_WIN + 1
         hasil.append(a + int(np.argmax(filtered[a:b])))
-    return np.asarray(hasil) - GROUP_DELAY
+    return np.asarray(hasil) - GROUP_DELAY_SAMPLES
 
 
 def deteksi(record_id: str, sos):
