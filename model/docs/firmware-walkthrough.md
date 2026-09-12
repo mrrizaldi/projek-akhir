@@ -306,6 +306,50 @@ supaya antreannya bisa disizing dengan angka, bukan tebakan.
 
 ---
 
+## 5c. Firmware produksi (`main.cpp`)
+
+```
+timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
+   adc1_get_raw()                             ├─ ecg_live_push
+                                              ├─ inferensi tiap beat
+                                              ├─ LED kedip (merah = aritmia)
+                                              └─ REC: simpan mentah ke LittleFS
+```
+
+**ADC dibaca DI DALAM ISR, bukan di loop.** Ini konsekuensi langsung dari
+temuan §5b: beban menggumpal sampai 33 ms. Kalau ISR cuma menaikkan penanda dan
+loop yang membaca ADC, sampel tetap terbaca — tapi **terlambat**, karena ADC
+mengambil nilai saat dibaca, bukan saat seharusnya. Jitter waktu sebesar burst
+itu masuk langsung ke interval RR.
+
+`adc1_get_raw()` dipakai, bukan `analogRead()`: yang kedua membawa penguncian
+dan tidak aman dipanggil dari ISR.
+
+Antrean 256 sampel (0,7 detik) — jauh di atas 13 yang dibutuhkan, tapi murah
+(512 byte) dan memberi ruang kalau nanti WiFi/MQTT ikut mencuri waktu loop.
+`n_lewat` menghitung sampel yang hilang saat antrean penuh; angkanya **harus
+tetap 0**, dan ikut disimpan ke berkas rekaman.
+
+### Terukur di board (tanpa elektroda, ADC membaca derau)
+
+```
+RAM   21,2% (69.404 B)    Flash 6,4% (419.209 B)
+antrean saat burst: 12 sampel      sampel hilang: 0
+```
+
+Antrean 12 saat diperiksa di tengah burst — cocok dengan 13 yang dihitung dari
+pengukuran §5b.
+
+### Jebakan kecil yang sempat muncul: BPM dari `millis()`
+
+Versi pertama menghitung BPM dari selisih waktu antar-cetak. Hasilnya
+"2000 bpm", karena beat keluar **bergerombol** — deteksi berjalan sekali per
+detik lalu mengeluarkan beberapa beat sekaligus. Jarak waktu antar-cetak bukan
+jarak antar-detak. BPM harus dihitung dari `beat.rr[0]`, satu-satunya sumber
+yang benar-benar mengukur interval jantung.
+
+---
+
 ## 6. Angka device
 
 ```

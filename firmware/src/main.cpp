@@ -1,95 +1,115 @@
-// Akuisisi EKG stand-alone: tombol REC merekam ke PSRAM lalu simpan ke LittleFS,
-// tombol DUMP mengirimnya ke serial. Tanpa laptop saat merekam.
+// Firmware utama: akuisisi + klasifikasi aritmia langsung di alat.
 //
-// Sampling 360 Hz TEPAT lewat timer hardware — bukan delay() di loop(). Model
-// dilatih pada fs=360; laju yang melayang mencemari RR_prev & dRR, fitur yang
-// paling menentukan kelas S.
+// ADC dibaca di timer ISR 360 Hz dan ditaruh ke antrean; loop utama yang
+// menguras dan memproses. Pemisahan ini WAJIB: beban pemrosesan menggumpal —
+// rata-rata 82 us/sampel tapi puncaknya 33 ms saat deteksi dan inferensi
+// bersamaan. Kalau ADC dibaca di loop, ~12 sampel hilang tiap detik dan
+// interval RR rusak (docs/firmware-walkthrough.md §5b).
 #ifndef PIO_UNIT_TESTING
 #include <Arduino.h>
 #include <LittleFS.h>
 #include <string.h>
+#include "driver/adc.h"
 
-#include "ecg_preproc.h"          // GENERATED: ECG_FS dll
-#include "ecg_pipeline.h"         // ecg_bandpass — dipakai utk menilai kualitas sinyal
+#include "tensorflow/lite/micro/micro_interpreter.h"
+#include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
+#include "tensorflow/lite/schema/schema_generated.h"
+#if __has_include("tensorflow/lite/micro/micro_error_reporter.h")
+#include "tensorflow/lite/micro/micro_error_reporter.h"
+#define TFLM_PUNYA_ERROR_REPORTER 1
+#endif
 
-constexpr int PIN_EKG   = 4;      // AD8232 OUTPUT — WAJIB ADC1 (GPIO1-10).
-                                  // ADC2 (GPIO11-20) mati total saat WiFi aktif.
-constexpr int PIN_PROBE = 18;     // pin nganggur, dipakai sbg "voltmeter" saat debug
-constexpr int PIN_LOP   = 17;     // LO+ (digital, pin mana pun boleh)
-constexpr int PIN_LON   = 7;      // LO-
-constexpr int PIN_REC   = 6;
-constexpr int PIN_DUMP  = 5;
-constexpr int PIN_LED   = 48;
+#include "ecg_live.h"
+#include "model_int8.h"
 
-constexpr uint32_t DETIK_MAKS = 300;                      // 5 menit
-constexpr size_t   N_MAKS = (size_t)ECG_FS * DETIK_MAKS;  // 108.000 sampel
+constexpr adc1_channel_t KANAL_EKG = ADC1_CHANNEL_3;   // GPIO 4
+constexpr int PIN_LOP = 17, PIN_LON = 7;
+constexpr int PIN_REC = 6, PIN_DUMP = 5, PIN_LED = 48;
+
+constexpr size_t ANTRE_N = 256;            // >= 13 (puncak burst), dibulatkan pangkat 2
+constexpr uint32_t DETIK_MAKS = 300;
+constexpr size_t REKAM_N = (size_t)ECG_FS * DETIK_MAKS;
 constexpr const char *BERKAS = "/rekaman.csv";
-constexpr uint32_t DEBOUNCE_MS = 50;
+constexpr int ARENA_N = 24 * 1024;
 
-static uint16_t *buf = nullptr;
-static volatile size_t n_sampel = 0;
-static volatile bool rekam = false;
-static volatile uint32_t n_lewat = 0;
-static volatile bool waktunya = false;
-static int ayun_terakhir = 0;      // ayunan sinyal 1 detik terakhir, buat LED
-static bool clipping_terakhir = false;
-static hw_timer_t *timer = nullptr;
-static portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
+static volatile uint16_t antre[ANTRE_N];
+static volatile size_t tulis, baca;
+static volatile uint32_t n_lewat;          // antrean penuh = sampel hilang
+static hw_timer_t *timer;
 
-// ISR sengaja cuma menaikkan penanda; analogRead() tidak aman dipanggil di sini.
+static uint16_t *rekam_buf;
+static volatile size_t rekam_n;
+static volatile bool rekam;
+
+alignas(16) static uint8_t arena[ARENA_N];
+static tflite::MicroInterpreter *interp;
+static TfLiteTensor *in_morph, *in_rr, *keluar;
+
+static int beat_total, beat_aritmia;
+
 void IRAM_ATTR on_timer()
 {
-    portENTER_CRITICAL_ISR(&mux);
-    if (waktunya) n_lewat++;               // loop() belum sempat mengambil
-    waktunya = true;
-    portEXIT_CRITICAL_ISR(&mux);
+    const size_t berikut = (tulis + 1) % ANTRE_N;
+    if (berikut == baca) { n_lewat++; return; }        // loop ketinggalan
+    antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);  // cepat, aman di ISR
+    tulis = berikut;
 }
 
 static void led(uint8_t r, uint8_t g, uint8_t b) { neopixelWrite(PIN_LED, r, g, b); }
-static bool elektroda_lepas() { return digitalRead(PIN_LOP) || digitalRead(PIN_LON); }
 
-static bool ditekan(int pin, uint32_t &terakhir, bool &sebelumnya)
+static void siapkan_model()
 {
-    const bool kini = (digitalRead(pin) == LOW);
-    const uint32_t t = millis();
-    bool tepi = false;
-    if (kini != sebelumnya && t - terakhir > DEBOUNCE_MS) {
-        tepi = kini;
-        sebelumnya = kini;
-        terakhir = t;
+    const tflite::Model *m = tflite::GetModel(model_int8_tflite);
+    static tflite::MicroMutableOpResolver<8> res;
+    res.AddConv2D(); res.AddDepthwiseConv2D(); res.AddMaxPool2D();
+    res.AddConcatenation(); res.AddLogistic(); res.AddAdd();
+    res.AddReshape(); res.AddExpandDims();
+#ifdef TFLM_PUNYA_ERROR_REPORTER
+    static tflite::MicroErrorReporter lapor;
+    static tflite::MicroInterpreter it(m, res, arena, ARENA_N, &lapor);
+#else
+    static tflite::MicroInterpreter it(m, res, arena, ARENA_N);
+#endif
+    interp = &it;
+    if (interp->AllocateTensors() != kTfLiteOk) {
+        Serial.println("FATAL: AllocateTensors gagal");
+        while (true) { led(64, 0, 0); delay(200); led(0, 0, 0); delay(200); }
     }
-    return tepi;
+    TfLiteTensor *a = interp->input(0), *b = interp->input(1);
+    const bool a_kecil = a->bytes < b->bytes;
+    in_rr = a_kecil ? a : b;
+    in_morph = a_kecil ? b : a;
+    keluar = interp->output(0);
 }
 
-static void mulai_rekam()
+static int8_t ke_int8(float x, float skala, int nol)
 {
-    // Lead-off cuma PERINGATAN, bukan penolakan: deteksi DC AD8232 bisa tetap
-    // HIGH walau elektroda menempel (gel kering, impedansi tinggi) sementara
-    // sinyalnya sendiri sudah bagus. Yang menentukan layak-tidaknya rekaman
-    // adalah analisis sinyal di model/scripts/, bukan pin ini.
-    if (elektroda_lepas()) {
-        Serial.println("PERINGATAN: LO menandakan elektroda lepas — rekam tetap jalan.");
-    }
-    n_sampel = 0;
-    n_lewat = 0;
-    rekam = true;
-    timerAlarmEnable(timer);
-    Serial.printf("REKAM mulai — %u Hz, maks %u detik\n", ECG_FS, DETIK_MAKS);
+    long q = lroundf(x / skala) + nol;
+    if (q < -128) q = -128;
+    if (q > 127) q = 127;
+    return (int8_t)q;
+}
+
+static float klasifikasi(const ecg_beat_t &beat)
+{
+    for (int i = 0; i < ECG_WIN_LEN_; i++)
+        in_morph->data.int8[i] = ke_int8(beat.window[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+    for (int i = 0; i < ECG_N_RR; i++)
+        in_rr->data.int8[i] = ke_int8(beat.rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+    interp->Invoke();
+    return (keluar->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 }
 
 static void simpan()
 {
-    timerAlarmDisable(timer);
     rekam = false;
-    const size_t n = n_sampel;
-
     File f = LittleFS.open(BERKAS, "w");
     if (!f) { Serial.println("GAGAL membuka LittleFS"); return; }
-    f.printf("# fs=%u n=%u lewat=%u\n", ECG_FS, (unsigned)n, (unsigned)n_lewat);
-    for (size_t i = 0; i < n; i++) f.printf("%u\n", buf[i]);
+    f.printf("# fs=%u n=%u lewat=%u\n", ECG_FS, (unsigned)rekam_n, (unsigned)n_lewat);
+    for (size_t i = 0; i < rekam_n; i++) f.printf("%u\n", rekam_buf[i]);
     f.close();
     Serial.printf("SIMPAN %u sampel (%.1f detik), %u terlewat -> %s\n",
-                  (unsigned)n, (float)n / ECG_FS, (unsigned)n_lewat, BERKAS);
+                  (unsigned)rekam_n, (float)rekam_n / ECG_FS, (unsigned)n_lewat, BERKAS);
 }
 
 static void dump()
@@ -102,125 +122,94 @@ static void dump()
     f.close();
 }
 
+static bool ditekan(int pin, uint32_t &terakhir, bool &sebelumnya)
+{
+    const bool kini = (digitalRead(pin) == LOW);
+    const uint32_t t = millis();
+    bool tepi = false;
+    if (kini != sebelumnya && t - terakhir > 50) {
+        tepi = kini; sebelumnya = kini; terakhir = t;
+    }
+    return tepi;
+}
+
 void setup()
 {
     Serial.begin(115200);
     delay(1500);
-    pinMode(PIN_LOP, INPUT);
-    pinMode(PIN_LON, INPUT);
-    pinMode(PIN_REC, INPUT_PULLUP);
-    pinMode(PIN_DUMP, INPUT_PULLUP);
-    analogReadResolution(12);
-    analogSetAttenuation(ADC_11db);
+    pinMode(PIN_LOP, INPUT); pinMode(PIN_LON, INPUT);
+    pinMode(PIN_REC, INPUT_PULLUP); pinMode(PIN_DUMP, INPUT_PULLUP);
 
-    // Buffer di PSRAM: 108.000 x 2 byte = 216 KB.
-    buf = (uint16_t *)ps_malloc(N_MAKS * sizeof(uint16_t));
-    if (!buf) buf = (uint16_t *)malloc(N_MAKS * sizeof(uint16_t));
-    if (!buf) {
-        Serial.println("FATAL: alokasi buffer gagal");
-        while (true) { led(64, 0, 0); delay(300); led(0, 0, 0); delay(300); }
-    }
+    adc1_config_width(ADC_WIDTH_BIT_12);
+    adc1_config_channel_atten(KANAL_EKG, ADC_ATTEN_DB_11);
+
+    rekam_buf = (uint16_t *)ps_malloc(REKAM_N * sizeof(uint16_t));
+    if (!rekam_buf) Serial.println("PERINGATAN: PSRAM gagal, perekaman mentah nonaktif");
     if (!LittleFS.begin(true)) Serial.println("PERINGATAN: LittleFS gagal mount");
 
-    timer = timerBegin(0, 80, true);                 // 80 MHz / 80 = 1 MHz
-    timerAttachInterrupt(timer, &on_timer, true);
-    timerAlarmWrite(timer, 1000000 / ECG_FS, true);  // 2778 us = 360 Hz
+    siapkan_model();
+    ecg_live_reset();
 
-    Serial.printf("\n=== AKUISISI EKG SIAP ===\nREC=GPIO%d  DUMP=GPIO%d  fs=%u Hz  buffer %u detik\n",
-                  PIN_REC, PIN_DUMP, ECG_FS, DETIK_MAKS);
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &on_timer, true);
+    timerAlarmWrite(timer, 1000000 / ECG_FS, true);
+    timerAlarmEnable(timer);
+
+    Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
+                  "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
+                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s\n",
+                  ECG_FS, (unsigned)ANTRE_N, (unsigned)interp->arena_used_bytes(),
+                  ECG_THRESHOLD, PIN_REC, PIN_DUMP);
 }
 
 void loop()
 {
+    static ecg_beat_t beat;
     static uint32_t t_rec = 0, t_dump = 0;
     static bool s_rec = false, s_dump = false;
 
-    if (rekam) {
-        bool ambil = false;
-        portENTER_CRITICAL(&mux);
-        if (waktunya) { waktunya = false; ambil = true; }
-        portEXIT_CRITICAL(&mux);
-        if (ambil) {
-            buf[n_sampel++] = (uint16_t)analogRead(PIN_EKG);
-            if (n_sampel >= N_MAKS) { Serial.println("Buffer penuh."); simpan(); }
+    // Kuras antrean ISR. Satu sampel per iterasi supaya tombol & serial tetap
+    // responsif; beban 3% membuat antrean selalu terkejar.
+    if (baca != tulis) {
+        const float sampel = (float)antre[baca];
+        baca = (baca + 1) % ANTRE_N;
+
+        if (rekam && rekam_buf && rekam_n < REKAM_N) rekam_buf[rekam_n++] = (uint16_t)sampel;
+
+        if (ecg_live_push(sampel, &beat)) {
+            const float p = klasifikasi(beat);
+            const bool aritmia = p >= ECG_THRESHOLD;
+            beat_total++;
+            if (aritmia) beat_aritmia++;
+            // BPM dari RR_prev, BUKAN dari selisih millis(): beat keluar
+            // bergerombol setelah deteksi berkala, jadi jarak waktu antar-cetak
+            // tidak sama dengan jarak antar-detak.
+            const float bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
+            Serial.printf("beat %4d  p=%.4f  %-7s  RR=%.3fs  %3.0f bpm\n",
+                          beat_total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
+            led(aritmia ? 96 : 0, aritmia ? 0 : 64, 0);   // kedip per detak
+            delayMicroseconds(1500);
+            led(0, 0, 0);
         }
     }
 
-    // Perintah serial: setara tombol, tapi bisa dipicu dari laptop sehingga
-    // tidak bergantung pada timing tekan-tombol saat sedang menyimak.
-    //   r = rekam mulai/berhenti   d = dump   s = status sekali
     if (Serial.available()) {
         const char c = Serial.read();
-        if (c == 'r')      rekam ? simpan() : mulai_rekam();
+        if (c == 'r') { if (rekam) simpan(); else { rekam_n = 0; rekam = true; Serial.println("REKAM mulai"); } }
         else if (c == 'd') { if (!rekam) dump(); else Serial.println("Sedang merekam."); }
-        else if (c == 's') Serial.printf("status: rekam=%d n=%u LO %d %d\n",
-                                         (int)rekam, (unsigned)n_sampel,
-                                         digitalRead(PIN_LOP), digitalRead(PIN_LON));
+        else if (c == 's')
+            Serial.printf("status: rekam=%d n=%u | beat %d (%d aritmia) | "
+                          "antrean %u | sampel hilang %u | LO %d %d\n",
+                          (int)rekam, (unsigned)rekam_n, beat_total, beat_aritmia,
+                          (unsigned)((tulis - baca + ANTRE_N) % ANTRE_N), (unsigned)n_lewat,
+                          digitalRead(PIN_LOP), digitalRead(PIN_LON));
     }
 
-    if (ditekan(PIN_REC, t_rec, s_rec))  rekam ? simpan() : mulai_rekam();
+    if (ditekan(PIN_REC, t_rec, s_rec)) {
+        if (rekam) simpan(); else { rekam_n = 0; rekam = true; Serial.println("REKAM mulai"); }
+    }
     if (ditekan(PIN_DUMP, t_dump, s_dump)) {
-        if (rekam) Serial.println("DUMP diabaikan saat merekam (mengganggu timing).");
-        else dump();
-    }
-
-    // Status berkala saat idle — sekaligus alat diagnosis di meja kerja.
-    // gpio7 dipakai sebagai "voltmeter": pindahkan jumpernya ke pin modul yang
-    // ingin diukur (3.3V, OUTPUT, ...). 4095 ~ 3,1 V.
-    static uint32_t t_status = 0;
-    if (!rekam && millis() - t_status > 1000) {
-        t_status = millis();
-        // Ambil 1 detik pada 360 Hz lalu lewatkan bandpass yang SAMA dengan
-        // pipeline. 50 Hz ada di luar pita 0,5-40 Hz, jadi ayunan setelah
-        // filter mencerminkan sinyal jantung, bukan dengung.
-        static float mentah[ECG_FS], tersaring[ECG_FS];
-        int mn = 4095, mx = 0; long jml = 0;
-        for (int i = 0; i < ECG_FS; i++) {
-            const int v = analogRead(PIN_EKG);
-            mentah[i] = (float)v;
-            if (v < mn) mn = v;
-            if (v > mx) mx = v;
-            jml += v;
-            delayMicroseconds(2778);
-        }
-        // Buang DC SEBELUM difilter. Highpass 0,5 Hz punya tetapan waktu ~0,3 s;
-        // menyuapkan step DC ~3300 counts menghasilkan transien raksasa yang
-        // menutupi sinyal selama ratusan sampel.
-        const float rerata = (float)jml / ECG_FS;
-        for (int i = 0; i < ECG_FS; i++) mentah[i] -= rerata;
-        float st[ECG_N_SOS * 2];
-        memset(st, 0, sizeof(st));
-        ecg_bandpass(mentah, tersaring, ECG_FS, st);
-
-        // Tetap lewati 180 sampel (0,5 detik) sebagai sisa transien.
-        float fmn = 1e9f, fmx = -1e9f;
-        for (int i = 180; i < ECG_FS; i++) {
-            if (tersaring[i] < fmn) fmn = tersaring[i];
-            if (tersaring[i] > fmx) fmx = tersaring[i];
-        }
-        ayun_terakhir = (int)(fmx - fmn);
-        clipping_terakhir = (mx >= 4090 || mn <= 5);
-        Serial.printf("idle | mentah %4d..%4d avg %4d | TERSARING ayun %4d | LO %d %d\n",
-                      mn, mx, (int)(jml / ECG_FS), ayun_terakhir,
-                      digitalRead(PIN_LOP), digitalRead(PIN_LON));
-    }
-
-    // LED menunjukkan KUALITAS SINYAL, bukan pin LO — deteksi lead-off AD8232
-    // ternyata tetap HIGH walau detak tertangkap, jadi tak berguna sbg indikator.
-    // Ini satu-satunya umpan balik saat jalan dengan powerbank.
-    //   hijau       : ayunan sehat, siap rekam
-    //   oranye      : ayunan terlalu kecil — elektroda kurang kontak
-    //   merah kedip : clipping, sinyal terpotong
-    //   merah tetap : sedang merekam
-    static uint32_t t_led = 0;
-    static bool nyala = false;
-    if (millis() - t_led > 250) {
-        t_led = millis();
-        nyala = !nyala;
-        if (rekam)                       led(64, 0, 0);
-        else if (clipping_terakhir)      led(nyala ? 80 : 0, 0, 0);
-        else if (ayun_terakhir < 60)     led(64, 24, 0);   // ayunan TERSARING
-        else                             led(0, 48, 0);
+        if (rekam) Serial.println("DUMP diabaikan saat merekam."); else dump();
     }
 }
 #endif

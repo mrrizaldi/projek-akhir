@@ -151,7 +151,14 @@ angka nyata → cek pemahaman → skrip pendukung.
   burst **33,4 ms** (deteksi + inferensi bersamaan) → ADC WAJIB diumpankan ISR
   ke antrean min 13 sampel, kalau tidak sampel bolong dan RR rusak.
   `pio test -e native` 11/11, device 5/5.
-- [ ] **HW-4** — akuisisi ISR + alur hidup jadi satu firmware, lalu MQTT
+- [x] **HW-4** — firmware produksi: timer ISR 360 Hz baca `adc1_get_raw` →
+  antrean 256 → loop kuras → `ecg_live` → inferensi → LED + serial per detak.
+  ADC dibaca DI ISR (bukan loop) supaya jitter burst 33 ms tidak masuk ke RR.
+  Terukur di board: **RAM 21,2%, Flash 6,4%, antrean 12 saat burst, sampel
+  hilang 0**. REC tetap menyimpan sinyal mentah ke LittleFS untuk analisis
+  offline. `pio test -e native` 11/11.
+- [ ] **HW-5** — validasi dengan elektroda baru (sinyal tubuh nyata)
+- [ ] **HW-6** *(opsional, di luar PoC)* — MQTT + ThingsBoard
 
 ## Decision point yang sudah di-lock
 
