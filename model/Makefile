@@ -3,7 +3,7 @@
 PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 REC ?= 100          # record buat target plot: make plot0 REC=114
 
-.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc pull analisis klasifikasi test clean help
+.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc pull analisis test clean help
 
 help:
 	@grep -E '^[a-z0-9]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
@@ -45,10 +45,8 @@ export: ## salin artefak ke firmware/ & laporan/
 ## ── Akuisisi dari device ─────────────────────────────────────────────────────
 pull: ## tarik rekaman dari board -> data/recordings/<tanggal-jam>.csv
 	$(PY) scripts/pull_recording.py
-analisis: ## nilai kualitas rekaman: make analisis FILE=data/recordings/xxx.csv
+analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv
 	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE)))
-klasifikasi: ## jalankan model atas rekaman: make klasifikasi FILE=...
-	$(PY) scripts/classify_recording.py $(FILE) $(basename $(notdir $(FILE)))
 
 ## ── Fase 8 — checklist PoC ───────────────────────────────────────────────────
 poc: ## verifikasi 8 item DoD PRD secara mekanis
