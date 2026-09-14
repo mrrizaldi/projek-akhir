@@ -135,6 +135,41 @@ Tiga panel: ADC mentah, hasil bandpass + garis R-peak, dan spektrum (pita merah
 
 ---
 
+## 5b. Menjalankan model atas rekaman
+
+Kalau kualitasnya lolos, jalankan pipeline lengkap:
+
+```
+make klasifikasi FILE=data/recordings/20260914-1030.csv
+```
+
+Alurnya sama persis dengan `ecg_live.cpp` di alat — bandpass → Pan-Tompkins →
+penyelarasan R → window + z-score → RR → INT8 — dan sudah dibuktikan cocok digit
+demi digit antara PC dan ESP32-S3. Jadi hasilnya setara dengan yang dicetak alat
+ke serial, bedanya ini tersimpan dan bisa dilaporkan.
+
+```
+  R-peak terdeteksi  28  → 26 beat diklasifikasi
+  BPM dari RR_prev   median 68  min 61  max 74  masuk akal 100%
+  Klasifikasi @0.35  Normal 25  Aritmia 1 (3.8%)
+
+    #   detik     RR   bpm       p  hasil
+    0    3.12  0.880    68  0.0039  normal
+```
+
+Tabel per beat juga disimpan ke `artifacts/metrics/klasifikasi_<nama>.csv`.
+
+**Rekaman badan tidak punya anotasi kardiolog.** Keluaran ini menunjukkan APA
+yang diputuskan alat, bukan apakah keputusannya benar. Validasi klasifikasi
+tetap berbasis MIT-BIH (Fase 6), dan laju detaknya bisa diverifikasi silang
+dengan jam tangan.
+
+Indikator cepat sinyal itu benar-benar detak: **`masuk akal`** harus mendekati
+100% dan **BPM median** harus di rentang istirahat wajar. Nilai seperti "median
+300, masuk akal 26%" berarti detektor mengejar dengung, bukan jantung.
+
+---
+
 ## 6. Membaca angkanya
 
 | Metrik | Target | Kalau meleset |
