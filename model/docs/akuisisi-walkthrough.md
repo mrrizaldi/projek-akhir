@@ -29,7 +29,7 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
 
 | Kabel | GPIO | Posisi elektroda |
 |---|---|---|
-| `OUTPUT` | **4** (ADC1) | — |
+| `OUTPUT` | **8** (ADC1_CH7) | — |
 | `LO+` | 17 | — |
 | `LO−` | 7 | — |
 | REC | 6 | — |
@@ -37,6 +37,11 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
 | **RA (merah)** | — | bawah selangka kanan |
 | **LA (kuning)** | — | bawah rusuk kiri ← mengukur bersama merah |
 | **RL (hijau)** | — | bawah rusuk kanan (referensi) |
+
+Pin OUTPUT wajib di **ADC1 (GPIO1–10)**; ADC2 (GPIO11–20) mati total begitu
+WiFi menyala. Semula GPIO4, dipindah ke GPIO8 pada 14 Sep 2026 setelah jalur
+GPIO4 terbukti putus — gejalanya: `dengung50` ~930 counts (pin mengambang
+menyerap jala-jala) yang langsung jadi 0 begitu pindah pin.
 
 Sumbu merah→kuning meniru **MLII**, lead yang dipakai MIT-BIH. Kalau kuning
 ditaruh di dada kiri atas (seperti diagram 3-lead klinis), yang terukur jadi
@@ -53,18 +58,44 @@ jumlah pemasangan ulang.
 
 ## 2. Arti LED
 
-LED mengukur **ayunan sinyal setelah bandpass 0,5–40 Hz** — jadi dengung 50 Hz
-(di luar pita) tidak ikut terhitung. Ini pakai fungsi `ecg_bandpass` yang sama
-dengan pipeline model.
+LED mengukur **ayunan sinyal setelah bandpass 0,5–40 Hz**, pakai fungsi
+`ecg_bandpass` yang sama dengan pipeline model.
 
-| LED | Ayunan tersaring | Artinya |
+Bandpass itu **tidak membunuh 50 Hz**, cuma meredamnya −9,3 dB (gain 0,342;
+diukur dari `ecg_sos` dengan `sosfreqz`). Dengung besar karena USB laptop
+tertancap tetap lolos sepertiganya dan sanggup memalsukan LED hijau — terukur:
+ayunan mentah 990 counts dengan ayunan tersaring 380, padahal isinya jala-jala,
+bukan EKG. Karena itu firmware mengukur amplitudo 50 Hz dengan Goertzel
+(1 detik = 50 siklus bulat, binnya tepat) lalu **mengurangkan** kontribusinya:
+
+```
+ayun_bersih = ayun_tersaring − 0,342 × dengung50_puncak-ke-puncak
+```
+
+Angka `ayun_bersih` inilah yang menyetir LED, dan yang dicetak `q`.
+
+| LED | Ayunan bersih | Artinya |
 |---|---|---|
 | **Hijau** | ≥ 60 | boleh rekam |
-| **Oranye** | < 60 | kontak kurang — **jangan rekam** |
-| **Merah kedip** | — | clipping, sinyal terpotong |
-| **Merah tetap** | — | sedang merekam |
+| **Oranye** | < 60 | kontak kurang atau dengung dominan — **jangan rekam** |
+| **Merah** | — | sedang merekam |
 
-Merekam saat oranye = rekaman kosong. Perbaiki dulu elektrodanya.
+Tiga keadaan, tanpa kedip. Merekam saat oranye = rekaman kosong. Perbaiki dulu
+elektrodanya.
+
+**Clipping tidak lagi punya warna.** Dulu ia memakai merah kedip, tapi itu
+menumpuk dua arti di satu warna dan bikin merah ambigu. Sekarang merah berarti
+satu hal saja: sedang merekam. Konsekuensinya sinyal yang terpotong di rail
+tampil **hijau** — LED hanya mengukur ayunan, dan sinyal terpotong justru
+berayun lebar. Clipping tetap dihitung, cek lewat serial:
+
+```
+q   laporan kualitas tiap detik, kolom `clipping`
+s   status sesaat, kolom `clipping`
+```
+
+Sebelum menekan REC, tekan `q` sekali dan pastikan `clipping 0`. Hijau saja
+tidak cukup lagi.
 
 ---
 

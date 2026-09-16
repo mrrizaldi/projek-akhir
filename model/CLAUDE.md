@@ -157,7 +157,17 @@ angka nyata → cek pemahaman → skrip pendukung.
   Terukur di board: **RAM 21,2%, Flash 6,4%, antrean 12 saat burst, sampel
   hilang 0**. REC tetap menyimpan sinyal mentah ke LittleFS untuk analisis
   offline. `pio test -e native` 11/11.
-- [ ] **HW-5** — validasi dengan elektroda baru (sinyal tubuh nyata)
+- [ ] **HW-5** — validasi dengan elektroda baru (sinyal tubuh nyata).
+  **15 Sep 2026: satu rekaman tubuh BERHASIL** — `20260915-1130.csv`, ayunan
+  **3128 counts**, dengung 3,3%, autokorelasi 0,27 @ 87 bpm, 64 R-peak / 47,2 dtk,
+  BPM masuk akal 100% (20 sampel clipping di rail atas). Sesudah itu **enam
+  rekaman beruntun mati di 40–55 counts** (~38 uV input-referred = lantai derau).
+  Dicoret lewat ukur, satu variabel per percobaan: elektroda, jack, kabel LO,
+  modul+kabel (RA–LA ribuan ohm; lintasan tubuh diukur di steker = ratusan kOhm),
+  penempatan LA. Sisa satu variabel: **header modul AD8232 belum disolder** —
+  sambungan tekan yang intermiten cocok dgn pola "kadang 3128, kadang 48".
+  Keputusan: **solder dulu, baru ulangi rekam**. Analisis offline jalan terus
+  pakai rekaman 11:30 — HW-5 tidak terkunci total.
 - [ ] **HW-6** *(opsional, di luar PoC)* — MQTT + ThingsBoard
 
 ## Decision point yang sudah di-lock
@@ -265,6 +275,20 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   `ModuleNotFoundError: No module named 'numpy'`. Sebab: `PY := python` ambil
   pyenv shim, bukan `.venv/bin/python`. Hindari: `PY` di Makefile sekarang
   auto-pilih `.venv/bin/python` kalau ada (tak perlu `source activate`).
+- **Telemetri akuisisi bisa berbohong, dan hari itu tiga sekaligus.** Ketemu
+  15 Sep 2026 saat memburu sinyal yang hilang. (1) **`lepas 0%` dari LO AD8232
+  BUKAN jaminan ada sinyal** — LO cuma butuh satu jalur impedansi rendah, dan
+  elektroda RL sendirian sudah memuaskannya; enam rekaman kosong semuanya
+  melapor `lepas 0%`. (2) **Nama file `make pull` = waktu TARIK, bukan waktu
+  rekam** (`pull_recording.py:77` pakai `datetime.now()`) — rekaman basi
+  terlihat baru kalau lupa menekan REC. (3) **Ohmmeter di rangkaian bertegangan
+  memberi angka salah tanpa tanda apa pun** — RA–LA terbaca ~0 Ohm (disimpulkan
+  korslet), diulang dengan daya mati jadi ribuan ohm. Hindari: jadikan **ayunan
+  ADC absolut** wasitnya, bukan flag. Konversi: 12-bit + atten 11 dB =
+  0,757 mV/count, gain AD8232 ~1100 → EKG sehat ~2 mV (~3000 counts);
+  **di bawah ~0,1 mV (~150 counts) berarti tidak ada biopotensial sama sekali**,
+  dan itu bukan masalah penempatan lead (penempatan buruk memangkas 3–5x,
+  bukan 50x).
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat

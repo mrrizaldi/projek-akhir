@@ -32,6 +32,11 @@ void ecg_live_reset(void);
 // sama seperti aturan buang-beat di prep_beats.py.
 int ecg_live_push(float sampel_mentah, ecg_beat_t *beat);
 
+// Sampel TERSARING terbaru (bandpass 0,5-40 Hz yang sama dengan pipeline).
+// Dipakai penilai kualitas sinyal di firmware: dengung 50 Hz ada di luar pita,
+// jadi ayunan sinyal ini mengukur EKG, bukan gangguan jala-jala.
+float ecg_live_tersaring_terakhir(void);
+
 // Statistik untuk pemantauan.
 size_t ecg_live_total_sampel(void);
 int ecg_live_total_beat(void);

@@ -129,5 +129,10 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
     return 0;
 }
 
+float ecg_live_tersaring_terakhir(void)
+{
+    return n_total ? ring[(n_total - 1) % ECG_LIVE_RING] : 0.0f;
+}
+
 size_t ecg_live_total_sampel(void) { return n_total; }
 int ecg_live_total_beat(void) { return n_beat; }
