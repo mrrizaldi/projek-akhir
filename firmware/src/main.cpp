@@ -161,7 +161,7 @@ static void nilai_kualitas(float mentah)
     static int m_min, m_maks;
 
     static float g1, g2;
-    const float koef = 2.0f * cosf(2.0f * (float)M_PI * 50.0f / ECG_FS);
+    static const float koef = 2.0f * cosf(2.0f * (float)M_PI * 50.0f / ECG_FS);
 
     const float f = ecg_live_tersaring_terakhir();
     const int m = (int)mentah;
