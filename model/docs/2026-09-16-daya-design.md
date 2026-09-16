@@ -201,14 +201,17 @@ CSV, lalu cetak tabel rata-rata ± std per mode dan simpan PNG ke
 `artifacts/metrics/daya_<ts>.png` (senapas dengan `akuisisi_*.png`).
 
 **Cek yang ditinggalkan** (aturan: logika non-trivial meninggalkan satu cek yang
-bisa dijalankan): assert bahwa
+bisa dijalankan), dua assert yang benar-benar bisa gagal:
 
-```
-Σ(selisih tiap tahap) == (p3 − p0)   dalam toleransi
-```
+1. **Monoton**: `p0 ≤ p1 ≤ p2 ≤ p3 ≤ p4`. Tiap mode menambah kerja, jadi arus
+   tidak boleh turun. Turun = gating mode tidak benar-benar mematikan pekerjaan.
+2. **Selisih di atas derau**: tiap `delta > 2×std`. Kalau ongkos satu tahap
+   tenggelam dalam sebaran pengukuran, tahap itu belum terukur — cuma ditebak,
+   dan angkanya tidak boleh masuk laporan.
 
-Kalau tangga modenya tidak konsisten, skrip gagal — bukan diam-diam
-menghasilkan tabel yang salah.
+Yang TIDAK dipakai: assert `Σ(selisih) == p3 − p0`. Itu teleskopik, secara
+aljabar selalu benar berapa pun angkanya, jadi tidak pernah bisa gagal — test
+yang selalu hijau lebih buruk daripada tidak ada test.
 
 ---
 
@@ -216,8 +219,11 @@ menghasilkan tabel yang salah.
 
 Tiga lapis, semuanya mekanis:
 
-1. **Konsistensi tangga** — jumlah selisih `p0→p1→p2→p3` harus sama dengan
-   `p3 − p0` terukur (assert di skrip, §4).
+1. **Monoton + selisih di atas derau** — `p0 ≤ p1 ≤ p2 ≤ p3 ≤ p4`, dan tiap
+   selisih antar-mode lebih besar dari 2×std pengukurannya (assert di skrip,
+   §4). Dua-duanya bisa gagal, dan kegagalannya menunjuk penyebab yang berbeda:
+   monoton gagal = gating mode bocor; selisih tenggelam = tahap itu belum
+   benar-benar terukur.
 2. **Cek silang multimeter** — INA219 dicabut dari terminal sekrup, multimeter
    (mode arus) dicolok di celah VBUS yang sama, dibandingkan di satu mode.
    Kalibrasi shunt bisa meleset tanpa tanda apa pun; ini satu-satunya
