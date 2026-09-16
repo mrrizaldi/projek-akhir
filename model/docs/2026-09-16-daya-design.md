@@ -126,7 +126,7 @@ serial monitor tetap jalan dan mode `p0`–`p4` tetap bisa diperintah dari
 keyboard.
 
 ```
-Laptop  ─┬─ VBUS (merah) ──► [INA219 IN+] (shunt) [IN−] ──► 5V board
+Laptop  ─┬─ VBUS (merah) ──► [INA219 VIN+] (shunt) [VIN−] ──► 5V board
          ├─ D+  (hijau) ─────────────────────────────────► board   JANGAN diputus
          ├─ D−  (putih) ─────────────────────────────────► board   JANGAN diputus
          └─ GND (hitam) ─────────────────────────────────► board   JANGAN diputus
@@ -135,11 +135,39 @@ INA219 VCC ─ 3V3 board      INA219 SDA ─ GPIO 11
 INA219 GND ─ GND board      INA219 SCL ─ GPIO 12
 ```
 
+Modul yang dipakai varian **header 6 pin** (`VCC GND SCL SDA VIN+ VIN-`), tanpa
+blok terminal sekrup. Dua kelompok pin yang berbeda fungsi ada dalam satu
+deretan, jadi pemetaannya ditulis tegas:
+
+| Pin | Ke mana | Kelompok |
+|---|---|---|
+| `VIN+` | kawat merah USB sisi **laptop** | jalur diukur (arus beban) |
+| `VIN-` | kawat merah USB sisi **board** (ke pin 5V) | jalur diukur (arus beban) |
+| `VCC` | **3V3** board | logika |
+| `GND` | GND board | logika |
+| `SDA` | GPIO 11 | logika |
+| `SCL` | GPIO 12 | logika |
+
+**`VCC` wajib 3V3, jangan 5V.** Pull-up I2C modul tersambung ke VCC-nya sendiri;
+VCC 5V menarik SDA/SCL ke 5V dan memberi tegangan berlebih ke GPIO ESP32-S3 yang
+cuma tahan 3,3V. Chip INA219 sendiri kuat sampai 5,5V — yang rusak ESP32-nya.
+
+Urutan pasang: empat pin logika dulu dengan USB tercabut, pastikan board masih
+menyala normal, baru potong kawat merah dan sisipkan VIN+/VIN−. Kalau VIN+ dan
+VIN− tertukar tidak ada yang rusak, arus cuma terbaca **negatif** — penanda yang
+jelas bahwa dua kawat tinggal ditukar.
+
+**Konsekuensi varian 6-pin:** seluruh arus board lewat pin dupont, bukan terminal
+sekrup. Sambungan tekan yang longgar = board reboot acak di tengah pengukuran
+atau arus terbaca naik-turun tanpa sebab — pola kegagalan yang sama dengan yang
+memacetkan HW-5. Header modul ini masuk daftar solder bersama AD8232, dan dua
+kawat VBUS lebih aman disolder langsung ke pin daripada mengandalkan dupont.
+
 **Cara memutus VBUS:** kabel USB korban — kupas selubung di tengah, potong
-hanya kawat merah, sambungkan dua ujungnya ke terminal sekrup INA219. Tiga
-kawat lain dibiarkan utuh. Hasilnya jadi kabel ukur permanen. Alternatif USB
-breakout pass-through lebih rapi tapi harus menunggu barang; ini alat ukur,
-kerapiannya tidak dinilai.
+hanya kawat merah, sambungkan dua ujungnya ke `VIN+`/`VIN−`. Tiga kawat lain
+dibiarkan utuh. Hasilnya jadi kabel ukur permanen. Alternatif USB breakout
+pass-through lebih rapi tapi harus menunggu barang; ini alat ukur, kerapiannya
+tidak dinilai.
 
 **JANGAN**: menyuplai board dari pin 5V pakai powerbank sambil USB tetap colok.
 Arus akan terbagi dua jalur dan angka yang keluar lebih kecil dari yang
