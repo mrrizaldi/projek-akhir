@@ -122,8 +122,9 @@ def main() -> None:
               f"   masuk akal {100 * masuk_akal:.0f}%"
               f"   {'OK' if masuk_akal > 0.9 else 'TIDAK KONSISTEN'}")
 
-    os.makedirs(METRICS_DIR, exist_ok=True)
-    out = os.path.join(METRICS_DIR, f"akuisisi_{nama}.png")
+    akuisisi_dir = os.path.join(METRICS_DIR, "akuisisi")
+    os.makedirs(akuisisi_dir, exist_ok=True)
+    out = os.path.join(akuisisi_dir, f"akuisisi_{nama}.png")
     t = np.arange(n) / fs
     tampil = slice(0, min(n, int(6 * fs)))
     fig, ax = plt.subplots(3, 1, figsize=(13, 8))

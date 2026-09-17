@@ -20,7 +20,7 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           │
                      make analisis FILE=...
                           ▼
-     angka kualitas di terminal + grafik di artifacts/metrics/akuisisi_*.png
+     angka kualitas di terminal + grafik di artifacts/metrics/akuisisi/akuisisi_*.png
 ```
 
 ---
@@ -157,10 +157,10 @@ percobaan: 15877 sampel = 44.1 detik @ 360 Hz, 0 sampel terlewat
 Grafiknya otomatis tersimpan:
 
 ```
-artifacts/metrics/akuisisi_<nama>.png
+artifacts/metrics/akuisisi/akuisisi_<nama>.png
 ```
 
-Buka dengan `xdg-open artifacts/metrics/akuisisi_20260910-2019.png`.
+Buka dengan `xdg-open artifacts/metrics/akuisisi/akuisisi_20260910-2019.png`.
 Tiga panel: ADC mentah, hasil bandpass + garis R-peak, dan spektrum (pita merah
 = 50 Hz, pita hijau = pita EKG).
 
