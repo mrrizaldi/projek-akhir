@@ -21,6 +21,7 @@
 
 #include "ecg_live.h"
 #include "model_int8.h"
+#include "golden_ref.h"
 
 constexpr adc1_channel_t KANAL_EKG = ADC1_CHANNEL_7;   // GPIO 8 (ADC1_CH7)
 constexpr int PIN_LOP = 17, PIN_LON = 7;
@@ -64,15 +65,55 @@ static int ayun_1s, ayun_bersih_1s, hum50_1s, mentah_min_1s, mentah_maks_1s;
 static bool clipping_1s;
 static bool lapor_kualitas;                // toggle 'q': cetak tiap detik
 
+// Sumber sinyal replay: golden_raw (record 208, 2400 sampel, 8 beat = ~72 bpm)
+// diputar berulang menggantikan ADC. Tanpa sinyal, ecg_live_push tidak pernah
+// mengeluarkan beat — jadi replay bukan kemudahan, tapi syarat untuk mengukur
+// daya per mode (HW-7) dan untuk menguji jalur MQTT tanpa elektroda.
+//
+// Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis, dan itulah yang
+// membuat kehilangan data bisa diukur: beat hilang = seharusnya - sampai.
+static volatile bool replay;
+static volatile size_t replay_i;
+
+// golden_raw satuannya mV (bisa negatif); antrean menyimpan counts ADC 12-bit.
+// Skalanya bebas — bandpass membuang DC dan z-score membuang skala, jadi
+// pipeline kebal terhadap pilihan ini. Yang TIDAK boleh: sampai terpotong di
+// rail, karena clipping merusak morfologi. 1000 counts/mV menaruh puncak R
+// (~1,5 mV) di ~3550, aman di bawah 4095.
+constexpr float SKALA_REPLAY = 1000.0f;
+constexpr float OFFSET_REPLAY = 2048.0f;
+
+// Konversi dilakukan SEKALI di setup(), bukan di ISR. Versi pertama mengalikan
+// float di dalam on_timer() dan board panic "Coprocessor exception" (EXCCAUSE 4)
+// setelah ~18 detik: ESP32 tidak menyimpan register FPU di konteks interrupt,
+// jadi float di ISR merusak state FPU task yang sedang diinterupsi. Bukan crash
+// seketika — itu sebabnya sempat lolos uji 20 detik.
+static uint16_t sim_counts[GOLDEN_N];
+
 void IRAM_ATTR on_timer()
 {
     const size_t berikut = (tulis + 1) % ANTRE_N;
     if (berikut == baca) { n_lewat++; return; }        // loop ketinggalan
-    antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);  // cepat, aman di ISR
+    if (replay) {
+        antre[tulis] = sim_counts[replay_i];       // INTEGER saja — lihat catatan
+        replay_i = (replay_i + 1) % GOLDEN_N;
+    } else {
+        antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);   // cepat, aman di ISR
+    }
     tulis = berikut;
 }
 
 static void led(uint8_t r, uint8_t g, uint8_t b) { neopixelWrite(PIN_LED, r, g, b); }
+
+static void siapkan_replay()
+{
+    for (size_t i = 0; i < GOLDEN_N; i++) {
+        float v = golden_raw[i] * SKALA_REPLAY + OFFSET_REPLAY;
+        if (v < 0.0f) v = 0.0f;
+        if (v > 4095.0f) v = 4095.0f;
+        sim_counts[i] = (uint16_t)v;
+    }
+}
 
 static void siapkan_model()
 {
@@ -247,6 +288,7 @@ void setup()
     if (!LittleFS.begin(true)) Serial.println("PERINGATAN: LittleFS gagal mount");
 
     siapkan_model();
+    siapkan_replay();               // WAJIB sebelum timer jalan: ISR cuma baca
     ecg_live_reset();
 
     timer = timerBegin(0, 80, true);
@@ -256,7 +298,7 @@ void setup()
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q\n",
+                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q/y\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)interp->arena_used_bytes(),
                   ECG_THRESHOLD, PIN_REC, PIN_DUMP);
 }
@@ -301,6 +343,13 @@ void loop()
         const char c = Serial.read();
         if (c == 'r') { if (rekam) simpan(); else { rekam_n = rekam_lepas = n_lewat = 0; rekam = true; Serial.println("REKAM mulai"); } }
         else if (c == 'd') { if (!rekam) dump(); else Serial.println("Sedang merekam."); }
+        else if (c == 'y') {
+            replay = !replay;
+            replay_i = 0;
+            ecg_live_reset();
+            beat_total = beat_aritmia = 0;
+            Serial.printf("replay %s\n", replay ? "ON (golden_raw)" : "OFF (ADC)");
+        }
         else if (c == 'q') {
             lapor_kualitas = !lapor_kualitas;
             Serial.printf("laporan kualitas %s\n", lapor_kualitas ? "ON" : "OFF");
