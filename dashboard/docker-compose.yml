@@ -1,0 +1,27 @@
+# ThingsBoard CE monolith, PostgreSQL di dalam container yang sama.
+#
+# Kenapa tb-postgres dan bukan compose 2-container (tb-node + postgres) yang
+# dipakai docs resmi: ini PoC di laptop, bukan produksi. Satu container = satu
+# hal yang bisa rusak. Volume dipisah supaya `docker compose down` tidak
+# menghapus device token, rule chain, dan dashboard yang sudah disetel.
+#
+# ponytail: single-node, in-memory queue bawaan. Pindah ke compose resmi
+# (Kafka + postgres terpisah) kalau sudah deploy ke VPS, bukan sebelum itu.
+services:
+  tb:
+    image: thingsboard/tb-postgres:4.2.1.1
+    container_name: tb-pa
+    restart: unless-stopped
+    ports:
+      - "8080:9090"     # UI + REST API  -> http://localhost:8080
+      - "1883:1883"     # MQTT device transport
+      - "7070:7070"     # edge RPC (tidak dipakai, dibiarkan default)
+    environment:
+      TB_QUEUE_TYPE: in-memory
+    volumes:
+      - tb-data:/data
+      - tb-logs:/var/log/thingsboard
+
+volumes:
+  tb-data:
+  tb-logs:
