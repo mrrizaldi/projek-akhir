@@ -130,11 +130,17 @@ Hasilnya menaruh R di indeks **94** dalam window, sama seperti window training.
 Meleset 4 sampel ke arah mana pun dan precision jatuh dari 0,479 ke 0,124 —
 angkanya diukur di [Fase 6b](segmentasi-deteksi-walkthrough.md) §2.
 
-Test `test_align_r_menaruh_puncak_di_94` menjaganya sebagai sifat, bukan sebagai
-angka: dia memotong window dari hasil `ecg_align_r` lalu memastikan puncaknya
-mendarat di 94. Pencariannya dibatasi ±20 di sekitar 94 — `argmax` global tidak
-bisa dipakai karena record 208 punya detak berdekatan (697 → 853) sehingga
-window 250 sampel sering memuat R tetangga yang lebih tinggi.
+Test `test_align_r_menaruh_puncak_di_r_idx` menjaganya sebagai sifat, bukan
+sebagai angka: dia memotong window dari hasil `ecg_align_r` lalu memastikan
+puncaknya mendarat di `R_IDX = ECG_WIN_PRE + ECG_GROUP_DELAY`. Pencariannya
+dibatasi ±20 di sekitar `R_IDX` — `argmax` global tidak bisa dipakai karena
+record 208 punya detak berdekatan (697 → 853) sehingga window selebar ini sering
+memuat R tetangga yang lebih tinggi.
+
+Namanya dulu `..._di_94` dan angkanya ditulis lurus di dua tempat. Saat window
+pindah ke 128/128 (18 Sep 2026), yang satu terlewat dan test merah dengan pesan
+yang menuduh firmware. Pelajarannya: **test yang menjaga sifat harus menuliskan
+sifatnya, bukan hasil hitungannya.**
 
 ---
 
@@ -254,7 +260,7 @@ Di dalamnya:
 sampel mentah
    → ecg_bandpass (state bertahan)  → ring 4 detik
    → tiap 1 detik: ecg_detect_r atas seluruh ring
-   → ecg_align_r  (R mendarat di indeks 94)
+   → ecg_align_r  (R mendarat di ECG_WIN_PRE + ECG_GROUP_DELAY = 132)
    → ecg_window_zscore + ecg_rr_features
    → beat keluar
 ```
@@ -340,6 +346,97 @@ antrean saat burst: 12 sampel      sampel hilang: 0
 Antrean 12 saat diperiksa di tengah burst — cocok dengan 13 yang dihitung dari
 pengukuran §5b.
 
+### Sumber sinyal replay (toggle serial `y`)
+
+Tekan `y` dan ISR berhenti membaca ADC; gantinya `golden_raw` (record 208, 2400
+sampel, 8 beat, ~72 bpm) diputar berulang sebagai counts ADC:
+
+```cpp
+if (replay) {
+    float v = golden_raw[replay_i] * SKALA_REPLAY + OFFSET_REPLAY;  // 1000 c/mV, +2048
+    ...
+    replay_i = (replay_i + 1) % GOLDEN_N;
+} else {
+    antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);
+}
+```
+
+Satu cabang di ISR, dan **seluruh jalur di hilirnya tidak berubah** — bandpass,
+deteksi, penyelarasan, inferensi, LED, REC, dan nanti MQTT semuanya berjalan
+seperti biasa. Kalau simulasi punya jalur sendiri, yang tervalidasi bukan jalur
+produksi.
+
+Skalanya bebas (bandpass membuang DC, z-score membuang skala); yang haram cuma
+terpotong di rail. 1000 counts/mV menaruh puncak R (~1,5 mV) di ~3550.
+
+Dua kegunaan, dan yang kedua justru yang lebih penting:
+
+1. **Beban kerja identik tiap ulangan** — syarat mengukur daya per mode (HW-7).
+   Tanpa sinyal, tidak ada beat, dan mode inferensi mengukur nol pekerjaan.
+2. **Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis.** Itu yang
+   membuat kehilangan data di jalur MQTT bisa diukur, bukan cuma dirasakan:
+   beat hilang = beat seharusnya − beat yang sampai di broker. `y` juga
+   me-reset `ecg_live` dan pencacah beat supaya hitungannya mulai dari nol.
+
+Konsekuensinya: uji resiliensi pipeline tidak perlu menunggu elektroda.
+
+#### JEBAKAN: float di dalam ISR membunuh board, pelan-pelan
+
+Versi pertama mengalikan langsung di `on_timer()`:
+
+```cpp
+float v = golden_raw[replay_i] * SKALA_REPLAY + OFFSET_REPLAY;   // SALAH
+```
+
+Ter-build bersih, jalan 20 detik, lalu:
+
+```
+Guru Meditation Error: Core 1 panic'ed (Coprocessor exception).
+EXCCAUSE: 0x00000004
+Rebooting...
+```
+
+ESP32 **tidak menyimpan register FPU saat masuk ISR**. Operasi float di sana
+merusak state FPU task yang sedang diinterupsi, dan panic-nya baru muncul saat
+task itu dijadwalkan lagi — jadi **bukan crash seketika**, yang membuatnya lolos
+uji pendek. Terukur: panic di detik 18,49.
+
+Obatnya konversi sekali di `setup()` ke `static uint16_t sim_counts[GOLDEN_N]`
+(4.800 byte), ISR tinggal menyalin integer. RAM 21,2% → 22,7%.
+
+Gejala turunannya lebih berbahaya daripada crash-nya: board reboot diam-diam,
+`replay` kembali `false`, dan pengukuran berikutnya melaporkan **angka yang
+masuk akal tapi salah objek** — 2 beat/detik dari derau ADC, bukan dari replay.
+
+#### Terukur di board (18 Sep 2026, tanpa elektroda)
+
+```
+periode putaran : 11 beat / 6,67 detik golden  (1,58 beat/detik)
+p per putaran   : 0,984 0,996 0,019 0,996 0,988 0,078 0,992 0,996 0,500 0,988 0,078
+                  → 7 ARITMIA + 4 normal, sama persis tiap putaran
+sampel hilang   : 0        antrean puncak: 21 dari 256
+mentah          : 1168..3618 counts (ayun 2720) — sesuai 1000 c/mV + 2048
+```
+
+Golden punya **9 beat beranotasi**, device mengeluarkan **11**. Dua selisihnya
+artefak **sambungan putaran**: sampel terakhir menyambung ke sampel pertama, dan
+diskontinuitas itu terlihat seperti QRS bagi detektor. Salah satunya keluar
+dengan `p = 0,500` persis — model pun tidak bisa memutuskan. Untuk akuntansi
+MQTT, yang dipakai **11 beat per putaran**, bukan 9: yang dihitung apa yang
+dikirim alat, bukan apa yang ada di anotasi.
+
+#### Tanpa elektroda dan tanpa replay, alat ini mengarang aritmia
+
+Diukur tidak sengaja saat memburu bug di atas: dengan input ADC mengambang,
+firmware mengeluarkan **~2 beat/detik, 57% diklasifikasi ARITMIA**. Derau
+kecil (ayun 15 counts) tetap punya puncak, dan Pan-Tompkins berambang adaptif
+selalu menemukan sesuatu — ambangnya relatif terhadap sinyal yang ada, jadi
+"tidak ada sinyal" bukan kondisi yang ia kenali.
+
+Untuk jalur MQTT nanti ini **wajib** jadi gerbang: publikasi harus tunduk pada
+penilai kualitas sinyal (`AMBANG_AYUN`), bukan pada ada-tidaknya beat. Kalau
+tidak, elektroda lepas = banjir alarm palsu ke broker.
+
 ### Jebakan kecil yang sempat muncul: BPM dari `millis()`
 
 Versi pertama menghitung BPM dari selisih waktu antar-cetak. Hasilnya
@@ -353,12 +450,16 @@ yang benar-benar mengukur interval jantung.
 ## 6. Angka device
 
 ```
-inferensi     : 26,0 ms per detak (240 MHz, kernel referensi tanpa ESP-NN)
-tensor arena  : 12.756 byte dari 24.576 dialokasikan
-model         : 22,91 KB
-RAM firmware  : 54.468 byte (16,6% dari 320 KB)   baseline kosong 18.220
-Flash firmware: 356.025 byte (5,4% dari 6,25 MB)  baseline kosong 236.745
+inferensi     : 26,6 ms per detak (240 MHz, kernel referensi tanpa ESP-NN)
+tensor arena  : 12.948 byte dari 24.576 dialokasikan
+model         : 22,94 KB   (window 256, 18 Sep 2026)
+heap bebas    : 312.396 byte
+RAM firmware  : 74.284 byte (22,7% dari 320 KB)   +4.800 B tabel replay
+Flash firmware: 430.569 byte (6,6% dari 6,25 MB)
 ```
+
+Angka sebelum window 256 (rujukan): inferensi 26,0 ms, arena 12.756 B,
+model 22,91 KB. Window +2,4% → latensi +0,6 ms. Sepadan dengan F1 +0,09.
 
 Satu detak ~0,8 detik, jadi 26 ms = **3,3% duty cycle** — cukup longgar untuk
 kontinu. Kalau nanti daya jadi kendala, `esp-tflite-micro` dengan kernel ESP-NN

@@ -265,6 +265,11 @@ start, end = r - WIN_PRE, r + WIN_POST      # 90 sebelum, 160 sesudah
 if start < 0 or end > len(signal): continue
 ```
 
+> **Diperbarui 18 Sep 2026:** window sekarang $[R-128,\ R+128)$ = **256 sampel
+> = 711 ms**, R di indeks 128. Angka 90/160 di bawah ini dipertahankan karena
+> penjelasannya tetap berlaku — yang berubah nilainya, bukan alasannya. Kenapa
+> berubah: [`jitter-walkthrough.md`](jitter-walkthrough.md) §5-6.
+
 Tiap beat jadi window $[R-90,\ R+160)$ = **250 sampel = 694 ms**, dengan R-peak
 selalu di indeks 90. Alignment tetap ini penting: CNN 1-D belajar pola relatif
 posisi, jadi kalau R-peak berpindah-pindah tiap sampel, model harus buang

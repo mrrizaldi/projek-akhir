@@ -18,15 +18,15 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
    [0]  │  io_mitdb.py        pilih kanal MLII, saring non-beat
         ▼                     → signal, r_locations, symbols
         │
-   [1]  │  preprocessing.py   bandpass 0,5-40 Hz KAUSAL, potong 250 sampel,
-        ▼                       z-score per window   → windows [K,250]
+   [1]  │  preprocessing.py   bandpass 0,5-40 Hz KAUSAL, potong 256 sampel,
+        ▼                       z-score per window   → windows [K,256]
         │
    [2]  │  features_rr.py     RR_prev / RR_ratio / dRR + label biner
         │  prep_beats.py      valid_beat_indices → 44 × per_record/*.npz  [2b]
-        ▼                     100.619 beat (10,5% aritmia)
+        ▼                     202.560 beat (DS1 ×3 salinan ber-jitter, DS2 bersih)
         │
    [3]  │  dataset.py         split PER PASIEN (de Chazal 2004)
-        ▼                     train.npz DS1 50.965 | test.npz DS2 49.654
+        ▼                     train.npz DS1 152.904 | test.npz DS2 49.656
         │
    [4]  │  model.py           CNN morfologi + Dense ritme → 6.417 param
         ▼
@@ -34,12 +34,12 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
    [5]  │  train.py           class_weight, EarlyStopping(val_auc)
         ▼                     → model_fp32.keras   (val: recall 0,81)
         │
-        │  calibrate_threshold.py   threshold 0,35 dikunci DI VAL
+        │  calibrate_threshold.py   threshold 0,80 dikunci DI VAL
         ▼
-   [6]  │  evaluate.py        DS2 dibuka SEKALI → recall 0,666 AUC 0,887
+   [6]  │  evaluate.py        DS2 dibuka SEKALI → recall 0,700 AUC 0,933
         ▼
         │
-   [7]  │  quantize.py        PTQ INT8 → 17,84 KB, delta recall -1,21%
+   [7]  │  quantize.py        PTQ INT8 → 22,94 KB, delta recall +1,08%
         ▼
    [8]     check_poc.py       8/8 DoD terverifikasi
            export_model_h.py  → firmware/include/model_int8.h
@@ -66,6 +66,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | 5 | [train](train-walkthrough.md) | Kenapa accuracy dilarang, bagaimana class weight bekerja, kenapa monitor AUC |
 | 6 | [evaluate](evaluate-walkthrough.md) | Kenapa threshold dikunci sebelum DS2, kelas aritmia mana yang gagal & kenapa |
 | 6b | [segmentasi-deteksi](segmentasi-deteksi-walkthrough.md) | Biaya segmentasi on-device: kenapa geser 4 sampel menjatuhkan precision 4×, dan kenapa detektor membuang aritmia |
+| 6c | [jitter](jitter-walkthrough.md) | Berapa jauh R-peak di alat meleset sungguhan, kenapa ±18 sampel milik paper tidak boleh disalin, dan kenapa melatih dengan error justru menaikkan angka di data bersih |
 | 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
 | HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
 | HW | [akuisisi](akuisisi-walkthrough.md) | **Panduan kerja**: merekam dari badan, menarik data, menilai kualitas, membuat grafik |
@@ -87,6 +88,7 @@ Kalau waktumu sempit, empat ini yang paling menentukan:
 | **Threshold dituning di DS2** | Angka bagus yang gugur saat ditanya penguji | [6](evaluate-walkthrough.md) §0 |
 | **Op sama, hasil beda di TFLM** | Model benar di PC, keyakinan runtuh di device | [HW](firmware-walkthrough.md) §5 |
 | **R-peak meleset 4 sampel** | Precision jatuh 4×, tanpa error | [6b](segmentasi-deteksi-walkthrough.md) §2 |
+| **Threshold dikalibrasi di kondisi yang salah** | AUC nyaris utuh tapi F1 anjlok 20% | [6c](jitter-walkthrough.md) §4 |
 
 Tiga dari empat **tidak menghasilkan error apa pun**. Itu benang merahnya: bug
 paling mahal di ML bukan yang crash, tapi yang menghasilkan angka bagus dari
@@ -96,16 +98,36 @@ prosedur yang salah.
 
 ## Angka penting (rujukan cepat)
 
+**Berlaku sejak 18 Sep 2026** (window 256 + augmentasi jitter, Fase 6c):
+
 ```
-dataset     44 record, 100.619 beat, 10,5% aritmia (dibuang 114 = 44x2 + 26 tepi)
-split       DS1 50.965 (10,1%) | DS2 49.654 (11,0%) | val 10.348 dari DS1
-model       6.417 param, float32 25,07 KB → INT8 22,91 KB (varian deploy)
-threshold   0,35  (kriteria F1 maksimum, dikalibrasi di VAL)
-VAL         recall 0,8117  precision 0,8132  F1 0,8124
+dataset     44 record, 202.560 beat — DS1 ditumpuk 3 salinan (1 bersih + 2 jitter)
+split       DS1 152.904 (10,1%) | DS2 49.656 (11,0%, TIDAK pernah dijitter)
+window      128/128 = 256 sampel, R mendarat di indeks 132 (128 + group delay 4)
+model       6.417 param (tak berubah: Conv1D tidak tergantung panjang window)
+threshold   0,80  (kriteria sama: F1 maksimum di VAL; VAL kini ikut ber-jitter)
+DS2 fp32    recall 0,6996  precision 0,6235  F1 0,6594  AUC 0,9334
+DS2 INT8    recall 0,7105  precision 0,6169  F1 0,6604  AUC 0,9344   22,94 KB
+```
+
+Sebelum Fase 6c (window 250, tanpa augmentasi, threshold 0,35) — rujukan sejarah:
+
+```
+dataset     100.619 beat | DS1 50.965 | DS2 49.654
 DS2 fp32    recall 0,6661  precision 0,4919  F1 0,5659  AUC 0,8866
 DS2 INT8    recall 0,6549  precision 0,5302  F1 0,5859  AUC 0,8862
 device      26,0 ms/detak, tensor arena 12.756 B, cocok PC digit demi digit
 per kelas   V 0,9332 | S 0,3034 | F 0,1675
+```
+
+Kandidat perbaikan Fase 6c (3 seed, BELUM dikunci ke `config.py` — lihat
+[jitter](jitter-walkthrough.md) §5):
+
+```
+baseline (rantai sama)   F1 DS2 0,5660 ± 0,0202   AUC 0,8870
++ augmentasi jitter      F1 DS2 0,6354 ± 0,0428   AUC 0,9084
++ window 128/127         F1 DS2 0,6775 ± 0,0112   AUC 0,9394
+jitter empiris di DS2    F1      0,6670 ± 0,0194  (model w128, kondisi deploy)
 ```
 
 Dua angka yang paling perlu kamu bisa jelaskan di sidang:

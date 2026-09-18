@@ -22,6 +22,40 @@ aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
    — baca itu dulu kalau kerja di `laporan/`.
 4. **PRD = `model/PRD_Model_Aritmia_TinyML.pdf`** (PDF, bukan `.md`; baca pakai
    Read `pages=`). Ikuti kontrak fungsi & jebakan di sana; jangan vibe-coding.
+5. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
+   mekanisme yang dibutuhkan sering SUDAH ada, tinggal dikerjakan atau diperluas.
+   Dua contoh nyata (18 Sep 2026): sumber sinyal replay untuk uji tanpa hardware
+   sudah tertulis lengkap di `model/docs/2026-09-16-daya-plan.md` Task 4, dan
+   rantai penyelarasan R-peak sudah jadi di `scripts/eval_detected_segmentation.py`.
+   Merancang ulang dari nol di dua tempat itu = pekerjaan ganda yang sia-sia.
+
+## Bukti mengalahkan kekakuan
+
+Aturan di atas menjaga hal yang sudah terbukti. Aturan ini menjaga supaya yang
+terbukti tidak membeku jadi dogma.
+
+- **Golden reference (`firmware/test/golden_ref.h`) itu REGRESSION TEST, bukan
+  pagar desain.** Yang dijamin: C dan Python menghitung hal yang sama. Yang
+  TIDAK dijamin: parameternya sudah optimal. Kalau ada bukti konkret (paper
+  ber-ablasi, atau eksperimen sendiri) bahwa parameter lain lebih baik, ubah
+  parameternya lalu **regenerasi** golden (`python scripts/export_golden.py`)
+  dan jalankan `pio test -e native`. Regenerasi = prosedur rutin. Menolak
+  perubahan "karena nanti golden berubah" = alasan yang salah.
+- **Adopsi dari paper hanya kalau papernya mengablasi klaimnya.** Kalau paper
+  cuma memakai metode X tanpa pernah membandingkannya, yang kita punya bukan
+  bukti melainkan preseden. Boleh ditiru — setelah kita sendiri yang mengablasi.
+  Beda ini konkret: Dias 2021 mengablasi jitter (Tabel 3, 6-8, 33 ulangan) tapi
+  tidak pernah mengablasi filternya, jadi jitter-nya diadopsi dan filternya
+  tidak.
+- **Jangan menyalin konstanta empiris paper kalau kita bisa mengukur sendiri.**
+  Dias memakai jitter seragam ±18 sampel karena mereka tidak punya detektor.
+  Kita punya, dan residunya ternyata berbentuk lain sama sekali (inti tajam ±2,
+  ekor berat sampai 54). Menyalin 18 berarti melatih model melawan error yang
+  bukan milik kita.
+- **Knob eksperimen lewat environment, bukan lewat mengedit nilai final.**
+  `config.py` membaca `PA_WIN_PRE`, `PA_WIN_POST`, `PA_HOS`; tanpa env, nilainya
+  persis seperti semula. Ablasi jalan tanpa menyentuh gate point. Nilai yang
+  MENANG dikunci dengan mengubah bawaannya — dan itu tetap gate point.
 
 ## Artefak: produsen → konsumen
 

@@ -55,9 +55,12 @@ sekitarnya.
 
 Ini yang paling halus, dan paling merusak kalau terlewat.
 
-Window training dipotong di `r_anotasi - 90`, sedangkan sinyal yang difilter
-menggeser puncak R **+4 sampel** (JEBAKAN Fase 1). Jadi saat training, R selalu
-mendarat di **indeks 94**.
+Window training dipotong di `r_anotasi - WIN_PRE`, sedangkan sinyal yang
+difilter menggeser puncak R **+4 sampel** (JEBAKAN Fase 1). Jadi saat training,
+R selalu mendarat di **`WIN_PRE + 4`** — 94 saat dokumen ini ditulis
+(window 90/160), **132** sejak window 128/128 dikunci 18 Sep 2026. Angka 94 di
+sisa dokumen ini dibiarkan apa adanya: ia merekam pengukuran yang memang
+dilakukan pada window lama.
 
 Penyelarasan di (b) menemukan puncak di sinyal terfilter, yaitu `r + 4`. Kalau
 langsung dipakai, window mulai di `r + 4 - 90` dan R mendarat di **90**.
