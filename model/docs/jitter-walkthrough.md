@@ -318,6 +318,39 @@ cakupan T-nya lebih panjang dari `w128`. Hasilnya setara baseline, jauh di bawah
 melainkan **konteks 128 sampel sebelum R**. Segmen PR dan garis dasar sebelum P
 ternyata memuat informasi, bukan ruang kosong.
 
+### Per simbol: di mana window itu sebenarnya membayar
+
+Agregat menyembunyikan mekanismenya. Recall per superclass AAMI (3 seed):
+
+| varian | `WIN_PRE` | recall S | recall V | recall F |
+|---|---|---|---|---|
+| `bersih` | 90 | 0,268 ± 0,044 | 0,933 | 0,308 |
+| `jitter` | 90 | 0,271 ± 0,025 | 0,922 | 0,169 |
+| `w112` | 112 | 0,369 ± 0,061 | 0,933 | 0,138 |
+| `w128b` | 128 | 0,422 ± 0,156 | 0,944 | 0,152 |
+| `w128` | 128 | 0,487 ± 0,172 | 0,942 | 0,196 |
+
+**Recall V praktis tidak bergerak** (0,91–0,94 di semua varian). Beat ventrikular
+punya QRS lebar yang aneh — window seberapa pun menangkapnya.
+
+**Recall S naik monoton dengan `WIN_PRE`**: 90 → 0,268, 112 → 0,369, 128 → 0,42–0,49.
+Inilah mekanismenya, dan ia masuk akal secara fisiologis: beat supraventrikular
+dibedakan oleh **gelombang P dan interval PR** — persis yang tinggal di sisi kiri
+window. Menambah konteks sebelum R memberi model lebih banyak bukti P.
+
+Perhatikan ini **membalik** argumen di §6. Dugaan awal: "PR 43–72 sampel, jadi
+`WIN_PRE = 90` sudah memuat P dengan sisa". Muatnya memang muat — tapi muat saja
+tidak cukup. Model butuh P **beserta garis dasar sebelumnya** untuk tahu bahwa
+yang dilihatnya P, bukan riak. Yang dibeli 38 sampel tambahan itu konteks, bukan
+cakupan.
+
+Harganya ada, dan jujur saja: **recall F turun** (0,308 → 0,15–0,20). Beat fusi
+itu campuran morfologi normal dan ventrikular, dan cakupan T yang lebih pendek
+(160 → 128 sampel) memangkas separuh buktinya. Kelas F cuma ~390 beat di DS2 dan
+rentangnya lebar, jadi jangan ditafsir berlebihan — tapi jangan disembunyikan
+juga. Pertukarannya: **+0,15 sampai +0,22 recall S ditukar −0,11 sampai −0,16
+recall F**, dan S sepuluh kali lebih banyak di DS2.
+
 **3. HOS tidak terbukti membayar.** Reratanya di bawah `jitter` (0,6150 vs
 0,6354) tapi rentangnya paling lebar dari semua varian (±0,0509) dan bertumpang
 tindih penuh. Kesimpulan jujurnya bukan "HOS merusak", melainkan **"tidak ada

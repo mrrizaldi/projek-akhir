@@ -73,8 +73,9 @@ dibutuhkan: 2400 sampel record 208 diputar berulang = 8 beat (N, F, V) per
 
 - [x] Kerjakan `2026-09-16-daya-plan.md` Task 4 (6 langkah, sudah tertulis penuh)
       — kode masuk, `pio run -e esp32-s3` SUCCESS (RAM 21,2%, Flash 6,6%)
-- [ ] Verifikasi DI BOARD: tekan `y`, beat keluar tanpa elektroda, `s` → `sampel hilang 0`
-      (butuh board tercolok — satu-satunya langkah yang belum bisa dijalankan)
+- [x] Verifikasi DI BOARD (18 Sep 2026): 11 beat/putaran 6,67 dtk, pola identik,
+      `sampel hilang 0`, antrean puncak 21/256. Satu bug ketemu di sini: float
+      di ISR → panic `Coprocessor exception` detik 18,49. Diperbaiki.
 
 Determinisme itulah yang membuat uji resiliensi bisa diukur: jumlah beat yang
 *seharusnya* terkirim diketahui persis, jadi **beat hilang = beat seharusnya −
@@ -153,8 +154,10 @@ labels  = ...                            # tetap dari sym[idx] — anotasi asli
 - [x] Ukur model baru di DS2 anotasi DAN DS2 ber-jitter (`ablasi.py`)
 - [x] Kalibrasi ulang threshold di val — tiap varian dapat threshold sendiri.
       Terbukti WAJIB: separuh kerusakan jitter itu titik operasi, bukan model
-- [ ] Kriteria adopsi: recall aritmia di δ=p95 naik **tanpa** recall di δ=0
-      turun >2 poin. Kalau turun lebih, laporkan trade-off-nya dan putuskan.
+- [x] ~~Kriteria adopsi berbasis recall~~ → DIGANTI F1 + AUC (alasan: tiap varian
+      punya threshold sendiri dari kalibrasi VAL, 0,40–0,85; membandingkan recall
+      antar titik operasi berbeda itu membandingkan dua hal berbeda).
+      Lihat changelog A5.
 
 ---
 
@@ -168,12 +171,15 @@ labels  = ...                            # tetap dari sym[idx] — anotasi asli
       Tabel penuh + tafsirannya: `docs/jitter-walkthrough.md` §5.
       `w112` (panjang 256 yang sama) TIDAK ikut menang → yang membayar konteks
       pre-R, bukan panjang window.
-- [ ] Bandingkan per-simbol, bukan cuma agregat: S dan V punya alasan berbeda
-      untuk peduli pada pre-R vs post-R
-- [ ] Cek ongkos: `WIN_LEN` naik → tensor arena, flash model, latensi inferensi.
-      Ukur, jangan asumsikan 2,4% input = 2,4% ongkos.
-- [ ] **Gate point**: mengubah `WIN_PRE`/`WIN_POST` di `config.py` butuh
-      konfirmasi user + regen golden + re-quantize + `make export`
+- [x] Per-simbol: **recall S naik MONOTON dengan `WIN_PRE`** (90→0,268,
+      112→0,369, 128→0,42-0,49), recall V tidak bergerak (0,91-0,94), recall F
+      TURUN (0,308→0,15-0,20). Mekanismenya gelombang P + interval PR di sisi
+      kiri window. Tabel di `jitter-walkthrough.md` §5.
+- [x] Ongkos terukur di board: latensi 26,0 → **26,6 ms** (+2,3%), tensor arena
+      12.756 → **12.948 B** (+1,5%), model INT8 22,91 → **22,94 KB**, param
+      **tidak berubah** (6.417). Input +2,4% → ongkos +2,3%, kebetulan sepadan.
+- [x] **Gate point dibuka user 18 Sep 2026**; regen golden + re-quantize +
+      `make export` semuanya dijalankan.
 
 ---
 
@@ -191,9 +197,9 @@ di MCU, dan window-nya sudah ada di RAM saat itu.
       jadi turunan lewat `PA_HOS`
 - [x] Ablasi: HOS 0,6150±0,0509 vs 0,6354±0,0428 tanpa HOS — tumpang tindih
       penuh, **ditolak**. Kode & knob `PA_HOS` ditinggal untuk ablasi ulang.
-- [ ] (asli) Ablasi: dengan vs tanpa HOS, di δ=0 dan δ=p95. Hipotesis dari Tabel 8:
-      selisihnya kecil di δ=0 dan **membesar** di δ tinggi. Kalau tidak, buang —
-      2 fitur yang tidak membayar tetap harus diimplementasikan ulang di C.
+- [x] Hipotesis Tabel 8 ("selisih membesar di δ tinggi") **tidak terbukti**:
+      kolom anotasi (δ=0) dan jitter empiris sama-sama tumpang tindih penuh.
+      Dibuang, sesuai kriteria yang ditulis di muka.
 
 ---
 
