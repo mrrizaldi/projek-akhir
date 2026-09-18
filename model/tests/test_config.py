@@ -13,7 +13,11 @@ import config
 def test_sampling_dan_window():
     assert config.FS == 360
     assert config.WIN_LEN == config.WIN_PRE + config.WIN_POST
-    assert config.WIN_LEN == 250, "jebakan PRD: 250 total, bukan +-250 (=500)"
+    # 256 = TOTAL, bukan +-256 (=512). Jebakan PRD yang dijaga di sini adalah
+    # salah baca "window 256" jadi setengah-lebar; nilainya sendiri berubah
+    # 250 -> 256 pada 18 Sep 2026 (ablasi Fase 6c, docs/jitter-walkthrough.md).
+    assert config.WIN_LEN == 256, "jebakan PRD: 256 total, bukan +-256 (=512)"
+    assert config.WIN_PRE == 128 and config.WIN_POST == 128
 
 
 def test_bandpass_masuk_akal():

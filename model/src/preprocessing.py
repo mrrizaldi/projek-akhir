@@ -1,8 +1,11 @@
+import os
+
 import numpy as np
 from scipy.signal import butter, sosfilt, lfilter
 
 from config import (
     FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER, WIN_PRE, WIN_POST, WIN_LEN,
+    METRICS_DIR,
     PT_BAND_LOW, PT_BAND_HIGH, PT_BAND_ORDER, PT_MWI_WINDOW_MS, PT_REFRACTORY_MS,
 )
 
@@ -96,3 +99,53 @@ def zscore_per_window(windows: np.ndarray, eps: float = 1e-8) -> np.ndarray:
     mean = windows.mean(axis=1, keepdims=True)
     std = windows.std(axis=1, keepdims=True)
     return ((windows - mean) / (std + eps)).astype(np.float32)
+
+
+# ── Jitter posisi R (adaptasi Dias 2021, protokol §4.2) ──────────────────────
+# Paper menambahkan jitter SERAGAM +-delta (delta<=18 sampel) ke posisi R karena
+# mereka tidak punya detektor — angka itu pinjaman dari literatur QRS detection.
+# Kita punya detektornya, dan scripts/ukur_jitter.py sudah mengukur residunya di
+# DS1: 80% beat meleset <=1 sampel, 90% <=2, lalu ekor berat sampai 54 sampel
+# (record berisik 108/203/207). Inti tajam + ekor berat — bukan seragam, bukan
+# normal. Maka "empiris" jadi default: ambil ulang dari kolam residu asli, tanpa
+# asumsi bentuk sama sekali.
+#
+# Seragam tetap disediakan supaya sweep delta=0..18 bisa dibandingkan lurus
+# dengan Tabel 3 paper.
+#
+# Jitter per beat INDEPENDEN. Detektor nyata errornya berkorelasi (satu record
+# berisik menggeser banyak beat sekaligus), dan korelasi itu sebagian SALING
+# MENIADAKAN di fitur RR karena RR itu selisih dua posisi. Independen berarti
+# ragam RR dilebihkan — arah yang pesimistis, jadi aman sebagai asumsi.
+RESIDU_DS1 = os.path.join(METRICS_DIR, "jitter", "residu_ds1.npy")
+
+
+def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
+             model: str = "empiris") -> np.ndarray:
+    """Geser posisi R meniru error detektor. Label TIDAK ikut bergeser.
+
+    model:
+        "empiris" — ambil ulang dari residu terukur DS1 (delta diabaikan)
+        "seragam" — U{-delta..+delta}, protokol Dias 2021
+        "normal"  — N(0, delta) dibulatkan
+
+    Urutan dijaga menaik: r yang sudah dijitter dilewatkan maximum.accumulate,
+    karena satu pasang beat yang bertukar tempat membuat RR negatif dan itu
+    bukan mode kegagalan detektor mana pun (refraktori 200 ms mencegahnya).
+    """
+    r = np.asarray(r_locations, dtype=np.int64)
+    if model != "empiris" and delta == 0:
+        return r
+    rng = np.random.default_rng() if rng is None else rng
+
+    if model == "empiris":
+        kolam = np.load(RESIDU_DS1)
+        geser = rng.choice(kolam, size=len(r)).astype(np.int64)
+    elif model == "seragam":
+        geser = rng.integers(-delta, delta + 1, size=len(r))
+    elif model == "normal":
+        geser = np.rint(rng.normal(0.0, float(delta), size=len(r))).astype(np.int64)
+    else:
+        raise ValueError(f"model jitter tak dikenal: {model}")
+
+    return np.maximum.accumulate(r + geser)
