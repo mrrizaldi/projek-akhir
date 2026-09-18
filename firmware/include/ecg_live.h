@@ -20,7 +20,7 @@ extern "C" {
 
 typedef struct {
     int r_abs;                          // indeks absolut R setelah penyelarasan
-    float window[ECG_WIN_LEN_];         // sudah z-score, R di indeks 94
+    float window[ECG_WIN_LEN_];         // sudah z-score, R di ECG_WIN_PRE+ECG_GROUP_DELAY
     float rr[ECG_N_RR];                 // RR_prev, RR_ratio, dRR
 } ecg_beat_t;
 

@@ -145,9 +145,15 @@ void test_detect_r(void)
 }
 
 // Sifat yang HARUS berlaku: setelah penyelarasan, puncak R mendarat di indeks
-// 94 dalam window — persis seperti window training. Meleset 4 sampel saja
-// menjatuhkan precision model 4x.
-void test_align_r_menaruh_puncak_di_94(void)
+// ECG_WIN_PRE + ECG_GROUP_DELAY dalam window — persis seperti window training.
+// Meleset 4 sampel saja menjatuhkan precision model 4x.
+//
+// Ditulis sebagai RUMUS, bukan angka: window pernah 90/160 (R di 94) dan pindah
+// ke 128/127 (R di 132) setelah ablasi Fase 6c. Test yang menghafal 94 akan
+// gagal karena alasan yang salah.
+#define R_IDX (ECG_WIN_PRE + ECG_GROUP_DELAY)
+
+void test_align_r_menaruh_puncak_di_r_idx(void)
 {
     const int n = ecg_detect_r(golden_filtered, GOLDEN_N, buf_scratch, buf_r, 64);
     int diuji = 0;
@@ -155,15 +161,15 @@ void test_align_r_menaruh_puncak_di_94(void)
         const int r = ecg_align_r(golden_filtered, GOLDEN_N, buf_r[i]);
         if (r - ECG_WIN_PRE < 0 || r + ECG_WIN_POST > GOLDEN_N) continue;
         TEST_ASSERT_TRUE(ecg_window_zscore(golden_filtered, GOLDEN_N, r, buf_window));
-        // Cari puncak DI SEKITAR 94 saja. argmax global tidak bisa dipakai:
-        // record 208 punya detak berdekatan (697 -> 853), jadi window 250 sampel
+        // Cari puncak DI SEKITAR R_IDX saja. argmax global tidak bisa dipakai:
+        // record 208 punya detak berdekatan (697 -> 853), jadi window selebar ini
         // sering memuat R tetangga yang lebih tinggi.
-        int puncak = 94 - 20;
-        for (int k = 94 - 20; k <= 94 + 20; k++)
+        int puncak = R_IDX - 20;
+        for (int k = R_IDX - 20; k <= R_IDX + 20; k++)
             if (buf_window[k] > buf_window[puncak]) puncak = k;
         char pesan[96];
-        snprintf(pesan, sizeof(pesan), "beat %d: puncak di %d, harus 94", i, puncak);
-        TEST_ASSERT_INT_WITHIN_MESSAGE(2, 94, puncak, pesan);
+        snprintf(pesan, sizeof(pesan), "beat %d: puncak di %d, harus %d", i, puncak, R_IDX);
+        TEST_ASSERT_INT_WITHIN_MESSAGE(2, R_IDX, puncak, pesan);
         diuji++;
     }
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, diuji, "terlalu sedikit beat teruji");
@@ -183,11 +189,11 @@ void test_live_mengeluarkan_beat(void)
         if (!ecg_live_push(golden_raw[i], &beat)) continue;
         keluar++;
 
-        // R mendarat di indeks 94 seperti window training?
-        int puncak = 94 - 20;
-        for (int k = 94 - 20; k <= 94 + 20; k++)
+        // R mendarat di indeks R_IDX seperti window training?
+        int puncak = R_IDX - 20;
+        for (int k = R_IDX - 20; k <= R_IDX + 20; k++)
             if (beat.window[k] > beat.window[puncak]) puncak = k;
-        if (puncak >= 92 && puncak <= 96) puncak_benar++;
+        if (abs(puncak - R_IDX) <= 2) puncak_benar++;
 
         // Cocok dengan salah satu R-peak anotasi yang kita ketahui?
         for (int b = 0; b < GOLDEN_N_BEAT; b++)
@@ -195,7 +201,7 @@ void test_live_mengeluarkan_beat(void)
     }
 
     char pesan[128];
-    snprintf(pesan, sizeof(pesan), "%d beat keluar, %d cocok anotasi, %d puncak di 94",
+    snprintf(pesan, sizeof(pesan), "%d beat keluar, %d cocok anotasi, %d puncak di R_IDX",
              keluar, cocok, puncak_benar);
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, keluar, pesan);
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, cocok, pesan);
@@ -230,7 +236,7 @@ static void jalankan(void)
     RUN_TEST(test_rr_menolak_beat_awal);
     RUN_TEST(test_pipeline_utuh);
     RUN_TEST(test_detect_r);
-    RUN_TEST(test_align_r_menaruh_puncak_di_94);
+    RUN_TEST(test_align_r_menaruh_puncak_di_r_idx);
     RUN_TEST(test_live_mengeluarkan_beat);
     RUN_TEST(test_live_membuang_dua_beat_pertama);
     UNITY_END();

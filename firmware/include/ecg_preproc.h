@@ -5,9 +5,9 @@
 #define ECG_PREPROC_H
 
 #define ECG_FS 360
-#define ECG_WIN_PRE 90
-#define ECG_WIN_POST 160
-#define ECG_WIN_LEN_ 250
+#define ECG_WIN_PRE 128
+#define ECG_WIN_POST 128
+#define ECG_WIN_LEN_ 256
 #define ECG_ZSCORE_EPS 1e-8f
 // Juga didefinisikan di model_int8.h — dijaga supaya tidak bentrok.
 #ifndef ECG_N_RR

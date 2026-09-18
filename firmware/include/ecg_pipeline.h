@@ -44,7 +44,7 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
 
 // Ubah indeks mentah detektor jadi indeks siap potong window.
 //   r - ECG_PT_OFFSET  ->  puncak sebenarnya dlm +-ECG_PT_REFINE  ->  - ECG_GROUP_DELAY
-// Hasilnya menaruh puncak R di indeks 94 dalam window, sama seperti saat
+// Hasilnya menaruh puncak R di indeks ECG_WIN_PRE+ECG_GROUP_DELAY dalam window, sama seperti saat
 // training. Meleset 4 sampel saja menjatuhkan precision dari 0,48 ke 0,12
 // (docs/segmentasi-deteksi-walkthrough.md).
 int ecg_align_r(const float *filtered, size_t n, int r_kasar);
