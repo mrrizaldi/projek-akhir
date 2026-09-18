@@ -12,6 +12,10 @@ model/data/raw/
 # array beat/label/RR intermediate
 model/data/processed/
 model/artifacts/**/*.log
+# Varian ablasi (model_fp32_<tag>.keras) — reproducible dari scripts/ablasi.py,
+# bukan artefak final. Polanya TIDAK kena model_fp32.keras: B1 tetap berlaku,
+# model produksi & model_int8.tflite sengaja di-commit.
+model/artifacts/model_fp32_*.keras
 # Gate B = B1: figure final (*.png) & model_int8.h/.tflite SENGAJA di-commit.
 # Jangan tambah aturan yang meng-ignore mereka.
 
