@@ -112,11 +112,33 @@ DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
 # leads: dipilih yang PERTAMA tersedia. mitdb MLII = acuan alat (AD8232 lead II).
 # incartdb "II" paling dekat dengannya. svdb Holter, lead tidak dinamai -> ECG1
 # dipakai dan POLARITASNYA BELUM DIVERIFIKASI (gate, lihat docs plan §3).
+# selaraskan: geser anotasi R ke puncak sebenarnya sebelum memotong window.
+# Perlu karena konvensi anotasi antar-database BEDA — terukur 19 Sep atas beat
+# normal, posisi puncak relatif anotasi di sinyal ter-bandpass:
+#
+#   mitdb  median  +3   p5..p95  +1..+5     <- anotasi DI puncak; +3/+4 = group delay
+#   svdb   median +10   p5..p95  -2..+15    <- ~6 sampel lebih awal, sebaran 3x lebar
+#
+# Bias +6 sampel itu DI ATAS ambang bahaya repo ini (meleset 4 sampel menjatuhkan
+# precision 0,48 -> 0,12) dan SISTEMATIS, bukan jitter zero-mean: tanpa koreksi
+# tiap beat svdb tergeser searah dan model membacanya sebagai morfologi lain
+# (alias belajar identitas dataset — lawan semangat inter-patient).
+#
+# mitdb WAJIB False: dia acuan golden_ref.h dan semua ablasi terkunci. Median +3
+# vs +4 berarti menyelaraskannya akan menggeser r ~1 sampel dan membatalkan
+# semuanya. Yang diperbaiki database baru, bukan acuannya.
 DATASETS = {
-    "mitdb":    {"fs": 360, "leads": ("MLII",),        "id_offset": 0},
-    "svdb":     {"fs": 128, "leads": ("ECG1", "ECG2"), "id_offset": 0},
-    "incartdb": {"fs": 257, "leads": ("II",),          "id_offset": 1000},
+    "mitdb":    {"fs": 360, "leads": ("MLII",),        "id_offset": 0,    "selaraskan": False},
+    "svdb":     {"fs": 128, "leads": ("ECG1",),        "id_offset": 0,    "selaraskan": True},
+    "incartdb": {"fs": 257, "leads": ("II",),          "id_offset": 1000, "selaraskan": True},
 }
+
+# Setengah-lebar jendela cari-puncak untuk `selaraskan`. 16 (±44 ms) menutup
+# p1..p99 svdb (-9..+15) tanpa menjangkau gelombang T (~200-300 ms = 72-108
+# sampel). BUKAN PT_REFINE_WIN=25 (±70 ms): itu untuk sebaran detektor
+# Pan-Tompkins (std 13 sampel), dan di sini terlalu lebar — risiko argmax
+# melompat ke fitur yang salah tanpa alasan.
+ALIGN_WIN = 16
 
 # Held-out tiap dataset baru = setiap record ke-N dalam urutan tersortir.
 # ATURAN, bukan seed: tidak ada yang bisa dipancing, dan siapa pun bisa

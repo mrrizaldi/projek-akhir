@@ -6,7 +6,8 @@ from math import gcd
 from scipy.signal import butter, sosfilt, lfilter, resample_poly
 
 from config import (
-    FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER, WIN_PRE, WIN_POST, WIN_LEN,
+    ALIGN_WIN, FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER, GROUP_DELAY_SAMPLES,
+    WIN_PRE, WIN_POST, WIN_LEN,
     METRICS_DIR,
     PT_BAND_LOW, PT_BAND_HIGH, PT_BAND_ORDER, PT_MWI_WINDOW_MS, PT_REFRACTORY_MS,
 )
@@ -201,3 +202,22 @@ def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
         )
 
     return baru.astype(np.float32), r_baru
+
+
+def selaraskan_r(r_locations: np.ndarray, filtered: np.ndarray,
+                 win: int = ALIGN_WIN) -> np.ndarray:
+    """Geser anotasi R ke puncak sebenarnya, lalu kembalikan group delay.
+
+    Untuk database yang konvensi anotasinya beda dari mitdb (DATASETS[db]
+    ["selaraskan"]). Sepadan dengan haluskan() di scripts/eval_detected_
+    segmentation.py dan ecg_align_r() di firmware, jendela lebih sempit.
+
+    Alasan & angka: docs/2026-09-19-multidataset-plan.md §3.
+    """
+    r = np.asarray(r_locations, dtype=np.int64)
+    n = len(filtered)
+    hasil = np.empty_like(r)
+    for i, lo in enumerate(r):
+        a, b = max(0, lo - win), min(n, lo + win + 1)
+        hasil[i] = a + int(np.argmax(filtered[a:b])) if b > a else lo
+    return hasil - GROUP_DELAY_SAMPLES

@@ -56,7 +56,7 @@ def _ada(db: str) -> bool:
 def test_datasets_lengkap_dan_konsisten():
     assert set(config.DATASETS) == {"mitdb", "svdb", "incartdb"}
     for db, spec in config.DATASETS.items():
-        assert set(spec) == {"fs", "leads", "id_offset"}
+        assert set(spec) == {"fs", "leads", "id_offset", "selaraskan"}
         assert spec["fs"] > 0 and len(spec["leads"]) >= 1
     assert config.DATASETS["mitdb"]["fs"] == config.FS, "mitdb = acuan, tak di-resample"
     assert config.DATASETS["mitdb"]["leads"] == (config.CHANNEL,), \
@@ -175,6 +175,62 @@ def test_resample_kontrak(db):
     durasi_asal = wfdb_sig_len(db, rec) / fs_asal
     assert abs(len(signal) / config.FS - durasi_asal) / durasi_asal < 0.01, \
         f"durasi berubah: {len(signal)/config.FS:.1f}s vs {durasi_asal:.1f}s"
+
+
+# ── 5. Penyelarasan anotasi antar-database (gate A2) ─────────────────────────
+
+def test_selaraskan_menaruh_puncak_di_win_pre():
+    """Puncak buatan digeser 9 sampel dari anotasi -> harus balik ke WIN_PRE+delay."""
+    from src.preprocessing import selaraskan_r
+    n = 4000
+    x = np.zeros(n, dtype=np.float32)
+    anot = np.arange(400, n - 400, 400)
+    puncak = anot + 9                      # persis pola svdb: anotasi lebih awal
+    x[puncak] = 1.0
+    r = selaraskan_r(anot, x)
+    assert np.all(r == puncak - config.GROUP_DELAY_SAMPLES)
+    # window dipotong di r -> puncak mendarat di WIN_PRE + GROUP_DELAY = 132
+    assert np.all(puncak - (r - config.WIN_PRE)
+                  == config.WIN_PRE + config.GROUP_DELAY_SAMPLES)
+
+
+def test_selaraskan_tidak_melompat_ke_gelombang_t():
+    """T lebih tinggi tapi 250 ms dari R: di luar ALIGN_WIN, jangan diambil."""
+    from src.preprocessing import selaraskan_r
+    x = np.zeros(2000, dtype=np.float32)
+    anot = np.array([500])
+    x[504] = 1.0                            # R (group delay +4)
+    x[504 + 90] = 3.0                       # T, 250 ms = 90 sampel, lebih tinggi
+    assert selaraskan_r(anot, x)[0] == 504 - config.GROUP_DELAY_SAMPLES
+
+
+def test_mitdb_tidak_pernah_diselaraskan():
+    """mitdb acuan golden_ref.h & semua ablasi terkunci. Median +3 vs +4 berarti
+    menyelaraskannya menggeser r ~1 sampel dan membatalkan semuanya."""
+    assert config.DATASETS["mitdb"]["selaraskan"] is False
+    assert config.DATASETS["svdb"]["selaraskan"] is True
+    assert config.DATASETS["incartdb"]["selaraskan"] is True
+    assert 0 < config.ALIGN_WIN < 25, "PT_REFINE_WIN=25 terlalu lebar untuk ini"
+
+
+@pytest.mark.parametrize("rec", ["100", "232"])
+def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
+    """Fase A tidak boleh mengubah SATU angka pun di mitdb.
+
+    Dipilih record DS2 (tak pernah dijitter) supaya deterministik tanpa harus
+    memutar ulang urutan rng. Cek penuh 44/44 record sudah dijalankan manual
+    19 Sep — hasilnya 44 identik, 0 berubah (plan §3).
+    """
+    npz = os.path.join(config.PER_RECORD_DIR, f"{rec}.npz")
+    if not os.path.exists(npz):
+        pytest.skip("per_record belum dibangun (make prep)")
+    from scripts.prep_beats import process_record
+    from src.preprocessing import design_bandpass_sos
+
+    baru = process_record(rec, design_bandpass_sos(), db="mitdb")
+    with np.load(npz, allow_pickle=True) as lama:
+        for k in ("windows", "rr", "labels", "symbols", "n_dropped"):
+            assert np.array_equal(lama[k], baru[k]), f"rec {rec}: {k} berubah"
 
 
 def wfdb_sig_len(db: str, rec: str) -> int:

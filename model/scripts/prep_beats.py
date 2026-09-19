@@ -30,7 +30,8 @@ from config import (  # noqa: E402
 from src.dataset import bagi_train_test, records_tersedia  # noqa: E402
 from src.io_mitdb import load_record  # noqa: E402
 from src.preprocessing import (  # noqa: E402
-    design_bandpass_sos, apply_bandpass, jitter_r, segment_beats, zscore_per_window,
+    design_bandpass_sos, apply_bandpass, jitter_r, segment_beats, selaraskan_r,
+    zscore_per_window,
 )
 from src.features_rr import (  # noqa: E402
     to_aami_class, to_binary_label, compute_rr_features,
@@ -60,6 +61,8 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
     """
     signal, r, sym, _ = load_record(record_id, db=db)
     filtered = apply_bandpass(signal, sos)
+    if DATASETS[db]["selaraskan"]:
+        r = selaraskan_r(r, filtered)
     if jitter is not None:
         r = jitter(r)
 
