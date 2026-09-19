@@ -427,7 +427,7 @@ konstanta empiris kalau kita bisa mengukur sendiri.
 ## 7. Yang berubah di kode (Fase A)
 
 Semua **additive**. `FS`, `CHANNEL`, `RAW_DIR`, `DS1`, `DS2`, `VAL_RECORDS`,
-`AAMI_MAP` — **tidak disentuh** (gate point CLAUDE.md). `make test` hijau: **74 passed, 1 skipped** (sisa skip menunggu incartdb).
+`AAMI_MAP` — **tidak disentuh** (gate point CLAUDE.md). `make test` hijau: **76 passed, 0 skipped** — semua database lengkap.
 
 ### Lubang yang ketemu: `build_split()` mitdb-only
 
@@ -440,18 +440,71 @@ ditimpa karena keduanya masih dipakai mereproduksi ablasi terkunci.
 Terverifikasi: `test_ds2.npz` dan `test.npz` sama-sama 47.513.784 byte dan
 array-nya identik (`test_build_split_multi_tidak_bocor_dan_ds2_utuh`).
 
-### Komposisi setelah svdb (incartdb belum)
+### Komposisi AKHIR — tiga database, Fase A selesai
 
 ```
-train       80 record  292.594 beat  aritmia 10,45%
-  setelah split_train_val -> train 261.547 / val 31.047 (aritmia 10,11%)
-ds2         22 record   49.656 beat  aritmia 10,98%   <- VAL cermin DS2 ✓
-svdb_test   20 record   44.704 beat  aritmia 15,88%
-
-kelas di train:  S 634 -> 7.663 (12,1x)   V 3.071 -> 11.143 (3,6x)
-                 F 394 -> 399 (svdb F memang tak berguna)   Q 6 -> 35
-w_Aritmia        4,948 -> 4,686
+train           136 record  427.191 beat  aritmia 11,22%
+  split_train_val -> train 396.144 / val 31.047 (aritmia 10,11%)
+ds2 (TEST-A)     22 record   49.656 beat  aritmia 10,98%   <- VAL cermin DS2 ✓
+svdb_test        20 record   44.704 beat  aritmia 15,88%
+incartdb_test    19 record   41.108 beat  aritmia 12,57%
 ```
+
+Per kelas di train (mitdb x3 jitter, database baru x1 — apa adanya):
+
+| sumber | N | S | V | F | Q | pasien ber-F |
+|---|---|---|---|---|---|---|
+| mitdb train (/3) | 36.514 | 634 | 3.071 | 394 | 6 | 7 |
+| svdb train | 124.555 | 7.029 | 8.072 | 5 | 29 | 4 |
+| incartdb train | 117.584 | 1.216 | 15.592 | 202 | 3 | **18** |
+| **TRAIN apa adanya** | 351.681 | **10.147** | **32.877** | 1.389 | 50 | **29** |
+
+```
+S  634 -> 10.147  (16,0x)      V  3.071 -> 32.877 (10,7x)
+w_Aritmia  4,948 -> 4,455      aritmia 11,22%
+```
+
+### Kelas F: koreksi angka, dan satu konsekuensi yang tak disengaja
+
+Perkiraan sebelumnya di dokumen ini menyebut konsentrasi F turun ke 64%. **Itu
+salah** — angkanya mencampur satuan (mitdb dibagi 3, yang lain tidak). Yang benar,
+di data yang model betul-betul lihat:
+
+```
+F total     1389 beat = 0,33% training
+rec 208     1116 beat = 80% dari F,  0,26% training
+```
+
+| | sebelum (mitdb saja) | sesudah |
+|---|---|---|
+| beat F | 394 | **1.389** |
+| pasien ber-F | 7 | **29** ✓ |
+| terbesar (rec 208) | 94% | **80%** (bukan 64%) |
+
+**Sebabnya: jitter.** mitdb DS1 ditumpuk x3, database baru x1 — jadi F rec 208
+ikut terkali tiga (372 -> 1.116) sementara F incartdb tetap 202. Augmentasi yang
+dipasang untuk ketahanan segmentasi **justru memperbesar dominasi pasien yang
+sudah kelebihan.** Dalam satuan konsisten tanpa jitter angkanya 62%.
+
+Apakah ini membatalkan penolakan A3 (§3c)? **Tidak.** Ketiga alasannya berdiri:
+plafon +0,037 masih di bawah ambang 0,04 (itu komposisi DS2, kebal); F tetap
+0,33% training jadi tak mendominasi apa pun terhadap N 88,9%; dan subsample tetap
+nol pasien baru. Yang berubah cuma satu: kalau Fase B menunjukkan recall F tidak
+bergerak, **asimetri jitter ini kandidat penjelasan pertama** — dan obatnya
+bukan subsample 208, melainkan menjitter F incartdb juga (yang butuh residu
+detektor incartdb diukur dulu).
+
+### F di test: hitungan mentah saja, jangan recall
+
+```
+DS2 (TEST-A)     F = 388 beat / 7 pasien   <- 93% satu pasien (213)
+TEST-B svdb      F =  18 beat / 2 pasien
+TEST-C incartdb  F =  17 beat / 4 pasien
+```
+
+TEST-B/C terlalu kecil untuk recall — dilaporkan sebagai TP/FN mentah. Jadi
+Fase A memperbaiki **cakupan latih**, bukan cakupan uji: recall F tetap diukur
+di pasien 213 saja.
 
 | File | Perubahan |
 |---|---|
