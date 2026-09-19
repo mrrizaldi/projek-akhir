@@ -222,6 +222,15 @@ INT8_IO = True           # True = full-INT8 end-to-end; harus konsisten dgn firm
 # (tanpa MEAN & tanpa shape dinamis) yang jalan benar di TFLM memakan 20,8 KB.
 # Flash ESP32-S3 16 MB — batas ini soal disiplin, bukan kapasitas.
 MAX_MODEL_KB = 25
+# Ambang skala kuantisasi tensor input ritme (Fase 7). Bukan hiasan: skala INT8
+# diturunkan dari min/max REP_SAMPLES sampel kalibrasi, dan segelintir beat
+# ber-RR ekstrem (record 207: RR_prev = 100 s, celah anotasi) bisa masuk undian.
+# Kalau kena, skala melompat ~40x dan RR normal (0,18-2,58 s) tinggal ~3 level
+# int8 -> cabang ritme praktis mati, dan GEJALANYA recall S buruk, BUKAN error.
+# Peluang per seed terukur 19 Sep: 4,6% (mitdb saja), 1,8% (tiga database).
+# Nilai sehat sekarang 0,0129; sehat secara teori ~0,0197 (p99,99 |X_rr| = 2,51);
+# yang rusak ~0,78. Ambang 0,05 = ~2,5x headroom dari sehat, ~15x di bawah rusak.
+MAX_RHYTHM_SCALE = 0.05
 
 # Fase 6b — penyelarasan R-peak untuk segmentasi ON-DEVICE (docs/segmentasi-deteksi).
 # Urutan wajib: r - PT_DETECTOR_OFFSET -> puncak dlm +-PT_REFINE_WIN -> - GROUP_DELAY.

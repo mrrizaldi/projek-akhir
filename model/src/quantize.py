@@ -2,7 +2,7 @@
 import numpy as np
 import tensorflow as tf
 
-from config import INT8_IO, REP_SAMPLES, SEED
+from config import INT8_IO, MAX_RHYTHM_SCALE, REP_SAMPLES, SEED
 
 
 def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
@@ -48,7 +48,33 @@ def quantize_int8(model, rep_gen, int8_io: bool = INT8_IO) -> bytes:
     if int8_io:
         converter.inference_input_type = tf.int8
         converter.inference_output_type = tf.int8
-    return converter.convert()
+    blob = converter.convert()
+    assert_skala_ritme_wajar(blob)
+    return blob
+
+
+def assert_skala_ritme_wajar(blob: bytes, ambang: float = MAX_RHYTHM_SCALE) -> float:
+    """Tolak blob yang skala input ritmenya melebar gara-gara outlier kalibrasi.
+
+    Kegagalan senyap yang dijaga di sini: satu beat ber-RR ekstrem di kolam
+    kalibrasi melebarkan skala ~40x, cabang ritme mati, dan yang terlihat cuma
+    recall S yang buruk. Lihat catatan MAX_RHYTHM_SCALE di config.py.
+    """
+    it = tf.lite.Interpreter(model_content=blob)
+    for d in it.get_input_details():
+        if "rhythm" not in d["name"]:
+            continue
+        skala = float(d["quantization_parameters"]["scales"][0])
+        if skala > ambang:
+            raise ValueError(
+                f"skala kuantisasi input ritme {skala:.4f} > ambang {ambang} — "
+                f"hampir pasti satu beat ber-RR ekstrem masuk kolam kalibrasi "
+                f"(cek |X_rr|.max(); record 207 punya RR_prev = 100 s). Cabang "
+                f"ritme akan mati tanpa error: ganti SEED kalibrasi atau saring "
+                f"outlier RR sebelum representative_dataset_gen."
+            )
+        return skala
+    return float("nan")
 
 
 def _quantize(x, detail):
