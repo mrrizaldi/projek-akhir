@@ -106,7 +106,7 @@ tersangka pertamanya ini, bukan fiturnya.
 
 ---
 
-## 2. Frekuensi: satu jebakan, satu arah
+## 2. Frekuensi: satu jebakan, satu arah, tiga keputusan
 
 **Window terdefinisi dalam SAMPEL, bukan waktu.**
 
@@ -134,6 +134,34 @@ melanggarnya sambil terlihat konsisten.
 Keduanya dipilih untuk alasan lain. Keputusan yang **general** lebih berharga
 dari yang optimal.
 
+### Tiga keputusan di `resample_to_fs()`
+
+1. **`resample_poly` (polyphase FIR), bukan `resample` (FFT).** `resample`
+   mengasumsikan sinyal periodik; EKG tidak periodik dan punya baseline wander,
+   jadi tepi rekaman berdenyut. `resample_poly` linear-phase dan scipy sudah
+   mengompensasi group delay-nya. Rasio direduksi lewat `gcd`: 128→360 = 45/16,
+   257→360 = 360/257. scipy sudah di `requirements.txt` — nol dependency baru.
+
+2. **Posisi R = pembulatan saja, tanpa cari-ulang puncak.** Bukan kemalasan —
+   anggarannya cukup. Pembulatan meleset ≤0,5 sampel, sisa group delay
+   sub-sampel, total <1 sampel. Ambang bahaya repo ini **4 sampel** (meleset 4
+   menjatuhkan precision 0,48 → 0,12), dan jitter empiris memang dilatih untuk
+   residu ±1–2 sampel. Cari-ulang puncak punya risiko sendiri: `argmax` bisa
+   pindah ke ekstremum yang salah pada beat V/F bermorfologi aneh.
+   Terverifikasi: sinyal sintetis → pergeseran **0,00 sampel**; svdb asli →
+   `test_resample_kontrak[svdb]` hijau.
+
+3. **Dipanggil SEBELUM `apply_bandpass`.** Semua database lewat `sos` yang sama
+   di 360 Hz. Kalau dibalik, tiap database dapat respons filter sedikit berbeda —
+   dan golden reference cuma menjamin satu: `sos` di 360 Hz.
+
+Yang **tidak** dilakukan: menyaring `r` yang keluar batas. `symbols` sejajar
+dengan `r` lewat indeks, jadi membuang satu `r` memutus kesejajaran tanpa suara.
+Batas window tetap urusan `prep_beats.valid_beat_indices()` — satu tempat,
+senada decision point *"prep_beats yang menyaring (opsi C)"*.
+
+Ongkos terukur: 30 menit sinyal, kedua rasio, **0,01 s**.
+
 ### Yang resample TIDAK lakukan
 
 Menciptakan informasi. svdb 128 Hz tetap punya detail lebih sedikit setelah
@@ -147,13 +175,16 @@ per-sumber.
 
 | # | Pertanyaan | Kalau "ya" |
 |---|---|---|
-| **A1** | `resample_to_fs()` diisi siapa? Ini logika preprocessing → **milikmu** (aturan 1). Stub + kontrak + 3 keputusan sudah disiapkan di `src/preprocessing.py` | Fase A selesai, Fase B bisa jalan |
 | **A2** | Lead `svdb` = **ECG1** — Holter, lead tak dinamai, **polaritas belum diverifikasi**. Kalau terbalik dari MLII, morfologi QRS terbalik dan model belajar invariansi yang tidak kita mau | plot beberapa record svdb, bandingkan ke mitdb; kalau perlu ganti ke ECG2 atau balik tandanya |
 | **A3** | Subsample F record 208 supaya ragam F tidak tenggelam? | knob baru yang harus dipertanggungjawabkan. **Usul: jangan**, lihat §1 |
 | **A4** | `2026-09-19-fitur-design.md` masih untracked di `main` | commit sendiri — bukan milik Fase A |
 
-A1 memblokir seluruh Fase A. A2 tidak memblokir tapi bisa membatalkan hasil
-svdb kalau salah — periksa sebelum Fase B dianggap sah.
+**A1 (siapa mengisi `resample_to_fs`) sudah tertutup**: aturan "USER yang
+menulis logika algoritma" dihapus dari `CLAUDE.md` pada 19 Sep, dan fungsinya
+diimplementasikan — keputusannya di §2 di bawah, semuanya bisa diubah.
+
+A2 tidak memblokir tapi bisa **membatalkan hasil svdb** kalau salah — periksa
+sebelum Fase B dianggap sah.
 
 ---
 
@@ -247,14 +278,14 @@ konstanta empiris kalau kita bisa mengukur sendiri.
 
 Semua **additive**. `FS`, `CHANNEL`, `RAW_DIR`, `DS1`, `DS2`, `VAL_RECORDS`,
 `AAMI_MAP` — **tidak disentuh** (gate point CLAUDE.md). `make test` hijau:
-64 passed, 4 skipped (svdb/incartdb belum di-download).
+**65 passed, 3 skipped** (sisa skip menunggu download selesai).
 
 | File | Perubahan |
 |---|---|
 | `config.py` | + `DATASETS`, `SPLIT_SETIAP_KE`, `raw_dir(db)` |
-| `src/preprocessing.py` | + `resample_to_fs()` **stub — gate A1** |
+| `src/preprocessing.py` | + `resample_to_fs()` (resample_poly, 3 keputusan di §2) |
 | `src/io_mitdb.py` | + `pilih_lead()`, `load_record(..., db=)`; `db="mitdb"` identik dgn sebelumnya |
-| `src/dataset.py` | + `record_int_id()`, `bagi_train_test()`, `records_tersedia()` |
+| `src/dataset.py` | + `record_int_id()`, `bagi_train_test()`, `records_tersedia()` (menuntut .hea+.dat+.atr) |
 | `scripts/prep_beats.py` | loop per-db, `--db`; jitter tetap mitdb-DS1 saja |
 | `scripts/download_data.py` | multi-db, `--semua` |
 | `tests/test_multidataset.py` | **baru** — membekukan sebaran terukur & aturan split |
@@ -271,9 +302,15 @@ Tiga rentang disjoint, dijaga `test_rentang_id_tidak_bertumpuk`.
 
 ## 8. Langkah berikut
 
-1. **Gate A1** — isi `resample_to_fs()` (3 keputusan ada di docstring-nya)
-2. `make data-semua` (~1 GB)
-3. `make test` → `test_sebaran_kelas_sesuai_yang_diukur` harus hijau, bukan skip
+1. ~~Gate A1 — isi `resample_to_fs()`~~ **selesai**
+2. `make data-semua` (~1 GB) — sedang jalan
+3. `make test` → dua `test_sebaran_kelas_sesuai_yang_diukur` harus hijau, bukan skip
 4. `make prep` → `make split`
 5. **Gate A2** — verifikasi polaritas lead svdb sebelum Fase B dianggap sah
 6. Fase B: baseline 3 seed
+
+### Sisa yang menggantung
+
+`docs/2026-09-16-daya-plan.md:28` masih mengutip *"Aturan 1 `model/CLAUDE.md` —
+USER yang menulis logika algoritma"*. Aturan itu sudah tidak ada. Dokumen itu
+milik user; tidak diubah dari sini.

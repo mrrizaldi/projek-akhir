@@ -1,7 +1,9 @@
 import os
 
 import numpy as np
-from scipy.signal import butter, sosfilt, lfilter
+from math import gcd
+
+from scipy.signal import butter, sosfilt, lfilter, resample_poly
 
 from config import (
     FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER, WIN_PRE, WIN_POST, WIN_LEN,
@@ -170,47 +172,32 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
 
 def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
                    fs_asal: int, fs_target: int = FS):
-    """TODO(user) — samakan laju cuplik ke fs_target. Returns (signal, r_locations).
+    """Samakan laju cuplik ke fs_target. Returns (signal float32, r int64).
 
-    Ini LOGIKA PREPROCESSING, jadi milikmu (CLAUDE.md aturan 1). Yang sudah
-    disiapkan: kontrak, pemanggilnya (io_mitdb.load_record), dan test yang
-    menjaganya (tests/test_multidataset.py). Yang perlu kamu putuskan:
+    resample_poly (polyphase, linear-phase) bukan resample (FFT). Posisi R
+    dibulatkan saja. TIDAK menyaring r yang keluar batas — `symbols` sejajar
+    lewat indeks, dan batas window urusan prep_beats.valid_beat_indices().
 
-    1. METODE. `scipy.signal.resample_poly(signal, up, down)` itu polyphase FIR
-       — anti-alias bawaan, rasio rasional (128->360 = 45/16, 257->360 = 360/257
-       yang tidak sederhana). `scipy.signal.resample` itu FFT: mengasumsikan
-       sinyal periodik, jadi tepinya bisa berdenyut. Keduanya sudah ada di
-       requirements (scipy dipakai sosfilt) — NOL dependency baru.
-
-    2. POSISI R. Setelah sinyal diregangkan, indeks R lama tidak valid lagi.
-       Paling langsung: r_baru = round(r_lama * fs_target / fs_asal). Konsekuensi
-       yang harus kamu sadari: pembulatan itu menambah error posisi +-1 sampel di
-       360 Hz — dan alignment kita SENSITIF (docs/segmentasi-deteksi-walkthrough:
-       meleset 4 sampel menjatuhkan precision 0,48 -> 0,12). Pilihan lain:
-       cari ulang puncak lokal di sekitar r hasil pembulatan, seperti yang
-       ecg_align_r() lakukan di firmware. Lebih mahal, lebih akurat.
-
-    3. URUTAN vs BANDPASS. Sekarang load_record memanggil ini SEBELUM
-       apply_bandpass, jadi semua database difilter oleh sos yang sama di 360 Hz.
-       Kalau dibalik (filter di fs asal lalu resample), tiap database dapat
-       respons filter yang sedikit berbeda — dan golden reference kita cuma
-       menjamin satu: sos di 360 Hz.
-
-    Yang TIDAK bisa dilakukan resample: menciptakan detail. svdb 128 Hz tetap
-    punya resolusi lebar QRS 7,8 ms/sampel setelah di-upsample; mitdb 2,8 ms.
-    Itu menabrak K4 (QRSw fitur rank 1-2) -> metrik WAJIB dilaporkan per-sumber.
-
-    Args:
-        signal: [N] float32, satu kanal, belum difilter.
-        r_locations: [M] int, indeks R-peak pada laju fs_asal.
-        fs_asal: laju cuplik record aslinya.
-        fs_target: tujuan (default FS = 360).
-
-    Returns:
-        (signal_baru [N'] float32, r_locations_baru [M] int64)
-        Kalau fs_asal == fs_target: kembalikan apa adanya, jangan sentuh.
+    Alasan ketiganya: docs/2026-09-19-multidataset-plan.md §2.
     """
-    raise NotImplementedError(
-        "Fase A: resample_to_fs belum diimplementasikan — lihat docstring "
-        "(3 keputusan) dan docs/2026-09-19-multidataset-plan.md §2"
-    )
+    r = np.asarray(r_locations, dtype=np.int64)
+    if fs_asal == fs_target:
+        return np.asarray(signal, dtype=np.float32), r
+
+    faktor = gcd(int(fs_asal), int(fs_target))
+    up, down = int(fs_target) // faktor, int(fs_asal) // faktor
+
+    baru = resample_poly(np.asarray(signal, dtype=np.float64), up, down)
+    r_baru = np.rint(r * (up / down)).astype(np.int64)
+
+    # ponytail: pembulatan naif cukup selama kita UPSAMPLE (indeks makin
+    # menyebar, tak mungkin bertabrakan). Kalau suatu hari fs_target < fs_asal,
+    # dua R bisa jatuh ke indeks sama -> RR = 0 dan itu bukan mode kegagalan
+    # detektor mana pun. Berisik di sini, jangan diam-diam.
+    if len(r_baru) > 1 and np.any(np.diff(r_baru) <= 0):
+        raise ValueError(
+            f"resample {fs_asal}->{fs_target} Hz membuat R-peak bertabrakan "
+            f"(RR <= 0). Perlu cari-ulang puncak, bukan pembulatan."
+        )
+
+    return baru.astype(np.float32), r_baru

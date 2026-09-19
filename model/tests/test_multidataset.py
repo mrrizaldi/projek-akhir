@@ -114,8 +114,11 @@ def test_ds2_mitdb_tidak_tersentuh_fase_a():
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_sebaran_kelas_sesuai_yang_diukur(db):
-    if not _ada(db):
+    n_ada = len(records_tersedia(db))
+    if n_ada == 0:
         pytest.skip(f"{db} belum di-download (python scripts/download_data.py {db})")
+    if n_ada < JUMLAH_RECORD[db]:
+        pytest.skip(f"{db} baru {n_ada}/{JUMLAH_RECORD[db]} record — download belum selesai")
     import wfdb
 
     per_kelas = collections.Counter()
@@ -162,10 +165,7 @@ def test_resample_kontrak(db):
     from src.io_mitdb import load_record
     rec = records_tersedia(db)[0]
     fs_asal = config.DATASETS[db]["fs"]
-    try:
-        signal, r, sym, fs = load_record(rec, db=db)
-    except NotImplementedError:
-        pytest.xfail("resample_to_fs masih stub — milik user (CLAUDE.md aturan 1)")
+    signal, r, sym, fs = load_record(rec, db=db)
 
     assert fs == config.FS, "load_record wajib mengembalikan FS, bukan fs asal"
     assert len(r) == len(sym), "R-peak & simbol harus tetap sejajar"

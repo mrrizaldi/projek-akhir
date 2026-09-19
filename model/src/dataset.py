@@ -51,11 +51,18 @@ def bagi_train_test(records) -> tuple:
 
 
 def records_tersedia(db: str) -> list:
-    """Record id dari .hea di data/raw/<db>/, tanpa PACED_EXCLUDED (mitdb saja)."""
+    """Record LENGKAP (.hea+.dat+.atr) di data/raw/<db>/; mitdb tanpa PACED_EXCLUDED.
+
+    Menuntut ketiganya, bukan cuma .hea: download yang masih jalan meninggalkan
+    .hea tanpa .atr, dan itu jadi FileNotFoundError jauh di hilir (wfdb.rdann)
+    bukan "belum lengkap" di sini.
+    """
     d = raw_dir(db)
     if not os.path.isdir(d):
         return []
-    ids = sorted(f[:-4] for f in os.listdir(d) if f.endswith(".hea"))
+    ada = set(os.listdir(d))
+    ids = sorted(f[:-4] for f in ada if f.endswith(".hea")
+                 and f"{f[:-4]}.dat" in ada and f"{f[:-4]}.atr" in ada)
     if db == "mitdb":
         excluded = {str(x) for x in PACED_EXCLUDED}
         ids = [i for i in ids if i not in excluded]
