@@ -37,7 +37,7 @@ from src.preprocessing import (  # noqa: E402
 )
 
 R_IDX = WIN_PRE + 4  # group delay bandpass kausal = +4 sampel (= 132)
-N_REC = 8            # cukup untuk polaritas; ini gate, bukan ablasi
+N_REC = int(os.environ.get("PA_CEK_REC", 8))   # gate, bukan ablasi
 
 
 def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:

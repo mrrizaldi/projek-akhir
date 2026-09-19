@@ -199,12 +199,23 @@ dilihat model.
 
 ### Temuan 1 — lead: ECG1 benar
 
-| lead | mean (mentah) | record positif | vonis |
-|---|---|---|---|
-| `mitdb/MLII` | +4,053 | 88% (rec 108 memang berisik) | acuan |
-| `svdb/ECG1` | +1,673 | **100%** | **sebanding** ✓ |
-| `svdb/ECG2` | −0,390 | 50% | **terbalik** ✗ |
-| `incartdb/II` | +3,146 | 100% (n=1, sementara) | sebanding |
+20 record per sumber (`PA_CEK_REC=20 python scripts/cek_lead.py`):
+
+| lead | mean (mentah) | record positif | puncak mentah | vonis |
+|---|---|---|---|---|
+| `mitdb/MLII` | +3,954 | 90% | 130–132 | acuan |
+| `svdb/ECG1` | +1,259 | 85% | 135–141 | **sebanding** ✓ |
+| `svdb/ECG2` | −0,254 | 50% | — | **terbalik** ✗ |
+| `incartdb/II` | **+3,743** | **100%** | **131–133** | **sebanding** ✓ |
+
+`incartdb/II` paling dekat ke acuan dari semuanya — lebih bersih dari svdb.
+Masuk akal: MLII itu *modified lead II*, jadi secara harfiah lead yang sama.
+Puncak mentahnya sudah 131–133, artinya konvensi anotasi incartdb praktis sama
+dengan mitdb dan `selaraskan` di sana nyaris no-op (dibiarkan `True`: tidak
+merugikan, dan menormalkan sisa sebarannya).
+
+Sesudah `selaraskan`, keempatnya mendarat di rentang sempit: mitdb +4,499,
+svdb/ECG1 +4,252, incartdb/II +4,578 — puncak di 132.
 
 `DATASETS["svdb"]["leads"]` dipersempit ke `("ECG1",)`.
 
