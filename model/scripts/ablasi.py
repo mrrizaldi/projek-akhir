@@ -111,6 +111,43 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
             "y": np.concatenate(Y), "records": np.concatenate(REC)}
 
 
+def rakit_heldout(sos, db: str) -> dict:
+    """Beat held-out satu database — TEST-B (svdb) / TEST-C (incartdb), T8.
+
+    Record held-out = sisa `bagi_train_test`, yang TIDAK pernah masuk latih.
+    Tanpa jitter dan tanpa salinan: ini set UJI, bukan set latih.
+    """
+    W, R, Y, A = [], [], [], []
+    for rec in bagi_train_test(records_tersedia(db))[1]:
+        signal, r0, sym, _ = load_record(rec, db=db)
+        filtered = apply_bandpass(signal, sos)
+        if DATASETS[db]["selaraskan"]:
+            r0 = selaraskan_r(r0, filtered)
+        idx = valid_beat_indices(len(signal), r0)
+        w = zscore_per_window(segment_beats(filtered, r0[idx]))
+        aami = np.array([to_aami_class(s) for s in sym])[idx]
+        W.append(w)
+        R.append(rakit_fitur_ritme(r0, w, idx))
+        A.append(aami)
+        Y.append(np.array([to_binary_label(a) for a in aami], dtype=np.int8))
+    return {"X_morph": np.concatenate(W).reshape(-1, WIN_LEN, 1).astype(np.float32),
+            "X_rr": np.concatenate(R).astype(np.float32),
+            "y": np.concatenate(Y), "aami": np.concatenate(A)}
+
+
+def ukur_array(model, d: dict, thr: float) -> dict:
+    """Metrik atas array siap pakai. Threshold datang dari VAL — TIDAK disetel ulang
+    di sini, karena menyetelnya di set uji persis kesalahan yang §7 larang."""
+    prob = model.predict([d["X_morph"], d["X_rr"]], verbose=0, batch_size=4096).ravel()
+    pred = (prob >= thr).astype(int)
+    m = binary_metrics(confusion_counts(d["y"], pred))
+    m["auc"] = roc_auc(d["y"], prob)
+    for k in ("S", "V", "F"):
+        sel = d["aami"] == k
+        m[f"recall_{k}"] = float(pred[sel].mean()) if sel.any() else float("nan")
+    return m
+
+
 def pisah_val(d: dict):
     is_val = np.isin(d["records"], VAL_RECORDS)
     ambil = lambda m: {k: v[m] for k, v in d.items()}
@@ -152,6 +189,16 @@ def main() -> None:
     ap.add_argument("--tanpa-class-weight", action="store_true",
                     help="ablasi K1/T1: class_weight=None. Nilai terkunci "
                          "(balanced) tidak diubah — ini flag ablasi saja.")
+    ap.add_argument("--swa", type=int, default=0, metavar="N",
+                    help="ablasi T7: rata-ratakan bobot N epoch ber-val_auc "
+                         "terbaik, bukan memungut argmax-nya. 0 = jalur terkunci.")
+    ap.add_argument("--lr", type=float, default=0.0,
+                    help="ablasi T12: learning rate Adam. 0 = bawaan 1e-3 = "
+                         "jalur terkunci. val_auc memuncak di epoch 0 dgn 1e-3.")
+    ap.add_argument("--lintas-db", action="store_true",
+                    help="T8: ukur juga di held-out svdb (TEST-B) & incartdb "
+                         "(TEST-C), 39 pasien. Threshold tetap dari VAL. Hasil "
+                         "ke lintas_db.csv terpisah — skema ablasi.csv tak bergeser.")
     ap.add_argument("--db", nargs="+", default=["mitdb"], choices=list(DATASETS),
                     help="database LATIH. Bawaan mitdb saja = jalur terkunci, "
                          "byte-identik dengan ablasi sebelum Fase A. DS2 tetap "
@@ -169,13 +216,15 @@ def main() -> None:
     tr, va = pisah_val(ds1)
     print(f"[{args.tag}] window {WIN_PRE}/{WIN_POST}={WIN_LEN}  n_rr={N_RR_FEATURES}  "
           f"HOS={USE_HOS}  jitter={args.jitter} x{args.salinan}  db={'+'.join(args.db)}  "
-          f"class_weight={'OFF' if args.tanpa_class_weight else 'balanced'}")
+          f"class_weight={'OFF' if args.tanpa_class_weight else 'balanced'}  "
+          f"swa={args.swa or 'OFF'}  lr={args.lr or '1e-3 (bawaan)'}")
     print(f"[{args.tag}] train {len(tr['y']):,} beat ({int(tr['y'].sum()):,} aritmia)  "
           f"val {len(va['y']):,} ({int(va['y'].sum()):,})")
 
     model = build_hybrid_model()
     kw = {"epochs": args.epochs} if args.epochs else {}
-    train(model, tr, va, pakai_class_weight=not args.tanpa_class_weight, **kw)
+    train(model, tr, va, pakai_class_weight=not args.tanpa_class_weight,
+          swa_n=args.swa, lr=args.lr, **kw)
 
     thr = kalibrasi(model, va)
     print(f"[{args.tag}] threshold dari VAL = {thr:.2f}")
@@ -212,6 +261,24 @@ def main() -> None:
     print(f"[{args.tag}] DS2 jitter  : recall {rerata['recall']:.4f}  "
           f"prec {rerata['precision']:.4f}  F1 {rerata['f1']:.4f}  AUC {rerata['auc']:.4f}")
     print(out)
+
+    if args.lintas_db:
+        out2 = os.path.join(OUT_DIR, "lintas_db.csv")
+        for db, nama in (("svdb", "TEST-B"), ("incartdb", "TEST-C")):
+            d = rakit_heldout(sos, db)
+            m = ukur_array(model, d, thr)
+            r = {"tag": args.tag, "seed": args.seed, "db": db, "set": nama,
+                 "n_beat": len(d["y"]), "n_aritmia": int(d["y"].sum()),
+                 "threshold": thr, **m}
+            baru2 = not os.path.exists(out2)
+            with open(out2, "a") as f:
+                if baru2:
+                    f.write(",".join(r) + "\n")
+                f.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v)
+                                 for v in r.values()) + "\n")
+            print(f"[{args.tag}] {nama} {db:<9}: recall {m['recall']:.4f}  "
+                  f"prec {m['precision']:.4f}  F1 {m['f1']:.4f}  AUC {m['auc']:.4f}  "
+                  f"({len(d['y']):,} beat)")
 
 
 if __name__ == "__main__":
