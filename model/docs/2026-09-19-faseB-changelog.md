@@ -244,3 +244,86 @@ Set kalibrasi adalah bagian dari PELATIHAN. Kalau svdb/incartdb held-out dipakai
 kalibrasi, mereka berhenti jadi test antar-database — dan itu kontribusi E3C yang
 dipilih sejak plan §4. Perlu keputusan: pecah tiap held-out (separuh kalibrasi,
 separuh test), atau korbankan salah satu peran.
+
+---
+
+## 9. Fase D — tabel 2x2 dataset × fitur. **VONIS: kunci nol.**
+
+Sel "mitdb + fitur baru" (`fd_mitdb_only`) adalah yang membuka seluruh
+interpretasinya, dan itu sel yang nyaris terlewat.
+
+| F1 | fitur LAMA (3) | fitur BARU (6) |
+|---|---|---|
+| **mitdb saja** | **0,6911 ±0,029** | 0,6882 ±0,023 |
+| **mitdb+svdb** | 0,6262 ±0,063 | **0,6960 ±0,049** |
+
+Efek utama, ambang §7 no.2 (< 0,04 bukan sinyal):
+
+```
+fitur baru di mitdb saja    -0,003   bukan sinyal
+fitur baru di mitdb+svdb    +0,070   SINYAL
+svdb dgn fitur lama         -0,065   SINYAL, MERUGIKAN
+svdb dgn fitur baru         +0,008   bukan sinyal
+```
+
+**Ini interaksi murni, bukan dua perbaikan yang bertumpuk.** svdb merusak,
+fitur baru menambal kerusakannya, dan hasil akhirnya kembali ke titik awal:
+
+```
+w128b (terkunci)  F1 0,6911    fd_both  F1 0,6960    selisih +0,005
+```
+
+Tanpa sel `fd_mitdb_only`, kesimpulan yang diambil akan **salah dua kali**: dari
+kolom kanan saja tampak "fitur baru memberi +0,070", dan dari baris bawah saja
+tampak "dataset + fitur menang". Keduanya artefak konfounding.
+
+### Metrik sekunder — kenapa "mitdb + fitur baru" juga bukan pemenang
+
+| | w128b | fd_mitdb_only | fd_both |
+|---|---|---|---|
+| precision | 0,6728 | **0,7038** | 0,6894 |
+| AUC | **0,9373** | 0,9228 | 0,9352 |
+| recall V | **0,9437** | **0,8983** ✗ | 0,9359 |
+| recall F | 0,1521 | **0,0290** ✗ | 0,1057 |
+| recall S (± ) | 0,4221 ±0,156 | 0,4203 ±0,069 | 0,4436 **±0,058** |
+
+`fd_mitdb_only` menukar recall V dan F untuk precision. V kelas paling penting
+secara klinis, jadi pertukaran itu ditolak.
+
+### Vonis
+
+**Kunci nol. `config.py` tidak berubah.** Jalur produksi tetap mitdb + 3 fitur,
+`train_model.py` tetap memakai `train.npz`, dan mesin multi-dataset TIDAK masuk
+produksi. `USE_QRSW` / `USE_RR_RATIO` tetap 0 secara bawaan — tersedia sebagai
+knob, bukan sebagai nilai terkunci.
+
+G2 tidak perlu dijawab lagi: `RR+1` tidak dikunci, jadi firmware tidak menunda
+beat. Kode C-nya tetap ada di balik `#if ECG_RR_RATIO` — sudah ditulis, sudah
+dikompilasi, sudah terbukti tidak mengganggu jalur lama (17/17). Kalau nanti ada
+alasan mengaktifkannya, tidak ada pekerjaan tersisa.
+
+---
+
+## 10. Apa yang SEBENARNYA dihasilkan Fase A-F
+
+F1 tidak bergerak. Yang dihasilkan bukan angka, tapi **hal-hal yang bisa
+dipertahankan**:
+
+| # | Hasil | Nilainya |
+|---|---|---|
+| 1 | Tabel 2×2 dataset × fitur | Menunjukkan perluasan dataset **merugikan** (pergeseran domain) dan fitur cuma menambalnya. Ini temuan, bukan kegagalan |
+| 2 | incartdb merugikan di latih, svdb menolong recall S — efek berlawanan yang saling meniadakan | 4 varian × 3 seed. Tanpa ablasi pengisolasi, kesimpulannya terbalik |
+| 3 | K1 (`class_weight`) terbantah + pelajaran konteks pipeline | Ablasi paper yang sah pun tidak transfer kalau ada langkah adaptif di hilir yang mereka tidak punya |
+| 4 | recall S variansi ±0,156 → ±0,058 (fd_both) | Deteksi S jadi ANDAL, bukan lebih tinggi. Nyata, walau tidak dikunci |
+| 5 | Ranjau PTQ ditemukan + assert `MAX_RHYTHM_SCALE` | Kegagalan senyap 1,8%/seed jadi berisik. Ini masuk produksi |
+| 6 | Aturan tahap 2 + temuan VAL tak bisa mensertifikasi | Presisi nama V 91,7% di DS2 vs 43,9% maksimum di VAL. 5 pasien tidak cukup |
+| 7 | Konvensi anotasi svdb bergeser +6 sampel | Di atas ambang bahaya 4 sampel, sistematis. Kalau lolos, gejalanya "svdb tidak menolong" |
+| 8 | Tiga bug diam di pipeline | Semua menghasilkan angka salah tanpa error |
+| 9 | TEST-B/TEST-C tersedia | Uji generalisasi antar-database (E3C), 85.812 beat / 39 pasien |
+| 10 | Sensitivitas per kelas | Bahkan F sempurna cuma +0,037 F1 — izin berhenti memikirkan F/Q |
+
+### Yang masuk produksi dari seluruh ini
+
+Cuma satu: **assert `MAX_RHYTHM_SCALE`** (#5). Sisanya temuan, alat, dan data uji.
+
+Itu hasil yang jujur: banyak yang dipelajari, satu yang dikirim, dan nol regresi.
