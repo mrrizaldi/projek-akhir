@@ -301,6 +301,12 @@ tanpa alasan kuat.
 > konfigurasi terkunci sekarang, `val_auc` memuncak di **epoch 0** lalu turun
 > monoton — model produksi adalah hasil **satu epoch** latih. Itu bukan
 > "knob yang belum terbukti perlu", itu regime latih yang rusak. Lihat §6b.
+>
+> **Nilainya tetap 1e-3**, tapi sekarang atas dasar yang berbeda: LR lebih
+> rendah sudah diablasi (3 LR × 3 seed + 39 pasien held-out) dan terbukti
+> **menukar recall S dengan recall V dan F**. Karena S fokus penelitian ini,
+> pertukarannya ditolak dan dilaporkan. Yang berubah bukan angkanya, melainkan
+> apakah kita tahu konsekuensinya — dan sekarang tahu.
 
 **Seed dikunci** (`np.random.seed(SEED)`, `tf.random.set_seed(SEED)`) sebelum
 model dibangun. Tanpa ini, hasil tidak reproducible dan angka di Bab 4 tidak

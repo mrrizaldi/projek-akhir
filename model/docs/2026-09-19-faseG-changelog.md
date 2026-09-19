@@ -342,12 +342,41 @@ tidak diputuskan sendiri.
    kalibrasi → eval → quantize → golden → export, plus `pio test`.
 3. Angka Bab 4 yang sudah ditulis ikut berubah.
 
-**Rekomendasi Claude: pilih 1e-4**, dengan alasan 1 dan 5 sebagai penentu —
-mempertahankan konfigurasi yang keunggulannya berasal dari kurang latih adalah
-dasar yang rapuh untuk dipertahankan di depan penguji. Tapi keputusan soal
-"kelas mana yang diutamakan" milik user, bukan Claude.
+### ✅ VONIS: TETAP 1e-3 (disetujui user 19 Sep 2026)
 
-**Kalau diputuskan pindah**, yang wajib ikut: `config.py` (`LEARNING_RATE`),
-baris `Learning rate` di tabel decision point, rantai penuh dijalankan ulang,
-`golden_ref.h` + `model_int8.h` di-regen bersama, dan angka di
-`docs/README.md` §"Angka penting" diperbarui.
+Rekomendasi awal Claude adalah **pindah ke 1e-4**, bertumpu pada alasan 5
+(keunggulan S diduga artefak underfit). Alasan itu **diuji atas permintaan user
+dan gugur** — keunggulan S bertahan utuh di titik operasi setara, 6/6 titik.
+
+Dengan penopang terkuatnya hilang, timbangannya berbalik:
+
+| | sebelum uji | sesudah uji |
+|---|---|---|
+| Alasan pindah terkuat | "S cuma artefak, buang saja" | **gugur** |
+| Sisa untung 1e-4 | generalisasi lintas-DB (TEST-C) | tetap, tapi klaim pinggiran |
+| Ongkos pindah | regen firmware + validasi board | tetap, dan **HW-5 sedang buntu** |
+| Biaya ke S | dikira artefak | **nyata, −0,135** |
+
+Menukar kelas yang jadi fokus penelitian demi klaim pinggiran — sambil
+menukar model yang sudah tervalidasi di board dengan yang belum bisa
+divalidasi — tidak sepadan.
+
+`config.py` **tidak diubah**. Knob `--lr` ditinggal untuk ablasi ulang.
+
+### Yang WAJIB masuk laporan sebagai gantinya
+
+> Regime latih terkunci berhenti di epoch 0; diukur bahwa learning rate lebih
+> rendah memperbaiki AUC di 4 set evaluasi dan menaikkan recall F dua kali
+> lipat, tapi menurunkan recall S secara nyata (terverifikasi di titik operasi
+> setara). Karena S adalah fokus penelitian ini, konfigurasi terkunci
+> dipertahankan dan pertukaran tersebut dilaporkan.
+
+Bentuk jawaban itu yang penting kalau ditanya penguji: bukan "kami tidak tahu",
+bukan "kami sudah optimal", tapi **"kami tahu ada pilihan lain, kami ukur, dan
+kami pilih dengan alasan yang bisa disebut"**. Dua hipotesis yang gugur justru
+memperkuat — menunjukkan pertukarannya dikejar sampai mentok.
+
+**Kalau suatu saat diputuskan pindah**, yang wajib ikut: `config.py`
+(`LEARNING_RATE`), baris `Learning rate` di tabel decision point, rantai penuh
+dijalankan ulang, `golden_ref.h` + `model_int8.h` di-regen bersama, dan angka
+di `docs/README.md` §"Angka penting" diperbarui.

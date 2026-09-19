@@ -153,7 +153,7 @@ diukur, bukan diasumsikan.
 | [fitur-design](2026-09-19-fitur-design.md) | Sintesis 7 paper, 10 temuan yang menabrak decision point terkunci | dokumen KEPUTUSAN, bukan hasil |
 | [multidataset-plan](2026-09-19-multidataset-plan.md) | Fase A: gabung mitdb + svdb + incartdb, audit 13 pemeriksaan | infrastruktur jadi, DS2 byte-identik |
 | [faseB-changelog](2026-09-19-faseB-changelog.md) | Fase B-F: 10 varian × 3-6 seed, tabel 2×2, tahap 2 | **kunci nol** |
-| [faseG-changelog](2026-09-19-faseG-changelog.md) | Fase G: regime latih. Model produksi ternyata hasil **1 epoch**; rata-rata bobot gagal; k-dari-n gugur; TEST-B/C masuk harness | **kunci nol**, satu decision point menunggu |
+| [faseG-changelog](2026-09-19-faseG-changelog.md) | Fase G: regime latih. Model produksi ternyata hasil **1 epoch**; rata-rata bobot gagal; k-dari-n gugur; TEST-B/C masuk harness | **kunci nol.** LR lebih rendah menukar recall S dengan V+F → ditolak & dilaporkan |
 
 ### Ringkasan satu layar
 
