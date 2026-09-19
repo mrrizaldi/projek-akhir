@@ -27,9 +27,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf  # noqa: E402
 
 from config import (  # noqa: E402
-    ARTIFACT_DIR, DS1, METRICS_DIR, SEED, USE_HOS, VAL_RECORDS,
+    ARTIFACT_DIR, DATASETS, DS1, METRICS_DIR, SEED, USE_HOS, VAL_RECORDS,
     N_RR_FEATURES, WIN_LEN, WIN_PRE, WIN_POST,
 )
+from src.dataset import bagi_train_test, record_int_id, records_tersedia  # noqa: E402
 from src.evaluate import binary_metrics, confusion_counts, roc_auc, sweep_thresholds  # noqa: E402
 from src.features_rr import (  # noqa: E402
     compute_rr_features, hos_features, to_aami_class, to_binary_label,
@@ -37,7 +38,8 @@ from src.features_rr import (  # noqa: E402
 from src.io_mitdb import load_record  # noqa: E402
 from src.model import build_hybrid_model  # noqa: E402
 from src.preprocessing import (  # noqa: E402
-    apply_bandpass, design_bandpass_sos, jitter_r, segment_beats, zscore_per_window,
+    apply_bandpass, design_bandpass_sos, jitter_r, segment_beats, selaraskan_r,
+    zscore_per_window,
 )
 from src.train import train  # noqa: E402
 from scripts.prep_beats import valid_beat_indices  # noqa: E402
@@ -48,19 +50,52 @@ F1_TIE_MARGIN = 0.005
 SEED_DS2 = (11, 12, 13)          # seed jitter DS2 saat mengukur, bukan melatih
 
 
-def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng) -> dict:
-    """DS1 jadi array. salinan = berapa TIRUAN ber-jitter ditumpuk di atas yang bersih.
+def catatan_latih(db_list) -> list:
+    """(db, record) yang masuk LATIH. mitdb = DS1 de Chazal (VAL dipisah nanti);
+    database lain = porsi train dari aturan `sorted()[::4]`.
+
+    DS2 tidak pernah muncul di sini, dan held-out database baru juga tidak.
+    """
+    pasangan = [("mitdb", str(r)) for r in DS1]
+    for db in db_list:
+        if db == "mitdb":
+            continue
+        tersedia = records_tersedia(db)
+        n_harap = DATASETS[db]["n_record"]
+        if len(tersedia) != n_harap:
+            raise ValueError(
+                f"{db}: {len(tersedia)}/{n_harap} record — held-out `[::4]` akan "
+                f"BEDA. Selesaikan download dulu (lihat n_record di config.py)."
+            )
+        pasangan += [(db, r) for r in bagi_train_test(tersedia)[0]]
+    return pasangan
+
+
+def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
+              db_list=("mitdb",)) -> dict:
+    """Data LATIH jadi array. salinan = berapa TIRUAN ber-jitter ditumpuk di atas
+    yang bersih — dan HANYA untuk mitdb.
 
     Salinan bersih selalu ikut: model tetap harus pandai saat segmentasi kebetulan
     tepat, dan itu mayoritas kasus (80% beat meleset <=1 sampel).
+
+    Jitter tidak diterapkan ke database lain: kolam residu (residu_ds1.npy) diukur
+    dari detektor di mitdb 360 Hz, jadi memakainya untuk beat 128/257 Hz yang sudah
+    di-resample = menumpuk dua sumber error posisi, yang kedua belum pernah diukur.
+
+    `selaraskan` per database (DATASETS[db]) — konvensi anotasi svdb bergeser ~6
+    sampel dari mitdb, di atas ambang bahaya 4 sampel. Lihat plan §3b.
     """
     W, R, Y, REC = [], [], [], []
-    for rec in DS1:
-        signal, r0, sym, _ = load_record(str(rec))
+    for db, rec in catatan_latih(db_list):
+        signal, r0, sym, _ = load_record(rec, db=db)
         filtered = apply_bandpass(signal, sos)
+        if DATASETS[db]["selaraskan"]:
+            r0 = selaraskan_r(r0, filtered)
         label = np.array([to_binary_label(to_aami_class(s)) for s in sym], dtype=np.int8)
+        n_salinan = salinan if db == "mitdb" else 0
 
-        for salinan_ke in range(salinan + 1):
+        for salinan_ke in range(n_salinan + 1):
             r = r0 if salinan_ke == 0 or model_jitter == "none" else \
                 jitter_r(r0, delta, rng, model_jitter)
             idx = valid_beat_indices(len(signal), r)
@@ -69,7 +104,7 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng) -> dict:
             W.append(w)
             R.append(np.hstack([rr, hos_features(w)]) if USE_HOS else rr)
             Y.append(label[idx])
-            REC.append(np.full(len(idx), int(rec), dtype=np.int32))
+            REC.append(np.full(len(idx), record_int_id(rec, db), dtype=np.int32))
             if model_jitter == "none":
                 break
     return {"X_morph": np.concatenate(W).reshape(-1, WIN_LEN, 1).astype(np.float32),
@@ -115,6 +150,10 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=SEED,
                     help="ulangi varian yang sama dgn seed lain — selisih F1 "
                          "beberapa poin bisa cuma kebisingan inisialisasi")
+    ap.add_argument("--db", nargs="+", default=["mitdb"], choices=list(DATASETS),
+                    help="database LATIH. Bawaan mitdb saja = jalur terkunci, "
+                         "byte-identik dengan ablasi sebelum Fase A. DS2 tetap "
+                         "mitdb apa pun isinya.")
     args = ap.parse_args()
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -124,10 +163,10 @@ def main() -> None:
     t0 = time.time()
 
     sos = design_bandpass_sos()
-    ds1 = rakit_ds1(sos, args.jitter, args.delta, args.salinan, rng)
+    ds1 = rakit_ds1(sos, args.jitter, args.delta, args.salinan, rng, args.db)
     tr, va = pisah_val(ds1)
     print(f"[{args.tag}] window {WIN_PRE}/{WIN_POST}={WIN_LEN}  n_rr={N_RR_FEATURES}  "
-          f"HOS={USE_HOS}  jitter={args.jitter} x{args.salinan}")
+          f"HOS={USE_HOS}  jitter={args.jitter} x{args.salinan}  db={'+'.join(args.db)}")
     print(f"[{args.tag}] train {len(tr['y']):,} beat ({int(tr['y'].sum()):,} aritmia)  "
           f"val {len(va['y']):,} ({int(va['y'].sum()):,})")
 
@@ -146,7 +185,11 @@ def main() -> None:
     if args.seed == SEED:                 # simpan cuma seed utama, bukan ulangan
         model.save(os.path.join(ARTIFACT_DIR, f"model_fp32_{args.tag}.keras"))
 
-    baris = {"tag": args.tag, "seed": args.seed, "win_pre": WIN_PRE, "win_post": WIN_POST,
+    # CATATAN: tidak ada kolom "db". Header ablasi.csv cuma ditulis saat file
+    # belum ada, jadi menambah kolom akan menggeser seluruh baris lama. Database
+    # dikodekan di `tag` (penanda varian) — nol migrasi, nol risiko ke hasil lama.
+    baris = {"tag": args.tag, "seed": args.seed,
+             "win_pre": WIN_PRE, "win_post": WIN_POST,
              "hos": int(USE_HOS), "jitter": args.jitter, "salinan": args.salinan,
              "threshold": thr, "n_train": len(tr["y"]),
              "menit": round((time.time() - t0) / 60, 1)}
