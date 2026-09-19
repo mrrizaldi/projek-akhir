@@ -157,6 +157,23 @@ ALIGN_WIN = 16
 # sebagai hitungan TP/FN mentah, JANGAN sebagai recall berkoma.
 SPLIT_SETIAP_KE = 4
 
+# Database yang IKUT LATIH. incartdb sengaja TIDAK di sini — Fase B mengukurnya
+# merugikan meski menyumbang 256.454 beat latih (4 varian x 3 seed,
+# docs/2026-09-19-faseB-changelog.md):
+#
+#                 mitdb      +svdb    +incartdb   +keduanya
+#   AUC          0,9373     0,9314     0,8881      0,9092
+#   recall S     0,4221     0,4980     0,3312      0,4050
+#
+# recall S +svdb [0,423;0,573] vs +incartdb [0,307;0,355] TERPISAH: efeknya
+# BERLAWANAN, dan di "+keduanya" mereka hampir persis saling meniadakan (-0,017).
+# Bukan soal lead (II ~ MLII, gate A2) atau resolusi (257 > 128 Hz) tapi
+# komposisi: 15.592 beat V dari populasi lain menumpulkan pemisahan N-vs-S.
+#
+# incartdb TETAP DIPAKAI sebagai test antar-database (41.108 beat, 19 pasien) —
+# itu pemakaian terbaiknya, dan tetap jadi kontribusi E3C untuk laporan.
+DB_LATIH = ("mitdb", "svdb")
+
 def raw_dir(db: str) -> str:
     """Folder mentah per database. RAW_DIR di atas tetap ada (= raw_dir("mitdb"))."""
     if db not in DATASETS:

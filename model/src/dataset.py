@@ -4,8 +4,8 @@ import os
 import numpy as np
 
 from config import (
-    DATASETS, DS1, DS2, PACED_EXCLUDED, PER_RECORD_DIR, SPLIT_SETIAP_KE,
-    VAL_RECORDS, WIN_LEN, raw_dir,
+    DATASETS, DB_LATIH, DS1, DS2, PACED_EXCLUDED, PER_RECORD_DIR,
+    SPLIT_SETIAP_KE, VAL_RECORDS, WIN_LEN, raw_dir,
 )
 
 
@@ -143,7 +143,11 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
                 f"kalau memang mau dilewati."
             )
         latih, uji = bagi_train_test(tersedia)
-        bagian.append(stack_records(latih, per_record_dir, db))
+        # Held-out SELALU jadi test (uji antar-database), tapi porsi train hanya
+        # ikut kalau database-nya ada di DB_LATIH. incartdb: test saja — Fase B
+        # mengukurnya merugikan di latih (lihat catatan DB_LATIH di config.py).
+        if db in DB_LATIH:
+            bagian.append(stack_records(latih, per_record_dir, db))
         hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)
 
     hasil["train"] = {k: np.concatenate([b[k] for b in bagian]) for k in bagian[0]}

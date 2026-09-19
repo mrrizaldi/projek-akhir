@@ -150,6 +150,9 @@ def main() -> None:
     ap.add_argument("--seed", type=int, default=SEED,
                     help="ulangi varian yang sama dgn seed lain — selisih F1 "
                          "beberapa poin bisa cuma kebisingan inisialisasi")
+    ap.add_argument("--tanpa-class-weight", action="store_true",
+                    help="ablasi K1/T1: class_weight=None. Nilai terkunci "
+                         "(balanced) tidak diubah — ini flag ablasi saja.")
     ap.add_argument("--db", nargs="+", default=["mitdb"], choices=list(DATASETS),
                     help="database LATIH. Bawaan mitdb saja = jalur terkunci, "
                          "byte-identik dengan ablasi sebelum Fase A. DS2 tetap "
@@ -166,13 +169,14 @@ def main() -> None:
     ds1 = rakit_ds1(sos, args.jitter, args.delta, args.salinan, rng, args.db)
     tr, va = pisah_val(ds1)
     print(f"[{args.tag}] window {WIN_PRE}/{WIN_POST}={WIN_LEN}  n_rr={N_RR_FEATURES}  "
-          f"HOS={USE_HOS}  jitter={args.jitter} x{args.salinan}  db={'+'.join(args.db)}")
+          f"HOS={USE_HOS}  jitter={args.jitter} x{args.salinan}  db={'+'.join(args.db)}  "
+          f"class_weight={'OFF' if args.tanpa_class_weight else 'balanced'}")
     print(f"[{args.tag}] train {len(tr['y']):,} beat ({int(tr['y'].sum()):,} aritmia)  "
           f"val {len(va['y']):,} ({int(va['y'].sum()):,})")
 
     model = build_hybrid_model()
     kw = {"epochs": args.epochs} if args.epochs else {}
-    train(model, tr, va, **kw)
+    train(model, tr, va, pakai_class_weight=not args.tanpa_class_weight, **kw)
 
     thr = kalibrasi(model, va)
     print(f"[{args.tag}] threshold dari VAL = {thr:.2f}")

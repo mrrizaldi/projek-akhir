@@ -287,6 +287,33 @@ def test_val_tetap_cermin_ds2_bukan_cermin_train():
     assert set(np.unique(val["records"])) == set(config.VAL_RECORDS)
 
 
+def test_incartdb_hanya_test_bukan_latih():
+    """Fase B mengukur incartdb merugikan di LATIH (AUC 0,8881 vs 0,9373;
+    recall S 0,331 vs 0,498 untuk svdb, rentangnya TERPISAH). Dia tetap dipakai
+    sebagai test antar-database. Dijaga di sini supaya tidak diam-diam kembali
+    ke latih saat seseorang menambah database lagi."""
+    assert config.DB_LATIH == ("mitdb", "svdb")
+    assert "incartdb" in config.DATASETS, "tetap terdaftar — dia masih jadi TEST-C"
+    _lewati_kalau_separuh_jadi()
+    from src.dataset import build_split_multi, bagi_train_test
+
+    h = build_split_multi()
+    assert "incartdb_test" in h, "TEST-C hilang — itu pemakaian terbaik incartdb"
+    latih_incart = {record_int_id(r, "incartdb")
+                    for r in bagi_train_test(records_tersedia("incartdb"))[0]}
+    assert not (latih_incart & set(np.unique(h["train"]["records"]).tolist())), \
+        "porsi train incartdb bocor ke train"
+
+
+def test_train_bisa_tanpa_class_weight():
+    """Flag ablasi K1/T1. Bawaan HARUS tetap memakai class_weight balanced."""
+    import inspect
+    from src.train import train
+    sig = inspect.signature(train)
+    assert sig.parameters["pakai_class_weight"].default is True, \
+        "bawaan berubah — itu nilai terkunci, bukan flag"
+
+
 def test_split_multi_menolak_database_separuh_jadi(monkeypatch):
     """Aturan held-out `sorted()[::4]` dihitung dari daftar yang ADA, jadi
     database tak lengkap memberi split BEDA tanpa bersuara. Terukur 19 Sep pada
