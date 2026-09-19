@@ -131,6 +131,17 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
                     if os.path.exists(os.path.join(per_record_dir, f"{r}.npz"))]
         if not tersedia:
             continue
+        # Menolak yang separuh jadi: aturan held-out dihitung dari daftar yang ADA,
+        # jadi database tak lengkap memberi split BEDA tanpa bersuara (lihat
+        # catatan n_record di config.py). Split yang salah lebih buruk dari error.
+        n_harap = DATASETS[db]["n_record"]
+        if len(tersedia) != n_harap:
+            raise ValueError(
+                f"{db}: baru {len(tersedia)}/{n_harap} record ter-prep. Held-out "
+                f"`sorted()[::4]` akan BEDA dari yang seharusnya — selesaikan "
+                f"download & `make prep --db {db}` dulu, atau buang folder {db} "
+                f"kalau memang mau dilewati."
+            )
         latih, uji = bagi_train_test(tersedia)
         bagian.append(stack_records(latih, per_record_dir, db))
         hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)

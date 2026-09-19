@@ -51,13 +51,25 @@ def _ada(db: str) -> bool:
     return len(records_tersedia(db)) > 0
 
 
+def _lewati_kalau_separuh_jadi():
+    """build_split_multi() menolak database yang separuh ter-prep — itu benar,
+    tapi test komposisi tidak bisa jalan di keadaan itu."""
+    if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
+        pytest.skip("per_record belum dibangun (make prep)")
+    for db, spec in config.DATASETS.items():
+        ter_prep = [r for r in records_tersedia(db)
+                    if os.path.exists(os.path.join(config.PER_RECORD_DIR, f"{r}.npz"))]
+        if ter_prep and len(ter_prep) != spec["n_record"]:
+            pytest.skip(f"{db} baru {len(ter_prep)}/{spec['n_record']} ter-prep")
+
+
 # ── 1. Tabel DATASETS ────────────────────────────────────────────────────────
 
 def test_datasets_lengkap_dan_konsisten():
     assert set(config.DATASETS) == {"mitdb", "svdb", "incartdb"}
     for db, spec in config.DATASETS.items():
-        assert set(spec) == {"fs", "leads", "id_offset", "selaraskan"}
-        assert spec["fs"] > 0 and len(spec["leads"]) >= 1
+        assert set(spec) == {"fs", "leads", "id_offset", "selaraskan", "n_record"}
+        assert spec["fs"] > 0 and len(spec["leads"]) >= 1 and spec["n_record"] > 0
     assert config.DATASETS["mitdb"]["fs"] == config.FS, "mitdb = acuan, tak di-resample"
     assert config.DATASETS["mitdb"]["leads"] == (config.CHANNEL,), \
         "jalur mitdb harus identik dengan sebelum Fase A"
@@ -239,8 +251,7 @@ def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
 # ── 6. Split gabungan Fase A ─────────────────────────────────────────────────
 
 def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
-    if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
-        pytest.skip("per_record belum dibangun (make prep)")
+    _lewati_kalau_separuh_jadi()
     from src.dataset import build_split_multi, build_split
 
     h = build_split_multi()
@@ -264,8 +275,7 @@ def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
 def test_val_tetap_cermin_ds2_bukan_cermin_train():
     """Threshold dikalibrasi di VAL lalu dipakai di DS2, jadi VAL harus mirip DS2.
     Train boleh bergeser (svdb kaya S) — itu justru yang diinginkan."""
-    if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
-        pytest.skip("per_record belum dibangun (make prep)")
+    _lewati_kalau_separuh_jadi()
     from src.dataset import build_split_multi, split_train_val
 
     h = build_split_multi()
@@ -275,6 +285,26 @@ def test_val_tetap_cermin_ds2_bukan_cermin_train():
     assert abs(rasio_val - rasio_ds2) < 0.03, \
         f"VAL {rasio_val:.4f} vs DS2 {rasio_ds2:.4f} — kalibrasi threshold jadi bias"
     assert set(np.unique(val["records"])) == set(config.VAL_RECORDS)
+
+
+def test_split_multi_menolak_database_separuh_jadi(monkeypatch):
+    """Aturan held-out `sorted()[::4]` dihitung dari daftar yang ADA, jadi
+    database tak lengkap memberi split BEDA tanpa bersuara. Terukur 19 Sep pada
+    65/75 record incartdb: I68 masuk held-out padahal tidak seharusnya, dan
+    I65/I69/I73 hilang (I65 memegang 4 beat F). Split salah > error."""
+    _lewati_kalau_separuh_jadi()
+    from src.dataset import build_split_multi
+
+    db = next((d for d in ("svdb", "incartdb")
+               if _ada(d) and os.path.exists(
+                   os.path.join(config.PER_RECORD_DIR, f"{records_tersedia(d)[0]}.npz"))), None)
+    if db is None:
+        pytest.skip("belum ada database tambahan yang ter-prep")
+
+    monkeypatch.setitem(config.DATASETS[db], "n_record",
+                        config.DATASETS[db]["n_record"] + 1)
+    with pytest.raises(ValueError, match=db):
+        build_split_multi()
 
 
 def wfdb_sig_len(db: str, rec: str) -> int:

@@ -129,10 +129,17 @@ DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
 # vs +4 berarti menyelaraskannya akan menggeser r ~1 sampel dan membatalkan
 # semuanya. Yang diperbaiki database baru, bukan acuannya.
 DATASETS = {
-    "mitdb":    {"fs": 360, "leads": ("MLII",),        "id_offset": 0,    "selaraskan": False},
-    "svdb":     {"fs": 128, "leads": ("ECG1",),        "id_offset": 0,    "selaraskan": True},
-    "incartdb": {"fs": 257, "leads": ("II",),          "id_offset": 1000, "selaraskan": True},
+    "mitdb":    {"fs": 360, "leads": ("MLII",),  "id_offset": 0,    "selaraskan": False, "n_record": 44},
+    "svdb":     {"fs": 128, "leads": ("ECG1",),  "id_offset": 0,    "selaraskan": True,  "n_record": 78},
+    "incartdb": {"fs": 257, "leads": ("II",),    "id_offset": 1000, "selaraskan": True,  "n_record": 75},
 }
+
+# n_record: jumlah record LENGKAP yang diharapkan (mitdb 48 - 4 PACED_EXCLUDED).
+# Bukan hiasan — aturan held-out `sorted(records)[::4]` dihitung dari daftar yang
+# ADA, jadi database yang baru separuh terunduh menghasilkan held-out yang BEDA
+# tanpa bersuara. Terukur 19 Sep pada 65/75 record incartdb: I68 masuk held-out
+# padahal seharusnya tidak, dan I65/I69/I73 hilang (I65 memegang 4 beat F).
+# build_split_multi() menolak kalau jumlahnya tidak pas.
 
 # Setengah-lebar jendela cari-puncak untuk `selaraskan`. 16 (±44 ms) menutup
 # p1..p99 svdb (-9..+15) tanpa menjangkau gelombang T (~200-300 ms = 72-108
