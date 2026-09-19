@@ -126,6 +126,7 @@ Peta masuk + urutan baca: [`docs/README.md`](docs/README.md).
 | 6c | `scripts/ukur_jitter.py`, `sweep_jitter.py`, `ablasi.py` | [`docs/jitter-walkthrough.md`](docs/jitter-walkthrough.md) |
 | 7 | `src/quantize.py` | [`docs/quantize-walkthrough.md`](docs/quantize-walkthrough.md) |
 | HW | `firmware/src/ecg_pipeline.cpp` | [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) |
+| HW-6 | `firmware/src/ecg_mqtt.cpp` | [`docs/mqtt-walkthrough.md`](docs/mqtt-walkthrough.md) |
 
 Kerangka yang dipakai (ikuti, jangan bikin format baru tiap fase):
 peta besar (diagram alur) → fungsi per fungsi dengan kode + rumus → keputusan
@@ -204,7 +205,19 @@ angka nyata → cek pemahaman → skrip pendukung.
   sambungan tekan yang intermiten cocok dgn pola "kadang 3128, kadang 48".
   Keputusan: **solder dulu, baru ulangi rekam**. Analisis offline jalan terus
   pakai rekaman 11:30 — HW-5 tidak terkunci total.
-- [ ] **HW-6** *(opsional, di luar PoC)* — MQTT + ThingsBoard
+- [ ] **HW-6** — MQTT + ThingsBoard. **Kode jadi, board belum.** `ecg_mqtt.cpp`:
+  klien MQTT 4 paket (CONNECT/PUBLISH QoS1/PUBACK/PINGREQ) di atas `WiFiClient`,
+  tanpa library — kawatnya menyalin `dashboard/smoke_test.py` yang sudah terbukti
+  ke broker yang sama. Publikasi **digerbangi ayunan sinyal** (`AMBANG_AYUN`),
+  bukan ada-tidaknya beat: tanpa elektroda alat mengarang ~2 beat/detik 57%
+  "ARITMIA". Backlog ring 64 beat (~53 dtk), **pointer digeser hanya setelah
+  PUBACK**, `ts` = waktu KEJADIAN (`base + millis`) supaya flush tidak menumpuk
+  di satu detik. Dummy dipublikasi lewat `replay` yang SUDAH ADA (toggle `y`),
+  nol cabang khusus — ayunannya ~2700 counts jadi lolos gerbang yang sama.
+  Toggle MQTT `m`. Kredensial di `include/wifi_secrets.h` (gitignored; tanpa itu
+  build tetap jalan, MQTT nonaktif). `pio test -e native` **22/22**,
+  `pio run -e esp32-s3` SUCCESS RAM 26,4% Flash 8,0%. Sisa: verifikasi di board +
+  uji resiliensi. `docs/mqtt-walkthrough.md`
 
 ## Decision point yang sudah di-lock
 

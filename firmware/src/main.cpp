@@ -20,6 +20,7 @@
 #endif
 
 #include "ecg_live.h"
+#include "ecg_mqtt.h"
 #include "model_int8.h"
 #include "golden_ref.h"
 
@@ -59,6 +60,7 @@ static tflite::MicroInterpreter *interp;
 static TfLiteTensor *in_morph, *in_rr, *keluar;
 
 static int beat_total, beat_aritmia;
+static int beat_ditahan;   // tidak dipublikasi: kualitas sinyal / beat timeout
 
 // Kualitas sinyal 1 detik terakhir (dipakai LED + laporan serial).
 static int ayun_1s, ayun_bersih_1s, hum50_1s, mentah_min_1s, mentah_maks_1s;
@@ -156,6 +158,44 @@ static float klasifikasi(const ecg_beat_t &beat)
         in_rr->data.int8[i] = ke_int8(beat.rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
     interp->Invoke();
     return (keluar->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
+}
+
+// Menyusun satu record telemetri dan menaruhnya ke antrean MQTT.
+//
+// GERBANG KUALITAS, bukan gerbang beat. Tanpa elektroda, ambang adaptif
+// Pan-Tompkins tetap menemukan puncak di derau 15 counts: alat mengarang ~2
+// beat/detik dengan 57% "ARITMIA". Kalau publikasi digerbangi ada-tidaknya
+// beat, elektroda lepas = banjir alarm palsu ke broker. Yang menggerbangi
+// harus ayunan sinyal (akuisisi-walkthrough.md §2).
+//
+// Replay TIDAK diperlakukan khusus dan memang tidak perlu: ayunannya ~2700
+// counts, jauh di atas AMBANG_AYUN 60, jadi ia lolos gerbang yang sama persis
+// dengan sinyal tubuh. Satu jalur kode untuk dummy dan nyata.
+static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
+{
+    if (!ecg_mqtt_aktif()) return;
+    if (ayun_bersih_1s < AMBANG_AYUN) { beat_ditahan++; return; }
+    if (beat.sinyal_hilang) { beat_ditahan++; return; }   // beat timeout, RR+1 sentinel
+
+    ecg_mqtt_beat_t t;
+    t.ms = millis();
+    t.rr_ms = beat.rr[0] * 1000.0f;
+    t.bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
+    t.label = aritmia ? 1 : 0;
+    // Keyakinan pada KEPUTUSAN, bukan p mentah: p=0,02 untuk "normal" itu
+    // keyakinan 0,98. Dashboard menampilkannya apa adanya, jadi angka mentah
+    // akan terbaca "alat ragu" persis saat ia paling yakin.
+    t.confidence = aritmia ? p : 1.0f - p;
+    t.quality_ok = 1;
+    // Snippet: window z-score dicuplik merata dan dikali 1000 supaya muat di
+    // int16 tanpa float di payload. ponytail: cuplikan merata, bukan di sekitar
+    // R — kalau widget butuh QRS yang terpusat, ambil ECG_SNIPPET_N titik mulai
+    // dari ECG_WIN_PRE.
+    for (int i = 0; i < ECG_SNIPPET_N; i++) {
+        const int j = i * (ECG_WIN_LEN_ - 1) / (ECG_SNIPPET_N - 1);
+        t.snippet[i] = (int16_t)(beat.window[j] * 1000.0f);
+    }
+    ecg_mqtt_antre_isi(&t);
 }
 
 static void simpan()
@@ -290,6 +330,7 @@ void setup()
     siapkan_model();
     siapkan_replay();               // WAJIB sebelum timer jalan: ISR cuma baca
     ecg_live_reset();
+    ecg_mqtt_mulai();               // non-blocking: sambungan diurus di loop()
 
     timer = timerBegin(0, 80, true);
     timerAttachInterrupt(timer, &on_timer, true);
@@ -298,7 +339,7 @@ void setup()
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q/y\n",
+                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q/y/m\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)interp->arena_used_bytes(),
                   ECG_THRESHOLD, PIN_REC, PIN_DUMP);
 }
@@ -334,9 +375,13 @@ void loop()
             const float bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
             Serial.printf("beat %4d  p=%.4f  %-7s  RR=%.3fs  %3.0f bpm\n",
                           beat_total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
+            publikasi(beat, p, aritmia);
         }
     }
 
+    // Di luar cabang "ada sampel": sambung ulang & kuras backlog harus jalan
+    // walau antrean ADC sedang kosong.
+    ecg_mqtt_layani();
     perbarui_led();
 
     if (Serial.available()) {
@@ -347,21 +392,30 @@ void loop()
             replay = !replay;
             replay_i = 0;
             ecg_live_reset();
-            beat_total = beat_aritmia = 0;
+            beat_total = beat_aritmia = beat_ditahan = 0;
             Serial.printf("replay %s\n", replay ? "ON (golden_raw)" : "OFF (ADC)");
+        }
+        else if (c == 'm') {
+            ecg_mqtt_set_aktif(!ecg_mqtt_aktif());
+            Serial.printf("mqtt %s\n", ecg_mqtt_aktif() ? "ON" : "OFF");
         }
         else if (c == 'q') {
             lapor_kualitas = !lapor_kualitas;
             Serial.printf("laporan kualitas %s\n", lapor_kualitas ? "ON" : "OFF");
         }
         else if (c == 's')
-            Serial.printf("status: rekam=%d n=%u | beat %d (%d aritmia) | "
-                          "antrean %u | sampel hilang %u | LO %d %d | "
-                          "mentah %d..%d ayun %d clipping %d\n",
-                          (int)rekam, (unsigned)rekam_n, beat_total, beat_aritmia,
+            Serial.printf("status: rekam=%d n=%u | replay=%d | beat %d (%d aritmia, "
+                          "%d ditahan) | antrean %u | sampel hilang %u | LO %d %d | "
+                          "mentah %d..%d ayun %d clipping %d\n"
+                          "        mqtt %s | terkirim %u | backlog %u | hilang %u | gagal %u\n",
+                          (int)rekam, (unsigned)rekam_n, (int)replay, beat_total, beat_aritmia,
+                          beat_ditahan,
                           (unsigned)((tulis - baca + ANTRE_N) % ANTRE_N), (unsigned)n_lewat,
                           digitalRead(PIN_LOP), digitalRead(PIN_LON),
-                          mentah_min_1s, mentah_maks_1s, ayun_bersih_1s, (int)clipping_1s);
+                          mentah_min_1s, mentah_maks_1s, ayun_bersih_1s, (int)clipping_1s,
+                          ecg_mqtt_status(), (unsigned)ecg_mqtt_terkirim(),
+                          (unsigned)ecg_mqtt_antre_n(), (unsigned)ecg_mqtt_antre_hilang(),
+                          (unsigned)ecg_mqtt_gagal());
     }
 
     if (ditekan(PIN_REC, t_rec, s_rec)) {

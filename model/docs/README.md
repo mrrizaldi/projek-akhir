@@ -70,6 +70,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
 | HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
 | HW | [akuisisi](akuisisi-walkthrough.md) | **Panduan kerja**: merekam dari badan, menarik data, menilai kualitas, membuat grafik |
+| HW-6 | [mqtt](mqtt-walkthrough.md) | **Panduan kerja**: dua toggle (`y` sumber sinyal, `m` publikasi), kenapa dummy ditaruh di ADC bukan di publisher, dan kenapa publikasi digerbangi ayunan sinyal bukan ada-tidaknya beat |
 
 Fase 8 tidak punya walkthrough — isinya verifikasi, bukan konsep baru.
 Jalankan `make poc` dan baca `scripts/check_poc.py`.

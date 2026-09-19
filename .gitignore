@@ -37,3 +37,6 @@ firmware/.piolibdeps/
 # ===== OS =====
 .DS_Store
 Thumbs.db
+
+# Kredensial WiFi/broker — jangan pernah masuk git.
+firmware/include/wifi_secrets.h
