@@ -263,6 +263,15 @@ MAX_MODEL_KB = 25
 # yang rusak ~0,78. Ambang 0,05 = ~2,5x headroom dari sehat, ~15x di bawah rusak.
 MAX_RHYTHM_SCALE = 0.05
 
+# Fase E — presisi minimum sebuah NAMA sebelum boleh ditampilkan. Bukan F1:
+# memaksimalkan F1 kelas V di antara beat yang ditandai justru memberi hadiah
+# untuk "namai semuanya V" (V ~50% dari yang ditandai), dan itu yang terjadi di
+# percobaan pertama — 4.387 dinamai V, cuma 1.664 benar (presisi 37,9%).
+# Alat boleh DIAM ("tipe tak pasti") tanpa berbohong, tapi tidak boleh bilang "V"
+# kalau salah 6 dari 10. Terukur di DS2: ambang 40 ms -> presisi 91,7% cakupan
+# 40,4%; 30 ms -> 51,7%. Jadi 0,90 bisa dicapai dengan cakupan yang berguna.
+MIN_PRESISI_NAMA = 0.90
+
 # Fase 6b — penyelarasan R-peak untuk segmentasi ON-DEVICE (docs/segmentasi-deteksi).
 # Urutan wajib: r - PT_DETECTOR_OFFSET -> puncak dlm +-PT_REFINE_WIN -> - GROUP_DELAY.
 # Salah satu terlewat: R tidak mendarat di indeks 94 dan precision jatuh 4x.
