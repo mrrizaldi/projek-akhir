@@ -1,6 +1,7 @@
 # Fitur, imbalance, dan ketahanan — sintesis riset & usul adaptasi
 
 **19 September 2026. Dokumen KEPUTUSAN, bukan rencana eksekusi.**
+**STATUS: DITUTUP** — Fase A–G selesai, kunci nol, penutup di [§9](#9-penutup--dokumen-ini-ditutup-19-september-2026-malam).
 Belum ada baris kode atau nilai `config.py` yang berubah. Isinya: paper apa yang
 dipakai, temuan mana yang **bertabrakan dengan decision point yang sudah
 dikunci**, dan urutan kerja yang diusulkan. Rencana bertahap (`-plan.md`) ditulis
@@ -880,3 +881,112 @@ Diwarisi dari changelog 18 Sep §B2, **tidak bisa ditawar**:
 9. Tanatorn, T.; Nantajeewarawat, E.; Thiemjarus, S. (2014). *Toward continuous
    ambulatory monitoring using a wearable and wireless ECG-recording system.*
    DOI 10.3233/bme-130823
+
+---
+
+## 9. PENUTUP — dokumen ini DITUTUP (19 September 2026, malam)
+
+Ditulis pagi sebagai usul terbuka, ditutup malam yang sama setelah Fase A–G
+dijalankan. Yang berubah bukan isinya melainkan statusnya: **tidak ada lagi
+tahap yang menunggu dikerjakan di jalur mitdb.** Sisa ⬜ di §5 dan §5b dihentikan
+dengan alasan terukur, bukan ditinggalkan karena kehabisan waktu.
+
+### 9.1 Skor akhir 10 usul
+
+| Vonis | Jumlah | Usul |
+|---|---|---|
+| ❌ diablasi & gugur | 4 | K1 `class_weight`, K3 bentuk RR, K4 lebar QRS, T5a k-dari-n |
+| ⚪ jadi & terukur, tidak dikunci | 2 | K2 `RR+1`/tunda 1 beat (s/d firmware), T12 learning rate |
+| ✅ dikonfirmasi tanpa perubahan | 3 | K8 kelas F&Q, K9 tanpa sklearn, K10 tetap PTQ |
+| ⬜ dihentikan (lihat 9.2) | 4 | K5 jendela lokal, K6 pooling, K7 turunan, T6 augmentasi |
+| ➕ masuk produksi | 1 | `MAX_RHYTHM_SCALE = 0,05` — **bukan usul dokumen ini**, ranjau yang ketemu di jalan |
+
+Tujuh paper dibaca, sepuluh usul diablasi 3–6 seed, **kunci nol**. Satu assert
+yang masuk produksi justru ditemukan sambil menguji hal lain.
+
+### 9.2 Kenapa sisa ⬜ dihentikan — tiga alasan, semuanya dari dokumen ini
+
+**(a) Lantai derau memakan efek yang dicari.** §5b menemukan ambang 0,04 berlaku
+untuk **rerata 3 seed antar-batch**, bukan cuma 1 run:
+
+```
+w128b     F1 DS2 0,6911 +-0,0290   (batch 1)
+t8_lr1e3  F1 DS2 0,6535 +-0,0280   (batch 2, konfigurasi SAMA PERSIS)
+selisih   0,0376  — nyaris menyentuh ambang "bukan sinyal"
+```
+
+T9 (focal loss), T7' (rata-rata bobot di 1e-4), dan G3/K5 (jendela 10→32)
+semuanya kelas efek yang lebih kecil dari itu. Menjalankannya di harness ini
+menghasilkan kata "bukan sinyal", bukan jawaban. Yang menaikkan daya pisah bukan
+menambah seed melainkan **set uji lebih besar** — dan itu sudah dikerjakan
+(T8, `--lintas-db`, 39 pasien held-out).
+
+**(b) Dua sisanya diblokir hardware, bukan diblokir waktu.** K7 (§3, K7) dan T5b
+(§5) sama-sama menuntut hal yang sama dan belum ada:
+
+| Tahap | Kutipan dari dokumen ini | Yang dibutuhkan |
+|---|---|---|
+| K7/T4 | *"Untuk AD8232 + elektroda kering, ini harus diukur sendiri... uji di rekaman badan, bukan cuma MIT-BIH"* | rekaman tubuh |
+| T5b | *"MIT-BIH terlalu bersih untuk mengalibrasi ambang kualitas"* | rekaman tubuh |
+
+Statusnya bukan "belum dikerjakan" tapi **"prasyaratnya belum ada"**: HW-5 masih
+buntu di header AD8232 yang belum disolder (`../CLAUDE.md`, HW-5). Menjalankan
+K7 di MIT-BIH saja berarti mengukur tepat sisi yang tidak jadi soal — P1 sudah
+menunjukkan turunan pertama menang di sinyal bersih dan jatuh ke F1 35% di bawah
+AWGN. Kita akan mendapat kemenangan yang hilang begitu elektroda dipasang.
+
+**(c) T11 menuntut scoping lebih dulu, atas permintaannya sendiri** (§5b, T11:
+*"Jangan asumsikan gampang — keluarkan dokumen scoping dulu"*). Kalibrasi titik
+operasi per pasien tanpa label butuh jangkar tak-terawasi, dan jangkar itu belum
+jelas. Itu pekerjaan sesudah PoC, bukan di dalamnya.
+
+### 9.3 Prasyarat pembukaan kembali
+
+Sisa ⬜ tidak dibatalkan. Masing-masing punya pemicu mekanis:
+
+| Tahap | Dibuka kembali kalau | Pintu masuk |
+|---|---|---|
+| **K7/T4** turunan pertama | HW-5 hidup → ada ≥3 rekaman tubuh berayun >1000 counts | uji dua-duanya di rekaman tubuh, `preprocessing.py` |
+| **T5b** gating SQI | idem — ambang `AMBANG_AYUN` dikalibrasi dari rekaman tubuh | firmware, bukan `model/` |
+| **T9** focal loss, **T7'** SWA, **G3/K5** jendela | ada set uji yang lantai derau-nya < 0,02 | `ablasi.py --lintas-db` sudah ada; butuh pengulangan batch |
+| **T6** augmentasi P6 | tidak ada — paling jauh dari akar masalah, dan §4 sudah menolak Pers. 17 | — |
+| **T11** personalisasi | dokumen scoping keluar dulu | dokumen baru |
+
+Semua knob-nya **sudah ditinggal di kode** dan byte-identik saat mati:
+`PA_QRSW`, `PA_RR_RATIO`, `PA_HOS`, `ablasi.py --swa/--lr/--lintas-db/--db`,
+`#if ECG_RR_RATIO` / `#if ECG_QRSW` di firmware. Mengulang ablasinya nanti
+= satu perintah. Yang mahal bukan kodenya, melainkan menemukan kembali cara
+mengujinya — itu yang dokumen ini simpan.
+
+### 9.4 Yang belum dibayar: T8 sudah jalan tapi belum masuk laporan
+
+Satu-satunya utang nyata dari dokumen ini bukan eksperimen, melainkan pelaporan.
+T8 dijalankan sebagai wasit T12 dan angkanya ada, tapi klaim generalisasi
+lintas-database yang **sudah dibayar penuh** belum ditulis di mana pun selain
+tabel di §5b:
+
+```
+TEST-B (svdb)      20 pasien   F1 0,5237 +-0,0084   AUC 0,8667
+TEST-C (incartdb)  19 pasien   F1 0,6784 +-0,1080   AUC 0,9352
+                   85.812 beat, 39 pasien held-out, threshold dari VAL
+```
+
+Review P2 (kerangka E3C) menghargai validasi lintas-database, dan P1 divalidasi
+di INCART/QT/PTB. Kita punya barangnya. **Ini pekerjaan berikutnya, dan tempatnya
+`laporan/`, bukan `model/`.**
+
+### 9.5 Nilai dokumen ini justru dari kekalahannya
+
+Tesis utamanya dibantah oleh datanya sendiri (blok ⚠️ VONIS), dan teks aslinya
+sengaja tidak dihapus. Yang tersisa untuk Bab Pembahasan bukan kenaikan angka
+melainkan satu pola yang konsisten di tiga kekalahan terpisah:
+
+> **Usul dari paper mati di tangan langkah adaptif hilir yang papernya tidak
+> punya.** Kalibrasi threshold menyerap `class_weight` (K1: prediksi +31 poin,
+> terukur +0,3). Kalibrasi threshold menyerap sebagian efek learning rate (T12).
+> Label per-beat mematikan k-dari-n, yang alat untuk deteksi episode (T5a:
+> membuang 87% TP).
+
+Pola itu lebih berharga daripada ΔF1 0,02 mana pun, dan ia lahir dari aturan §7
+yang tidak bisa ditawar — 3 seed minimum, ambang 0,04, DS2 tidak pernah memilih.
+Tanpa aturan itu, dokumen ini akan melaporkan empat perbaikan palsu.
