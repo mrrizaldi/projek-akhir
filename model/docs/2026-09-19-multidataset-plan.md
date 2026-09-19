@@ -175,7 +175,7 @@ per-sumber.
 
 | # | Pertanyaan | Kalau "ya" |
 |---|---|---|
-| **A3** | Subsample F record 208 supaya ragam F tidak tenggelam? | knob baru yang harus dipertanggungjawabkan. **Usul: jangan**, lihat §1 |
+| **A3** | Subsample F record 208 supaya ragam F tidak tenggelam? | **DITOLAK** — alasan terukur di §3c |
 | **A4** | `2026-09-19-fitur-design.md` masih untracked di `main` | commit sendiri — bukan milik Fase A |
 
 **A1 (siapa mengisi `resample_to_fs`) sudah tertutup**: aturan "USER yang
@@ -254,6 +254,76 @@ positif — lead terbalik pun tampak sebanding sesudahnya (`ECG2` melompat dari
 byte-identik** setelah Fase A, termasuk undian jitter (urutan `rng` bersama
 seperti `main()`). Semua ablasi terkunci tetap reproducible. Dijaga
 `test_jalur_mitdb_byte_identik_setelah_fase_a` untuk rec 100 & 232.
+
+---
+
+## 3c. Gate A3 ditolak — analisis sensitivitas
+
+Pertanyaannya: subsample beat F record 208 (372 dari 577 beat F latih) supaya
+ragam F dari 22 pasien incartdb tidak tenggelam?
+
+**Jawaban: jangan**, dan alasan pertama menutup pembahasan sendiri.
+
+### 1. Bahkan F yang SEMPURNA pun di bawah ambang sinyal
+
+Sensitivitas F1 biner kalau recall satu kelas dinaikkan ke 1,0 (FP tetap — kita
+cuma menangkap positif yang terlewat). DS2 terukur, recall biner 0,710
+diturunkan dari F1 0,691 & precision 0,673 (ablasi w128b, 3 seed):
+
+| kelas | % positif DS2 | recall kini | TP tambahan kalau sempurna | ΔF1 |
+|---|---|---|---|---|
+| **S** | 33,7% | 0,422 | 1.061 | **+0,113** |
+| V | 59,1% | 0,944 | 180 | +0,021 |
+| **F** | 7,1% | 0,152 | 329 | **+0,037** |
+| Q | 0,1% | 0,000 | 7 | +0,001 |
+
+Ambang sinyal repo (changelog 18 Sep §B2): **selisih < 0,04 F1 bukan sinyal.**
+
+Jadi F recall 1,0 — sempurna, mustahil — memberi **+0,037, masih di bawah
+ambang**. Subsample memberi sebagian kecil dari itu. Eksperimennya **tidak bisa
+dinilai**: naik pun tak bisa dibedakan dari noise. Menjalankan ablasi yang
+hasilnya mustahil ditafsirkan = 3 seed dibakar untuk nol informasi.
+
+### 2. Premis "dominasi gradien" itu salah untuk tugas biner
+
+```
+train total        292.594
+  semua kelas F        577  = 0,20% training
+  F dari rec 208       372  = 0,13% training
+  N                 262.006 = 89,5% training
+```
+
+0,13% tidak mendominasi 89,5%. "Dominasi" relevan kalau kita mengklasifikasi F
+**sebagai kelas**; kita tidak — F cuma salah satu bentuk positif. Sebab recall F
+rendah bukan bobot gradien, tapi **cakupan pasien**: F di DS2 datang dari pasien
+213 yang morfologinya tak pernah dilihat model. Obatnya pasien baru, dan itu
+sudah dikerjakan incartdb.
+
+### 3. Subsample menambah nol informasi
+
+```
+subsample 208 ke 100  ->  buang 272 beat POSITIF (0,9% positif train)
+                      ->  NOL pasien F baru
+```
+
+Sisi kreditnya kosong.
+
+### 4. Beban pembelaan
+
+"Kenapa ke 100, bukan 150?" — konstanta pilihan tanpa ablasi, dan ablasinya
+tidak bisa dijalankan (alasan 1). Itu akan jadi satu-satunya angka di repo ini
+tanpa justifikasi terukur; bandingkan window 128/128, jitter x2, threshold 0,80.
+
+### Yang dipakai sebagai ganti (nol ongkos)
+
+Tabel sensitivitas di atas masuk **paragraf pembatasan laporan**. Dia mengubah
+*"recall F kami 0,15"* jadi *"recall F secara struktural tidak bisa memperbaiki
+angka utama, dan ini hitungannya"* — pembelaan, bukan permintaan maaf.
+
+Konsekuensi yang lebih luas: hanya **S** yang layak dikerjakan untuk metrik yang
+dilaporkan (+0,113, hampir 3x ambang). V sudah habis (0,944), F dan Q struktural.
+Itu memvalidasi ke belakang bahwa memprioritaskan svdb benar, dan memberi izin
+berhenti memikirkan F/Q sebagai target perbaikan.
 
 ---
 
