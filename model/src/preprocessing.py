@@ -149,3 +149,68 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
         raise ValueError(f"model jitter tak dikenal: {model}")
 
     return np.maximum.accumulate(r + geser)
+
+
+# ── Fase A — penyeragaman laju cuplik antar-database ─────────────────────────
+# svdb 128 Hz dan incartdb 257 Hz harus jadi 360 Hz sebelum masuk pipeline, dan
+# alasannya BUKAN kerapian: WIN_PRE terdefinisi dalam SAMPEL, bukan waktu.
+#
+#     128 sampel @ 360 Hz =  355 ms   <- yang diablasi & dikunci 18 Sep
+#     128 sampel @ 128 Hz = 1000 ms   <- fisiologi lain sama sekali
+#
+# Decision point 18 Sep bilang yang membayar itu "konteks 128 sampel SEBELUM R",
+# dan mekanismenya gelombang P & interval PR yang hidup ~150-200 ms sebelum R.
+# Itu durasi FISIOLOGIS. Memakai 128 sampel di 128 Hz bukan menyalin keputusan
+# itu — itu melanggarnya sambil terlihat konsisten.
+#
+# Dengan target 360 Hz: WIN_PRE/WIN_POST, koefisien bandpass (didesain di FS),
+# ECG_FS di firmware, dan golden_ref.h SEMUANYA tidak berubah. Itu sebabnya
+# arahnya ke 360, bukan menurunkan mitdb ke 128.
+
+
+def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
+                   fs_asal: int, fs_target: int = FS):
+    """TODO(user) — samakan laju cuplik ke fs_target. Returns (signal, r_locations).
+
+    Ini LOGIKA PREPROCESSING, jadi milikmu (CLAUDE.md aturan 1). Yang sudah
+    disiapkan: kontrak, pemanggilnya (io_mitdb.load_record), dan test yang
+    menjaganya (tests/test_multidataset.py). Yang perlu kamu putuskan:
+
+    1. METODE. `scipy.signal.resample_poly(signal, up, down)` itu polyphase FIR
+       — anti-alias bawaan, rasio rasional (128->360 = 45/16, 257->360 = 360/257
+       yang tidak sederhana). `scipy.signal.resample` itu FFT: mengasumsikan
+       sinyal periodik, jadi tepinya bisa berdenyut. Keduanya sudah ada di
+       requirements (scipy dipakai sosfilt) — NOL dependency baru.
+
+    2. POSISI R. Setelah sinyal diregangkan, indeks R lama tidak valid lagi.
+       Paling langsung: r_baru = round(r_lama * fs_target / fs_asal). Konsekuensi
+       yang harus kamu sadari: pembulatan itu menambah error posisi +-1 sampel di
+       360 Hz — dan alignment kita SENSITIF (docs/segmentasi-deteksi-walkthrough:
+       meleset 4 sampel menjatuhkan precision 0,48 -> 0,12). Pilihan lain:
+       cari ulang puncak lokal di sekitar r hasil pembulatan, seperti yang
+       ecg_align_r() lakukan di firmware. Lebih mahal, lebih akurat.
+
+    3. URUTAN vs BANDPASS. Sekarang load_record memanggil ini SEBELUM
+       apply_bandpass, jadi semua database difilter oleh sos yang sama di 360 Hz.
+       Kalau dibalik (filter di fs asal lalu resample), tiap database dapat
+       respons filter yang sedikit berbeda — dan golden reference kita cuma
+       menjamin satu: sos di 360 Hz.
+
+    Yang TIDAK bisa dilakukan resample: menciptakan detail. svdb 128 Hz tetap
+    punya resolusi lebar QRS 7,8 ms/sampel setelah di-upsample; mitdb 2,8 ms.
+    Itu menabrak K4 (QRSw fitur rank 1-2) -> metrik WAJIB dilaporkan per-sumber.
+
+    Args:
+        signal: [N] float32, satu kanal, belum difilter.
+        r_locations: [M] int, indeks R-peak pada laju fs_asal.
+        fs_asal: laju cuplik record aslinya.
+        fs_target: tujuan (default FS = 360).
+
+    Returns:
+        (signal_baru [N'] float32, r_locations_baru [M] int64)
+        Kalau fs_asal == fs_target: kembalikan apa adanya, jangan sentuh.
+    """
+    raise NotImplementedError(
+        "Fase A: resample_to_fs belum diimplementasikan — lihat docstring "
+        "(3 keputusan) dan docs/2026-09-19-multidataset-plan.md §2"
+    )

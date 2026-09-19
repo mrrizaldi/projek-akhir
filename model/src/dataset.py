@@ -3,7 +3,10 @@ import os
 
 import numpy as np
 
-from config import DS1, DS2, PACED_EXCLUDED, PER_RECORD_DIR, VAL_RECORDS, WIN_LEN
+from config import (
+    DATASETS, DS1, DS2, PACED_EXCLUDED, PER_RECORD_DIR, SPLIT_SETIAP_KE,
+    VAL_RECORDS, WIN_LEN, raw_dir,
+)
 
 
 def assert_split_valid() -> None:
@@ -17,7 +20,50 @@ def assert_split_valid() -> None:
         raise ValueError(f"total record {total}, harus 48")
 
 
-def stack_records(record_ids, per_record_dir: str = PER_RECORD_DIR) -> dict:
+def record_int_id(record_id, db: str = "mitdb") -> int:
+    """Nama record -> int32 untuk kolom `records`. Tiga rentang tidak bertumpuk.
+
+        mitdb     "100".."234"  -> 100..234    (offset 0)
+        svdb      "800".."894"  -> 800..894    (offset 0)
+        incartdb  "I01".."I75"  -> 1001..1075  (offset 1000)
+
+    Kenapa perlu: `records` dipakai metrik per-record dan cek kebocoran lintas
+    split, dan tipenya int32. int("I18") melempar ValueError — jadi tanpa peta
+    ini incartdb menabrak stack_records, bukan gagal dengan pesan yang berguna.
+    """
+    rec = str(record_id)
+    angka = rec[1:] if rec[:1].isalpha() else rec
+    if not angka.isdigit():
+        raise ValueError(f"record id tak bisa dipetakan ke int: {record_id!r} ({db})")
+    return DATASETS[db]["id_offset"] + int(angka)
+
+
+def bagi_train_test(records) -> tuple:
+    """Held-out = setiap record ke-SPLIT_SETIAP_KE dalam urutan tersortir.
+
+    Aturan, bukan seed: tidak ada seed yang bisa dipancing, dan siapa pun bisa
+    memverifikasi hasilnya dengan sorted(records)[::4]. Dipakai HANYA untuk
+    svdb & incartdb — DS1/DS2 mitdb tetap literal de Chazal di config.py.
+    """
+    r = sorted(str(x) for x in records)
+    test = r[::SPLIT_SETIAP_KE]
+    return [x for x in r if x not in set(test)], test
+
+
+def records_tersedia(db: str) -> list:
+    """Record id dari .hea di data/raw/<db>/, tanpa PACED_EXCLUDED (mitdb saja)."""
+    d = raw_dir(db)
+    if not os.path.isdir(d):
+        return []
+    ids = sorted(f[:-4] for f in os.listdir(d) if f.endswith(".hea"))
+    if db == "mitdb":
+        excluded = {str(x) for x in PACED_EXCLUDED}
+        ids = [i for i in ids if i not in excluded]
+    return ids
+
+
+def stack_records(record_ids, per_record_dir: str = PER_RECORD_DIR,
+                  db: str = "mitdb") -> dict:
     morph, rr, y, origin = [], [], [], []
     for rec in record_ids:
         path = os.path.join(per_record_dir, f"{rec}.npz")
@@ -27,7 +73,7 @@ def stack_records(record_ids, per_record_dir: str = PER_RECORD_DIR) -> dict:
             morph.append(z["windows"])
             rr.append(z["rr"])
             y.append(z["labels"])
-            origin.append(np.full(len(z["labels"]), int(rec), dtype=np.int32))
+            origin.append(np.full(len(z["labels"]), record_int_id(rec, db), dtype=np.int32))
 
     return {
         "X_morph": np.concatenate(morph).reshape(-1, WIN_LEN, 1).astype(np.float32),

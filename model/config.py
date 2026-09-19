@@ -77,6 +77,63 @@ DS1 = [101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 124,
        201, 203, 205, 207, 208, 209, 215, 220, 223, 230]   # latih (22)
 DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
        213, 214, 219, 221, 222, 228, 231, 232, 233, 234]   # uji  (22)
+# ── Fase A (19 Sep 2026) — dataset tambahan: svdb + incartdb ─────────────────
+# Permintaan pembimbing dari awal: perluas data latih. Sebaran di bawah TERUKUR
+# dari anotasi asli PhysioNet, dipetakan lewat AAMI_MAP di atas — bukan angka
+# yang disalin dari paper:
+#
+#   svdb      78 rec, 128 Hz | S 12.198/73rec  V  9.943/67rec  F  23/6rec   Q 79/20rec
+#   incartdb  75 rec, 257 Hz | S  1.960/36rec  V 20.013/70rec  F 219/22rec  Q  6/5rec
+#
+# Kenapa dua ini, bukan yang lain: keduanya punya anotasi BEAT-LEVEL (.atr, satu
+# simbol per R-peak) dengan alfabet WFDB yang sama, jadi AAMI_MAP di atas sudah
+# menanganinya apa adanya. PTB-XL / CPSC / Chapman dibuang bukan karena frekuensi
+# tapi karena diagnosisnya PER-REKAMAN — label per-beat tidak bisa diturunkan
+# dari sana, berapa pun frekuensinya.
+#
+# Peran masing-masing:
+#   svdb     -> recall S (0,422 +- 0,156). Dari 634 beat/~20 pasien ke ~11.250/~102.
+#   incartdb -> KONSENTRASI F. Punya kita 372 dari 394 beat F ada di record 208
+#               saja; incartdb menyebar 219 beat di 22 record. Yang diperbaiki
+#               cakupan pasien, bukan jumlah beat.
+#   Q        -> TIDAK ada yang menolong: 8+79+6 = 93 beat di tiga database
+#               digabung. Q tetap bukan kelas yang bisa dilaporkan.
+#
+# ATURAN YANG TIDAK BOLEH DILANGGAR: DS2 (mitdb) di atas tidak berubah satu byte.
+# Dia satu-satunya yang sebanding dengan literatur (de Chazal DS1/DS2), dan §7
+# aturan 4 (DS2 tak pernah memilih apa pun) cuma bisa ditegakkan kalau
+# komposisinya bukan variabel. Data baru masuk TRAIN; sisanya jadi test TERPISAH
+# untuk generalisasi antar-database.
+#
+# id_offset: `records` di dataset.py bertipe int32, sedangkan record incartdb
+# bernama "I01".."I75" -> dipetakan ke 1001..1075. mitdb 100-234 dan svdb 800-894
+# sudah numerik, jadi offset 0. Tiga rentang itu tidak bertumpuk.
+#
+# leads: dipilih yang PERTAMA tersedia. mitdb MLII = acuan alat (AD8232 lead II).
+# incartdb "II" paling dekat dengannya. svdb Holter, lead tidak dinamai -> ECG1
+# dipakai dan POLARITASNYA BELUM DIVERIFIKASI (gate, lihat docs plan §3).
+DATASETS = {
+    "mitdb":    {"fs": 360, "leads": ("MLII",),        "id_offset": 0},
+    "svdb":     {"fs": 128, "leads": ("ECG1", "ECG2"), "id_offset": 0},
+    "incartdb": {"fs": 257, "leads": ("II",),          "id_offset": 1000},
+}
+
+# Held-out tiap dataset baru = setiap record ke-N dalam urutan tersortir.
+# ATURAN, bukan seed: tidak ada yang bisa dipancing, dan siapa pun bisa
+# memverifikasinya dengan sorted(records)[::4]. ~25% disisihkan.
+# Konsekuensi yang sudah diperiksa: held-out incartdb cuma dapat ~13-20 beat F
+# (I05=9, I65=4, + sisa kecil) karena F terbesar (I18=56, I74=48) jatuh ke train.
+# Itu DISENGAJA — train yang kekurangan F, bukan test. F di test dilaporkan
+# sebagai hitungan TP/FN mentah, JANGAN sebagai recall berkoma.
+SPLIT_SETIAP_KE = 4
+
+def raw_dir(db: str) -> str:
+    """Folder mentah per database. RAW_DIR di atas tetap ada (= raw_dir("mitdb"))."""
+    if db not in DATASETS:
+        raise KeyError(f"database tak dikenal: {db} (pilihan: {sorted(DATASETS)})")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw", db)
+
+
 # Fase 2-3 — keluaran prep_beats.py (per record) & build_split.py (train/test).
 PROCESSED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "data", "processed")

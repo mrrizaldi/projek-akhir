@@ -3,14 +3,16 @@
 PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 REC ?= 100          # record buat target plot: make plot0 REC=114
 
-.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc pull analisis test clean help
+.PHONY: data data-semua check plot0 plot1 plot1seg prep split train eval quantize export poc pull analisis test clean help
 
 help:
-	@grep -E '^[a-z0-9]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
+	@grep -E '^[a-z0-9-]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
 
 ## ── Fase 0 — data & verifikasi loader ────────────────────────────────────────
 data:  ## download MIT-BIH ke data/raw/mitdb (sekali jalan)
-	$(PY) scripts/download_data.py
+	$(PY) scripts/download_data.py $(DB)
+data-semua: ## + svdb & incartdb (Fase A, ~1 GB) -> data/raw/<db>/
+	$(PY) scripts/download_data.py --semua
 check: ## cek kelengkapan .hea/.dat/.atr
 	$(PY) scripts/check_dataset.py
 plot0: ## verifikasi Fase 0 — overlay R-peak anotasi
