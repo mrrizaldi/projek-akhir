@@ -543,3 +543,79 @@ Tiga rentang disjoint, dijaga `test_rentang_id_tidak_bertumpuk`.
 `docs/2026-09-16-daya-plan.md:28` masih mengutip *"Aturan 1 `model/CLAUDE.md` —
 USER yang menulis logika algoritma"*. Aturan itu sudah tidak ada. Dokumen itu
 milik user; tidak diubah dari sini.
+
+---
+
+## 9. Audit Fase A (19 Sep 2026, sebelum masuk Fase B)
+
+13 pemeriksaan, **nol anomali**. Yang diperiksa itu hal yang BELUM terverifikasi
+oleh test, bukan pengulangan klaim:
+
+| # | Pemeriksaan | Hasil |
+|---|---|---|
+| 1 | 197 npz di satu folder rata, nol tabrakan nama antar-database | ✓ 44+78+75 |
+| 2 | `record_int_id` unik untuk 197 record | ✓ |
+| 3 | mitdb DS2 byte-identik **setelah** prep svdb+incartdb | ✓ 100/232/213 |
+| 4 | nol NaN/inf di `windows` & `rr` (197 record) | ✓ |
+| 5 | nol `RR_prev <= 0` → alignment tak pernah menukar urutan beat | ✓ |
+| 6 | semua window 256, semua label ∈ {0,1} | ✓ |
+| 7 | `max abs(window) < 50` → tak ada ledakan z-score dari segmen datar | ✓ |
+| 8 | keempat split saling disjoint (bukan cuma train vs masing-masing) | ✓ 136+22+20+19=197 |
+| 9 | VAL = persis 5 record mitdb, nol di train | ✓ |
+| 10 | tiap record ≥ 800 beat → tak ada load yang gagal senyap | ✓ |
+| 11 | held-out sesuai aturan `[::4]` yang dibekukan | ✓ |
+| 12 | margin tabrakan alignment: RR min 92 sampel vs 2×`ALIGN_WIN`=32 | ✓ margin 60 |
+| 13 | urutan `--db` tak mengubah hasil (`rng` cuma dipakai mitdb DS1) | ✓ |
+
+### Catatan 1 — saturasi `ALIGN_WIN`: 2,33%
+
+1.133 dari 48.630 beat database baru ingin bergeser ≥16 sampel dan terpotong di
+batas jendela. **Diterima**, tidak diperlebar: gelombang T ada di 72–108 sampel
+setelah R, jadi melebarkan jendela menukar satu masalah kecil (2,33% alignment
+tak tuntas) dengan masalah besar (`argmax` melompat ke T). Beat yang saturasi
+kemungkinan justru yang tak punya puncak jelas, dan memperlebar tak menolongnya.
+Sisa 2,33% masih di dalam rentang yang augmentasi jitter sudah latih (±1–2 inti,
+ekor sampai 54).
+
+### Catatan 2 — nilai RR ekstrem: ranjau laten PTQ, BUKAN cacat Fase A
+
+Record **207 punya `RR_prev` = 100,02 detik** (celah anotasi panjang; 207 tidak
+ada di `PACED_EXCLUDED` jadi dia ikut latih). Sebarannya:
+
+```
+RR_prev   min 0,18   p50 0,73   p99,99 2,58   max 100,02
+dRR       min -97,74 p50 0,00   p99,99 1,48   max  98,73
+beat dengan |fitur RR| > 10: 26 dari 396.144 (0,0066%)
+```
+
+**Kenapa ini berbahaya:** skala INT8 tensor `rhythm` diturunkan dari min/max **300
+sampel kalibrasi**. Kalau satu beat ekstrem masuk ke 300 itu, skalanya melompat
+~40× dan RR normal (0,18–2,58 s) hanya tersisa ~3 level int8 — cabang ritme
+praktis mati, dan **gejalanya bukan error melainkan recall S yang buruk.**
+
+**Keadaan sekarang aman, diverifikasi langsung dari `.tflite` terekspor:**
+
+```
+rhythm  scale 0,012933  zero_point -70  -> rentang float [-0,750, 2,548]
+        RR_prev 0,73 s -> level +56    RR_ratio 1,00 -> level +77
+```
+
+Skala sehat, dan rentangnya justru **memotong** outlier — persis yang diinginkan.
+Itu terjadi karena keberuntungan seed, bukan karena dijaga.
+
+**Peluang kena per seed:** mitdb-saja **4,6%** → gabungan **1,8%**. Jadi Fase A
+menguranginya (kolam kalibrasi 3,3× lebih besar, jumlah beat ekstrem tetap).
+
+**Usul untuk Fase B** (belum dikerjakan, menyentuh jalur quantize yang terkunci):
+tambahkan assert di `quantize_int8` bahwa skala `rhythm` di bawah ambang wajar
+(mis. < 0,05). Nol perubahan nilai, tapi mengubah kegagalan senyap 1,8% jadi
+kegagalan berisik. Lebih murah daripada menyaring outlier RR, dan tidak menyentuh
+definisi fitur.
+
+### Alarm palsu yang sempat kubuat
+
+Simulasi pertama kalibrasi memakai train-**minus**-val, padahal
+`scripts/quantize_int8.py` melewatkan **DS1 penuh**. Hasilnya seolah model
+terekspor punya skala rusak 0,7696. Membaca `.tflite` langsung membantahnya.
+Pelajaran: untuk pertanyaan "apa yang sebenarnya dikirim", baca artefaknya,
+jangan simulasikan pemanggilnya.
