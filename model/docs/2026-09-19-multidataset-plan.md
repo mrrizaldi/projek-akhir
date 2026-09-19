@@ -83,7 +83,7 @@ yang mungkin: subsample F rec 208. **Tidak dilakukan** — F cuma 1,2% positif,
 dan itu knob yang harus dipertanggungjawabkan untuk plafon yang rendah. Biarkan
 Fase B yang bicara.
 
-**Q: mati, final.** 8 + 79 + 6 = **93 beat** di tiga database beranotasi-beat
+**Q: mati, final.** **100 beat** (mitdb 8+7, svdb 79, incartdb 6) di tiga database beranotasi-beat
 terbesar yang kompatibel, digabung. Q bukan kelas yang bisa dilaporkan, dan
 sekarang ada tiga database sebagai bukti. Q permanen masuk keranjang
 "Aritmia — tipe tak pasti", **tanpa nama**.

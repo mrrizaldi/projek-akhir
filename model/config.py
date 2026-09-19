@@ -96,8 +96,9 @@ DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
 #   incartdb -> KONSENTRASI F. Punya kita 372 dari 394 beat F ada di record 208
 #               saja; incartdb menyebar 219 beat di 22 record. Yang diperbaiki
 #               cakupan pasien, bukan jumlah beat.
-#   Q        -> TIDAK ada yang menolong: 8+79+6 = 93 beat di tiga database
-#               digabung. Q tetap bukan kelas yang bisa dilaporkan.
+#   Q        -> TIDAK ada yang menolong: 100 beat di tiga database
+#               digabung (8+7 mitdb + 79 svdb + 6 incartdb = 100). Q tetap
+#               bukan kelas yang bisa dilaporkan.
 #
 # ATURAN YANG TIDAK BOLEH DILANGGAR: DS2 (mitdb) di atas tidak berubah satu byte.
 # Dia satu-satunya yang sebanding dengan literatur (de Chazal DS1/DS2), dan §7

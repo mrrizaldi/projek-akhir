@@ -139,13 +139,16 @@ def test_sebaran_kelas_sesuai_yang_diukur(db):
 
 
 def test_q_tetap_bukan_kelas_yang_bisa_dilaporkan():
-    """Tiga database digabung memberi ~93 beat Q. Dijaga supaya tidak ada yang
-    tergoda menambahkan cabang Q di tahap 2 berdasarkan angka yang tidak ada."""
-    q_baru = SEBARAN["svdb"]["Q"] + SEBARAN["incartdb"]["Q"]
-    assert q_baru + 8 < 200, "kalau ini gagal, Q mungkin sudah layak — cek ulang"
+    """Tiga database digabung memberi 100 beat Q: mitdb 8 (DS1) + 7 (DS2),
+    svdb 79, incartdb 6. Dijaga supaya tak ada yang tergoda menambah cabang Q
+    di tahap 2 berdasarkan angka yang tidak ada."""
+    Q_MITDB = 8 + 7
+    total = Q_MITDB + SEBARAN["svdb"]["Q"] + SEBARAN["incartdb"]["Q"]
+    assert total == 100
+    assert total < 200, "kalau ini gagal, Q mungkin sudah layak — cek ulang"
 
 
-# ── 4. Kontrak resample (stub sampai user mengisinya) ────────────────────────
+# ── 4. Kontrak resample ──────────────────────────────────────────────────────
 
 def test_resample_mitdb_dilewati():
     """fs == FS harus lewat tanpa menyentuh resample — jalur mitdb wajib utuh."""
