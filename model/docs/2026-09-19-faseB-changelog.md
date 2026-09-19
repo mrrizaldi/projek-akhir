@@ -140,3 +140,107 @@ Catatan kejujuran: dua kali dalam sesi ini kesimpulan sempat diambil dari n=1
 seed (`fb_svdb` seed 42 AUC 0,9379 dibaca sebagai "svdb aman" — dengan 3 seed
 precision-nya justru paling liar, ±0,092). Ambang deteksi yang dihitung sendiri
 tetap harus dipatuhi sendiri.
+
+---
+
+## 7. T1 (`class_weight=None`) — K1 TERBANTAH
+
+`fb_svdb_nocw`, 3 seed, latih mitdb+svdb, semua yang lain identik.
+
+| metrik | cw balanced | cw OFF | delta | vonis |
+|---|---|---|---|---|
+| AUC | 0,9314 ±0,017 | 0,9309 ±0,005 | −0,0005 | tumpuk |
+| F1 | 0,6242 ±0,052 | 0,6223 ±0,020 | −0,0019 | tumpuk |
+| precision | 0,5367 ±0,092 | 0,5398 ±0,033 | **+0,0032** | tumpuk |
+| recall | 0,7602 ±0,036 | 0,7360 ±0,006 | −0,0242 | tumpuk |
+| recall S | 0,4980 ±0,075 | 0,4223 ±0,029 | −0,0757 | tumpuk |
+| threshold | 0,40 | **0,15** | −0,25 | — |
+
+```
+prediksi K1 (P1 Tabel 4) : precision +31 poin, recall -7 poin
+terukur                  : precision  +0,3 poin, recall -2,4 poin
+```
+
+**Mekanismenya ada di baris threshold.** Tanpa `class_weight` probabilitas model
+bergeser turun, dan kalibrasi VAL cuma memilih threshold lebih rendah —
+mendarat di titik operasi yang sama. Kalibrasi **menyerap** seluruh efeknya.
+
+Ini mengonfirmasi **premis** K1 (*"kita sudah menangani imbalance lewat
+kalibrasi; class_weight menumpuk mekanisme kedua"*) sekaligus membantah
+**prediksinya**: karena mekanisme kedua di HILIR dan ADAPTIF, dia menyerap apa
+pun yang dilakukan yang pertama. Keduanya redundan, bukan saling menarik — dan
+redundan berarti mencabut satu = netral. P1 tidak punya langkah kalibrasi (argmax
+3 kelas), jadi di sana efeknya besar.
+
+**Pelajaran untuk aturan repo.** *"Adopsi hanya kalau papernya mengablasi"* tidak
+cukup — P1 MEMANG mengablasi class weight, variabel-tunggal, Tabel 4, dan
+klaimnya sah. Yang tidak transfer adalah **konteks pipeline**. Perlu klausa
+tambahan: ablasi paper transfer hanya kalau tidak ada **langkah adaptif di antara
+knob dan metrik** yang kita punya tapi mereka tidak.
+
+**Vonis G1: `class_weight` balanced TETAP.** Netral pada metrik, 2,5–6,5× lebih
+reproducible, tapi recall S turun 0,076 — dan S kelas targetnya. Nilai terkunci
+menang, sekarang atas dasar ablasi sendiri, bukan preseden paper.
+
+---
+
+## 8. Titik operasi: svdb sebenarnya MENANG, kalibrasinya yang meleset
+
+### Pada precision yang dicocokkan (seed 42, kedua model)
+
+| target precision | w128b recall / recall S | **fb_svdb** recall / recall S |
+|---|---|---|
+| 0,60 | 0,711 / 0,385 | **0,745 / 0,452** |
+| 0,67 | 0,686 / 0,345 | **0,715 / 0,384** |
+| 0,75 | 0,641 / 0,288 | **0,680 / 0,334** |
+| 0,85 | 0,578 / 0,230 | **0,621 / 0,294** |
+
+Di setiap precision ≥ 0,60, `+svdb` memberi recall DAN recall S lebih tinggi.
+Kesimpulan §3 (*"svdb kerugian bersih"*) adalah **artefak titik operasi**, bukan
+sifat datanya.
+
+### Berapa yang hilang ke kalibrasi (seed 42)
+
+| model | thr VAL → F1 DS2 | thr optimal DS2 → F1 | rugi |
+|---|---|---|---|
+| w128b | 0,75 → 0,6691 | 0,87 → 0,7031 | 0,034 |
+| fb_svdb | 0,50 → 0,6780 | 0,95 → 0,7259 | 0,048 |
+| fb_multi | 0,35 → 0,6506 | 0,89 → 0,7191 | 0,068 |
+
+DS2 dipakai **mendiagnosis**, bukan memilih. F1 potensial `fb_svdb` 0,7259 —
+tertinggi dari semua varian, termasuk mitdb-saja.
+
+### Set kalibrasi yang lebih besar menutup sebagian besar celah
+
+Ketiganya SAH (bukan train, bukan DS2). `scripts/cek_kalibrasi.py`.
+
+| model | VAL (5 pasien) | +svdb (25) | **+svdb+incart (44)** | sisa celah |
+|---|---|---|---|---|
+| w128b | 0,6691 | 0,6541 | **0,6893** | 0,034 → 0,014 |
+| fb_svdb | 0,6780 | 0,7005 | **0,7059** | 0,048 → 0,020 |
+| fb_multi | 0,6506 | 0,5639 | **0,6997** | 0,068 → 0,019 |
+
+Tidak monoton pada jumlah pasien: set 25-pasien lebih buruk untuk dua model.
+Jadi yang menolong bukan "lebih banyak" saja — kemungkinan keragamannya.
+
+### Dua hipotesis yang DITOLAK sepanjang analisis ini
+
+1. **"Jitter di VAL yang menggeser threshold."** Diuji dengan VAL bersih
+   (10.349 baris, tanpa salinan): threshold jadi SAMA atau LEBIH RENDAH, F1 sama
+   atau lebih buruk. Terbantah.
+2. **"Kalibrasi merugikan 0,10 F1."** Itu membandingkan rerata 3-seed F1@VAL
+   dengan optimum satu-seed. Apel vs jeruk. Per-seed yang benar: 0,034–0,068.
+
+### Batas yang harus disebut
+
+Seluruh §8 ini **satu seed**, karena `ablasi.py` hanya menyimpan model seed utama.
+Dan masalah yang sebenarnya adalah **variansi threshold antar-seed** (w128b
+0,50–0,75; fb_svdb 0,30–0,50) di atas plateau F1 yang datar. Membuktikan bahwa
+set kalibrasi lebih besar **mengurangi variansi** butuh tiga seed, bukan satu.
+
+### Ongkos yang belum dibayar
+
+Set kalibrasi adalah bagian dari PELATIHAN. Kalau svdb/incartdb held-out dipakai
+kalibrasi, mereka berhenti jadi test antar-database — dan itu kontribusi E3C yang
+dipilih sejak plan §4. Perlu keputusan: pecah tiap held-out (separuh kalibrasi,
+separuh test), atau korbankan salah satu peran.
