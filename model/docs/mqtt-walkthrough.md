@@ -474,7 +474,31 @@ Perbaikan: `sock.setNoDelay(true)` sesudah connect — satu baris.
 | latensi maksimum | 19.926 ms | **4.903 ms** |
 | PDSR | 96,7% | **99,5%** |
 
-**Pola yang sama di kelimanya:** gagal tanpa error, dan gejalanya menunjuk ke
+### (6) `time()` beresolusi 1 detik → galat sistematis 1 detik di SETIAP `ts`
+
+Ini yang paling mahal, karena ia tidak merusak sistem melainkan **merusak semua
+pengukuran dan satu kesimpulan yang sudah ditulis**.
+
+`sinkron_jam()` memakai `time(NULL)`, yang beresolusi detik. Pembulatannya masuk
+ke `ts_base_ms` dan dari situ ke **setiap** `ts` yang dikirim — galat sistematis
+0–1.000 ms per boot, tetap sepanjang sesi. Gejalanya: latensi minimum bergeser
+934 / 1.045 / 1.286 / 1.347 ms antar-boot tanpa ada yang berubah di sistem, dan
+satu kali melompat seragam ke 3.437 ms di semua persentil sekaligus.
+
+**Pergeseran yang seragam di semua persentil itu tanda selisih jam, bukan
+latensi.** Latensi nyata menggeser ekor lebih banyak daripada median.
+
+Perbaikan: `gettimeofday()` (resolusi µs) menggantikan `time()`, dan alat ukur
+di laptop ikut mengukur selisih jam kedua sisi lewat `epoch_ms` di baris status
+lalu mengoreksinya. Sesudah itu selisihnya tinggal −70 sampai −414 ms, dan
+angkanya berubah drastis:
+
+| | sebelum | sesudah |
+|---|---|---|
+| latensi minimum | 1.286 ms | **429 ms** |
+| latensi median | 1.907 ms | **939–1.108 ms** |
+
+**Pola yang sama di keenamnya:** gagal tanpa error, dan gejalanya menunjuk ke
 tempat yang salah (broker, bukan firmware). Senada dengan jebakan op `MEAN` di
 TFLM dan `float` di ISR — repo ini sudah beberapa kali tertipu pola "salah tanpa
 berisik".
@@ -488,45 +512,87 @@ bukan menalar mana yang "paling mungkin".
 
 ## 7c. Target `bab3.tex` Tabel *Rencana pengukuran pada pengujian pipeline*
 
-Diukur dengan `dashboard/ukur_pipeline.py 150` (replay ON, tanpa elektroda).
+Diukur dengan `dashboard/ukur_pipeline.py 180` (replay ON, tanpa elektroda),
+**dua ulangan** — aturan §7 no.1 repo ini (satu run tidak sah) berlaku di sini
+juga.
 
-| Aspek | Target | Terukur | Vonis |
-|---|---|---|---|
-| PDSR | ≥ 95% | **99,5%** (206/207 paket) | ✅ |
-| Latensi end-to-end | ≤ 2 detik | median **1.907 ms**, min 1.286 ms | ✅ median |
-| — p95 | ≤ 2 detik | **3.402 ms** (maks 4.903 ms) | ❌ |
-| Pemenuhan bufer lokal | tidak overflow dalam ±27.000 | kapasitas **27.000** terpasang di PSRAM | ✅ |
-| Integritas data saat putus | tanpa kehilangan data | `hilang 0` untuk outage 24 detik | ✅ |
-| Waktu pemulihan bufer | ≤ 60 detik | **~24 detik** (43 beat) | ✅ |
-| Deduplikasi cloud | duplikat QoS-1 dikenali | **0 ts duplikat** dari 288 baris | ✅ |
+| Aspek | Target | Run 1 | Run 2 | Vonis |
+|---|---|---|---|---|
+| PDSR | ≥ 95% | **100,0%** (292/292) | **99,2%** (253/255) | ✅ |
+| Latensi median | ≤ 2 dtk | **939 ms** | **1.108 ms** | ✅ |
+| Latensi p95 | ≤ 2 dtk | **1.404 ms** ✅ | 3.304 ms ❌ | ⚠️ tidak stabil |
+| Latensi minimum | — | 429 ms | 527 ms | — |
+| Bufer lokal | ±27.000 | 27.000 terpasang | idem | ✅ |
+| Integritas saat putus | tanpa kehilangan | `hilang 0` | `hilang 0` | ✅ |
+| Pemulihan bufer | ≤ 60 dtk | ~24 dtk (43 beat) | idem | ✅ |
+| Deduplikasi cloud | duplikat dikenali | 0 ts duplikat | idem | ✅ |
 
-### Latensi dipecah, supaya gagalnya dibebankan ke penyebab yang benar
+### Latensi dipecah
 
-Firmware mencacah `tunda alat` = dari beat TERJADI sampai paketnya ditulis ke
-socket. Angkanya **stabil di 5 pengukuran**: 887 / 880 / 879 / 878 / **874 ms**
+`tunda alat` (beat TERJADI → paket ditulis ke socket) dicacah firmware dan
+**stabil di 7 pengukuran**: 887 / 880 / 879 / 878 / 876 / 870 / **869 ms**
 (maks 1.353 ms).
 
 ```
-latensi total median   1.907 ms
-  sisi alat              874 ms   <- kadens deteksi, BUKAN jaringan
-  broker + cloud        ~1.033 ms
+latensi median        ~1.000 ms
+  sisi alat              869 ms   <- kadens deteksi
+  jaringan + cloud      ~130 ms
 ```
 
-Sisi alat itu **arsitektural, bukan inefisiensi**: `ecg_live.h` menjalankan
-deteksi tiap `ECG_LIVE_TIAP` = 1 detik atas ring 4 detik, dan sebuah beat baru
-boleh keluar setelah `ECG_WIN_POST` = 128 sampel (356 ms) sesudah R tersedia.
-Batas bawah teoretisnya 0–1.000 ms (menunggu tik deteksi) + 356 ms, dan minimum
-terukur **1.286 ms** jatuh persis di rentang itu.
+Sisi alat itu **arsitektural**: `ecg_live.h` menjalankan deteksi tiap
+`ECG_LIVE_TIAP` = 1 detik atas ring 4 detik, dan beat baru boleh keluar setelah
+`ECG_WIN_POST` = 128 sampel (356 ms) sesudah R. Batas bawah teoretisnya
+356–1.356 ms, dan minimum terukur **429 ms** jatuh di rentang itu.
 
-**Target 2 detik di proposal tidak memperhitungkan kadens deteksi 1 detik itu.**
-Kalau p95 harus lolos, kandidat perubahannya `ECG_LIVE_TIAP` 1 detik → 0,5 detik
-(hemat ~250 ms di median). Itu menyentuh modul yang sudah tervalidasi golden
-Python↔C, jadi **gate point** — tidak diubah tanpa persetujuan.
+Jadi **89% latensi milik alat, dan itu kadens deteksi, bukan inefisiensi.**
+Jaringan + ThingsBoard cuma ~130 ms.
 
-Sisa ~1 detik milik broker: RTT PUBACK masih >1 detik pada 23 dari 207 paket
-(maks 3.157 ms) walau `gagal 0`. ThingsBoard di laptop yang menjalankan 9
-container lain bukan lingkungan yang wajar untuk klaim latensi — kalau angka p95
-mau dipakai di laporan, ukur ulang di broker yang tidak bersaing beban.
+### ⚠️ KOREKSI: broker TIDAK lambat
+
+Versi dokumen ini sebelumnya menulis *"sisa ~1 detik milik broker"* dan
+menyalahkan ThingsBoard yang berbagi laptop dengan 9 container lain. **Itu
+salah**, dan yang membantahnya satu eksperimen 60 detik
+(`scratchpad/probe_rtt.py`, publish 1/detik dari laptop ke broker yang SAMA):
+
+```
+RTT PUBACK laptop -> broker, n=60
+  minimum 0,4 ms   median 1,1 ms   p95 2,5 ms   maksimum 3,5 ms
+  > 1000 ms: 0 dari 60
+```
+
+Broker menjawab dalam **satu milidetik**. Angka ~1 detik yang dulu kubebankan
+padanya sebetulnya galat jam bug (6), dan sisanya retransmisi WiFi di bawah.
+
+### Ekor p95: retransmisi TCP, dan kenapa ia tidak dikejar
+
+RTT PUBACK dari board berkelompok di **1,2 / 2,0 / 4,2 detik** — itu backoff RTO
+TCP 1–2–4, tanda segmen hilang lalu dikirim ulang. Bukan broker (lihat atas),
+bukan desync (`sock.available()` = 0 byte saat timeout), dan bukan sinyal lemah
+(**RSSI −50 dBm**). Sisanya kontensi kanal WiFi rumah.
+
+Yang sudah dikerjakan dan efeknya terukur pada porsi paket ber-RTT >1 detik:
+
+| Perubahan | paket lambat |
+|---|---|
+| awal | 23/207 = 11,1% |
+| `setNoDelay(true)` (bug 5) | 18/222 = 8,1% |
+| `WiFi.setSleep(false)` | 11/217 = 5,1% |
+| dua run terakhir | 3/292 = **1,0%** / 24/255 = 9,4% |
+
+Angka terakhir itu **berayun 1–9% antar-run** dan itulah kenapa p95 lulus di run
+1 dan gagal di run 2. Yang mengayun bukan kode, melainkan kanal.
+
+`WiFi.setSleep(false)` **berongkos daya (~+30 mA)**. Pengukuran daya mode WiFi
+(HW-7) belum dijalankan, jadi angkanya nanti harus diambil DENGAN setelan ini.
+
+**Keputusan: tidak dikejar lebih jauh.** Satu-satunya tuas firmware yang tersisa
+adalah mengizinkan lebih dari satu PUBLISH beredar (pipelining QoS-1), dan itu
+menambah pembukuan `pid → jumlah beat` plus aturan "geser ring hanya setelah ack
+tertua" ke implementasi QoS-1 yang sekarang sederhana dan terbukti — ongkos nyata
+untuk kejadian 1-dari-20 di jaringan bangku uji. Median lulus di dua run, PDSR
+lulus, dan `bab3.tex` menyebut targetnya **indikatif** untuk pengujian yang
+**fungsional, bukan klinis**. Kalau laporan butuh p95 yang bersih, ukur di AP
+yang tidak padat dan laporkan n run — bukan tambal di firmware.
 
 ---
 

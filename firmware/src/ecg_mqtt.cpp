@@ -100,6 +100,7 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
 #include <Arduino.h>
 #include <WiFi.h>
 #include <time.h>
+#include <sys/time.h>
 
 #if __has_include("wifi_secrets.h")
 #include "wifi_secrets.h"
@@ -317,6 +318,16 @@ void ecg_mqtt_mulai(void)
         return;
     }
     WiFi.mode(WIFI_STA);
+    // Power save WiFi DIMATIKAN. Bawaan ESP32 (WIFI_PS_MIN_MODEM) menidurkan
+    // radio antar-beacon; paket masuk yang datang saat tidur bisa hilang, dan
+    // TCP menggantinya dengan retransmisi ber-RTO 1-2-4 detik. Itu persis pola
+    // RTT PUBACK yang terukur di board (1.236 / 2.037 / 4.235 ms), dan bukan
+    // broker yang lambat: dari laptop ke broker yang SAMA, RTT-nya 1,1 ms
+    // median dengan nol kejadian >1 detik.
+    //
+    // ONGKOSNYA DAYA (~+30 mA). Pengukuran daya mode WiFi (HW-7) belum
+    // dijalankan, jadi angkanya harus diambil DENGAN setelan ini, bukan tanpa.
+    WiFi.setSleep(false);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     // SNTP dipakai supaya ts tiap beat adalah waktu KEJADIAN. Tanpa jam benar,
     // beat hasil flush backlog akan menumpuk di detik yang sama dan grafik
@@ -328,10 +339,24 @@ void ecg_mqtt_mulai(void)
 static void sinkron_jam()
 {
     if (ts_base_ms) return;
-    time_t t = time(NULL);
-    if (t < 1700000000) return;                        // SNTP belum masuk
-    ts_base_ms = (uint64_t)t * 1000ULL - (uint64_t)millis();
-    Serial.printf("mqtt: jam tersinkron, epoch %llu\n", (unsigned long long)t);
+    // gettimeofday, BUKAN time(): time() beresolusi 1 detik, jadi memakainya
+    // menanam galat sistematis sampai 1.000 ms pada SETIAP ts yang dikirim —
+    // dan galat itu menyamar sebagai latensi saat dibandingkan dengan jam
+    // laptop. Terukur: latensi minimum bergeser 934/1.045/1.286/1.347 ms
+    // antar-boot tanpa ada yang berubah di sistemnya.
+    struct timeval tv;
+    if (gettimeofday(&tv, NULL) != 0) return;
+    if (tv.tv_sec < 1700000000) return;                // SNTP belum masuk
+    const uint64_t kini_ms = (uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000);
+    ts_base_ms = kini_ms - (uint64_t)millis();
+    Serial.printf("mqtt: jam tersinkron, epoch_ms %llu\n", (unsigned long long)kini_ms);
+}
+
+// Epoch ms menurut JAM BOARD. Dipakai alat ukur di laptop untuk menghitung
+// selisih jam kedua sisi, supaya selisih itu tidak terbaca sebagai latensi.
+uint64_t ecg_mqtt_epoch_ms(void)
+{
+    return ts_base_ms ? ts_base_ms + (uint64_t)millis() : 0;
 }
 
 void ecg_mqtt_layani(void)
@@ -415,6 +440,8 @@ uint32_t ecg_mqtt_paket_ack(void) { return paket_ack; }
 
 uint32_t ecg_mqtt_rtt_maks(void) { return rtt_maks; }
 uint32_t ecg_mqtt_rtt_lambat(void) { return rtt_lambat; }
+
+int ecg_mqtt_rssi(void) { return WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0; }
 
 const char *ecg_mqtt_status(void)
 {

@@ -61,6 +61,34 @@ print("== boot + WiFi ==")
 time.sleep(14)
 for c in ("k", "y"):            # k = lewati stabilisasi, y = replay ON
     s.write(c.encode()); s.flush(); time.sleep(1.5)
+# --- selisih jam board vs laptop ---
+# Tanpa koreksi ini, selisih jam terbaca sebagai latensi. Diukur dengan meminta
+# status ('s'), mencatat waktu laptop saat barisnya tiba, lalu membandingkan
+# epoch_ms yang dicetak board. Ongkos serial (~ms) masuk sebagai galat kecil.
+def ukur_offset(n=5):
+    beda = []
+    for _ in range(n):
+        tanda = len(baris)
+        s.write(b"s"); s.flush()
+        t0 = time.time()
+        while time.time() - t0 < 3:
+            for b in baris[tanda:]:
+                m = re.search(r"epoch_ms (\d+)", b)
+                if m:
+                    return_now = int(time.time() * 1000)
+                    beda.append(int(m.group(1)) - return_now)
+                    tanda = len(baris)
+                    break
+            else:
+                time.sleep(0.05)
+                continue
+            break
+        time.sleep(0.6)
+    return statistics.median(beda) if beda else None
+
+offset = ukur_offset()
+print(f"== selisih jam board - laptop: {offset} ms "
+      f"({'board di depan' if (offset or 0) > 0 else 'board di belakang'}) ==")
 print(f"== mengukur {DURASI:g} detik ==")
 
 # --- polling latensi ---
@@ -83,8 +111,10 @@ while time.time() - t0 < DURASI:
     for r in rows:
         if r["ts"] not in terlihat:
             terlihat.add(r["ts"])
-            lat_bawah.append(sebelum - r["ts"])
-            lat_atas.append(sesudah - r["ts"])
+            # ts perangkat dikoreksi ke jam laptop: ts_laptop = ts_board - offset
+            ts_koreksi = r["ts"] - (offset or 0)
+            lat_bawah.append(sebelum - ts_koreksi)
+            lat_atas.append(sesudah - ts_koreksi)
     time.sleep(0.1)
 
 s.write(b"s"); s.flush(); time.sleep(2.5)
@@ -101,6 +131,7 @@ if lat_bawah:
     print(f"  n                       : {len(lo)} beat")
     print(f"  REST polling (alat ukur): median {statistics.median(rest_ms):.0f} ms, "
           f"maks {max(rest_ms)} ms  <- bias, bukan sistem")
+    print(f"  koreksi selisih jam     : {offset} ms (sudah diterapkan)")
     print(f"  {'':22}   {'batas BAWAH':>14} {'batas ATAS':>14}")
     print(f"  minimum               : {lo[0]:>11} ms {hi[0]:>11} ms")
     print(f"  median                : {statistics.median(lo):>11.0f} ms {statistics.median(hi):>11.0f} ms")
@@ -112,10 +143,12 @@ else:
     print("  TIDAK ADA DATA")
 
 print(f"\nPDSR (dari pencacah firmware)")
+# Baris status TERAKHIR saja. Baris dari fase ukur-offset masih 0 paket, dan
+# mengambilnya membuat PDSR terbaca 0%.
 st = [b for b in baris if "paket" in b and "PDSR" in b]
-for b in st:
-    print("  " + b.strip())
-m = re.search(r"paket (\d+)/(\d+) PDSR ([\d.]+)%", " ".join(st))
+if st:
+    print("  " + st[-1].strip())
+m = re.search(r"paket (\d+)/(\d+) PDSR ([\d.]+)%", st[-1]) if st else None
 if m:
     ack, kirim, pdsr = int(m.group(1)), int(m.group(2)), float(m.group(3))
     print(f"  paket ber-PUBACK   : {ack} / {kirim}")

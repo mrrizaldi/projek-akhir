@@ -214,14 +214,18 @@ angka nyata → cek pemahaman → skrip pendukung.
   (ayun 27 < 60 DAN RR 0,208 s < 0,300 s). Replay = record 208 yang aritmik, jadi
   tidak bisa lulus gerbang RR: toggle `y`/`k` melewatinya dengan pengumuman.
   Backlog **27.000 beat di PSRAM** (1.054 KB, 40 B/entri ≈ 4–7 jam, target bab3),
-  batch 50, `ts` = waktu kejadian dari `r_abs`. **6 dari 6 target Tabel Rencana
-  Pengukuran terukur:** PDSR **99,5%** (≥95 ✅), latensi median **1.907 ms**
-  (≤2000 ✅) tapi p95 3.402 ms ❌, kapasitas ✅, `hilang 0` ✅, flush ~24 dtk
-  (≤60 ✅), 0 ts duplikat ✅. Latensi dipecah: **sisi alat 874 ms** (kadens deteksi
-  1 dtk + 356 ms post-window — arsitektural), broker ~1.033 ms. `pio test -e
-  native` **23/23**, `esp32-s3` **16/16**, RAM **36,9%** Flash **13,5%**.
-  Sisa: daya mode WiFi, gerbang penuh dgn sinyal tubuh (HW-5), p95 di broker yang
-  tidak bersaing beban. `docs/mqtt-walkthrough.md`
+  batch 50, `ts` = waktu kejadian dari `r_abs` + `gettimeofday`. **6 dari 6 target
+  Tabel Rencana Pengukuran terukur, 2 ulangan:** PDSR **100% / 99,2%** (≥95 ✅),
+  latensi median **939 / 1.108 ms** (≤2000 ✅), p95 **1.404 / 3.304 ms**
+  (⚠️ tidak stabil), `hilang 0` ✅, flush ~24 dtk ✅, 0 ts duplikat ✅.
+  Latensi dipecah: **sisi alat 869 ms** = 89%, kadens deteksi 1 dtk + 356 ms
+  post-window (arsitektural); jaringan+cloud cuma ~130 ms. Ekor p95 = **retransmisi
+  TCP** (RTO 1-2-4 dtk) karena kontensi WiFi, bukan broker — broker diukur 1,1 ms
+  median dari laptop. Porsi paket lambat turun 11,1% → 1–9% lewat `setNoDelay` +
+  `WiFi.setSleep(false)`; sisanya berayun per kanal, **tidak dikejar**. `pio test
+  -e native` **23/23**, `esp32-s3` **16/16**, RAM **36,9%** Flash **13,5%**.
+  Sisa: daya mode WiFi (ambil DENGAN `setSleep(false)`), gerbang penuh dgn sinyal
+  tubuh (HW-5). `docs/mqtt-walkthrough.md`
 
 ## Decision point yang sudah di-lock
 
@@ -466,6 +470,26 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   supaya byte berikutnya jatuh di batas paket. Pelajaran: kalau perbaikan yang
   benar tidak menghilangkan gejala, jangan menalar tersangka berikutnya — pasang
   pencacah sampai gejalanya punya angka.
+- **`time()` beresolusi 1 detik, dan galatnya menyamar sebagai latensi.** Gejala:
+  latensi end-to-end minimum bergeser 934/1.045/1.286/1.347 ms antar-boot tanpa
+  ada yang berubah di sistem, lalu sekali melompat seragam ke 3.437 ms di SEMUA
+  persentil. Sebab: `ts_base_ms` dihitung dari `time(NULL)` yang beresolusi detik,
+  jadi pembulatannya masuk ke setiap `ts` yang dikirim — galat sistematis 0–1.000
+  ms per boot, tetap sepanjang sesi. Hindari: `gettimeofday()`, dan alat ukur di
+  sisi lain WAJIB mengukur selisih jam kedua sisi lalu mengoreksinya (board
+  mencetak `epoch_ms` di baris status). **Tanda pembeda:** pergeseran yang seragam
+  di semua persentil = selisih jam; latensi nyata menggeser ekor lebih banyak
+  daripada median. Akibat nyata: satu kesimpulan sudah ditulis dan di-commit
+  ("sisa ~1 detik milik broker") yang ternyata salah — broker diukur 1,1 ms median
+  (`dashboard/probe_rtt.py`).
+- **Menyalahkan komponen jauh sebelum mengukurnya.** Gejala: latensi p95 buruk,
+  dan penjelasan paling masuk akal ("ThingsBoard berbagi laptop dengan 9 container")
+  ditulis ke dokumen tanpa diuji. Sebab: komponen yang paling sulit diukur juga
+  yang paling gampang disalahkan. Hindari: probe langsung — 40 baris Python
+  publish 1/detik ke broker yang SAMA membuktikan RTT-nya 1,1 ms median, nol
+  kejadian >1 detik, dalam 60 detik. Pola RTT board yang berkelompok di
+  **1,2 / 2,0 / 4,2 detik** justru menunjuk backoff RTO TCP 1-2-4 = paket hilang
+  di WiFi, dan RSSI −50 dBm menutup dugaan sinyal lemah.
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat

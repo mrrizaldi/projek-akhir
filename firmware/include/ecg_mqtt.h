@@ -108,6 +108,8 @@ uint32_t ecg_mqtt_paket_ack(void);
 // Diagnosa kesehatan koneksi: RTT PUBACK terburuk, dan berapa kali > 1 detik.
 uint32_t ecg_mqtt_rtt_maks(void);
 uint32_t ecg_mqtt_rtt_lambat(void);
+uint64_t ecg_mqtt_epoch_ms(void);  // epoch ms menurut jam board (0 = belum sinkron)
+int ecg_mqtt_rssi(void);          // dBm; kuat sinyal ikut menentukan retransmisi
 const char *ecg_mqtt_status(void);           // satu kata untuk baris status 's'
 #endif
 

@@ -550,7 +550,7 @@ void loop()
                           "LO %d %d | mentah %d..%d ayun %d clipping %d\n"
                           "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
                           "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
-                          "maks %u ms | RTT maks %u ms (lambat %u)\n",
+                          "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n",
                           (int)rekam, (unsigned)rekam_n, (int)replay, nama_fase(),
                           beat_total, beat_aritmia, beat_ditahan,
                           (unsigned)((tulis - baca + ANTRE_N) % ANTRE_N), (unsigned)n_lewat,
@@ -563,7 +563,8 @@ void loop()
                           ecg_mqtt_paket_kirim()
                               ? 100.0 * ecg_mqtt_paket_ack() / ecg_mqtt_paket_kirim() : 0.0,
                           (unsigned)(tunda_n ? tunda_jml / tunda_n : 0), (unsigned)tunda_maks,
-                          (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat());
+                          (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
+                          ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms());
     }
 
     if (ditekan(PIN_REC, t_rec, s_rec)) {
