@@ -46,7 +46,24 @@ skrip Rule Engine). Proposal sudah terlanjur menulis snake_case dan snake_case
 tetap jalan normal, jadi dibiarkan. Kalau nanti ada node skrip yang ditulis
 tangan, ingat bedanya.
 
-`smoke_test.py` adalah satu-satunya uji di folder ini, dan sengaja menembak
+## Mengukur target pengujian pipeline
+
+```bash
+python3 ukur_pipeline.py 150      # board tersambung, broker hidup
+```
+
+Mengukur dua target `bab3.tex` Tabel *Rencana pengukuran pada pengujian pipeline*:
+**latensi end-to-end** (akuisisi → tersedia di API) dan **PDSR** (paket ber-PUBACK
+/ total paket, diambil dari pencacah firmware lewat serial — bukan ditebak dari
+data). Latensi dilaporkan sebagai batas bawah DAN batas atas, karena baris yang
+baru terlihat bisa sudah tersedia sebelum panggilan REST dikirim; selisih dua
+batas itu = ongkos alat ukurnya sendiri, dan ikut dicetak.
+
+Skrip menyalakan replay (`y`) dan melewati gerbang kalibrasi (`k`) sendiri, jadi
+tidak butuh elektroda. Hasil terukur ada di
+`../model/docs/mqtt-walkthrough.md` §7c.
+
+`smoke_test.py` menembak
 klaim yang paling rapuh: publikasi ulang dengan `ts` identik harus meng-UPSERT
 baris, bukan menambah. Kalau assert itu jatuh, kalimat dedup di Bab 3 salah.
 

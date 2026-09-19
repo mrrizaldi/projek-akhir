@@ -3,7 +3,10 @@
 **19 September 2026.** Modul: `firmware/src/ecg_mqtt.cpp`, `include/ecg_mqtt.h`,
 plus sambungannya di `firmware/src/main.cpp`.
 
-✅ **Status: TERVERIFIKASI DI BOARD, 19 September 2026.** `pio test -e native`
+✅ **Status: TERVERIFIKASI DI BOARD, 19 September 2026.** Seluruh mekanisme
+`bab3.tex` §Pipeline Edge-to-Cloud yang Resilien terpasang, dan **6 dari 6 target
+Tabel Rencana Pengukuran terukur** — 5 lulus, 1 lulus di median tapi tidak di p95
+(§7c).  `pio test -e native`
 22/22, `pio test -e esp32-s3` 16/16, dan telemetri sungguhan mendarat di
 ThingsBoard lewat WiFi. Uji resiliensi lulus: broker dibekukan 24 detik, deret
 waktu di dashboard **tidak berlubang** (jeda maksimum 911 ms). Angka lengkap di
@@ -63,13 +66,53 @@ dan gerbangnya.
 
 ## 3. Fungsi per fungsi
 
-### 3.1 `publikasi()` — gerbang, di `main.cpp`
+### 3.1 Dua gerbang: fase kalibrasi, lalu ayunan sinyal
+
+`bab3.tex` §Pengujian Pipeline menetapkan **dua** tahap sebelum pemantauan mulai,
+dan keduanya ada di `nilai_fase()`:
+
+```
+KALIBRASI -> BAIK butuh tiga hal sekaligus:
+  1. elektroda stabil   millis() - t_sesi >= 10 menit
+  2. RR layak & tenang  RR 300-1500 ms dan |dRR| <= 200 ms, konsisten 30 detik
+  3. ayunan cukup       ayun_bersih_1s >= AMBANG_AYUN
+```
+
+Selama `calibrating` **CNN tidak dijalankan** (bab3: *"inferensi CNN belum
+dijalankan"*) dan tidak ada yang dipublikasikan. Detektor tetap jalan — RR-nya
+justru yang dipakai menilai kelayakan.
+
+> ⚠️ **Kriteria RR itu gerbang MASUK, bukan gerbang per detak.** Sesudah fase
+> pemantauan mulai, `dRR` TIDAK lagi dibatasi. Menegakkan `dRR <= 200 ms`
+> terus-menerus akan membungkam justru aritmia yang ingin dideteksi — beat
+> ventrikular memang datang dengan `dRR` besar. `bab3.tex` juga menuliskannya
+> sebagai syarat *"layak untuk fase pemantauan"*, sekali saja.
+
+Gerbang publikasi per detak:
 
 ```c
 if (!ecg_mqtt_aktif()) return;
-if (ayun_bersih_1s < AMBANG_AYUN) { beat_ditahan++; return; }
-if (beat.sinyal_hilang)           { beat_ditahan++; return; }
+if (fase != FASE_BAIK)  { beat_ditahan++; return; }
+if (beat.sinyal_hilang) { beat_ditahan++; return; }
 ```
+
+**Dua gerbang, dua mekanisme independen.** Ayunan mengukur amplitudo, RR mengukur
+kelayakan ritme. Beat karangan tanpa elektroda gagal di dua-duanya sekaligus:
+ayunan ~27 counts (< 60) DAN RR 0,208 s (< 300 ms). Redundansi ini disengaja, dan
+senada dengan pelajaran `lepas 0%`: satu indikator bisa berbohong, dua indikator
+yang salah bersamaan jauh lebih jarang.
+
+### 3.1b Kenapa replay harus melewati gerbang kalibrasi
+
+`golden_raw` adalah **record 208**, penuh beat ventrikular; `dRR`-nya terukur
+−0,364 s dan +0,478 s. Kriteria *"dRR ≤ 200 ms selama 30 detik"* **tidak akan
+pernah terpenuhi** — dan memang tidak seharusnya: kriteria itu untuk subjek
+**sehat** yang duduk diam, sementara sinyal uji kita sengaja aritmik.
+
+Dua hal itu tidak bisa dipenuhi bersamaan, jadi yang mengalah gerbangnya, dengan
+pengumuman: toggle `y` otomatis menyalakan `lewati_kalibrasi` dan serial mencetak
+`GERBANG DILEWATI (bench)` saat fase berpindah. Toggle `k` melakukan hal sama
+untuk jalur ADC. **Jalur sinyal tubuh tetap menegakkan gerbang penuh.**
 
 **Digerbangi kualitas sinyal, bukan ada-tidaknya beat.** Alasannya terukur dan
 sudah masuk daftar jebakan `../CLAUDE.md`:
@@ -188,6 +231,7 @@ jaringan, bukan di dirinya sendiri.
 |---|---|---|
 | **`y`** | **sumber sinyal: replay ⇄ ADC** | `replay ON (golden_raw)` / `replay OFF (ADC)` |
 | **`m`** | **publikasi MQTT: on ⇄ off** | `mqtt ON` / `mqtt OFF` |
+| **`k`** | **lewati gerbang kalibrasi** (bench saja) | `lewati gerbang kalibrasi ON` |
 | `q` | laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
 | `s` | status sesaat (termasuk MQTT) | lihat di bawah |
 | `r` | rekam mentah ke LittleFS | `REKAM mulai` / `SIMPAN …` |
@@ -280,10 +324,10 @@ di board (`2026-09-18-robustness-changelog.md` §207).
 |---|---|---|
 | `pio test -e native` | 17/17 | **22/22** (+5 uji payload & ring) |
 | `pio test -e esp32-s3` | 16/16 | **16/16** — inferensi tidak tersentuh |
-| RAM (build) | 21,2% | **33,1%** (108.416 B) |
-| Flash (build) | 6,6% | **13,4%** (880.433 B) |
-| Ukuran payload 1 beat | — | ~300 B; batch 8 beat ~2,4 KB |
-| Backlog | — | 64 beat ≈ **53 detik** @72 bpm |
+| RAM (build) | 21,2% | **36,9%** (121.008 B) |
+| Flash (build) | 6,6% | **13,5%** (881.861 B) |
+| Ukuran payload 1 beat | — | ~330 B; batch 50 beat ~15 KB |
+| Backlog | — | **27.000 beat** di PSRAM (1.054 KB, 40 B/entri) ≈ 4–7 jam |
 
 ⚠️ **Jangan memakai angka RAM/Flash yang diukur tanpa `wifi_secrets.h`.**
 Tanpa file itu `WIFI_SSID` adalah `""`, `strlen("")` dilipat jadi konstanta oleh
@@ -387,10 +431,102 @@ tetap ~2,4 KB.
 Hasil: `gagal` berhenti di 1 — satu-satunya yang sah, saat broker memang
 dibekukan.
 
-**Pola yang sama di ketiganya:** gagal tanpa error, dan gejalanya menunjuk ke
+### (4) PINGRESP tidak pernah dibaca → aliran baca desync
+
+Kita mengirim PINGREQ tiap 30 detik; broker membalas PINGRESP (2 byte,
+`0xD0 0x00`) yang tidak pernah dibaca. Dua byte nyasar itu mengendap di socket
+lalu terbaca sebagai dua byte pertama "PUBACK" berikutnya — aliran baca desync
+permanen sampai reconnect.
+
+Perbaikan: `pungut_masuk()` membaca header 2 byte, mengurus PUBACK, dan **membuang
+isi paket lain secara utuh** supaya byte berikutnya tetap jatuh di batas paket.
+
+**Catatan kejujuran:** ini bug nyata dan perbaikannya benar, **tapi ternyata bukan
+penyebab** `PUBACK timeout` yang sedang dikejar — sesudah diperbaiki, `gagal`
+masih 4 dalam 150 detik. Hipotesisnya salah, dan yang membuktikannya bukan
+penalaran melainkan pencacah baru di bug (5).
+
+### (5) Nagle menahan segmen kecil → PUBACK terlambat 1–4,8 detik
+
+Alih-alih menebak lagi, dipasang pencacah RTT PUBACK dan pencetak keadaan saat
+timeout. Hasilnya menunjuk satu arah:
+
+```
+mqtt: PUBACK lambat 1266 ms (1 beat)      <- berulang di ~1.250 ms
+mqtt: PUBACK lambat 1278 ms (1 beat)
+mqtt: PUBACK lambat 4235 ms (1 beat)
+mqtt: PUBACK timeout, 1 beat terbang, 0 byte menunggu dibaca
+                                          ^^^ socket KOSONG = bukan desync
+27 kejadian >1 detik dalam 130 detik
+```
+
+`0 byte menunggu dibaca` menutup hipotesis desync: broker memang belum menjawab.
+Dan nilai yang **berulang di ~1.250 ms** adalah tanda khas algoritma Nagle
+berpasangan dengan delayed-ACK: segmen kecil (payload 1 beat ~330 B) ditahan
+sampai ACK segmen sebelumnya datang.
+
+Perbaikan: `sock.setNoDelay(true)` sesudah connect — satu baris.
+
+| | sebelum | sesudah |
+|---|---|---|
+| `gagal` / 150 dtk | 4 | **0** |
+| latensi p95 | 13.259 ms | **3.402 ms** |
+| latensi maksimum | 19.926 ms | **4.903 ms** |
+| PDSR | 96,7% | **99,5%** |
+
+**Pola yang sama di kelimanya:** gagal tanpa error, dan gejalanya menunjuk ke
 tempat yang salah (broker, bukan firmware). Senada dengan jebakan op `MEAN` di
-TFLM dan `float` di ISR — repo ini sudah tiga kali tertipu pola "salah tanpa
+TFLM dan `float` di ISR — repo ini sudah beberapa kali tertipu pola "salah tanpa
 berisik".
+
+Pelajaran kedua, khusus dari (4) vs (5): **dua bug dengan gejala identik bisa
+hidup berdampingan.** Memperbaiki yang satu tidak menghilangkan gejalanya, dan
+satu-satunya jalan keluar adalah memasang pencacah sampai gejalanya punya angka —
+bukan menalar mana yang "paling mungkin".
+
+---
+
+## 7c. Target `bab3.tex` Tabel *Rencana pengukuran pada pengujian pipeline*
+
+Diukur dengan `dashboard/ukur_pipeline.py 150` (replay ON, tanpa elektroda).
+
+| Aspek | Target | Terukur | Vonis |
+|---|---|---|---|
+| PDSR | ≥ 95% | **99,5%** (206/207 paket) | ✅ |
+| Latensi end-to-end | ≤ 2 detik | median **1.907 ms**, min 1.286 ms | ✅ median |
+| — p95 | ≤ 2 detik | **3.402 ms** (maks 4.903 ms) | ❌ |
+| Pemenuhan bufer lokal | tidak overflow dalam ±27.000 | kapasitas **27.000** terpasang di PSRAM | ✅ |
+| Integritas data saat putus | tanpa kehilangan data | `hilang 0` untuk outage 24 detik | ✅ |
+| Waktu pemulihan bufer | ≤ 60 detik | **~24 detik** (43 beat) | ✅ |
+| Deduplikasi cloud | duplikat QoS-1 dikenali | **0 ts duplikat** dari 288 baris | ✅ |
+
+### Latensi dipecah, supaya gagalnya dibebankan ke penyebab yang benar
+
+Firmware mencacah `tunda alat` = dari beat TERJADI sampai paketnya ditulis ke
+socket. Angkanya **stabil di 5 pengukuran**: 887 / 880 / 879 / 878 / **874 ms**
+(maks 1.353 ms).
+
+```
+latensi total median   1.907 ms
+  sisi alat              874 ms   <- kadens deteksi, BUKAN jaringan
+  broker + cloud        ~1.033 ms
+```
+
+Sisi alat itu **arsitektural, bukan inefisiensi**: `ecg_live.h` menjalankan
+deteksi tiap `ECG_LIVE_TIAP` = 1 detik atas ring 4 detik, dan sebuah beat baru
+boleh keluar setelah `ECG_WIN_POST` = 128 sampel (356 ms) sesudah R tersedia.
+Batas bawah teoretisnya 0–1.000 ms (menunggu tik deteksi) + 356 ms, dan minimum
+terukur **1.286 ms** jatuh persis di rentang itu.
+
+**Target 2 detik di proposal tidak memperhitungkan kadens deteksi 1 detik itu.**
+Kalau p95 harus lolos, kandidat perubahannya `ECG_LIVE_TIAP` 1 detik → 0,5 detik
+(hemat ~250 ms di median). Itu menyentuh modul yang sudah tervalidasi golden
+Python↔C, jadi **gate point** — tidak diubah tanpa persetujuan.
+
+Sisa ~1 detik milik broker: RTT PUBACK masih >1 detik pada 23 dari 207 paket
+(maks 3.157 ms) walau `gagal 0`. ThingsBoard di laptop yang menjalankan 9
+container lain bukan lingkungan yang wajar untuk klaim latensi — kalau angka p95
+mau dipakai di laporan, ukur ulang di broker yang tidak bersaing beban.
 
 ---
 
@@ -429,7 +565,10 @@ berisik".
       pernah masuk pengukuran, dan radio itu beban terbesar di seluruh alat.
       Angka daya di laporan saat ini belum mencakupnya
 - [ ] **Uji dengan sinyal tubuh** (tertahan HW-5: header AD8232 belum disolder).
-      Yang belum terbukti khusus di jalur ini: apakah `AMBANG_AYUN` 60 memisahkan
-      dengan benar antara elektroda lepas dan sinyal tubuh yang lemah. Replay
-      (~2700 counts) terlalu jauh di atas ambang untuk mengujinya
+      Dua hal yang cuma bisa diuji di sana: (a) apakah `AMBANG_AYUN` 60 memisahkan
+      elektroda lepas dari sinyal tubuh lemah — replay ~2700 counts terlalu jauh di
+      atas ambang; (b) **gerbang kalibrasi penuh** (10 menit + RR tenang 30 detik),
+      yang tidak bisa dilewati replay karena record 208 memang aritmik (§3.1b)
+- [ ] Ukur ulang latensi p95 di broker yang tidak bersaing beban dengan 9 container
+      lain, atau turunkan `ECG_LIVE_TIAP` (gate point — lihat §7c)
 - [ ] Widget dashboard untuk `ecg_snippet` (datanya sudah masuk, belum digambar)

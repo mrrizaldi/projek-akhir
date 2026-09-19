@@ -19,7 +19,12 @@ static ecg_mqtt_beat_t beat(uint32_t ms, int label)
     return b;
 }
 
-void setUp(void) { ecg_mqtt_antre_reset(); }
+// Ring diPASANG, bukan statis: di board memakai PSRAM, di sini array biasa.
+// Kecil supaya uji "penuh" tidak perlu 27.000 iterasi.
+#define UJI_KAP 8
+static ecg_mqtt_beat_t ring_uji[UJI_KAP];
+
+void setUp(void) { ecg_mqtt_antre_pasang(ring_uji, UJI_KAP); }
 void tearDown(void) {}
 
 static void test_payload_tunggal(void)
@@ -82,16 +87,34 @@ static void test_antre_fifo(void)
 // yang terbaru, alat kehilangan justru menit yang paling ingin dilihat.
 static void test_antre_penuh_buang_tertua(void)
 {
-    for (uint32_t i = 0; i < ECG_MQTT_ANTRE_N + 5; i++) {
+    for (uint32_t i = 0; i < UJI_KAP + 5; i++) {
         ecg_mqtt_beat_t b = beat(i, 0);
         ecg_mqtt_antre_isi(&b);
     }
-    TEST_ASSERT_EQUAL_size_t(ECG_MQTT_ANTRE_N, ecg_mqtt_antre_n());
+    TEST_ASSERT_EQUAL_size_t(UJI_KAP, ecg_mqtt_antre_n());
     TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_antre_hilang());
 
     ecg_mqtt_beat_t keluar[1];
     ecg_mqtt_antre_intip(keluar, 1);
     TEST_ASSERT_EQUAL_UINT32(5, keluar[0].ms);          // 0..4 terbuang
+}
+
+// Kapasitas ikut yang dipasang, dan mem == NULL jatuh ke cadangan statis —
+// itu jalur yang dipakai kalau ps_malloc gagal di board.
+static void test_antre_pasang_kapasitas(void)
+{
+    TEST_ASSERT_EQUAL_size_t(UJI_KAP, ecg_mqtt_antre_kapasitas());
+
+    static ecg_mqtt_beat_t besar[100];
+    ecg_mqtt_antre_pasang(besar, 100);
+    TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_kapasitas());
+    for (uint32_t i = 0; i < 100; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_antre_isi(&b); }
+    TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_n());
+    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_hilang());   // belum melimpah
+
+    ecg_mqtt_antre_pasang(NULL, 0);
+    TEST_ASSERT_EQUAL_size_t(ECG_MQTT_ANTRE_MIN, ecg_mqtt_antre_kapasitas());
+    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_n());        // pasang = reset
 }
 
 int main(int, char **)
@@ -102,5 +125,6 @@ int main(int, char **)
     RUN_TEST(test_payload_buffer_kurang);
     RUN_TEST(test_antre_fifo);
     RUN_TEST(test_antre_penuh_buang_tertua);
+    RUN_TEST(test_antre_pasang_kapasitas);
     return UNITY_END();
 }

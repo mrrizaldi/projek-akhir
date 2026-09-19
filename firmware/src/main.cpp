@@ -39,6 +39,37 @@ constexpr int ARENA_N = 24 * 1024;
 constexpr int AMBANG_AYUN = 60;            // ayunan TERSARING 1 detik, counts ADC
 constexpr int ADC_ATAS = 4090, ADC_BAWAH = 5;
 
+// Fase kualitas sinyal, bab3.tex §Pengujian Pipeline tahap 1-2.
+//
+// KALIBRASI -> BAIK: butuh TIGA hal sekaligus — elektroda sudah stabil (waktu),
+// RR masuk rentang fisiologis dan tenang (30 detik), dan ayunan cukup. Selama
+// KALIBRASI inferensi TIDAK dijalankan dan tidak ada yang dipublikasikan.
+//
+// PENTING: kriteria RR di bawah adalah gerbang MASUK, bukan gerbang per detak.
+// Setelah fase pemantauan dimulai, dRR TIDAK lagi dibatasi — beat ventrikular
+// memang datang dengan dRR besar, jadi menegakkan dRR <= 200 ms terus-menerus
+// akan membungkam justru aritmia yang ingin dideteksi. bab3.tex juga
+// menuliskannya sebagai syarat "layak untuk fase pemantauan", sekali saja.
+constexpr uint32_t STABIL_MS = 10UL * 60 * 1000;   // bab3: 10-15 menit; ambil 10
+constexpr uint32_t RR_TENANG_MS = 30UL * 1000;     // bab3: >= 30 detik
+constexpr float RR_MIN_S = 0.300f, RR_MAKS_S = 1.500f;   // bab3: 300-1500 ms
+constexpr float DRR_MAKS_S = 0.200f;                     // bab3: <= 200 ms
+
+enum { FASE_KALIBRASI, FASE_BAIK, FASE_BURUK };
+static int fase;
+static uint32_t t_rr_langgar;      // millis() pelanggaran RR terakhir
+// Melewati SELURUH gerbang masuk (waktu stabilisasi DAN kriteria RR). Toggle 'k',
+// dan otomatis saat replay.
+//
+// Kenapa harus melewati KEDUANYA, bukan cuma waktunya: golden_raw adalah record
+// 208 yang penuh beat ventrikular, jadi dRR-nya memang besar (terukur di board:
+// -0,364 / +0,478 s). Kriteria bab3 "dRR <= 200 ms konsisten 30 detik" dirancang
+// untuk SUBJEK SEHAT yang duduk diam, dan sinyal uji kita sengaja aritmik — jadi
+// ia tidak akan pernah lulus, bukan karena rusak melainkan karena memang bukan
+// subjek sehat. Dua hal itu tidak bisa dipenuhi bersamaan, dan yang mengalah
+// adalah gerbangnya, dengan pengumuman.
+static bool lewati_kalibrasi;
+
 // Bandpass 0,5-40 Hz TIDAK membunuh 50 Hz, cuma meredamnya -9,3 dB (diukur dari
 // ecg_sos dengan sosfreqz). Jadi dengung jala-jala tetap masuk hitungan ayunan
 // dan bisa memalsukan LED hijau. Kontribusinya diukur dengan Goertzel lalu
@@ -64,6 +95,10 @@ static int beat_ditahan;   // tidak dipublikasi: kualitas sinyal / beat timeout
 // millis() saat sesi ecg_live dimulai. Dipakai mengubah indeks sampel jadi waktu
 // dinding, lihat publikasi().
 static uint32_t t_sesi_ms;
+// Tunda SISI ALAT: dari saat beat TERJADI sampai paketnya ditulis ke socket.
+// Dipakai memecah latensi end-to-end jadi "milik alat" vs "milik jaringan+cloud",
+// supaya target 2 detik bab3.tex bisa dibebankan ke penyebab yang benar.
+static uint32_t tunda_jml, tunda_n, tunda_maks;
 
 // Kualitas sinyal 1 detik terakhir (dipakai LED + laporan serial).
 static int ayun_1s, ayun_bersih_1s, hum50_1s, mentah_min_1s, mentah_maks_1s;
@@ -178,12 +213,45 @@ static void mulai_sesi()
 {
     ecg_live_reset();
     t_sesi_ms = millis();
+    fase = FASE_KALIBRASI;
+    t_rr_langgar = millis();       // hitungan 30 detik mulai dari nol
+}
+
+static const char *nama_fase()
+{
+    return fase == FASE_KALIBRASI ? "calibrating" : (fase == FASE_BAIK ? "good" : "poor");
+}
+
+// Dipanggil tiap beat, SEBELUM keputusan inferensi. Menilai kelayakan RR dan
+// memindahkan fase kalau syaratnya sudah lengkap.
+static void nilai_fase(const ecg_beat_t &beat)
+{
+    const float rr = beat.rr[0];
+    const float drr = fabsf(beat.rr[2]);
+    const bool rr_wajar = rr >= RR_MIN_S && rr <= RR_MAKS_S && drr <= DRR_MAKS_S;
+    if (!rr_wajar) t_rr_langgar = millis();
+
+    const bool ayun_ok = ayun_bersih_1s >= AMBANG_AYUN;
+
+    if (fase == FASE_KALIBRASI) {
+        const bool stabil = millis() - t_sesi_ms >= STABIL_MS;
+        const bool rr_tenang = millis() - t_rr_langgar >= RR_TENANG_MS;
+        if ((lewati_kalibrasi || (stabil && rr_tenang)) && ayun_ok) {
+            fase = FASE_BAIK;
+            Serial.printf("kualitas: calibrating -> good (%s, RR tenang %lu s, ayun %d)\n",
+                          lewati_kalibrasi ? "GERBANG DILEWATI (bench)" : "gerbang penuh",
+                          (unsigned long)((millis() - t_rr_langgar) / 1000), ayun_bersih_1s);
+        }
+        return;                    // masih kalibrasi: tidak ada inferensi
+    }
+    // Sesudah fase pemantauan dimulai, yang menggerbangi cuma ayunan sinyal.
+    fase = ayun_ok ? FASE_BAIK : FASE_BURUK;
 }
 
 static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
 {
     if (!ecg_mqtt_aktif()) return;
-    if (ayun_bersih_1s < AMBANG_AYUN) { beat_ditahan++; return; }
+    if (fase != FASE_BAIK) { beat_ditahan++; return; }
     if (beat.sinyal_hilang) { beat_ditahan++; return; }   // beat timeout, RR+1 sentinel
 
     ecg_mqtt_beat_t t;
@@ -205,7 +273,7 @@ static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
     // keyakinan 0,98. Dashboard menampilkannya apa adanya, jadi angka mentah
     // akan terbaca "alat ragu" persis saat ia paling yakin.
     t.confidence = aritmia ? p : 1.0f - p;
-    t.quality_ok = 1;
+    t.quality_ok = 1;                  // fase sudah dipastikan FASE_BAIK di atas
     // Snippet: window z-score dicuplik merata dan dikali 1000 supaya muat di
     // int16 tanpa float di payload. ponytail: cuplikan merata, bukan di sekitar
     // R — kalau widget butuh QRS yang terpusat, ambil ECG_SNIPPET_N titik mulai
@@ -214,6 +282,10 @@ static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
         const int j = i * (ECG_WIN_LEN_ - 1) / (ECG_SNIPPET_N - 1);
         t.snippet[i] = (int16_t)(beat.window[j] * 1000.0f);
     }
+    const uint32_t tunda = millis() - t.ms;
+    tunda_jml += tunda; tunda_n++;
+    if (tunda > tunda_maks) tunda_maks = tunda;
+
     ecg_mqtt_antre_isi(&t);
 }
 
@@ -312,6 +384,7 @@ static void perbarui_led()
     t_led = millis();
 
     if (rekam)                             led(64, 0, 0);
+    else if (fase == FASE_KALIBRASI)       led(0, 16, 64);   // biru: stabilisasi
     else if (ayun_bersih_1s < AMBANG_AYUN) led(64, 24, 0);
     else                                   led(0, 48, 0);
 }
@@ -344,6 +417,22 @@ void setup()
 
     rekam_buf = (uint16_t *)ps_malloc(REKAM_N * sizeof(uint16_t));
     if (!rekam_buf) Serial.println("PERINGATAN: PSRAM gagal, perekaman mentah nonaktif");
+
+    // Ring backlog MQTT di PSRAM, target bab3.tex: +-27.000 rekaman (4-7 jam).
+    // Satu entri 40 byte -> ~1,08 MB dari 8 MB. Kalau gagal, ecg_mqtt jatuh ke
+    // cadangan statis 64 beat: backlog pendek jauh lebih baik daripada mati.
+    ecg_mqtt_beat_t *ring = (ecg_mqtt_beat_t *)ps_malloc(
+        ECG_MQTT_ANTRE_TARGET * sizeof(ecg_mqtt_beat_t));
+    if (ring) {
+        ecg_mqtt_antre_pasang(ring, ECG_MQTT_ANTRE_TARGET);
+        Serial.printf("backlog: %u beat di PSRAM (%u KB, %u entri x %u B)\n",
+                      ECG_MQTT_ANTRE_TARGET,
+                      (unsigned)(ECG_MQTT_ANTRE_TARGET * sizeof(ecg_mqtt_beat_t) / 1024),
+                      ECG_MQTT_ANTRE_TARGET, (unsigned)sizeof(ecg_mqtt_beat_t));
+    } else {
+        Serial.printf("PERINGATAN: PSRAM ring gagal, backlog turun ke %u beat\n",
+                      ECG_MQTT_ANTRE_MIN);
+    }
     if (!LittleFS.begin(true)) Serial.println("PERINGATAN: LittleFS gagal mount");
 
     siapkan_model();
@@ -358,7 +447,7 @@ void setup()
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q/y/m\n",
+                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q/y/m/k\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)interp->arena_used_bytes(),
                   ECG_THRESHOLD, PIN_REC, PIN_DUMP);
 }
@@ -384,17 +473,36 @@ void loop()
         nilai_kualitas(sampel);            // SETELAH push: baca sampel tersaring terbaru
 
         if (ada_beat) {
-            const float p = klasifikasi(beat);
-            const bool aritmia = p >= ECG_THRESHOLD;
-            beat_total++;
-            if (aritmia) beat_aritmia++;
-            // BPM dari RR_prev, BUKAN dari selisih millis(): beat keluar
-            // bergerombol setelah deteksi berkala, jadi jarak waktu antar-cetak
-            // tidak sama dengan jarak antar-detak.
-            const float bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
-            Serial.printf("beat %4d  p=%.4f  %-7s  RR=%.3fs  %3.0f bpm\n",
-                          beat_total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
-            publikasi(beat, p, aritmia);
+            nilai_fase(beat);
+            if (fase == FASE_KALIBRASI) {
+                // bab3.tex: "inferensi CNN belum dijalankan" selama calibrating.
+                // Detektor tetap jalan — RR-nya justru yang dipakai menilai
+                // kelayakan sinyal. Yang dilewati cuma CNN-nya.
+                static uint32_t t_lapor;
+                if (millis() - t_lapor > 5000) {
+                    t_lapor = millis();
+                    Serial.printf("calibrating | RR=%.3fs dRR=%+.3fs | tenang %lu/%lu s | "
+                                  "ayun %d (ambang %d) | stabil %lu/%lu s | lewati=%d\n",
+                                  beat.rr[0], beat.rr[2],
+                                  (unsigned long)((millis() - t_rr_langgar) / 1000),
+                                  (unsigned long)(RR_TENANG_MS / 1000), ayun_bersih_1s,
+                                  AMBANG_AYUN,
+                                  (unsigned long)((millis() - t_sesi_ms) / 1000),
+                                  (unsigned long)(STABIL_MS / 1000), (int)lewati_kalibrasi);
+                }
+            } else {
+                const float p = klasifikasi(beat);
+                const bool aritmia = p >= ECG_THRESHOLD;
+                beat_total++;
+                if (aritmia) beat_aritmia++;
+                // BPM dari RR_prev, BUKAN dari selisih millis(): beat keluar
+                // bergerombol setelah deteksi berkala, jadi jarak waktu
+                // antar-cetak tidak sama dengan jarak antar-detak.
+                const float bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
+                Serial.printf("beat %4d  p=%.4f  %-7s  RR=%.3fs  %3.0f bpm\n",
+                              beat_total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
+                publikasi(beat, p, aritmia);
+            }
         }
     }
 
@@ -410,9 +518,23 @@ void loop()
         else if (c == 'y') {
             replay = !replay;
             replay_i = 0;
+            // Replay tidak punya elektroda untuk distabilkan, DAN golden_raw
+            // adalah record 208 yang penuh beat ventrikular — dRR-nya memang
+            // besar, jadi kriteria "dRR <= 200 ms selama 30 detik" tidak akan
+            // pernah terpenuhi. Kriteria itu dirancang untuk subjek SEHAT yang
+            // duduk diam; dummy kita justru sengaja aritmik. Jadi saat replay,
+            // stabilisasi dilewati dan itu diumumkan.
+            if (replay) lewati_kalibrasi = true;   // replay: lihat catatan di atas
             mulai_sesi();
             beat_total = beat_aritmia = beat_ditahan = 0;
+            tunda_jml = tunda_n = tunda_maks = 0;
             Serial.printf("replay %s\n", replay ? "ON (golden_raw)" : "OFF (ADC)");
+        }
+        else if (c == 'k') {
+            lewati_kalibrasi = !lewati_kalibrasi;
+            Serial.printf("lewati gerbang kalibrasi %s (bench saja — bab3 menuntut "
+                          "stabilisasi 10-15 menit + RR tenang 30 s)\n",
+                          lewati_kalibrasi ? "ON" : "OFF");
         }
         else if (c == 'm') {
             ecg_mqtt_set_aktif(!ecg_mqtt_aktif());
@@ -423,18 +545,25 @@ void loop()
             Serial.printf("laporan kualitas %s\n", lapor_kualitas ? "ON" : "OFF");
         }
         else if (c == 's')
-            Serial.printf("status: rekam=%d n=%u | replay=%d | beat %d (%d aritmia, "
-                          "%d ditahan) | antrean %u | sampel hilang %u | LO %d %d | "
-                          "mentah %d..%d ayun %d clipping %d\n"
-                          "        mqtt %s | terkirim %u | backlog %u | hilang %u | gagal %u\n",
-                          (int)rekam, (unsigned)rekam_n, (int)replay, beat_total, beat_aritmia,
-                          beat_ditahan,
+            Serial.printf("status: rekam=%d n=%u | replay=%d | kualitas %s | beat %d "
+                          "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u | "
+                          "LO %d %d | mentah %d..%d ayun %d clipping %d\n"
+                          "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
+                          "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
+                          "maks %u ms | RTT maks %u ms (lambat %u)\n",
+                          (int)rekam, (unsigned)rekam_n, (int)replay, nama_fase(),
+                          beat_total, beat_aritmia, beat_ditahan,
                           (unsigned)((tulis - baca + ANTRE_N) % ANTRE_N), (unsigned)n_lewat,
                           digitalRead(PIN_LOP), digitalRead(PIN_LON),
                           mentah_min_1s, mentah_maks_1s, ayun_bersih_1s, (int)clipping_1s,
                           ecg_mqtt_status(), (unsigned)ecg_mqtt_terkirim(),
-                          (unsigned)ecg_mqtt_antre_n(), (unsigned)ecg_mqtt_antre_hilang(),
-                          (unsigned)ecg_mqtt_gagal());
+                          (unsigned)ecg_mqtt_antre_n(), (unsigned)ecg_mqtt_antre_kapasitas(),
+                          (unsigned)ecg_mqtt_antre_hilang(), (unsigned)ecg_mqtt_gagal(),
+                          (unsigned)ecg_mqtt_paket_ack(), (unsigned)ecg_mqtt_paket_kirim(),
+                          ecg_mqtt_paket_kirim()
+                              ? 100.0 * ecg_mqtt_paket_ack() / ecg_mqtt_paket_kirim() : 0.0,
+                          (unsigned)(tunda_n ? tunda_jml / tunda_n : 0), (unsigned)tunda_maks,
+                          (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat());
     }
 
     if (ditekan(PIN_REC, t_rec, s_rec)) {

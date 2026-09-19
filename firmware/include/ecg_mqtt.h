@@ -22,18 +22,34 @@ extern "C" {
 // bentuk QRS di widget, dan menjaga payload di bawah ~300 B.
 #define ECG_SNIPPET_N 8
 
-// Kedalaman backlog saat broker tidak terjangkau. 64 beat ~= 53 detik pada
-// 72 bpm. ponytail: ring di RAM, hilang kalau board reboot — kalau butuh
-// tahan reboot, pindahkan ke LittleFS (alatnya sudah ada di main.cpp).
-#define ECG_MQTT_ANTRE_N 64
+// Kedalaman backlog. Ring-nya DIPASANG dari luar (ecg_mqtt_antre_pasang) supaya
+// bagian murni ini tidak perlu tahu soal PSRAM — di board dialokasikan di PSRAM,
+// di uji native cukup array statis.
+//
+// Target bab3.tex §Ring Buffer FIFO di PSRAM: +-27.000 rekaman (4-7 jam @60-100
+// bpm). Satu entri 40 byte, jadi 27.000 x 40 = 1,08 MB dari PSRAM 8 MB. Catatan:
+// proposal memperkirakan 150 byte/rekaman, tapi itu ukuran JSON yang DIKIRIM;
+// yang DISIMPAN cuma struct biner, 40 byte. Kapasitasnya jadi lebih murah dari
+// perkiraan, bukan lebih mahal.
+#define ECG_MQTT_ANTRE_TARGET 27000
+
+// Cadangan kalau PSRAM gagal: tetap jalan, tetap resilien beberapa detik, dan
+// berisik di serial. Mati total karena alokasi gagal jauh lebih buruk daripada
+// backlog pendek.
+#define ECG_MQTT_ANTRE_MIN 64
+
+// ponytail: ring di memori volatil — hilang kalau board reboot. Sesuai bab3.tex
+// (asumsi wearable diisi daya rutin, skenario kehilangan daya di luar cakupan).
+// Kalau nanti perlu tahan reboot, LittleFS sudah dipakai di main.cpp.
 
 // Batas beat per PUBLISH saat menguras backlog. Membatasi ukuran payload
 // sekaligus memberi PUBACK titik pijak: gagal di tengah = ulangi 8, bukan 64.
-// Diturunkan dari 16 setelah diukur di board: paket makin besar makin mungkin
-// tidak habis ditulis sekali jalan, dan paket MQTT terpotong tidak pernah
-// di-PUBACK. Sekarang panjangnya ikut diperiksa (lihat kirim_publish), 8 cuma
-// menjaga paket tetap ~2,4 KB.
-#define ECG_MQTT_BATCH_N 8
+// bab3.tex menargetkan 50-100 rekaman/paket supaya round-trip PUBACK turun
+// 50-100x. Sempat diturunkan ke 8 karena paket besar tidak habis ditulis sekali
+// jalan dan paket MQTT terpotong tidak pernah di-PUBACK; sesudah penulisannya
+// dibuat bertahap sampai habis (kirim_sampai_habis) batas itu hilang, jadi
+// dinaikkan ke 50 = batas bawah rentang proposal. Payload ~15 KB.
+#define ECG_MQTT_BATCH_N 50
 
 typedef struct {
     uint32_t ms;                      // millis() saat beat keluar
@@ -54,6 +70,11 @@ typedef struct {
 // Return jumlah byte tertulis (0 kalau buf kurang).
 size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb,
                         uint64_t ts_base_ms);
+
+// Memasang penyimpanan ring. Dipanggil sekali sebelum beat pertama masuk.
+// mem == NULL mengembalikan ring ke cadangan statis ECG_MQTT_ANTRE_MIN.
+void ecg_mqtt_antre_pasang(ecg_mqtt_beat_t *mem, size_t kapasitas);
+size_t ecg_mqtt_antre_kapasitas(void);
 
 void ecg_mqtt_antre_reset(void);
 size_t ecg_mqtt_antre_n(void);
@@ -79,6 +100,14 @@ int  ecg_mqtt_aktif(void);                   // toggle serial 'm'
 void ecg_mqtt_set_aktif(int on);
 uint32_t ecg_mqtt_terkirim(void);
 uint32_t ecg_mqtt_gagal(void);
+// PDSR bab3.tex = rasio paket ber-PUBACK terhadap total paket PUBLISH. Dihitung
+// per PAKET, bukan per beat — satu paket bisa memuat sampai ECG_MQTT_BATCH_N
+// beat, jadi dua satuan itu tidak sama.
+uint32_t ecg_mqtt_paket_kirim(void);
+uint32_t ecg_mqtt_paket_ack(void);
+// Diagnosa kesehatan koneksi: RTT PUBACK terburuk, dan berapa kali > 1 detik.
+uint32_t ecg_mqtt_rtt_maks(void);
+uint32_t ecg_mqtt_rtt_lambat(void);
 const char *ecg_mqtt_status(void);           // satu kata untuk baris status 's'
 #endif
 

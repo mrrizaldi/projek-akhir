@@ -206,18 +206,22 @@ angka nyata → cek pemahaman → skrip pendukung.
   Keputusan: **solder dulu, baru ulangi rekam**. Analisis offline jalan terus
   pakai rekaman 11:30 — HW-5 tidak terkunci total.
 - [x] **HW-6 — MQTT + ThingsBoard, TERVERIFIKASI DI BOARD 19 Sep 2026.**
-  `ecg_mqtt.cpp`: klien MQTT 4 paket di atas `WiFiClient`, tanpa library —
-  kawatnya menyalin `dashboard/smoke_test.py`. Publikasi **digerbangi ayunan
-  sinyal** (`AMBANG_AYUN`), bukan ada-tidaknya beat: tanpa elektroda
-  `beat 19 (7 aritmia, 19 ditahan)` → **terkirim 0**. Dummy dipublikasi lewat
-  `replay` yang SUDAH ADA (toggle `y`), nol cabang khusus. Toggle MQTT `m`.
-  Terukur: **171 baris mendarat / 103,2 dtk, 0 ts duplikat, jeda ts 433–911 ms**,
-  laju 1,60 beat/dtk (HW-7: 1,58), `sampel hilang 0`. **Resiliensi lulus:** broker
-  dibekukan 24 dtk (`docker pause`), backlog 43 → 0, deret waktu dashboard TIDAK
-  berlubang (jeda maks 911 ms) karena `ts` = waktu kejadian dari `r_abs`, bukan
-  waktu kirim. `pio test -e native` **22/22**, `pio test -e esp32-s3` **16/16**,
-  RAM **33,1%** Flash **13,4%**. Sisa: ukur daya mode WiFi, dan uji `AMBANG_AYUN`
-  dengan sinyal tubuh (tertahan HW-5). `docs/mqtt-walkthrough.md`
+  Klien MQTT 4 paket di atas `WiFiClient`, tanpa library. **Dua gerbang sesuai
+  bab3.tex §Pengujian Pipeline:** fase `calibrating` (stabilisasi 10 menit + RR
+  300–1500 ms & |dRR| ≤ 200 ms tenang 30 dtk, **CNN tidak jalan**) lalu gerbang
+  ayunan per detak. Kriteria RR itu gerbang MASUK saja — menegakkannya terus akan
+  membungkam aritmia. Beat karangan tanpa elektroda gagal di dua gerbang sekaligus
+  (ayun 27 < 60 DAN RR 0,208 s < 0,300 s). Replay = record 208 yang aritmik, jadi
+  tidak bisa lulus gerbang RR: toggle `y`/`k` melewatinya dengan pengumuman.
+  Backlog **27.000 beat di PSRAM** (1.054 KB, 40 B/entri ≈ 4–7 jam, target bab3),
+  batch 50, `ts` = waktu kejadian dari `r_abs`. **6 dari 6 target Tabel Rencana
+  Pengukuran terukur:** PDSR **99,5%** (≥95 ✅), latensi median **1.907 ms**
+  (≤2000 ✅) tapi p95 3.402 ms ❌, kapasitas ✅, `hilang 0` ✅, flush ~24 dtk
+  (≤60 ✅), 0 ts duplikat ✅. Latensi dipecah: **sisi alat 874 ms** (kadens deteksi
+  1 dtk + 356 ms post-window — arsitektural), broker ~1.033 ms. `pio test -e
+  native` **23/23**, `esp32-s3` **16/16**, RAM **36,9%** Flash **13,5%**.
+  Sisa: daya mode WiFi, gerbang penuh dgn sinyal tubuh (HW-5), p95 di broker yang
+  tidak bersaing beban. `docs/mqtt-walkthrough.md`
 
 ## Decision point yang sudah di-lock
 
@@ -444,6 +448,24 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   jadi kode mati, dan seluruh tumpukan WiFi tidak ikut di-link. Bedanya tidak
   diumumkan di mana pun. Hindari: ukur ukuran build dalam konfigurasi yang
   SAMA dengan yang dipakai, dan sebut kondisinya saat mencatat angkanya.
+- **Nagle menahan segmen kecil; PUBACK jadi terlambat 1–4,8 detik.** Gejala:
+  `PUBACK timeout` acak walau broker sehat, latensi end-to-end berekor panjang
+  (p95 13,3 dtk), dan RTT PUBACK yang **berulang di ~1.250 ms**. Sebab: payload
+  satu beat ~330 B = segmen kecil, dan Nagle menahannya sampai ACK segmen
+  sebelumnya datang; berpasangan dengan delayed-ACK broker jadi ~1,25 detik.
+  Hindari: `sock.setNoDelay(true)` sesudah connect. Hasil: p95 13.259 → **3.402
+  ms**, `gagal` 4 → **0**, PDSR 96,7 → 99,5%. Yang menemukannya bukan penalaran
+  melainkan **pencacah RTT + mencetak `sock.available()` saat timeout** (0 byte =
+  bukan desync, broker memang belum menjawab).
+- **Paket MQTT yang tidak diminta harus tetap dibaca.** Gejala: sama dengan di
+  atas, jadi dua bug bergejala identik hidup berdampingan dan memperbaiki yang
+  satu tidak menghilangkan gejalanya. Sebab: PINGREQ dikirim tiap 30 dtk, PINGRESP
+  (2 byte `0xD0 0x00`) tidak pernah dibaca, mengendap di socket, lalu terbaca
+  sebagai dua byte pertama PUBACK berikutnya → aliran baca desync sampai
+  reconnect. Hindari: baca header 2 byte dan **buang isi paket lain secara utuh**
+  supaya byte berikutnya jatuh di batas paket. Pelajaran: kalau perbaikan yang
+  benar tidak menghilangkan gejala, jangan menalar tersangka berikutnya — pasang
+  pencacah sampai gejalanya punya angka.
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat
