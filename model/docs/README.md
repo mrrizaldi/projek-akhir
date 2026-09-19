@@ -141,6 +141,51 @@ Dua angka yang paling perlu kamu bisa jelaskan di sidang:
 
 ---
 
+## Riwayat eksperimen yang TIDAK mengubah config (19 Sep 2026)
+
+Tiga dokumen di bawah mencatat eksperimen besar yang **kesimpulannya: jangan
+diubah**. Dibaca kalau kamu bertanya *"kenapa tidak pakai dataset lain?"* atau
+*"kenapa fitur lebar QRS tidak dipakai padahal peringkat 1?"* — jawabannya sudah
+diukur, bukan diasumsikan.
+
+| Dokumen | Isi | Vonis |
+|---|---|---|
+| [fitur-design](2026-09-19-fitur-design.md) | Sintesis 7 paper, 10 temuan yang menabrak decision point terkunci | dokumen KEPUTUSAN, bukan hasil |
+| [multidataset-plan](2026-09-19-multidataset-plan.md) | Fase A: gabung mitdb + svdb + incartdb, audit 13 pemeriksaan | infrastruktur jadi, DS2 byte-identik |
+| [faseB-changelog](2026-09-19-faseB-changelog.md) | Fase B-F: 10 varian × 3-6 seed, tabel 2×2, tahap 2 | **kunci nol** |
+
+### Ringkasan satu layar
+
+Tabel 2×2 dataset × fitur (ambang sinyal §7: < 0,04 F1 bukan sinyal):
+
+```
+F1              fitur LAMA (3)    fitur BARU (6)
+mitdb saja      0,6911 +-0,029    0,6882 +-0,023     <- yang TERPASANG
+mitdb+svdb      0,6262 +-0,063    0,6960 +-0,049
+
+svdb merugikan -0,065   fitur baru menambalnya +0,070   hasil akhir +0,005
+```
+
+**Interaksi murni, bukan dua perbaikan bertumpuk.** svdb menurunkan F1 lewat
+pergeseran domain; fitur baru cuma menambal kerusakan itu; gabungannya kembali ke
+titik awal. Tanpa sel keempat (mitdb + fitur baru), kesimpulannya salah dua kali.
+
+Yang **masuk produksi** dari seluruh eksperimen: satu assert
+(`MAX_RHYTHM_SCALE`). Yang jadi **temuan untuk laporan**: 10 butir, dicatat di
+faseB-changelog §10.
+
+### Alat baru yang tersedia
+
+| Skrip | Untuk apa |
+|---|---|
+| `scripts/cek_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar |
+| `scripts/cek_kalibrasi.py` | Seberapa jauh kalibrasi VAL dari optimum DS2. DS2 mendiagnosis, TIDAK memilih |
+| `scripts/tahap2.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL cuma bisa mensertifikasi presisi 43,9% |
+| `scripts/ablasi.py --db` | Latih multi-database. Bawaan `mitdb` = jalur terkunci, byte-identik |
+| `PA_QRSW=1` `PA_RR_RATIO=1` | Knob fitur Fase D. Tanpa env, nilainya persis seperti semula |
+
+---
+
 ## Cara menjalankan ulang semuanya
 
 ```
@@ -153,8 +198,8 @@ make eval                   # Fase 6  → metrik DS2 float32
 make quantize               # Fase 7  → model_int8.tflite + tabel delta
 make poc                    # Fase 8  → checklist 8/8
 make export                 # → firmware/include/model_int8.h
-make test                   # 49 test
-cd ../firmware && pio test -e native      # 7 test preprocessing di PC
+make test                   # 80 test
+cd ../firmware && pio test -e native      # 17 test preprocessing di PC
                   pio test -e esp32-s3    # + inferensi di board
 ```
 
