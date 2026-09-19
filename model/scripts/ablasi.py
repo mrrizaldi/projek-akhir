@@ -33,7 +33,7 @@ from config import (  # noqa: E402
 from src.dataset import bagi_train_test, record_int_id, records_tersedia  # noqa: E402
 from src.evaluate import binary_metrics, confusion_counts, roc_auc, sweep_thresholds  # noqa: E402
 from src.features_rr import (  # noqa: E402
-    compute_rr_features, hos_features, to_aami_class, to_binary_label,
+    rakit_fitur_ritme, to_aami_class, to_binary_label,
 )
 from src.io_mitdb import load_record  # noqa: E402
 from src.model import build_hybrid_model  # noqa: E402
@@ -100,9 +100,8 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
                 jitter_r(r0, delta, rng, model_jitter)
             idx = valid_beat_indices(len(signal), r)
             w = zscore_per_window(segment_beats(filtered, r[idx]))
-            rr = compute_rr_features(r)[idx]
             W.append(w)
-            R.append(np.hstack([rr, hos_features(w)]) if USE_HOS else rr)
+            R.append(rakit_fitur_ritme(r, w, idx))
             Y.append(label[idx])
             REC.append(np.full(len(idx), record_int_id(rec, db), dtype=np.int32))
             if model_jitter == "none":

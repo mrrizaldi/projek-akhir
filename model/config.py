@@ -195,7 +195,21 @@ DROPOUT_RATE = 0.0            # 0.0 = tanpa dropout (keputusan terkunci)
 # Fitur cabang ritme. HOS (kurtosis+skewness, Dias 2021 Pers. 12-13) menempel di
 # cabang yang sama, bukan cabang morfologi: dua skalar, bukan deret waktu.
 USE_HOS = os.environ.get("PA_HOS", "0") == "1"
-N_RR_FEATURES = 3 + (2 if USE_HOS else 0)   # RR_prev, RR_ratio, dRR [, kurt, skew]
+# Fase D — knob T2 & T3 (docs/2026-09-19-fitur-design.md K3/K4). TANPA env,
+# nilainya persis seperti semula: 3 kolom RR absolut/rasio campuran.
+#   PA_QRSW=1     +2 kolom lebar QRS ternormalisasi (P3 rank 1-2 dari 85 fitur)
+#   PA_RR_RATIO=1 bentuk RR jadi rasio semua: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0
+#                 -> 4 kolom, menggantikan 3 yang lama. BUTUH beat ke depan, jadi
+#                 prep_beats ikut membuang beat TERAKHIR tiap record.
+USE_QRSW = os.environ.get("PA_QRSW", "0") == "1"
+USE_RR_RATIO = os.environ.get("PA_RR_RATIO", "0") == "1"
+N_RR_BASE = 4 if USE_RR_RATIO else 3
+N_RR_FEATURES = N_RR_BASE + (2 if USE_HOS else 0) + (2 if USE_QRSW else 0)
+
+# Fase D — indeks R di dalam window (WIN_PRE + group delay bandpass kausal).
+# Dipakai qrs_width_features untuk tahu di mana puncaknya. Sama dengan angka di
+# decision point "R sekarang di indeks 132".
+R_IN_WINDOW = WIN_PRE + 4
 
 # Fase 6c — augmentasi ketahanan segmentasi (docs/jitter-walkthrough.md).
 # Dipakai `make prep`: tiap record DS1 ditumpuk 1 salinan bersih + JITTER_SALINAN

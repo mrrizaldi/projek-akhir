@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (  # noqa: E402
     DATASETS, DS1, JITTER_MODEL, JITTER_SALINAN, PACED_EXCLUDED, PER_RECORD_DIR,
-    RAW_DIR, SEED, WIN_PRE, WIN_POST,
+    RAW_DIR, SEED, USE_RR_RATIO, WIN_PRE, WIN_POST,
 )
 from src.dataset import bagi_train_test, records_tersedia  # noqa: E402
 from src.io_mitdb import load_record  # noqa: E402
@@ -34,7 +34,7 @@ from src.preprocessing import (  # noqa: E402
     zscore_per_window,
 )
 from src.features_rr import (  # noqa: E402
-    to_aami_class, to_binary_label, compute_rr_features,
+    to_aami_class, to_binary_label, rakit_fitur_ritme,
 )
 
 
@@ -43,11 +43,19 @@ def valid_beat_indices(signal_len: int, r_locations: np.ndarray) -> np.ndarray:
 
     Irisan tiga syarat: window muat di sinyal, punya RR_prev (i>=1),
     punya dRR (i>=2). Sejajarkan lewat indeks, jangan lewat panjang array.
+
+    Kalau USE_RR_RATIO aktif, beat TERAKHIR tiap record ikut dibuang: RR+1 butuh
+    beat ke depan. Itu konsekuensi Python dari tunda 1 beat di firmware (GATE G2),
+    dan tempatnya di sini karena semua kebijakan buang-beat ada di satu file
+    (decision point "prep_beats yang menyaring", opsi C).
     """
     r = np.asarray(r_locations)
     i = np.arange(len(r))
     fits = (r - WIN_PRE >= 0) & (r + WIN_POST <= signal_len)
-    return i[fits & (i >= 2)]
+    ok = fits & (i >= 2)
+    if USE_RR_RATIO:
+        ok &= i < len(r) - 1
+    return i[ok]
 
 
 def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
@@ -68,7 +76,7 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
 
     idx = valid_beat_indices(len(signal), r)
     windows = zscore_per_window(segment_beats(filtered, r[idx]))
-    rr = compute_rr_features(r)[idx]
+    rr = rakit_fitur_ritme(r, windows, idx)
     labels = np.array([to_binary_label(to_aami_class(sym[i])) for i in idx], dtype=np.int8)
     symbols = np.array([sym[i] for i in idx], dtype="<U2")
 
