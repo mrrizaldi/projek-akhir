@@ -137,7 +137,26 @@ Dalam jumlah beat DS2 (S ~1.837, V ~3.220, F ~388) pertukarannya nyaris impas:
 S kehilangan ~248 deteksi, V+F mendapat ~259. Itu sebabnya F1 tidak bergerak —
 yang berubah **komposisi** deteksi, bukan jumlahnya.
 
-### Mekanisme yang diduga: keunggulan S milik 1e-3 adalah artefak UNDERFIT
+### Uji titik operasi setara — hipotesis "artefak underfit" TERBANTAH
+
+Aturan §A5 (changelog 18 Sep) melarang membandingkan recall di dua titik
+operasi berbeda. Maka threshold tiap model digeser sampai **recall TOTAL-nya
+sama**, baru recall per kelas diadu (`scripts/cek_titik_operasi.py`, seed 42):
+
+| recall total | 1e-3 | 3e-4 | 1e-4 |
+|---|---|---|---|
+| 0,65 | **S 0,436** / V 0,848 | S 0,216 / **V 0,945** | S 0,234 / V 0,943 |
+| 0,70 | **S 0,517** / V 0,885 | S 0,295 / **V 0,974** | S 0,320 / V 0,967 |
+| 0,80 | **S 0,716** / V 0,933 | S 0,552 / **V 0,985** | S 0,576 / V 0,983 |
+
+Di **enam dari enam** titik operasi, 1e-3 unggul di S dan kalah di V. Arahnya
+tidak pernah berbalik.
+
+**Kesimpulan: defisit S itu NYATA, bukan artefak titik operasi.** Kedua model
+benar-benar mempelajari hal yang berbeda — 1e-3 memeringkat beat S lebih baik,
+1e-4 memeringkat beat V lebih baik.
+
+### Hipotesis yang DITARIK: "keunggulan S milik 1e-3 adalah artefak UNDERFIT"
 
 Beat S mirip N secara morfologi; yang membedakannya waktu kedatangan. Model
 yang berhenti setelah satu epoch punya batas keputusan yang belum tajam, jadi
@@ -145,10 +164,63 @@ ia "ragu" dan pada threshold terkalibrasi banyak beat S ikut tertangkap. Model
 yang terlatih penuh dengan percaya diri menyebut beat S itu Normal — karena
 secara bentuk memang Normal.
 
-Kalau benar, konsekuensinya penting: **recall S 0,4473 bukan prestasi
-arsitektur, melainkan efek samping model yang kurang latih** — dan itu bukan
-dasar yang bisa dipertahankan untuk sebuah keputusan desain. Status: hipotesis
-mekanistik, konsisten dengan data, **belum diuji langsung**.
+Kalau benar, konsekuensinya penting: recall S 0,4473 bukan prestasi arsitektur
+melainkan efek samping model kurang latih.
+
+**Diuji, dan salah.** Pada recall total yang disamakan, keunggulan S milik
+1e-3 tetap utuh (tabel di atas). Model yang "ragu" akan kehilangan
+keunggulannya begitu titik operasinya disetarakan — ini tidak.
+
+### Hipotesis pengganti: latih lebih lama = makin bergantung MORFOLOGI
+
+Yang tersisa untuk menjelaskan pertukaran S↔V:
+
+Cabang morfologi (CNN atas window) punya sinyal kuat untuk V — beat ventrikular
+bentuknya memang jelas beda. Cabang ritme cuma 3 skalar. Semakin lama dilatih,
+model makin menemukan bahwa morfologi membayar, dan bobot efektif cabang ritme
+makin tenggelam. **S adalah satu-satunya kelas yang morfologinya TIDAK
+membedakan** — ia hanya terlihat dari ritme. Jadi latih lebih lama =
+V naik, S turun.
+
+Kalau hipotesis ini benar, konsekuensinya jauh melampaui learning rate:
+
+1. Menjelaskan kenapa Fase D gagal — menambah fitur ritme tidak menolong kalau
+   model memang sedang belajar mengabaikan cabang itu.
+2. Obat untuk S bukan LR dan bukan fitur, melainkan **memaksa cabang ritme
+   dipakai**: kepala terpisah per cabang, atau pendekatan dua tahap ala P5
+   (V lewat morfologi, S lewat ritme).
+
+**Diuji, dan juga salah.** Kontribusi tiap cabang ke lapisan penggabung
+(`sum |bobot| × std aktivasi masuk` — bukan |bobot| telanjang, karena skala
+keluaran GAP dan fitur RR berbeda):
+
+| model | morfologi | ritme | porsi ritme |
+|---|---|---|---|
+| 1e-3 | 14,78 | 1,16 | 7,3% |
+| 3e-4 | 11,26 | 0,85 | 7,0% |
+| 1e-4 | 7,30 | 0,98 | **11,8%** |
+
+Model yang dilatih lebih lama justru **lebih** bergantung ritme, bukan kurang.
+Yang menyusut morfologinya (14,78 → 7,30) sementara ritme hampir tetap —
+konsisten dengan bobot yang lebih terkonvergensi, dan **tidak menjelaskan
+pertukaran S↔V sama sekali**.
+
+### Status jujur: pertukarannya NYATA, sebabnya BELUM DIKETAHUI
+
+Dua cerita mekanistik diajukan dan dua-duanya diukur lalu gugur:
+
+| Hipotesis | Uji | Hasil |
+|---|---|---|
+| Keunggulan S = artefak underfit / model ragu | recall per kelas pada recall total disamakan | **salah** — keunggulan S bertahan di 6/6 titik |
+| Latih lebih lama = makin bergantung morfologi | kontribusi cabang ke Dense penggabung | **salah** — porsi ritme justru naik |
+
+Yang berdiri sebagai fakta: **menurunkan learning rate menukar recall S dengan
+recall V dan F, secara nyata dan reproducible, dan tidak ada penjelasan yang
+sudah terverifikasi.**
+
+Dicatat begitu apa adanya. Menaruh cerita mekanistik yang belum diuji ke Bab 4
+lebih berbahaya daripada mengakui ada pertukaran yang belum dipahami —
+penguji bisa membantah cerita, tidak bisa membantah tabel.
 
 ---
 
