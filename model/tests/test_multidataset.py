@@ -233,6 +233,47 @@ def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
             assert np.array_equal(lama[k], baru[k]), f"rec {rec}: {k} berubah"
 
 
+# ── 6. Split gabungan Fase A ─────────────────────────────────────────────────
+
+def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
+    if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
+        pytest.skip("per_record belum dibangun (make prep)")
+    from src.dataset import build_split_multi, build_split
+
+    h = build_split_multi()
+    assert "train" in h and "ds2" in h
+
+    # DS2 di split gabungan HARUS identik dengan test.npz jalur lama.
+    _, test_lama = build_split()
+    for k in ("X_morph", "X_rr", "y", "records"):
+        assert np.array_equal(h["ds2"][k], test_lama[k]), f"ds2 {k} bergeser"
+
+    r_train = set(np.unique(h["train"]["records"]))
+    for nama, d in h.items():
+        if nama == "train":
+            continue
+        assert not (set(np.unique(d["records"])) & r_train), f"bocor train <-> {nama}"
+        n = len(d["y"])
+        assert d["X_morph"].shape == (n, config.WIN_LEN, 1)
+        assert not np.isnan(d["X_rr"]).any()
+
+
+def test_val_tetap_cermin_ds2_bukan_cermin_train():
+    """Threshold dikalibrasi di VAL lalu dipakai di DS2, jadi VAL harus mirip DS2.
+    Train boleh bergeser (svdb kaya S) — itu justru yang diinginkan."""
+    if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
+        pytest.skip("per_record belum dibangun (make prep)")
+    from src.dataset import build_split_multi, split_train_val
+
+    h = build_split_multi()
+    _, val = split_train_val(h["train"])
+    rasio_val = float(val["y"].mean())
+    rasio_ds2 = float(h["ds2"]["y"].mean())
+    assert abs(rasio_val - rasio_ds2) < 0.03, \
+        f"VAL {rasio_val:.4f} vs DS2 {rasio_ds2:.4f} — kalibrasi threshold jadi bias"
+    assert set(np.unique(val["records"])) == set(config.VAL_RECORDS)
+
+
 def wfdb_sig_len(db: str, rec: str) -> int:
     import wfdb
     return wfdb.rdheader(os.path.join(config.raw_dir(db), rec)).sig_len

@@ -2,7 +2,9 @@
 
     make split       (atau: python scripts/build_split.py)
 
-Keluaran: data/processed/train.npz (DS1) & test.npz (DS2), key
+    python scripts/build_split.py --gabungan   # Fase A: + svdb & incartdb
+
+Keluaran default: data/processed/train.npz (DS1) & test.npz (DS2), key
     X_morph float32 [N,250,1]   (channel dim untuk Conv1D)
     X_rr    float32 [N,3]
     y       int8    [N]
@@ -21,7 +23,7 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import PROCESSED_DIR  # noqa: E402
-from src.dataset import build_split  # noqa: E402
+from src.dataset import build_split, build_split_multi  # noqa: E402
 
 
 def _ringkas(nama: str, d: dict) -> None:
@@ -30,6 +32,22 @@ def _ringkas(nama: str, d: dict) -> None:
     print(f"{nama:<6} {len(np.unique(d['records'])):>3} record  {n:>7} beat  "
           f"Normal {n - n_arr:>6} ({100 * (n - n_arr) / n:.1f}%)  "
           f"Aritmia {n_arr:>6} ({100 * n_arr / n:.1f}%)")
+
+
+def main_multi() -> None:
+    """Fase A — train gabungan + test per database, NAMA FILE BEDA dari yang lama.
+
+    train_multi.npz / test_ds2.npz / test_<db>.npz. train.npz & test.npz (jalur
+    mitdb-only) TIDAK ditimpa: keduanya masih dipakai mereproduksi ablasi terkunci.
+    """
+    hasil = build_split_multi()
+    os.makedirs(PROCESSED_DIR, exist_ok=True)
+    nama_file = {"train": "train_multi.npz", "ds2": "test_ds2.npz"}
+    for nama, d in sorted(hasil.items()):
+        f = nama_file.get(nama, f"test_{nama.replace('_test','')}.npz")
+        np.savez_compressed(os.path.join(PROCESSED_DIR, f), **d)
+        _ringkas(nama, d)
+        print(f"        -> {f}")
 
 
 def main() -> None:
@@ -45,4 +63,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    if "--gabungan" in sys.argv:
+        main_multi()
+    else:
+        main()

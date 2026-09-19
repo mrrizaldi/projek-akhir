@@ -105,3 +105,40 @@ def split_train_val(data: dict, val_records=VAL_RECORDS):
     is_val = np.isin(data["records"], val_records)
     take = lambda mask: {k: v[mask] for k, v in data.items()}
     return take(~is_val), take(is_val)
+
+
+def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
+    """Split Fase A: train gabungan + tiga test terpisah. Nama file beda dari
+    build_split() supaya jalur mitdb-only tetap ada & reproducible.
+
+        train         mitdb DS1 (termasuk VAL, dipisah split_train_val) + svdb
+                      train + incartdb train
+        ds2           mitdb DS2 — ANGKA UTAMA, sebanding literatur
+        <db>_test     held-out tiap database baru (generalisasi antar-database)
+
+    Database yang belum di-prep dilewati, bukan error: Fase A boleh jalan
+    bertahap. Yang ikut dicatat di `records` lewat record_int_id() sehingga
+    metrik per-record & cek kebocoran tetap berlaku lintas database.
+    """
+    assert_split_valid()
+    bagian = [stack_records([str(r) for r in DS1], per_record_dir, "mitdb")]
+    hasil = {"ds2": stack_records([str(r) for r in DS2], per_record_dir, "mitdb")}
+
+    for db in DATASETS:
+        if db == "mitdb":
+            continue
+        tersedia = [r for r in records_tersedia(db)
+                    if os.path.exists(os.path.join(per_record_dir, f"{r}.npz"))]
+        if not tersedia:
+            continue
+        latih, uji = bagi_train_test(tersedia)
+        bagian.append(stack_records(latih, per_record_dir, db))
+        hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)
+
+    hasil["train"] = {k: np.concatenate([b[k] for b in bagian]) for k in bagian[0]}
+
+    semua = {nama: set(np.unique(d["records"])) for nama, d in hasil.items()}
+    for nama, rec in semua.items():
+        if nama != "train" and (rec & semua["train"]):
+            raise ValueError(f"record bocor train <-> {nama}: {sorted(rec & semua['train'])}")
+    return hasil

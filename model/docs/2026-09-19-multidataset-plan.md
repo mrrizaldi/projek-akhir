@@ -175,7 +175,6 @@ per-sumber.
 
 | # | Pertanyaan | Kalau "ya" |
 |---|---|---|
-| **A2** | Lead `svdb` = **ECG1** — Holter, lead tak dinamai, **polaritas belum diverifikasi**. Kalau terbalik dari MLII, morfologi QRS terbalik dan model belajar invariansi yang tidak kita mau | plot beberapa record svdb, bandingkan ke mitdb; kalau perlu ganti ke ECG2 atau balik tandanya |
 | **A3** | Subsample F record 208 supaya ragam F tidak tenggelam? | knob baru yang harus dipertanggungjawabkan. **Usul: jangan**, lihat §1 |
 | **A4** | `2026-09-19-fitur-design.md` masih untracked di `main` | commit sendiri — bukan milik Fase A |
 
@@ -183,8 +182,78 @@ per-sumber.
 menulis logika algoritma" dihapus dari `CLAUDE.md` pada 19 Sep, dan fungsinya
 diimplementasikan — keputusannya di §2 di bawah, semuanya bisa diubah.
 
-A2 tidak memblokir tapi bisa **membatalkan hasil svdb** kalau salah — periksa
-sebelum Fase B dianggap sah.
+**A2 (polaritas lead svdb) sudah tertutup** — diukur, bukan diasumsikan; hasil &
+temuan tak terduga di §3b.
+
+Sisa gate: **A3** (subsample F rec 208) dan **A4** (`fitur-design.md` untracked).
+Keduanya tidak memblokir.
+
+---
+
+## 3b. Gate A2 — dua temuan, satu dicari satu tidak
+
+`scripts/cek_lead.py`. Yang diukur: nilai window ter-z-score **di indeks R = 132**
+(`WIN_PRE` + group delay), dirata-rata atas beat **normal saja** (beat V/F memang
+bermorfologi aneh dan bisa negatif di lead yang benar). Itu persis angka yang
+dilihat model.
+
+### Temuan 1 — lead: ECG1 benar
+
+| lead | mean (mentah) | record positif | vonis |
+|---|---|---|---|
+| `mitdb/MLII` | +4,053 | 88% (rec 108 memang berisik) | acuan |
+| `svdb/ECG1` | +1,673 | **100%** | **sebanding** ✓ |
+| `svdb/ECG2` | −0,390 | 50% | **terbalik** ✗ |
+| `incartdb/II` | +3,146 | 100% (n=1, sementara) | sebanding |
+
+`DATASETS["svdb"]["leads"]` dipersempit ke `("ECG1",)`.
+
+### Temuan 2 — yang TIDAK dicari: konvensi anotasi antar-database beda
+
+Posisi puncak relatif anotasi, sinyal ter-bandpass, beat normal:
+
+```
+mitdb  median  +3   p5..p95  +1..+5     <- anotasi DI puncak; +3/+4 = group delay
+svdb   median +10   p5..p95  -2..+15    <- ~6 sampel lebih awal, sebaran 3x lebar
+```
+
+Bias **+6 sampel** itu di atas ambang bahaya repo ini (meleset 4 → precision
+0,48 ke 0,12) **dan sistematis**, bukan jitter zero-mean. Tanpa koreksi tiap beat
+svdb tergeser searah, dan model membacanya sebagai morfologi lain — persis
+"belajar identitas dataset" yang dilawan split inter-patient. Gejalanya di Fase B
+bukan error, cuma *"dataset baru tidak menolong"*.
+
+**Perbaikan pakai mekanisme yang sudah ada** (`haluskan()` di
+`eval_detected_segmentation.py`, `ecg_align_r()` di firmware): geser ke puncak,
+lalu kembalikan group delay. `ALIGN_WIN = 16` (±44 ms) menutup p1..p99 svdb
+(−9..+15) tanpa menjangkau gelombang T (~200–300 ms = 72–108 sampel).
+**Bukan** `PT_REFINE_WIN = 25` — itu untuk sebaran detektor Pan-Tompkins.
+
+Hasilnya:
+
+| | sebelum | sesudah |
+|---|---|---|
+| `svdb/ECG1` mean di R | +1,673 | **+4,533** (mitdb: +4,487) |
+| puncak mendarat di | 135–141 | **132** (7/8 record) |
+| record dengan 100% beat positif | 3/8 | **8/8** |
+
+Record 802 menunjuk 147 karena gelombang S-nya dalam — metrik `puncak_di`
+mengukur amplitudo **absolut**, jadi bisa menunjuk S alih-alih R. Dibaca bareng
+`mean` (802 = +3,656, 100% positif) posisinya benar.
+
+### Cacat di skrip cek sendiri, diperbaiki
+
+`selaraskan_r` memakai **signed argmax**, jadi dia **memaksa** nilai di R jadi
+positif — lead terbalik pun tampak sebanding sesudahnya (`ECG2` melompat dari
+−0,390 ke +1,099). Vonis polaritas **hanya sah dari kolom mentah**.
+`cek_lead.py` sekarang mencetak dua kolom dan dua vonis terpisah.
+
+### mitdb: dibuktikan tak bergeser
+
+`selaraskan=False` untuk mitdb, dan bukan cuma dideklarasikan: **44/44 record
+byte-identik** setelah Fase A, termasuk undian jitter (urutan `rng` bersama
+seperti `main()`). Semua ablasi terkunci tetap reproducible. Dijaga
+`test_jalur_mitdb_byte_identik_setelah_fase_a` untuk rec 100 & 232.
 
 ---
 
@@ -277,8 +346,31 @@ konstanta empiris kalau kita bisa mengukur sendiri.
 ## 7. Yang berubah di kode (Fase A)
 
 Semua **additive**. `FS`, `CHANNEL`, `RAW_DIR`, `DS1`, `DS2`, `VAL_RECORDS`,
-`AAMI_MAP` — **tidak disentuh** (gate point CLAUDE.md). `make test` hijau:
-**65 passed, 3 skipped** (sisa skip menunggu download selesai).
+`AAMI_MAP` — **tidak disentuh** (gate point CLAUDE.md). `make test` hijau: **74 passed, 1 skipped** (sisa skip menunggu incartdb).
+
+### Lubang yang ketemu: `build_split()` mitdb-only
+
+`make split` akan menghasilkan `train.npz` **tanpa svdb sama sekali, tanpa
+bersuara** — persis jebakan yang membuat Fase B melaporkan "data baru tidak
+menolong". Ditambal dengan `build_split_multi()` + `make split-multi`, dan
+**nama file sengaja dibedakan**: `train.npz`/`test.npz` (mitdb-only) tidak
+ditimpa karena keduanya masih dipakai mereproduksi ablasi terkunci.
+
+Terverifikasi: `test_ds2.npz` dan `test.npz` sama-sama 47.513.784 byte dan
+array-nya identik (`test_build_split_multi_tidak_bocor_dan_ds2_utuh`).
+
+### Komposisi setelah svdb (incartdb belum)
+
+```
+train       80 record  292.594 beat  aritmia 10,45%
+  setelah split_train_val -> train 261.547 / val 31.047 (aritmia 10,11%)
+ds2         22 record   49.656 beat  aritmia 10,98%   <- VAL cermin DS2 ✓
+svdb_test   20 record   44.704 beat  aritmia 15,88%
+
+kelas di train:  S 634 -> 7.663 (12,1x)   V 3.071 -> 11.143 (3,6x)
+                 F 394 -> 399 (svdb F memang tak berguna)   Q 6 -> 35
+w_Aritmia        4,948 -> 4,686
+```
 
 | File | Perubahan |
 |---|---|
@@ -288,7 +380,10 @@ Semua **additive**. `FS`, `CHANNEL`, `RAW_DIR`, `DS1`, `DS2`, `VAL_RECORDS`,
 | `src/dataset.py` | + `record_int_id()`, `bagi_train_test()`, `records_tersedia()` (menuntut .hea+.dat+.atr) |
 | `scripts/prep_beats.py` | loop per-db, `--db`; jitter tetap mitdb-DS1 saja |
 | `scripts/download_data.py` | multi-db, `--semua` |
-| `tests/test_multidataset.py` | **baru** — membekukan sebaran terukur & aturan split |
+| `src/dataset.py` (lagi) | + `build_split_multi()` — train gabungan + test per-db |
+| `scripts/cek_lead.py` | **baru** — gate A2: polaritas & alignment, dua kolom |
+| `scripts/build_split.py` | + `--gabungan` → `train_multi.npz`, `test_ds2.npz`, `test_<db>.npz` |
+| `tests/test_multidataset.py` | **baru** — membekukan sebaran, aturan split, alignment, non-regresi mitdb |
 | `Makefile` | + `data-semua`, `make data DB=svdb`; `help` kini lihat target ber-tanda-hubung |
 
 ### Blocker yang ditemukan sambil jalan
