@@ -28,8 +28,12 @@ extern "C" {
 #define ECG_MQTT_ANTRE_N 64
 
 // Batas beat per PUBLISH saat menguras backlog. Membatasi ukuran payload
-// sekaligus memberi PUBACK titik pijak: gagal di tengah = ulangi 16, bukan 64.
-#define ECG_MQTT_BATCH_N 16
+// sekaligus memberi PUBACK titik pijak: gagal di tengah = ulangi 8, bukan 64.
+// Diturunkan dari 16 setelah diukur di board: paket makin besar makin mungkin
+// tidak habis ditulis sekali jalan, dan paket MQTT terpotong tidak pernah
+// di-PUBACK. Sekarang panjangnya ikut diperiksa (lihat kirim_publish), 8 cuma
+// menjaga paket tetap ~2,4 KB.
+#define ECG_MQTT_BATCH_N 8
 
 typedef struct {
     uint32_t ms;                      // millis() saat beat keluar

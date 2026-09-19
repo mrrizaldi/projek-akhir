@@ -205,19 +205,19 @@ angka nyata → cek pemahaman → skrip pendukung.
   sambungan tekan yang intermiten cocok dgn pola "kadang 3128, kadang 48".
   Keputusan: **solder dulu, baru ulangi rekam**. Analisis offline jalan terus
   pakai rekaman 11:30 — HW-5 tidak terkunci total.
-- [ ] **HW-6** — MQTT + ThingsBoard. **Kode jadi, board belum.** `ecg_mqtt.cpp`:
-  klien MQTT 4 paket (CONNECT/PUBLISH QoS1/PUBACK/PINGREQ) di atas `WiFiClient`,
-  tanpa library — kawatnya menyalin `dashboard/smoke_test.py` yang sudah terbukti
-  ke broker yang sama. Publikasi **digerbangi ayunan sinyal** (`AMBANG_AYUN`),
-  bukan ada-tidaknya beat: tanpa elektroda alat mengarang ~2 beat/detik 57%
-  "ARITMIA". Backlog ring 64 beat (~53 dtk), **pointer digeser hanya setelah
-  PUBACK**, `ts` = waktu KEJADIAN (`base + millis`) supaya flush tidak menumpuk
-  di satu detik. Dummy dipublikasi lewat `replay` yang SUDAH ADA (toggle `y`),
-  nol cabang khusus — ayunannya ~2700 counts jadi lolos gerbang yang sama.
-  Toggle MQTT `m`. Kredensial di `include/wifi_secrets.h` (gitignored; tanpa itu
-  build tetap jalan, MQTT nonaktif). `pio test -e native` **22/22**,
-  `pio run -e esp32-s3` SUCCESS RAM 26,4% Flash 8,0%. Sisa: verifikasi di board +
-  uji resiliensi. `docs/mqtt-walkthrough.md`
+- [x] **HW-6 — MQTT + ThingsBoard, TERVERIFIKASI DI BOARD 19 Sep 2026.**
+  `ecg_mqtt.cpp`: klien MQTT 4 paket di atas `WiFiClient`, tanpa library —
+  kawatnya menyalin `dashboard/smoke_test.py`. Publikasi **digerbangi ayunan
+  sinyal** (`AMBANG_AYUN`), bukan ada-tidaknya beat: tanpa elektroda
+  `beat 19 (7 aritmia, 19 ditahan)` → **terkirim 0**. Dummy dipublikasi lewat
+  `replay` yang SUDAH ADA (toggle `y`), nol cabang khusus. Toggle MQTT `m`.
+  Terukur: **171 baris mendarat / 103,2 dtk, 0 ts duplikat, jeda ts 433–911 ms**,
+  laju 1,60 beat/dtk (HW-7: 1,58), `sampel hilang 0`. **Resiliensi lulus:** broker
+  dibekukan 24 dtk (`docker pause`), backlog 43 → 0, deret waktu dashboard TIDAK
+  berlubang (jeda maks 911 ms) karena `ts` = waktu kejadian dari `r_abs`, bukan
+  waktu kirim. `pio test -e native` **22/22**, `pio test -e esp32-s3` **16/16**,
+  RAM **33,1%** Flash **13,4%**. Sisa: ukur daya mode WiFi, dan uji `AMBANG_AYUN`
+  dengan sinyal tubuh (tertahan HW-5). `docs/mqtt-walkthrough.md`
 
 ## Decision point yang sudah di-lock
 
@@ -418,6 +418,32 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   menaikkan daya pisah adalah set uji lebih besar (`ablasi.py --lintas-db`,
   39 pasien held-out). Sebagian vonis "bukan sinyal" Fase A–F jadi lebih lemah,
   bukan lebih kuat.
+- **Menunggu jaringan di dalam loop yang menguras antrean ADC = sampel hilang.**
+  Gejala: `antrean 255/256`, `sampel hilang 4493`, `PUBACK timeout` berulang.
+  Sebab: antrean 256 sampel @360 Hz cuma **711 ms** dalam, jadi panggilan
+  blocking apa pun yang lebih lama dari itu mulai membuang sampel dan merusak
+  interval RR — persis kegagalan yang arsitektur HW-4 (ADC di ISR) dibangun untuk
+  mencegah. Tiga pelaku ditemukan berurutan: tunggu PUBACK 3 dtk (4.493 hilang),
+  `sock.connect()` tanpa batas saat broker BOOTING (2.788), tunggu CONNACK 1,5 dtk
+  (290). Hindari: semua tunggu jaringan dipungut **lintas iterasi** `loop()`
+  (state machine), dan `sock.connect(ip, port, 300)` — pakai `IPAddress`, karena
+  resolusi DNS adalah panggilan blocking TERPISAH yang tidak ikut dibatasi
+  argumen timeout. Hasil akhir: **0**. Detail: `docs/mqtt-walkthrough.md` §7b.
+- **`sock.write()` yang tidak habis bikin paket MQTT terpotong, dan gejalanya
+  menunjuk ke broker.** Gejala: `PUBACK timeout` berulang padahal broker sehat,
+  HANYA saat backlog dikuras, dan **log broker bersih** — nol petunjuk di sisi
+  sana. Sebab: paket ditulis 6 kali terpisah dan nilai kembaliannya diabaikan;
+  payload besar (16 beat ≈ 4,8 KB) tidak habis ditulis, broker menunggu sisa yang
+  tidak pernah datang. Hindari: rakit SATU paket, SATU `write()`, dan periksa
+  panjangnya. Pelajaran umum: pengirim yang tidak memeriksa berapa byte yang
+  benar-benar terkirim akan menyalahkan penerima.
+- **Angka RAM/Flash bisa berbohong kalau kredensial belum ada.** Gejala: build
+  "SUCCESS" melapor RAM 26,4% / Flash 8,0%; dengan `wifi_secrets.h` terisi angka
+  yang sama jadi **33,1% / 13,4%** — selisih 358 KB flash. Sebab: tanpa file itu
+  `WIFI_SSID` adalah `""`, `strlen("")` dilipat jadi konstanta, `WiFi.begin()`
+  jadi kode mati, dan seluruh tumpukan WiFi tidak ikut di-link. Bedanya tidak
+  diumumkan di mana pun. Hindari: ukur ukuran build dalam konfigurasi yang
+  SAMA dengan yang dipakai, dan sebut kondisinya saat mencatat angkanya.
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat

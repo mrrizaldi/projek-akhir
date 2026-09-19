@@ -3,11 +3,11 @@
 **19 September 2026.** Modul: `firmware/src/ecg_mqtt.cpp`, `include/ecg_mqtt.h`,
 plus sambungannya di `firmware/src/main.cpp`.
 
-⚠️ **Status: ter-build & teruji di PC, BELUM diverifikasi di board.**
-`pio test -e native` 22/22 dan `pio run -e esp32-s3` SUCCESS (RAM 26,4%,
-Flash 8,0%). Yang belum: menyalakannya di hardware dengan broker hidup. Sampai
-itu terjadi, angka "beat sampai di broker" di dokumen ini masih kosong, dan
-HW-6 tetap `[ ]` di `../CLAUDE.md`.
+✅ **Status: TERVERIFIKASI DI BOARD, 19 September 2026.** `pio test -e native`
+22/22, `pio test -e esp32-s3` 16/16, dan telemetri sungguhan mendarat di
+ThingsBoard lewat WiFi. Uji resiliensi lulus: broker dibekukan 24 detik, deret
+waktu di dashboard **tidak berlubang** (jeda maksimum 911 ms). Angka lengkap di
+§7, tiga bug yang cuma muncul di hardware di §7b.
 
 ---
 
@@ -274,18 +274,123 @@ di board (`2026-09-18-robustness-changelog.md` §207).
 
 ---
 
-## 7. Angka nyata
+## 7. Angka nyata (diukur di board, 19 Sep 2026)
 
 | Hal | Sebelum HW-6 | Sesudah |
 |---|---|---|
 | `pio test -e native` | 17/17 | **22/22** (+5 uji payload & ring) |
-| RAM (build) | 21,2% | **26,4%** (86.348 B) — tumpukan WiFi |
-| Flash (build) | 6,6% | **8,0%** (522.329 B) |
-| Ukuran payload 1 beat | — | ~300 B |
-| Backlog | — | 64 beat ≈ **53 detik** @72 bpm, ~2,5 KB |
+| `pio test -e esp32-s3` | 16/16 | **16/16** — inferensi tidak tersentuh |
+| RAM (build) | 21,2% | **33,1%** (108.416 B) |
+| Flash (build) | 6,6% | **13,4%** (880.433 B) |
+| Ukuran payload 1 beat | — | ~300 B; batch 8 beat ~2,4 KB |
+| Backlog | — | 64 beat ≈ **53 detik** @72 bpm |
+
+⚠️ **Jangan memakai angka RAM/Flash yang diukur tanpa `wifi_secrets.h`.**
+Tanpa file itu `WIFI_SSID` adalah `""`, `strlen("")` dilipat jadi konstanta oleh
+kompilator, `WiFi.begin()` jadi kode mati, dan **seluruh tumpukan WiFi tidak
+ikut di-link**: 26,4% / 8,0% — selisih 358 KB flash dari angka sebenarnya. Dua
+build itu terlihat sama-sama "SUCCESS" dan bedanya tidak diumumkan di mana pun.
+
+### Jalur data, terukur
+
+| Hal | Angka |
+|---|---|
+| Laju beat replay | **1,60 beat/detik** (45 beat / 28,2 s) vs 1,58 terukur HW-7 |
+| Baris mendarat di ThingsBoard | 171 baris / 103,2 detik, **0 ts duplikat** |
+| Jeda antar-`ts` | **433–911 ms** — tidak bergerombol, tidak berlubang |
+| Gerbang kualitas, tanpa elektroda | `beat 19 (7 aritmia, 19 ditahan)` → **terkirim 0** |
+| Gerbang kualitas, replay | `ditahan 0` → **terkirim 100%** |
+| `sampel hilang` selama semua uji | **0** |
+
+Akuntansi `beat − ditahan = terkirim + backlog + hilang` cocok di setiap
+pengambilan status. Contoh: `beat 148 = terkirim 147 + backlog 1 + hilang 0`.
+
+### Uji resiliensi — `docker pause` 24 detik
+
+```
+[30,2s] mqtt online    | terkirim  20 | backlog  1 | hilang 0 | gagal 0
+[32,3s] === docker pause ===
+[54,0s] mqtt no-broker | terkirim  28 | backlog 33 | hilang 0 | gagal 1
+[56,1s] === docker unpause ===
+[58,2s] mqtt tersambung, backlog 43 beat
+[82,8s] mqtt online    | terkirim 109 | backlog  0 | hilang 0 | gagal 1
+```
+
+`pause` dipilih, bukan `stop`: container membeku sehingga CONNECT tidak dijawab
+sama sekali (SYN/paket ditelan), dan itu menguji batas waktu connect **dan**
+CONNACK — lebih ganas daripada `stop` yang membalas RST seketika. Bonusnya
+praktis: `unpause` pulih dalam 2 detik, sementara `docker start` butuh ~55 detik
+menunggu ThingsBoard boot.
+
+Yang membuktikan klaim di proposal: 24 detik outage, tapi **jeda maksimum di
+deret waktu dashboard cuma 911 ms** — backlog mengisi lubangnya dengan `ts`
+asli, bukan `ts` saat kirim.
 
 Latensi per detak (26,6 ms) tidak berubah: publikasi cuma menyalin struct ke
 ring; jaringan diurus `ecg_mqtt_layani()` di luar jalur beat.
+
+---
+
+## 7b. Tiga bug yang HANYA muncul di hardware
+
+Semuanya lolos `pio test -e native` 22/22 dan lolos build. Ini catatan kenapa
+"kode jadi" bukan "kode benar".
+
+### (1) Menunggu PUBACK memblokir loop → 4.493 sampel hilang
+
+Gejala: `antrean 255/256` (penuh), `sampel hilang 4493`, `PUBACK timeout`
+berulang. Sebab: `publish()` menunggu PUBACK di tempat dengan batas 3 detik,
+di dalam loop yang sedang menguras antrean ADC. Antrean 256 sampel @360 Hz =
+**711 ms**, jadi satu timeout saja sudah melahap antrean penuh — dan interval RR
+rusak, yaitu persis kegagalan yang arsitektur HW-4 dibangun untuk mencegah.
+
+Perbaikan: PUBACK dipungut **lintas iterasi** `loop()` (`menunggu_ack` +
+`pungut_ack()`), bukan di dalam satu panggilan. Tambahan: `ecg_mqtt_layani()`
+dibatasi tiap 20 ms — dipanggil 360×/detik, `WiFi.status()` + `time()` sebanyak
+itu ikut memakan anggaran 2.778 µs/sampel.
+
+Hasil: 4.493 → **146**.
+
+### (2) `sock.connect()` masih blocking → 2.788 sampel hilang saat broker booting
+
+Gejala: `sampel hilang` melompat ke 2.788 tepat saat `docker start`. Sebab:
+selama broker MATI, connect gagal seketika (RST) — tidak ada kerugian. Tapi saat
+broker sedang **booting**, portnya terbuka dan paketnya ditelan, jadi
+`sock.connect()` menggantung ~7,7 detik.
+
+Perbaikan: `sock.connect(ip, port, 300)` — batas 300 ms, di bawah kedalaman
+antrean 711 ms. Dan `IPAddress`, bukan hostname: resolusi DNS adalah panggilan
+blocking **terpisah** yang tidak ikut dibatasi argumen timeout itu.
+
+Hasil: 2.788 → **290**. Sisa 290 dari `tunggu()` CONNACK yang masih blocking
+1.500 ms → CONNACK pun dijadikan non-blocking (`pungut_connack()`), dan fungsi
+`tunggu()` dihapus seluruhnya.
+
+Hasil akhir: **0**.
+
+### (3) Enam `sock.write()` tanpa memeriksa nilai kembalian → paket terpotong
+
+Gejala paling menipu dari ketiganya: `PUBACK timeout` berulang **padahal broker
+sehat**, dan **hanya** saat backlog dikuras. Log broker bersih — nol petunjuk di
+sisi sana. Sebab: paket MQTT ditulis 6 kali terpisah dan nilai kembaliannya
+diabaikan. Saat payload besar (16 beat ≈ 4,8 KB) socket tidak menampung
+semuanya; write pendek meninggalkan paket MQTT **terpotong**, broker menunggu
+sisa yang tidak pernah datang, dan tidak pernah mengirim PUBACK.
+
+Jadi gejalanya menyamar sebagai "broker lambat", padahal pengirimnya yang
+berbohong soal berapa byte yang berhasil ditulis.
+
+Perbaikan: satu paket dirakit di satu buffer, **satu** `sock.write()`, dan
+panjangnya diperiksa (`!= q` → putus). `ECG_MQTT_BATCH_N` 16 → 8 supaya paket
+tetap ~2,4 KB.
+
+Hasil: `gagal` berhenti di 1 — satu-satunya yang sah, saat broker memang
+dibekukan.
+
+**Pola yang sama di ketiganya:** gagal tanpa error, dan gejalanya menunjuk ke
+tempat yang salah (broker, bukan firmware). Senada dengan jebakan op `MEAN` di
+TFLM dan `float` di ISR — repo ini sudah tiga kali tertipu pola "salah tanpa
+berisik".
 
 ---
 
@@ -317,9 +422,14 @@ ring; jaringan diurus `ecg_mqtt_layani()` di luar jalur beat.
 
 ## 10. Sisa pekerjaan HW-6
 
-- [ ] Nyalakan di board dengan broker hidup: replay ON + `m` ON, cocokkan
-      **11 beat/putaran** dengan baris yang masuk ThingsBoard
-- [ ] Uji resiliensi: `docker compose stop` di tengah jalan, hidupkan lagi,
-      pastikan backlog terkuras dan `ts`-nya tersebar (bukan menumpuk)
-- [ ] Ukur daya mode MQTT (HW-7 punya tangga mode `p0`–`p4`; WiFi belum diukur)
-- [ ] Baru setelah itu: centang HW-6 di `../CLAUDE.md`
+- [x] Nyalakan di board dengan broker hidup — **selesai 19 Sep 2026**, 171 baris
+      mendarat, laju 1,60 beat/detik cocok dengan 1,58 milik HW-7
+- [x] Uji resiliensi — **lulus**, jeda maksimum 911 ms untuk outage 24 detik
+- [ ] **Ukur daya mode MQTT.** HW-7 punya tangga mode `p0`–`p4` tapi WiFi belum
+      pernah masuk pengukuran, dan radio itu beban terbesar di seluruh alat.
+      Angka daya di laporan saat ini belum mencakupnya
+- [ ] **Uji dengan sinyal tubuh** (tertahan HW-5: header AD8232 belum disolder).
+      Yang belum terbukti khusus di jalur ini: apakah `AMBANG_AYUN` 60 memisahkan
+      dengan benar antara elektroda lepas dan sinyal tubuh yang lemah. Replay
+      (~2700 counts) terlalu jauh di atas ambang untuk mengujinya
+- [ ] Widget dashboard untuk `ecg_snippet` (datanya sudah masuk, belum digambar)

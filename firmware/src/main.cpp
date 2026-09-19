@@ -61,6 +61,9 @@ static TfLiteTensor *in_morph, *in_rr, *keluar;
 
 static int beat_total, beat_aritmia;
 static int beat_ditahan;   // tidak dipublikasi: kualitas sinyal / beat timeout
+// millis() saat sesi ecg_live dimulai. Dipakai mengubah indeks sampel jadi waktu
+// dinding, lihat publikasi().
+static uint32_t t_sesi_ms;
 
 // Kualitas sinyal 1 detik terakhir (dipakai LED + laporan serial).
 static int ayun_1s, ayun_bersih_1s, hum50_1s, mentah_min_1s, mentah_maks_1s;
@@ -171,6 +174,12 @@ static float klasifikasi(const ecg_beat_t &beat)
 // Replay TIDAK diperlakukan khusus dan memang tidak perlu: ayunannya ~2700
 // counts, jauh di atas AMBANG_AYUN 60, jadi ia lolos gerbang yang sama persis
 // dengan sinyal tubuh. Satu jalur kode untuk dummy dan nyata.
+static void mulai_sesi()
+{
+    ecg_live_reset();
+    t_sesi_ms = millis();
+}
+
 static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
 {
     if (!ecg_mqtt_aktif()) return;
@@ -178,7 +187,17 @@ static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
     if (beat.sinyal_hilang) { beat_ditahan++; return; }   // beat timeout, RR+1 sentinel
 
     ecg_mqtt_beat_t t;
-    t.ms = millis();
+    // Waktu KEJADIAN beat, dihitung dari indeks sampelnya — bukan millis() saat
+    // beat dikeluarkan. Deteksi jalan tiap 1 detik atas ring 4 detik, jadi
+    // beberapa beat keluar bergerombol dalam milidetik yang sama; memakai
+    // millis() membuat dashboard menampilkan denyut yang berdesakan lalu
+    // menganggur. Terukur di board 19 Sep: jeda antar-ts minimum 28 ms padahal
+    // RR terpendek ~200 ms.
+    //
+    // Sampel yang HILANG (antrean penuh) membuat hitungan ini menyimpang dari
+    // jam dinding sebesar durasi yang hilang. Itu sebabnya `sampel hilang` ikut
+    // dilaporkan di baris 's': kalau ia tidak nol, ts ikut meleset.
+    t.ms = t_sesi_ms + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
     t.rr_ms = beat.rr[0] * 1000.0f;
     t.bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
     t.label = aritmia ? 1 : 0;
@@ -329,7 +348,7 @@ void setup()
 
     siapkan_model();
     siapkan_replay();               // WAJIB sebelum timer jalan: ISR cuma baca
-    ecg_live_reset();
+    mulai_sesi();
     ecg_mqtt_mulai();               // non-blocking: sambungan diurus di loop()
 
     timer = timerBegin(0, 80, true);
@@ -391,7 +410,7 @@ void loop()
         else if (c == 'y') {
             replay = !replay;
             replay_i = 0;
-            ecg_live_reset();
+            mulai_sesi();
             beat_total = beat_aritmia = beat_ditahan = 0;
             Serial.printf("replay %s\n", replay ? "ON (golden_raw)" : "OFF (ADC)");
         }

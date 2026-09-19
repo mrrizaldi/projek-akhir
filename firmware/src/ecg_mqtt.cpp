@@ -111,7 +111,15 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
 // ina219.cpp yang juga tanpa library.
 static WiFiClient sock;
 static bool aktif = true, tersambung;
-static uint32_t t_coba, t_ping, terkirim, gagal;
+static uint32_t t_coba, t_ping, t_layani, terkirim, gagal;
+// PUBLISH tidak menunggu PUBACK di tempat. Menunggu di sini berarti memblokir
+// loop() yang sedang menguras antrean ADC: satu timeout 3 detik = ~1.080 sampel
+// hilang dari antrean 256, dan interval RR rusak. Diukur di board 19 Sep 2026:
+// sampel hilang 4.493, antrean 255/256 penuh. Jadi PUBACK ditunggu LINTAS
+// iterasi loop(), bukan di dalam satu panggilan.
+static bool menunggu_ack, menunggu_connack;
+static uint32_t t_kirim;
+static size_t n_terbang;                   // beat yang sudah dikirim, belum ber-PUBACK
 static uint16_t pid;
 static uint64_t ts_base_ms;            // epoch ms saat millis() == 0
 static char buf[ECG_MQTT_BATCH_N * 320 + 8];
@@ -123,24 +131,19 @@ static size_t varlen(uint8_t *out, size_t n)
     return i;
 }
 
-static bool tunggu(size_t n, uint32_t batas_ms)
-{
-    const uint32_t t0 = millis();
-    while (sock.available() < (int)n) {
-        if (millis() - t0 > batas_ms || !sock.connected()) return false;
-        delay(1);
-    }
-    return true;
-}
-
 static void putus(const char *sebab)
 {
     if (tersambung) Serial.printf("mqtt putus (%s)\n", sebab);
     sock.stop();
     tersambung = false;
+    menunggu_ack = menunggu_connack = false;
+    n_terbang = 0;          // backlog TIDAK dibuang: beat dikirim ulang nanti,
+                            // dan ts identik membuat ThingsBoard meng-upsert
 }
 
-static bool connect_mqtt()
+// Menulis CONNECT lalu selesai. CONNACK dipungut pungut_connack() di iterasi
+// berikutnya — tidak ada satu pun panggilan yang menunggu jaringan di tempat.
+static void kirim_connect()
 {
     const char *cid = "esp32-ecg", *user = TB_TOKEN;
     const size_t lc = strlen(cid), lu = strlen(user);
@@ -151,48 +154,93 @@ static bool connect_mqtt()
     var[v++] = 0; var[v++] = 60;                       // keepalive 60 s
     const size_t rem = v + 2 + lc + 2 + lu;
 
-    uint8_t hdr[5]; hdr[0] = 0x10;
-    const size_t lh = 1 + varlen(hdr + 1, rem);
-    sock.write(hdr, lh);
-    sock.write(var, v);
-    uint8_t l2[2];
-    l2[0] = lc >> 8; l2[1] = lc & 0xFF; sock.write(l2, 2); sock.write((const uint8_t *)cid, lc);
-    l2[0] = lu >> 8; l2[1] = lu & 0xFF; sock.write(l2, 2); sock.write((const uint8_t *)user, lu);
+    uint8_t paket[5 + sizeof var + 2 + 32 + 2 + 64];
+    size_t q = 0;
+    paket[q++] = 0x10;
+    q += varlen(paket + q, rem);
+    memcpy(paket + q, var, v); q += v;
+    paket[q++] = (uint8_t)(lc >> 8); paket[q++] = (uint8_t)(lc & 0xFF);
+    memcpy(paket + q, cid, lc); q += lc;
+    paket[q++] = (uint8_t)(lu >> 8); paket[q++] = (uint8_t)(lu & 0xFF);
+    memcpy(paket + q, user, lu); q += lu;
+    if (sock.write(paket, q) != q) { putus("write CONNECT tidak habis"); return; }
 
-    if (!tunggu(4, 3000)) { putus("CONNACK timeout"); return false; }
-    uint8_t ack[4];
-    sock.readBytes(ack, 4);
-    if (ack[0] != 0x20 || ack[3] != 0x00) {
-        Serial.printf("mqtt CONNACK ditolak kode %u\n", ack[3]);
-        putus("CONNACK");
-        return false;
-    }
-    return true;
+    t_kirim = millis();
+    menunggu_connack = true;
 }
 
-// PUBLISH QoS 1 + tunggu PUBACK. Return true HANYA kalau PUBACK cocok — itu
-// syarat sebelum backlog digeser.
-static bool publish(const char *payload, size_t n)
+static void pungut_connack()
 {
+    if (sock.available() >= 4) {
+        uint8_t ack[4];
+        sock.readBytes(ack, 4);
+        menunggu_connack = false;
+        if (ack[0] != 0x20 || ack[3] != 0x00) {
+            Serial.printf("mqtt CONNACK ditolak kode %u\n", ack[3]);
+            putus("CONNACK");
+            return;
+        }
+        tersambung = true;
+        t_ping = millis();
+        Serial.printf("mqtt tersambung, backlog %u beat\n", (unsigned)ecg_mqtt_antre_n());
+        return;
+    }
+    if (millis() - t_kirim > 2000) putus("CONNACK timeout");
+}
+
+// Menulis PUBLISH QoS 1 lalu SELESAI. PUBACK-nya dipungut ecg_mqtt_layani()
+// di iterasi berikutnya; backlog baru digeser di sana.
+static bool kirim_publish(const char *payload, size_t n)
+{
+    // SATU paket, SATU write, dan panjangnya DIPERIKSA.
+    //
+    // Versi pertama menulis 6 kali terpisah dan mengabaikan nilai kembaliannya.
+    // Diukur di board 19 Sep: `PUBACK timeout` berulang, tapi HANYA saat backlog
+    // dikuras — yaitu saat payload-nya besar (16 beat ~ 4,8 KB). Write yang
+    // tidak habis meninggalkan paket MQTT terpotong; broker menunggu sisa yang
+    // tidak pernah datang dan tidak pernah mengirim PUBACK. Gejalanya menyamar
+    // sebagai "broker lambat", dan log broker bersih — jadi tidak ada satu pun
+    // petunjuk di sisi sana.
+    static uint8_t paket[5 + 2 + 64 + 2 + sizeof buf];
     const size_t lt = strlen(TOPIK);
     pid = (uint16_t)(pid % 65535) + 1;
     const size_t rem = 2 + lt + 2 + n;
 
-    uint8_t hdr[5]; hdr[0] = 0x32;                      // PUBLISH, QoS 1
-    const size_t lh = 1 + varlen(hdr + 1, rem);
-    sock.write(hdr, lh);
-    uint8_t l2[2] = { (uint8_t)(lt >> 8), (uint8_t)(lt & 0xFF) };
-    sock.write(l2, 2); sock.write((const uint8_t *)TOPIK, lt);
-    l2[0] = pid >> 8; l2[1] = pid & 0xFF; sock.write(l2, 2);
-    sock.write((const uint8_t *)payload, n);
+    size_t q = 0;
+    paket[q++] = 0x32;                                  // PUBLISH, QoS 1
+    q += varlen(paket + q, rem);
+    paket[q++] = (uint8_t)(lt >> 8); paket[q++] = (uint8_t)(lt & 0xFF);
+    memcpy(paket + q, TOPIK, lt); q += lt;
+    paket[q++] = (uint8_t)(pid >> 8); paket[q++] = (uint8_t)(pid & 0xFF);
+    memcpy(paket + q, payload, n); q += n;
 
-    if (!tunggu(4, 3000)) { putus("PUBACK timeout"); gagal++; return false; }
-    uint8_t ack[4];
-    sock.readBytes(ack, 4);
-    const uint16_t got = (uint16_t)((ack[2] << 8) | ack[3]);
-    if (ack[0] != 0x40 || got != pid) { putus("PUBACK tak cocok"); gagal++; return false; }
-    t_ping = millis();
+    if (sock.write(paket, q) != q) { gagal++; putus("write tidak habis"); return false; }
+
+    t_ping = t_kirim = millis();
+    menunggu_ack = true;
     return true;
+}
+
+// Memungut PUBACK tanpa memblokir. Return-nya cuma memberi tahu pemanggil
+// bahwa urusan ack sedang berjalan, jadi jangan kirim batch baru dulu.
+static void pungut_ack()
+{
+    if (sock.available() >= 4) {
+        uint8_t ack[4];
+        sock.readBytes(ack, 4);
+        menunggu_ack = false;
+        const uint16_t got = (uint16_t)((ack[2] << 8) | ack[3]);
+        if (ack[0] == 0x40 && got == pid) {
+            ecg_mqtt_antre_buang(n_terbang);        // HANYA setelah PUBACK
+            terkirim += n_terbang;
+            n_terbang = 0;
+            return;
+        }
+        gagal++;
+        putus("PUBACK tak cocok");
+        return;
+    }
+    if (millis() - t_kirim > 5000) { gagal++; putus("PUBACK timeout"); }
 }
 
 void ecg_mqtt_mulai(void)
@@ -224,19 +272,41 @@ static void sinkron_jam()
 void ecg_mqtt_layani(void)
 {
     if (!aktif) return;
+    // Dipanggil sekali per sampel (360 Hz). WiFi.status() + time() sebanyak itu
+    // ikut memakan anggaran 2.778 us/sampel, jadi dilayani tiap 20 ms saja —
+    // masih 50x lebih sering daripada laju beat.
+    if (millis() - t_layani < 20) return;
+    t_layani = millis();
+
     sinkron_jam();
 
     if (!sock.connected()) {
         tersambung = false;
+        menunggu_ack = menunggu_connack = false;
+        n_terbang = 0;
         if (WiFi.status() != WL_CONNECTED) return;
         if (millis() - t_coba < 5000) return;          // jangan banjiri broker
         t_coba = millis();
-        if (!sock.connect(TB_HOST, TB_PORT)) return;
-        if (!connect_mqtt()) return;
-        tersambung = true;
-        t_ping = millis();
-        Serial.printf("mqtt tersambung, backlog %u beat\n", (unsigned)ecg_mqtt_antre_n());
+        // Batas waktu WAJIB, dan harus di bawah kedalaman antrean ADC: 256
+        // sampel @360 Hz = 711 ms, jadi blokir yang lebih lama dari itu mulai
+        // menghilangkan sampel dan merusak RR. Terukur di board 19 Sep: tanpa
+        // batas, `docker start` (port terbuka tapi broker belum menerima)
+        // memblokir ~7,7 detik -> 2.788 sampel hilang.
+        //
+        // IPAddress, bukan hostname: resolusi DNS itu panggilan blocking
+        // TERPISAH yang tidak ikut dibatasi argumen timeout ini.
+        static IPAddress ip;
+        static bool ip_siap;
+        if (!ip_siap) ip_siap = ip.fromString(TB_HOST);
+        if (!ip_siap) { Serial.println("mqtt: TB_HOST bukan alamat IP"); aktif = false; return; }
+        if (!sock.connect(ip, TB_PORT, 300)) return;
+        kirim_connect();
+        return;
     }
+
+    if (!tersambung) { pungut_connack(); return; }   // TCP hidup, MQTT belum
+
+    if (menunggu_ack) { pungut_ack(); return; }     // satu PUBLISH beredar saja
 
     // Kirim apa pun yang tertahan. Satu batch per panggilan supaya loop tetap
     // responsif terhadap sampel ADC — antrean ISR cuma 256 dalam.
@@ -244,10 +314,7 @@ void ecg_mqtt_layani(void)
         static ecg_mqtt_beat_t petak[ECG_MQTT_BATCH_N];
         const size_t n = ecg_mqtt_antre_intip(petak, ECG_MQTT_BATCH_N);
         const size_t w = ecg_mqtt_payload(buf, sizeof buf, petak, n, ts_base_ms);
-        if (w && publish(buf, w)) {
-            ecg_mqtt_antre_buang(n);                   // HANYA setelah PUBACK
-            terkirim += n;
-        }
+        if (w && kirim_publish(buf, w)) n_terbang = n;
         return;
     }
 
