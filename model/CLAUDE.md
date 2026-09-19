@@ -6,20 +6,18 @@ Desain workflow: `docs/2026-08-18-workflow-model-design.md`.
 
 ## Aturan
 
-1. **USER yang menulis logika algoritma.** Claude: scaffolding, review, debug,
-   docs, build glue. Jangan isi `src/*.py` kecuali diminta eksplisit.
-2. **`src/` = modul MURNI** (fungsi in→out, tanpa kode top-level, import-safe).
+1. **`src/` = modul MURNI** (fungsi in→out, tanpa kode top-level, import-safe).
    **`scripts/` = eksekusi** (cetak, plot, tulis file). Jangan campur.
-3. **Semua konstanta di `config.py`.** Jangan hardcode angka di `src/`.
-4. **DS2 haram disentuh sebelum Fase 6.** Bukan validation, bukan tuning
+2. **Semua konstanta di `config.py`.** Jangan hardcode angka di `src/`.
+3. **DS2 haram disentuh sebelum Fase 6.** Bukan validation, bukan tuning
    threshold. Sekali sentuh di Fase 6–7, itu saja.
-5. **`sosfilt`, BUKAN `filtfilt`** (kausal — JEBAKAN #1 PRD). `filtfilt` mustahil
+4. **`sosfilt`, BUKAN `filtfilt`** (kausal — JEBAKAN #1 PRD). `filtfilt` mustahil
    real-time di MCU → train/deploy mismatch.
-6. **Segmentasi training pakai R-peak dari ANOTASI**, bukan Pan-Tompkins
+5. **Segmentasi training pakai R-peak dari ANOTASI**, bukan Pan-Tompkins
    (keputusan terkunci, PRD Fase 2).
-7. **Tiap fase selesai → tulis walkthrough.** Satu file per modul di `docs/`,
+6. **Tiap fase selesai → tulis walkthrough.** Satu file per modul di `docs/`,
    pola nama `<modul>-walkthrough.md`. Lihat "Walkthrough per fase" di bawah.
-8. **Penjelasan tinggal di `docs/`, bukan di `src/`.** File `src/` ditulis
+7. **Penjelasan tinggal di `docs/`, bukan di `src/`.** File `src/` ditulis
    sependek mungkin (nyaris tanpa komentar) supaya terbaca sebagai persamaan
    dan gampang diterjemahkan ke C. Kalau butuh menjelaskan "kenapa", tempatnya
    walkthrough — bukan docstring 40 baris.

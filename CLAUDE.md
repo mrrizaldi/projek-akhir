@@ -10,19 +10,15 @@ aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
 
 ## Aturan kerja (non-negotiable)
 
-1. **User menulis logika algoritma sendiri.** File `.py`/`.cpp` di `model/`
-   dan `firmware/` sengaja stub. **Jangan implementasikan logika** (preprocessing,
-   training, quantize, inferensi) kecuali user minta eksplisit di file itu.
-   Tugas default Claude di sini = scaffolding, docs, build glue, review.
-2. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua
+1. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua
    pembuatan file pola "buat jika belum ada", jangan overwrite.
-3. **`laporan/` read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
+2. **`laporan/` read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
    jangan diutak-atik tanpa konfirmasi. Path relatif rapuh. Aturan detail
    (gaya tulis, konvensi tabel/gambar, struktur bab) ada di `laporan/CLAUDE.md`
    — baca itu dulu kalau kerja di `laporan/`.
-4. **PRD = `model/PRD_Model_Aritmia_TinyML.pdf`** (PDF, bukan `.md`; baca pakai
+3. **PRD = `model/PRD_Model_Aritmia_TinyML.pdf`** (PDF, bukan `.md`; baca pakai
    Read `pages=`). Ikuti kontrak fungsi & jebakan di sana; jangan vibe-coding.
-5. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
+4. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
    mekanisme yang dibutuhkan sering SUDAH ada, tinggal dikerjakan atau diperluas.
    Dua contoh nyata (18 Sep 2026): sumber sinyal replay untuk uji tanpa hardware
    sudah tertulis lengkap di `model/docs/2026-09-16-daya-plan.md` Task 4, dan

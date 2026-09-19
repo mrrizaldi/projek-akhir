@@ -1,10 +1,13 @@
 import os
 
 import numpy as np
-from scipy.signal import butter, sosfilt, lfilter
+from math import gcd
+
+from scipy.signal import butter, sosfilt, lfilter, resample_poly
 
 from config import (
-    FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER, WIN_PRE, WIN_POST, WIN_LEN,
+    ALIGN_WIN, FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER, GROUP_DELAY_SAMPLES,
+    WIN_PRE, WIN_POST, WIN_LEN,
     METRICS_DIR,
     PT_BAND_LOW, PT_BAND_HIGH, PT_BAND_ORDER, PT_MWI_WINDOW_MS, PT_REFRACTORY_MS,
 )
@@ -149,3 +152,72 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
         raise ValueError(f"model jitter tak dikenal: {model}")
 
     return np.maximum.accumulate(r + geser)
+
+
+# ── Fase A — penyeragaman laju cuplik antar-database ─────────────────────────
+# svdb 128 Hz dan incartdb 257 Hz harus jadi 360 Hz sebelum masuk pipeline, dan
+# alasannya BUKAN kerapian: WIN_PRE terdefinisi dalam SAMPEL, bukan waktu.
+#
+#     128 sampel @ 360 Hz =  355 ms   <- yang diablasi & dikunci 18 Sep
+#     128 sampel @ 128 Hz = 1000 ms   <- fisiologi lain sama sekali
+#
+# Decision point 18 Sep bilang yang membayar itu "konteks 128 sampel SEBELUM R",
+# dan mekanismenya gelombang P & interval PR yang hidup ~150-200 ms sebelum R.
+# Itu durasi FISIOLOGIS. Memakai 128 sampel di 128 Hz bukan menyalin keputusan
+# itu — itu melanggarnya sambil terlihat konsisten.
+#
+# Dengan target 360 Hz: WIN_PRE/WIN_POST, koefisien bandpass (didesain di FS),
+# ECG_FS di firmware, dan golden_ref.h SEMUANYA tidak berubah. Itu sebabnya
+# arahnya ke 360, bukan menurunkan mitdb ke 128.
+
+
+def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
+                   fs_asal: int, fs_target: int = FS):
+    """Samakan laju cuplik ke fs_target. Returns (signal float32, r int64).
+
+    resample_poly (polyphase, linear-phase) bukan resample (FFT). Posisi R
+    dibulatkan saja. TIDAK menyaring r yang keluar batas — `symbols` sejajar
+    lewat indeks, dan batas window urusan prep_beats.valid_beat_indices().
+
+    Alasan ketiganya: docs/2026-09-19-multidataset-plan.md §2.
+    """
+    r = np.asarray(r_locations, dtype=np.int64)
+    if fs_asal == fs_target:
+        return np.asarray(signal, dtype=np.float32), r
+
+    faktor = gcd(int(fs_asal), int(fs_target))
+    up, down = int(fs_target) // faktor, int(fs_asal) // faktor
+
+    baru = resample_poly(np.asarray(signal, dtype=np.float64), up, down)
+    r_baru = np.rint(r * (up / down)).astype(np.int64)
+
+    # ponytail: pembulatan naif cukup selama kita UPSAMPLE (indeks makin
+    # menyebar, tak mungkin bertabrakan). Kalau suatu hari fs_target < fs_asal,
+    # dua R bisa jatuh ke indeks sama -> RR = 0 dan itu bukan mode kegagalan
+    # detektor mana pun. Berisik di sini, jangan diam-diam.
+    if len(r_baru) > 1 and np.any(np.diff(r_baru) <= 0):
+        raise ValueError(
+            f"resample {fs_asal}->{fs_target} Hz membuat R-peak bertabrakan "
+            f"(RR <= 0). Perlu cari-ulang puncak, bukan pembulatan."
+        )
+
+    return baru.astype(np.float32), r_baru
+
+
+def selaraskan_r(r_locations: np.ndarray, filtered: np.ndarray,
+                 win: int = ALIGN_WIN) -> np.ndarray:
+    """Geser anotasi R ke puncak sebenarnya, lalu kembalikan group delay.
+
+    Untuk database yang konvensi anotasinya beda dari mitdb (DATASETS[db]
+    ["selaraskan"]). Sepadan dengan haluskan() di scripts/eval_detected_
+    segmentation.py dan ecg_align_r() di firmware, jendela lebih sempit.
+
+    Alasan & angka: docs/2026-09-19-multidataset-plan.md §3.
+    """
+    r = np.asarray(r_locations, dtype=np.int64)
+    n = len(filtered)
+    hasil = np.empty_like(r)
+    for i, lo in enumerate(r):
+        a, b = max(0, lo - win), min(n, lo + win + 1)
+        hasil[i] = a + int(np.argmax(filtered[a:b])) if b > a else lo
+    return hasil - GROUP_DELAY_SAMPLES

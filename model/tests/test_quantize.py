@@ -4,7 +4,8 @@ import numpy as np
 import pytest
 
 from config import ARTIFACT_DIR, MAX_MODEL_KB, WIN_LEN, N_RR_FEATURES
-from src.quantize import representative_dataset_gen, stratified_indices
+from src.quantize import (assert_skala_ritme_wajar, representative_dataset_gen,
+                          stratified_indices)
 
 TFLITE = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
 butuh_artefak = pytest.mark.skipif(not os.path.exists(TFLITE), reason="jalankan `make quantize`")
@@ -63,3 +64,27 @@ def test_benar_benar_full_int8():
     assert "float32" not in dtypes, f"masih ada float32: {dtypes}"
     assert all(d["dtype"].__name__ == "int8" for d in interp.get_input_details())
     assert interp.get_output_details()[0]["dtype"].__name__ == "int8"
+
+
+@butuh_artefak
+def test_skala_ritme_artefak_wajar():
+    """Ranjau senyap: skala INT8 input ritme diturunkan dari min/max REP_SAMPLES
+    sampel kalibrasi. Satu beat ber-RR ekstrem di sana (record 207: RR_prev =
+    100 s) melebarkan skala ~30x, cabang ritme mati, dan yang TERLIHAT cuma
+    recall S buruk — bukan error. Terukur 19 Sep: sehat 0,0129; outlier disuntik
+    0,3952. Peluang kena per seed 1,8% (tiga database).
+    """
+    from config import MAX_RHYTHM_SCALE
+    with open(TFLITE, "rb") as f:
+        skala = assert_skala_ritme_wajar(f.read())
+    assert skala == pytest.approx(0.0129, abs=5e-3), f"skala bergeser: {skala}"
+    assert skala < MAX_RHYTHM_SCALE
+
+
+@butuh_artefak
+def test_assert_skala_ritme_benar_benar_menyalak():
+    """Ambang diperketat di bawah nilai sehat -> harus raise, bukan lolos diam."""
+    with open(TFLITE, "rb") as f:
+        blob = f.read()
+    with pytest.raises(ValueError, match="skala kuantisasi input ritme"):
+        assert_skala_ritme_wajar(blob, ambang=0.001)

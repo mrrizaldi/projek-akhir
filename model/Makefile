@@ -3,14 +3,16 @@
 PY := $(if $(wildcard .venv/bin/python),.venv/bin/python,python)
 REC ?= 100          # record buat target plot: make plot0 REC=114
 
-.PHONY: data check plot0 plot1 plot1seg prep split train eval quantize export poc pull analisis test clean help
+.PHONY: data data-semua check plot0 plot1 plot1seg prep split split-multi train eval quantize export poc pull analisis test clean help
 
 help:
-	@grep -E '^[a-z0-9]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
+	@grep -E '^[a-z0-9-]+:.*?##' $(MAKEFILE_LIST) | sed 's/:.*##/\t/'
 
 ## ── Fase 0 — data & verifikasi loader ────────────────────────────────────────
 data:  ## download MIT-BIH ke data/raw/mitdb (sekali jalan)
-	$(PY) scripts/download_data.py
+	$(PY) scripts/download_data.py $(DB)
+data-semua: ## + svdb & incartdb (Fase A, ~1 GB) -> data/raw/<db>/
+	$(PY) scripts/download_data.py --semua
 check: ## cek kelengkapan .hea/.dat/.atr
 	$(PY) scripts/check_dataset.py
 plot0: ## verifikasi Fase 0 — overlay R-peak anotasi
@@ -31,6 +33,8 @@ prep: data/processed/per_record/.stamp  ## ekstrak beat+label+RR per record
 data/processed/train.npz: data/processed/per_record/.stamp config.py src/dataset.py
 	$(PY) scripts/build_split.py
 split: data/processed/train.npz  ## rakit train.npz (DS1) & test.npz (DS2)
+split-multi: ## Fase A: train_multi.npz + test_ds2.npz + test_<db>.npz
+	$(PY) scripts/build_split.py --gabungan
 
 ## ── Fase 5-7 ─────────────────────────────────────────────────────────────────
 train: data/processed/train.npz  ## latih model di DS1 → artifacts/model_fp32.keras

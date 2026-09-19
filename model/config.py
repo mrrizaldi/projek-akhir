@@ -77,6 +77,110 @@ DS1 = [101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 124,
        201, 203, 205, 207, 208, 209, 215, 220, 223, 230]   # latih (22)
 DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
        213, 214, 219, 221, 222, 228, 231, 232, 233, 234]   # uji  (22)
+# ── Fase A (19 Sep 2026) — dataset tambahan: svdb + incartdb ─────────────────
+# Permintaan pembimbing dari awal: perluas data latih. Sebaran di bawah TERUKUR
+# dari anotasi asli PhysioNet, dipetakan lewat AAMI_MAP di atas — bukan angka
+# yang disalin dari paper:
+#
+#   svdb      78 rec, 128 Hz | S 12.198/73rec  V  9.943/67rec  F  23/6rec   Q 79/20rec
+#   incartdb  75 rec, 257 Hz | S  1.960/36rec  V 20.013/70rec  F 219/22rec  Q  6/5rec
+#
+# Kenapa dua ini, bukan yang lain: keduanya punya anotasi BEAT-LEVEL (.atr, satu
+# simbol per R-peak) dengan alfabet WFDB yang sama, jadi AAMI_MAP di atas sudah
+# menanganinya apa adanya. PTB-XL / CPSC / Chapman dibuang bukan karena frekuensi
+# tapi karena diagnosisnya PER-REKAMAN — label per-beat tidak bisa diturunkan
+# dari sana, berapa pun frekuensinya.
+#
+# Peran masing-masing:
+#   svdb     -> recall S (0,422 +- 0,156). Dari 634 beat/~20 pasien ke ~11.250/~102.
+#   incartdb -> KONSENTRASI F. Punya kita 372 dari 394 beat F ada di record 208
+#               saja; incartdb menyebar 219 beat di 22 record. Yang diperbaiki
+#               cakupan pasien, bukan jumlah beat.
+#   Q        -> TIDAK ada yang menolong: 100 beat di tiga database
+#               digabung (8+7 mitdb + 79 svdb + 6 incartdb = 100). Q tetap
+#               bukan kelas yang bisa dilaporkan.
+#
+# ATURAN YANG TIDAK BOLEH DILANGGAR: DS2 (mitdb) di atas tidak berubah satu byte.
+# Dia satu-satunya yang sebanding dengan literatur (de Chazal DS1/DS2), dan §7
+# aturan 4 (DS2 tak pernah memilih apa pun) cuma bisa ditegakkan kalau
+# komposisinya bukan variabel. Data baru masuk TRAIN; sisanya jadi test TERPISAH
+# untuk generalisasi antar-database.
+#
+# id_offset: `records` di dataset.py bertipe int32, sedangkan record incartdb
+# bernama "I01".."I75" -> dipetakan ke 1001..1075. mitdb 100-234 dan svdb 800-894
+# sudah numerik, jadi offset 0. Tiga rentang itu tidak bertumpuk.
+#
+# leads: dipilih yang PERTAMA tersedia. mitdb MLII = acuan alat (AD8232 lead II).
+# incartdb "II" paling dekat dengannya. svdb Holter, lead tidak dinamai -> ECG1
+# dipakai dan POLARITASNYA BELUM DIVERIFIKASI (gate, lihat docs plan §3).
+# selaraskan: geser anotasi R ke puncak sebenarnya sebelum memotong window.
+# Perlu karena konvensi anotasi antar-database BEDA — terukur 19 Sep atas beat
+# normal, posisi puncak relatif anotasi di sinyal ter-bandpass:
+#
+#   mitdb  median  +3   p5..p95  +1..+5     <- anotasi DI puncak; +3/+4 = group delay
+#   svdb   median +10   p5..p95  -2..+15    <- ~6 sampel lebih awal, sebaran 3x lebar
+#
+# Bias +6 sampel itu DI ATAS ambang bahaya repo ini (meleset 4 sampel menjatuhkan
+# precision 0,48 -> 0,12) dan SISTEMATIS, bukan jitter zero-mean: tanpa koreksi
+# tiap beat svdb tergeser searah dan model membacanya sebagai morfologi lain
+# (alias belajar identitas dataset — lawan semangat inter-patient).
+#
+# mitdb WAJIB False: dia acuan golden_ref.h dan semua ablasi terkunci. Median +3
+# vs +4 berarti menyelaraskannya akan menggeser r ~1 sampel dan membatalkan
+# semuanya. Yang diperbaiki database baru, bukan acuannya.
+DATASETS = {
+    "mitdb":    {"fs": 360, "leads": ("MLII",),  "id_offset": 0,    "selaraskan": False, "n_record": 44},
+    "svdb":     {"fs": 128, "leads": ("ECG1",),  "id_offset": 0,    "selaraskan": True,  "n_record": 78},
+    "incartdb": {"fs": 257, "leads": ("II",),    "id_offset": 1000, "selaraskan": True,  "n_record": 75},
+}
+
+# n_record: jumlah record LENGKAP yang diharapkan (mitdb 48 - 4 PACED_EXCLUDED).
+# Bukan hiasan — aturan held-out `sorted(records)[::4]` dihitung dari daftar yang
+# ADA, jadi database yang baru separuh terunduh menghasilkan held-out yang BEDA
+# tanpa bersuara. Terukur 19 Sep pada 65/75 record incartdb: I68 masuk held-out
+# padahal seharusnya tidak, dan I65/I69/I73 hilang (I65 memegang 4 beat F).
+# build_split_multi() menolak kalau jumlahnya tidak pas.
+
+# Setengah-lebar jendela cari-puncak untuk `selaraskan`. 16 (±44 ms) menutup
+# p1..p99 svdb (-9..+15) tanpa menjangkau gelombang T (~200-300 ms = 72-108
+# sampel). BUKAN PT_REFINE_WIN=25 (±70 ms): itu untuk sebaran detektor
+# Pan-Tompkins (std 13 sampel), dan di sini terlalu lebar — risiko argmax
+# melompat ke fitur yang salah tanpa alasan.
+ALIGN_WIN = 16
+
+# Held-out tiap dataset baru = setiap record ke-N dalam urutan tersortir.
+# ATURAN, bukan seed: tidak ada yang bisa dipancing, dan siapa pun bisa
+# memverifikasinya dengan sorted(records)[::4]. ~25% disisihkan.
+# Konsekuensi yang sudah diperiksa: held-out incartdb cuma dapat ~13-20 beat F
+# (I05=9, I65=4, + sisa kecil) karena F terbesar (I18=56, I74=48) jatuh ke train.
+# Itu DISENGAJA — train yang kekurangan F, bukan test. F di test dilaporkan
+# sebagai hitungan TP/FN mentah, JANGAN sebagai recall berkoma.
+SPLIT_SETIAP_KE = 4
+
+# Database yang IKUT LATIH. incartdb sengaja TIDAK di sini — Fase B mengukurnya
+# merugikan meski menyumbang 256.454 beat latih (4 varian x 3 seed,
+# docs/2026-09-19-faseB-changelog.md):
+#
+#                 mitdb      +svdb    +incartdb   +keduanya
+#   AUC          0,9373     0,9314     0,8881      0,9092
+#   recall S     0,4221     0,4980     0,3312      0,4050
+#
+# recall S +svdb [0,423;0,573] vs +incartdb [0,307;0,355] TERPISAH: efeknya
+# BERLAWANAN, dan di "+keduanya" mereka hampir persis saling meniadakan (-0,017).
+# Bukan soal lead (II ~ MLII, gate A2) atau resolusi (257 > 128 Hz) tapi
+# komposisi: 15.592 beat V dari populasi lain menumpulkan pemisahan N-vs-S.
+#
+# incartdb TETAP DIPAKAI sebagai test antar-database (41.108 beat, 19 pasien) —
+# itu pemakaian terbaiknya, dan tetap jadi kontribusi E3C untuk laporan.
+DB_LATIH = ("mitdb", "svdb")
+
+def raw_dir(db: str) -> str:
+    """Folder mentah per database. RAW_DIR di atas tetap ada (= raw_dir("mitdb"))."""
+    if db not in DATASETS:
+        raise KeyError(f"database tak dikenal: {db} (pilihan: {sorted(DATASETS)})")
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw", db)
+
+
 # Fase 2-3 — keluaran prep_beats.py (per record) & build_split.py (train/test).
 PROCESSED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)),
                              "data", "processed")
@@ -91,7 +195,21 @@ DROPOUT_RATE = 0.0            # 0.0 = tanpa dropout (keputusan terkunci)
 # Fitur cabang ritme. HOS (kurtosis+skewness, Dias 2021 Pers. 12-13) menempel di
 # cabang yang sama, bukan cabang morfologi: dua skalar, bukan deret waktu.
 USE_HOS = os.environ.get("PA_HOS", "0") == "1"
-N_RR_FEATURES = 3 + (2 if USE_HOS else 0)   # RR_prev, RR_ratio, dRR [, kurt, skew]
+# Fase D — knob T2 & T3 (docs/2026-09-19-fitur-design.md K3/K4). TANPA env,
+# nilainya persis seperti semula: 3 kolom RR absolut/rasio campuran.
+#   PA_QRSW=1     +2 kolom lebar QRS ternormalisasi (P3 rank 1-2 dari 85 fitur)
+#   PA_RR_RATIO=1 bentuk RR jadi rasio semua: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0
+#                 -> 4 kolom, menggantikan 3 yang lama. BUTUH beat ke depan, jadi
+#                 prep_beats ikut membuang beat TERAKHIR tiap record.
+USE_QRSW = os.environ.get("PA_QRSW", "0") == "1"
+USE_RR_RATIO = os.environ.get("PA_RR_RATIO", "0") == "1"
+N_RR_BASE = 4 if USE_RR_RATIO else 3
+N_RR_FEATURES = N_RR_BASE + (2 if USE_HOS else 0) + (2 if USE_QRSW else 0)
+
+# Fase D — indeks R di dalam window (WIN_PRE + group delay bandpass kausal).
+# Dipakai qrs_width_features untuk tahu di mana puncaknya. Sama dengan angka di
+# decision point "R sekarang di indeks 132".
+R_IN_WINDOW = WIN_PRE + 4
 
 # Fase 6c — augmentasi ketahanan segmentasi (docs/jitter-walkthrough.md).
 # Dipakai `make prep`: tiap record DS1 ditumpuk 1 salinan bersih + JITTER_SALINAN
@@ -135,6 +253,24 @@ INT8_IO = True           # True = full-INT8 end-to-end; harus konsisten dgn firm
 # (tanpa MEAN & tanpa shape dinamis) yang jalan benar di TFLM memakan 20,8 KB.
 # Flash ESP32-S3 16 MB — batas ini soal disiplin, bukan kapasitas.
 MAX_MODEL_KB = 25
+# Ambang skala kuantisasi tensor input ritme (Fase 7). Bukan hiasan: skala INT8
+# diturunkan dari min/max REP_SAMPLES sampel kalibrasi, dan segelintir beat
+# ber-RR ekstrem (record 207: RR_prev = 100 s, celah anotasi) bisa masuk undian.
+# Kalau kena, skala melompat ~40x dan RR normal (0,18-2,58 s) tinggal ~3 level
+# int8 -> cabang ritme praktis mati, dan GEJALANYA recall S buruk, BUKAN error.
+# Peluang per seed terukur 19 Sep: 4,6% (mitdb saja), 1,8% (tiga database).
+# Nilai sehat sekarang 0,0129; sehat secara teori ~0,0197 (p99,99 |X_rr| = 2,51);
+# yang rusak ~0,78. Ambang 0,05 = ~2,5x headroom dari sehat, ~15x di bawah rusak.
+MAX_RHYTHM_SCALE = 0.05
+
+# Fase E — presisi minimum sebuah NAMA sebelum boleh ditampilkan. Bukan F1:
+# memaksimalkan F1 kelas V di antara beat yang ditandai justru memberi hadiah
+# untuk "namai semuanya V" (V ~50% dari yang ditandai), dan itu yang terjadi di
+# percobaan pertama — 4.387 dinamai V, cuma 1.664 benar (presisi 37,9%).
+# Alat boleh DIAM ("tipe tak pasti") tanpa berbohong, tapi tidak boleh bilang "V"
+# kalau salah 6 dari 10. Terukur di DS2: ambang 40 ms -> presisi 91,7% cakupan
+# 40,4%; 30 ms -> 51,7%. Jadi 0,90 bisa dicapai dengan cakupan yang berguna.
+MIN_PRESISI_NAMA = 0.90
 
 # Fase 6b — penyelarasan R-peak untuk segmentasi ON-DEVICE (docs/segmentasi-deteksi).
 # Urutan wajib: r - PT_DETECTOR_OFFSET -> puncak dlm +-PT_REFINE_WIN -> - GROUP_DELAY.

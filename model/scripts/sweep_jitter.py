@@ -28,8 +28,8 @@ import tensorflow as tf  # noqa: E402
 
 from config import ARTIFACT_DIR, DS2, METRICS_DIR, THRESHOLD, USE_HOS, WIN_LEN  # noqa: E402
 from src.evaluate import binary_metrics, confusion_counts, roc_auc  # noqa: E402
-from src.features_rr import (  # noqa: E402
-    compute_rr_features, hos_features, to_aami_class, to_binary_label,
+from src.features_rr import (
+    rakit_fitur_ritme, to_aami_class, to_binary_label,
 )
 from src.io_mitdb import load_record  # noqa: E402
 from src.preprocessing import (  # noqa: E402
@@ -66,9 +66,8 @@ def rakit(cache: list, model_jitter: str, delta: int, seed: int):
         r = d["r"] if (model_jitter is None) else jitter_r(d["r"], delta, rng, model_jitter)
         idx = valid_beat_indices(d["n"], r)
         w = zscore_per_window(segment_beats(d["filtered"], r[idx]))
-        rr = compute_rr_features(r)[idx]
         W.append(w)
-        R.append(np.hstack([rr, hos_features(w)]) if USE_HOS else rr)
+        R.append(rakit_fitur_ritme(r, w, idx))
         Y.append(d["y"][idx])            # label dari anotasi asli, tidak ikut geser
         A.append(d["aami"][idx])
     return (np.concatenate(W).reshape(-1, WIN_LEN, 1), np.concatenate(R),

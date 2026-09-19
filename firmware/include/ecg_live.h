@@ -17,11 +17,22 @@ extern "C" {
 #define ECG_LIVE_RING (4 * ECG_FS)      // 4 detik riwayat sinyal terfilter
 #define ECG_LIVE_TIAP ECG_FS            // jalankan deteksi tiap 1 detik
 #define ECG_LIVE_HIST 16                // R-peak terakhir yg disimpan utk fitur RR
+// Timeout asistol. Dengan ECG_RR_RATIO=1 keputusan beat i menunggu R berikutnya
+// (tunda 1 beat). Kalau R itu TIDAK PERNAH datang — elektroda lepas, atau
+// asistol — beat terakhir akan tergantung selamanya, dan alat diam justru di
+// momen paling kritis. 3 detik = ~20 bpm, di bawah bradikardia apa pun yang
+// masih hidup, jadi tidak memicu palsu.
+#define ECG_LIVE_TIMEOUT (3 * ECG_FS)
 
 typedef struct {
     int r_abs;                          // indeks absolut R setelah penyelarasan
     float window[ECG_WIN_LEN_];         // sudah z-score, R di ECG_WIN_PRE+ECG_GROUP_DELAY
-    float rr[ECG_N_RR];                 // RR_prev, RR_ratio, dRR
+    float rr[ECG_N_RR];                 // bentuk tergantung ECG_RR_RATIO & ECG_QRSW
+    // 1 kalau beat ini dikeluarkan lewat timeout, artinya RR+1 TIDAK terukur dan
+    // diisi sentinel netral (rasio 1,0 = "RR berikutnya sama dengan sekarang").
+    // Pemanggil sebaiknya menaikkan alarm "sinyal hilang" TERPISAH dari
+    // klasifikasi aritmia, supaya tidak mengotori metrik.
+    int sinyal_hilang;
 } ecg_beat_t;
 
 void ecg_live_reset(void);
