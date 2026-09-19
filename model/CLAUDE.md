@@ -386,6 +386,25 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   puncak. Konsekuensi untuk HW-6: **publikasi MQTT wajib digerbangi penilai
   kualitas sinyal (`AMBANG_AYUN`), bukan oleh ada-tidaknya beat.** Kalau tidak,
   elektroda lepas = banjir alarm palsu ke broker.
+- **"Epoch" menyesatkan sebagai satuan lama latih — model produksi ternyata
+  hasil SATU epoch.** Gejala: tidak ada. Training selesai normal, metrik wajar,
+  nol error. Ketahuan cuma karena kurva `val_auc` dicetak saat mendiagnosis hal
+  lain (Fase G/T7). Sebab: DS1 teraugmentasi 121.857 beat ÷ `BATCH_SIZE` 64 =
+  **1.905 langkah gradien per epoch**; untuk 6.417 param dengan Adam 1e-3, satu
+  epoch sudah cukup menghafal. `val_auc` memuncak di **epoch 0** lalu turun
+  monoton, `patience=8` melatih 8 epoch yang seluruhnya dibuang. Augmentasi ×3
+  di Fase 6c melipatgandakan langkah/epoch dan **tak ada yang meninjau ulang
+  jadwal latihnya**. Hindari: setiap kali ukuran data latih berubah, cetak
+  kurva `val_auc` sekali dan lihat di mana puncaknya — jangan menilai lama latih
+  dari jumlah epoch. Detail: `docs/2026-09-19-faseG-changelog.md` §2.
+- **Ambang 0,04 berlaku untuk RERATA 3 SEED, bukan cuma satu run.** Gejala:
+  konfigurasi identik, seed identik, dijalankan dua kali pada hari yang sama →
+  F1 DS2 0,6911 vs 0,6535 (selisih 0,0376). Sebab: sama dengan jebakan oneDNN
+  di bawah, tapi tidak hilang hanya karena dirata-rata 3 seed. Konsekuensi:
+  mengulang 3 seed **tidak** mengangkat selisih kecil jadi sinyal; yang
+  menaikkan daya pisah adalah set uji lebih besar (`ablasi.py --lintas-db`,
+  39 pasien held-out). Sebagian vonis "bukan sinyal" Fase A–F jadi lebih lemah,
+  bukan lebih kuat.
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat

@@ -127,6 +127,9 @@ bobot dikembalikan ke epoch terbaik — bukan bobot epoch terakhir yang sudah
 overfit. `EPOCHS = 60` di `config.py` cuma batas atas; yang benar-benar
 menentukan kapan berhenti adalah callback ini.
 
+> Pada konfigurasi terkunci sekarang, "epoch terbaik" itu **epoch 0** — jadi
+> `patience=8` melatih 8 epoch yang seluruhnya dibuang. Lihat §6b.
+
 ---
 
 ## 5. Hasil training
@@ -195,6 +198,93 @@ Pelajarannya: overfitting yang terlihat di kurva **tidak otomatis berarti
 
 ---
 
+## 6b. Fase G — kurva yang tidak pernah benar-benar dilihat
+
+Angka di §5 berasal dari konfigurasi **lama** (window 250, tanpa augmentasi
+jitter): berhenti epoch 12, terbaik epoch 4. Setelah window 256 + augmentasi
+jitter dikunci (18 Sep), kurvanya tidak pernah dilihat ulang. Ternyata
+bentuknya berubah total.
+
+### Temuan: model produksi adalah hasil SATU epoch
+
+```
+lr 1e-3 (terkunci), seed 7      lr 1e-4, seed 7
+epoch 0  val_auc 0,9492  <-     epoch 0   0,8797   masih naik
+epoch 1          0,9345         epoch 2   0,9067
+epoch 2          0,9279         epoch 2-19  dataran ~0,905-0,911
+...      turun monoton          epoch 18  0,9113  <- puncak
+epoch 8          0,8635  stop   epoch 26  0,9082  stop
+9 epoch, 8 terbuang             27 epoch, membaik selama 19
+```
+
+`patience=8` membuat training selalu jalan 9 epoch, lalu
+`restore_best_weights` mengembalikan epoch 0. Delapan epoch sisanya murni
+overfitting.
+
+**Kenapa secepat itu?** Karena "epoch" menyesatkan sebagai satuan. DS1 yang
+sudah diaugmentasi punya 121.857 beat; dengan `BATCH_SIZE = 64` itu **1.905
+langkah gradien per epoch**. Untuk model 6.417 parameter dengan Adam 1e-3,
+satu epoch sudah lebih dari cukup untuk menghafal. Yang terlihat sebagai
+"berhenti di epoch 9" sebenarnya "berhenti setelah 17.145 langkah".
+
+Pelajaran umum: **jangan pernah menilai lama latih dari jumlah epoch** tanpa
+mengalikannya dengan langkah per epoch. Augmentasi ×3 di Fase 6c melipatgandakan
+langkah per epoch tanpa ada yang meninjau ulang jadwal latihnya.
+
+### Yang dicoba dan GAGAL: rata-rata bobot (`--swa N`)
+
+Hipotesis: kalau yang memilih bobot akhir adalah lotere `val_auc` yang berisik,
+rata-ratakan saja beberapa epoch teratas alih-alih memungut argmax-nya.
+`RataBobotTerbaik` dipasang **sesudah** `EarlyStopping` supaya menimpa hasil
+`restore_best_weights`.
+
+Aman tanpa hitung ulang apa pun: model ini **tidak punya BatchNorm**
+(Conv1D → MaxPool → GAP → Dense), jadi jebakan baku SWA — statistik BN harus
+dihitung ulang setelah bobot dirata-rata — tidak berlaku.
+
+Hasil 3 seed: F1 DS2 0,6911 → 0,6346 (**−0,057, di atas ambang sinyal**).
+Diagnosis mencetak epoch yang dirata-rata: `[0, 1, 2]`.
+
+**Kenapa gagal:** tidak ada "nyaris seri" untuk dirata-rata. Puncaknya di tepi
+kurva dan sisanya menurun monoton, jadi merata-rata apa pun berarti menarik
+masuk bobot yang lebih buruk. Rata-rata bobot butuh **dataran**, dan pada
+1e-3 tidak ada dataran. Knob `--swa` ditinggal: di 1e-4 dataran itu ada, jadi
+hipotesisnya layak diuji ulang di sana.
+
+### Learning rate 1e-4 (`--lr`)
+
+| Set uji | pasien | F1 1e-3 | F1 1e-4 | AUC |
+|---|---|---|---|---|
+| DS2 | 22 | 0,6535 ±0,0280 | 0,6729 ±0,0483 | 0,9305 → 0,9415 |
+| TEST-B (svdb) | 20 | 0,5237 ±0,0084 | 0,5306 ±0,0339 | 0,8667 → 0,8860 |
+| TEST-C (incartdb) | 19 | 0,6784 ±0,1080 | **0,8025 ±0,0277** | 0,9352 → 0,9525 |
+
+AUC naik di 4 dari 4 set. Tapi ada pertukaran tajam: **recall V naik di 3 dari
+3 seed, recall S turun di 2 dari 3** — padahal threshold 1e-4 lebih longgar
+(0,53 vs 0,65), yang seharusnya menaikkan recall. Jadi ini bukan artefak titik
+operasi: modelnya memang memeringkat beat S lebih buruk.
+
+Artinya 1e-4 memperbaiki kelas yang sudah kuat (V) dan memperburuk yang lemah
+(S) — arah yang berlawanan dengan kebutuhan proyek ini. **Tidak dikunci.**
+
+### Efek samping metodologis: ambang 0,04 berlaku untuk rerata 3 seed
+
+Konfigurasi identik, seed identik, dijalankan dua kali pada hari yang sama:
+
+```
+batch 1   F1 DS2 0,6911 ±0,0290
+batch 2   F1 DS2 0,6535 ±0,0280
+selisih   0,0376
+```
+
+Selama ini "3 seed" dianggap cukup untuk menstabilkan vonis. Ternyata
+**rerata 3 seed pun bergoyang ~0,04 antar batch.** Konsekuensinya: selisih di
+bawah 0,04 tidak berubah jadi sinyal hanya karena diulang 3 seed. Yang benar-benar
+menaikkan daya pisah adalah **set uji yang lebih besar** — itulah gunanya
+TEST-B/TEST-C (39 pasien held-out, `ablasi.py --lintas-db`).
+
+---
+
 ## 7. Yang sengaja TIDAK dilakukan
 
 **Tidak menyentuh DS2.** Termasuk untuk "mengintip" saja. Sekali dilihat untuk
@@ -206,6 +296,11 @@ memakai kurva val — dan itu urusan Fase 6 dengan prosedur yang tercatat.
 **Tidak menyetel learning rate.** `adam` default (1e-3). Menambah knob yang
 belum terbukti perlu = ruang tuning yang harus dipertanggungjawabkan di sidang
 tanpa alasan kuat.
+
+> ⚠️ **Alasan ini gugur 19 Sep 2026.** Diukur, bukan diperdebatkan: dengan
+> konfigurasi terkunci sekarang, `val_auc` memuncak di **epoch 0** lalu turun
+> monoton — model produksi adalah hasil **satu epoch** latih. Itu bukan
+> "knob yang belum terbukti perlu", itu regime latih yang rusak. Lihat §6b.
 
 **Seed dikunci** (`np.random.seed(SEED)`, `tf.random.set_seed(SEED)`) sebelum
 model dibangun. Tanpa ini, hasil tidak reproducible dan angka di Bab 4 tidak

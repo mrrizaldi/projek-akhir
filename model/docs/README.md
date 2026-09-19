@@ -153,6 +153,7 @@ diukur, bukan diasumsikan.
 | [fitur-design](2026-09-19-fitur-design.md) | Sintesis 7 paper, 10 temuan yang menabrak decision point terkunci | dokumen KEPUTUSAN, bukan hasil |
 | [multidataset-plan](2026-09-19-multidataset-plan.md) | Fase A: gabung mitdb + svdb + incartdb, audit 13 pemeriksaan | infrastruktur jadi, DS2 byte-identik |
 | [faseB-changelog](2026-09-19-faseB-changelog.md) | Fase B-F: 10 varian × 3-6 seed, tabel 2×2, tahap 2 | **kunci nol** |
+| [faseG-changelog](2026-09-19-faseG-changelog.md) | Fase G: regime latih. Model produksi ternyata hasil **1 epoch**; rata-rata bobot gagal; k-dari-n gugur; TEST-B/C masuk harness | **kunci nol**, satu decision point menunggu |
 
 ### Ringkasan satu layar
 
@@ -183,6 +184,9 @@ faseB-changelog §10.
 | `scripts/tahap2.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL cuma bisa mensertifikasi presisi 43,9% |
 | `scripts/ablasi.py --db` | Latih multi-database. Bawaan `mitdb` = jalur terkunci, byte-identik |
 | `PA_QRSW=1` `PA_RR_RATIO=1` | Knob fitur Fase D. Tanpa env, nilainya persis seperti semula |
+| `scripts/cek_fp.py` | Dari mana 2.302 FP datang: sebaran per record, panjang run TP vs FP, FP per simbol. Yang menggugurkan aturan k-dari-n |
+| `scripts/ringkas_ablasi.py` | Rerata ± setengah-rentang per tag + vonis ambang 0,04. Menegakkan §7 supaya tidak dihitung tangan |
+| `scripts/ablasi.py --swa N` | Knob T7: rata-rata bobot N epoch ber-`val_auc` terbaik. Bawaan 0 = jalur terkunci |
 
 ---
 
