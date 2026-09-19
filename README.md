@@ -29,12 +29,22 @@ Data mentah MIT-BIH & intermediate (`.npz`) **di-ignore** (lihat `.gitignore`).
 
 - Laporan:  `cd laporan/proposal-pa && make pdf`  → `output/main.pdf`
   (projek lain: `buku-pa`, `surat-magang`; ukuran kertas fixed per projek)
-- Model:    `cd model && make train && make quantize`   *(target masih stub)*
-- Firmware: `cd firmware && pio run`                     *(main.cpp masih stub)*
+- Model:    `cd model && make train && make quantize`
+- Firmware: `cd firmware && pio run -e esp32-s3` (uji: `pio test -e native`)
+- Dashboard: `cd dashboard && docker compose up -d` → <http://localhost:8080>
 
-## Status
+## Status (19 Sep 2026)
 
-Kerangka repo (scaffold). Isi `model/`, `firmware/`, dan logika `scripts/`
-ditulis manual, mengacu ke `model/PRD_Model_Aritmia_TinyML.pdf`.
-`model/` sudah mulai jalan (config final + eksplorasi dataset MIT-BIH di
-`model/scripts/`); `firmware/` masih stub.
+| Komponen | Status | Bukti |
+|---|---|---|
+| `model/` Fase 0-8 | **selesai** | `make poc` 8/8 mekanis, pytest 56, INT8 22,94 KB, F1 DS2 0,6594 AUC 0,9334 |
+| `model/` ablasi Fase A-G | **selesai, kunci nol** | 10 usul x 3-6 seed; TEST-B/C 85.812 beat / 39 pasien. Detail: `model/docs/README.md` |
+| `firmware/` HW-1..HW-4, HW-7 | **jalan di board** | 26,6 ms/detak, arena 12.948 B, RAM 21,2%, sampel hilang 0 |
+| `firmware/` HW-5 elektroda | **buntu** | sisa satu variabel: header AD8232 belum disolder |
+| `firmware/` HW-6 MQTT | **belum** | broker siap, klien di ESP32 belum ada |
+| `dashboard/` | **jadi** | ThingsBoard CE: broker + rule engine + dashboard |
+| `laporan/proposal-pa` | **lengkap** | bab1-3 + abstrak |
+| `laporan/buku-pa` | **kosong** | bahan sudah ada di `model/docs/` (14 walkthrough) |
+
+Status per fase yang rinci ada di `model/CLAUDE.md`, bukan di sini — file ini
+sengaja cuma peta, supaya tidak ada dua sumber kebenaran yang bisa berbeda.
