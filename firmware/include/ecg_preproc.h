@@ -14,6 +14,13 @@
 #define ECG_N_RR 3
 #endif
 #define ECG_RR_LOCAL_WINDOW 10
+// Fase D — bentuk fitur ritme. ECG_N_RR_DASAR = kolom RR saja (tanpa QRSw/HOS).
+#define ECG_N_RR_DASAR 3
+#define ECG_RR_RATIO 0
+#define ECG_QRSW 0
+// Posisi R di dalam window = WIN_PRE + group delay. Dipakai ecg_qrs_lebar().
+#define ECG_R_IN_WINDOW 132
+#define ECG_QRSW_CARI 4
 
 // Pan-Tompkins (deteksi R-peak on-device).
 #define ECG_PT_MWI_LEN 54

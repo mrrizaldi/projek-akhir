@@ -24,6 +24,9 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf  # noqa: E402
 
 from config import (  # noqa: E402
+    ALIGN_WIN, N_RR_BASE, R_IN_WINDOW, USE_QRSW, USE_RR_RATIO,
+)
+from config import (  # noqa: E402
     ARTIFACT_DIR, FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER,
     GROUP_DELAY_SAMPLES, N_RR_FEATURES, PT_BAND_HIGH, PT_BAND_LOW, PT_BAND_ORDER,
     PT_DETECTOR_OFFSET, PT_MWI_WINDOW_MS, PT_REFINE_WIN, PT_REFRACTORY_MS,
@@ -36,13 +39,20 @@ from src.preprocessing import (  # noqa: E402
     apply_bandpass, design_bandpass_sos, pan_tompkins_detect, segment_beats,
     zscore_per_window,
 )
-from src.features_rr import compute_rr_features, to_aami_class, to_binary_label  # noqa: E402
+from src.features_rr import (  # noqa: E402
+    rakit_fitur_ritme, to_aami_class, to_binary_label,
+)
 from src.quantize import predict_tflite  # noqa: E402
 from scripts.prep_beats import valid_beat_indices  # noqa: E402
 
 RECORD = "208"
 N_SAMPLES = 2400                      # 6,7 detik @360 Hz
 RR_FIRST = 2                          # beat 0-1 tak punya RR_prev/dRR
+# Beat TERAKHIR juga tak teruji kalau RR+1 dipakai: dia butuh beat ke depan yang
+# tidak ada di potongan. Sama seperti valid_beat_indices membuangnya di Python
+# dan tunda 1 beat di firmware (GATE G2).
+RR_LAST = 1 if USE_RR_RATIO else 0
+QRSW_CARI = 4                         # toleransi cari puncak, +-sampel
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 H_PREPROC = os.path.join(ROOT, "firmware", "include", "ecg_preproc.h")
 H_GOLDEN = os.path.join(ROOT, "firmware", "test", "golden_ref.h")
@@ -75,7 +85,10 @@ def main() -> None:
     # RR dihitung dari daftar R-peak POTONGAN ini saja, bukan record utuh — C
     # cuma punya beat yang ada di sini. Input sama → keluaran harus sama.
     # Konsekuensinya beat 0 & 1 tidak punya RR (NaN); diisi 0 dan tidak diuji.
-    rr = compute_rr_features(np.asarray(r)[dipakai])
+    # rakit_fitur_ritme, bukan compute_rr_features: supaya knob PA_QRSW /
+    # PA_RR_RATIO ikut terbaca dan golden menguji fitur yang BENAR-BENAR dipakai.
+    r_potong = np.asarray(r)[dipakai]
+    rr = rakit_fitur_ritme(r_potong, windows, np.arange(len(dipakai)))
     rr_bersih = np.nan_to_num(rr, nan=0.0)
 
     keras = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
@@ -84,6 +97,9 @@ def main() -> None:
                             windows.reshape(-1, WIN_LEN, 1), rr_bersih)
     p_fp32[:RR_FIRST] = 0.0
     p_int8[:RR_FIRST] = 0.0
+    if RR_LAST:
+        p_fp32[-RR_LAST:] = 0.0
+        p_int8[-RR_LAST:] = 0.0
 
     sos_pt = butter(PT_BAND_ORDER, [PT_BAND_LOW, PT_BAND_HIGH],
                     btype="bandpass", fs=FS, output="sos")
@@ -113,6 +129,13 @@ def main() -> None:
 #define ECG_N_RR {N_RR_FEATURES}
 #endif
 #define ECG_RR_LOCAL_WINDOW {RR_LOCAL_WINDOW_BEATS}
+// Fase D — bentuk fitur ritme. ECG_N_RR_DASAR = kolom RR saja (tanpa QRSw/HOS).
+#define ECG_N_RR_DASAR {N_RR_BASE}
+#define ECG_RR_RATIO {int(USE_RR_RATIO)}
+#define ECG_QRSW {int(USE_QRSW)}
+// Posisi R di dalam window = WIN_PRE + group delay. Dipakai ecg_qrs_lebar().
+#define ECG_R_IN_WINDOW {R_IN_WINDOW}
+#define ECG_QRSW_CARI {QRSW_CARI}
 
 // Pan-Tompkins (deteksi R-peak on-device).
 #define ECG_PT_MWI_LEN {mwi_len}
@@ -151,6 +174,7 @@ def main() -> None:
 #define GOLDEN_THRESHOLD {THRESHOLD}f
 // Beat 0 & 1 tak punya RR_prev/dRR — baris rr & prob-nya 0, jangan diuji.
 #define GOLDEN_RR_FIRST {RR_FIRST}
+#define GOLDEN_RR_LAST {RR_LAST}
 
 // Toleransi: golden ini float64 (scipy), device float32 (ESP32-S3 punya FPU
 // single-precision; double di-emulasi software = lambat). Di filter IIR yang

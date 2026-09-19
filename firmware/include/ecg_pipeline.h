@@ -31,7 +31,24 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out);
 // rr_ratio = rr_prev / rata-rata KAUSAL <=10 interval terakhir (jendela
 // menyusut di awal); drr = rr_prev sekarang - rr_prev sebelumnya.
 // Butuh i >= 2. Return 0 kalau belum cukup beat.
-int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3]);
+// Bentuk keluaran tergantung ECG_RR_RATIO di ecg_preproc.h (GENERATED):
+//   0 -> rr_prev (detik), rr_ratio, drr        butuh i >= 2
+//   1 -> RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0  butuh i >= 2 DAN i+1 < n_r
+// Varian rasio menunda keputusan 1 beat: beat i tidak bisa dinilai sebelum R
+// berikutnya terdeteksi (GATE G2). Semua rasio -> fs-independen & tak membocorkan
+// identitas pasien. Return 0 kalau belum cukup beat.
+int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_DASAR]);
+
+#if ECG_QRSW
+// Lebar QRS pada `frac` x puncak, dalam SAMPEL, dari window ter-z-score.
+float ecg_qrs_lebar(const float *window, float frac);
+
+// QRSw2 & QRSw4 dinormalisasi ke rerata KAUSAL ECG_RR_LOCAL_WINDOW beat terakhir.
+// `riwayat` milik pemanggil: 2 x ECG_RR_LOCAL_WINDOW float, di-nol-kan sekali.
+// `n_riwayat` = jumlah beat yang sudah masuk sebelum panggilan ini.
+int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat,
+                           float out[2]);
+#endif
 
 // Deteksi R-peak Pan-Tompkins atas sinyal yang SUDAH di-bandpass 0,5-40 Hz.
 // Kaskade: bandpass 5-15 Hz -> turunan -> kuadrat -> integrasi 150 ms ->

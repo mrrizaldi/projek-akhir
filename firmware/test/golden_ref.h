@@ -11,6 +11,7 @@
 #define GOLDEN_THRESHOLD 0.8f
 // Beat 0 & 1 tak punya RR_prev/dRR — baris rr & prob-nya 0, jangan diuji.
 #define GOLDEN_RR_FIRST 2
+#define GOLDEN_RR_LAST 0
 
 // Toleransi: golden ini float64 (scipy), device float32 (ESP32-S3 punya FPU
 // single-precision; double di-emulasi software = lambat). Di filter IIR yang

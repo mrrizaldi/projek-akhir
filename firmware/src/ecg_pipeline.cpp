@@ -47,8 +47,43 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out)
     return 1;
 }
 
-int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3])
+int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_DASAR])
 {
+#if ECG_RR_RATIO
+    // Bentuk RASIO semua (P3): RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0.
+    // Butuh r[i+1] -> keputusan beat i keluar setelah R berikutnya terdeteksi
+    // (tunda 1 beat, GATE G2). Nilai absolut dalam detik dibuang karena berbeda
+    // antar-orang: model belajar identitas pasien, lawan semangat inter-patient.
+    if (i < 2 || i + 1 >= n_r) {
+        return 0;
+    }
+    const double dt = 1.0 / (double)fs;
+    const double rr0 = (r[i] - r[i - 1]) * dt;        // d[i-1]
+    const double rr_plus1 = (r[i + 1] - r[i]) * dt;   // d[i]
+    const double rr_minus1 = (r[i - 1] - r[i - 2]) * dt;  // d[i-2]
+
+    // Rata-rata & std KAUSAL atas <= ECG_RR_LOCAL_WINDOW interval terakhir,
+    // termasuk interval ini. Jendela MENYUSUT di awal — jangan di-pad.
+    const size_t j = i - 1;
+    const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
+    double jumlah = 0.0, jumlah2 = 0.0;
+    for (size_t k = start; k <= j; k++) {
+        const double d = (r[k + 1] - r[k]) * dt;
+        jumlah += d;
+        jumlah2 += d * d;
+    }
+    const double n = (double)(j - start + 1);
+    const double avg = jumlah / n;
+    double var = jumlah2 / n - avg * avg;
+    if (var < 0.0) var = 0.0;                          // galat pembulatan
+    const double sd = sqrt(var);
+
+    out[0] = (float)(rr0 / avg);
+    out[1] = (float)(rr_plus1 / rr0);
+    out[2] = (float)(rr_minus1 / rr0);
+    out[3] = (float)((rr0 - avg) / (sd > 1e-8 ? sd : 1e-8));
+    return 1;
+#else
     if (i < 2 || i >= n_r) {
         return 0;
     }
@@ -56,9 +91,7 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3])
     const double rr_prev = (r[i] - r[i - 1]) * dt;
     const double rr_sebelumnya = (r[i - 1] - r[i - 2]) * dt;
 
-    // Rata-rata KAUSAL atas <= ECG_RR_LOCAL_WINDOW interval terakhir, termasuk
-    // interval ini. Jendela MENYUSUT di awal — jangan di-pad.
-    const size_t j = i - 1;                       // d[j] = RR_prev beat i
+    const size_t j = i - 1;
     const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
     double jumlah = 0.0;
     for (size_t k = start; k <= j; k++) {
@@ -70,7 +103,61 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[3])
     out[1] = (float)(rr_prev / rata_lokal);
     out[2] = (float)(rr_prev - rr_sebelumnya);
     return 1;
+#endif
 }
+
+#if ECG_QRSW
+float ecg_qrs_lebar(const float *window, float frac)
+{
+    // Lebar QRS pada `frac` x puncak, dalam SAMPEL. Window sudah z-score dan
+    // puncak R sudah didudukkan di ECG_R_IN_WINDOW oleh segmentasi.
+    // Toleransi +-ECG_QRSW_CARI karena residu posisi memang +-2 sampel.
+    int lo = ECG_R_IN_WINDOW - ECG_QRSW_CARI;
+    int hi = ECG_R_IN_WINDOW + ECG_QRSW_CARI;
+    if (lo < 0) lo = 0;
+    if (hi > ECG_WIN_LEN_ - 1) hi = ECG_WIN_LEN_ - 1;
+
+    int ip = lo;
+    for (int i = lo + 1; i <= hi; i++) {
+        if (window[i] > window[ip]) ip = i;
+    }
+    const float ambang = frac * window[ip];
+
+    int kiri = 0;
+    for (int i = ip - 1; i >= 0; i--) {
+        if (window[i] < ambang) { kiri = i; break; }
+    }
+    int kanan = ECG_WIN_LEN_ - 1;
+    for (int i = ip + 1; i < ECG_WIN_LEN_; i++) {
+        if (window[i] < ambang) { kanan = i; break; }
+    }
+    return (float)(kanan - kiri);
+}
+
+int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat,
+                           float out[2])
+{
+    // riwayat: milik pemanggil, 2 x ECG_RR_LOCAL_WINDOW float (QRSw2 lalu QRSw4),
+    // ring sederhana. n_riwayat = berapa beat yang sudah masuk (jenuh di jendela).
+    // Normalisasi = rerata KAUSAL lebar w beat terakhir, TERMASUK beat ini —
+    // sama bentuknya dengan rata_lokal di ecg_rr_features.
+    const float frac[2] = {0.5f, 0.25f};
+    for (int c = 0; c < 2; c++) {
+        const float lebar = ecg_qrs_lebar(window, frac[c]);
+        float *buf = riwayat + c * ECG_RR_LOCAL_WINDOW;
+        const size_t slot = n_riwayat % ECG_RR_LOCAL_WINDOW;
+        buf[slot] = lebar;
+        const size_t n = (n_riwayat + 1 < ECG_RR_LOCAL_WINDOW)
+                       ? n_riwayat + 1 : ECG_RR_LOCAL_WINDOW;
+        double jumlah = 0.0;
+        for (size_t k = 0; k < n; k++) jumlah += buf[k];
+        const double rerata = jumlah / (double)n;
+        out[c] = (float)(lebar / (rerata > 1e-8 ? rerata : 1e-8));
+    }
+    return 1;
+}
+#endif
+
 
 // ── Pan-Tompkins ────────────────────────────────────────────────────────────
 // Port dari model/src/preprocessing.py. Tiap tahap kausal, jadi bisa dijalankan
