@@ -36,7 +36,7 @@ Agar penelitian tetap terarah dan tujuan dapat dicapai, ruang lingkup penelitian
   \item Akuisisi sinyal menggunakan modul AD8232 dalam konfigurasi single-lead Lead II dengan elektroda \textit{wet-gel}.
   \item Pengujian perangkat dilakukan pada subjek sehat yang dianonimkan dalam lingkungan non-klinis. Sistem tidak dirancang sebagai alat diagnosis dan pengujian ini bukan uji klinis.
   \item Ketahanan \textit{pipeline} diuji dalam batas kapasitas \textit{ring buffer} PSRAM. Kehilangan daya pada perangkat berada di luar cakupan pengujian ketahanan.
-  \item Konsumsi daya tidak menjadi objek optimasi. Rangkaian baterai dan jalur daya perangkat \textit{wearable} berada di luar lingkup penelitian ini.
+  \item Konsumsi daya diukur sebagai acuan awal dan tidak menjadi objek optimasi. Rangkaian baterai hanya dipakai sebagai catu saat pengukuran daya, sedangkan manajemen baterai dan kemasan perangkat \textit{wearable} berada di luar lingkup penelitian ini.
 \end{enumerate}
 
 \section{Tujuan}
@@ -76,7 +76,7 @@ Sistematika penulisan laporan ini disusun sebagai berikut.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 3}DESKRIPSI SISTEM}\\
-\hspace*{1.5cm} Bab ini menjelaskan rancangan sistem secara keseluruhan, termasuk desain arsitektur \textit{edge-to-cloud}, perancangan perangkat keras \textit{wearable} berbasis ESP32-S3, \textit{pipeline} preprocessing sinyal ECG pada mikrokontroler, implementasi model TinyML untuk deteksi aritmia secara \textit{on-device}, serta mekanisme bufer lokal menggunakan protokol MQTT untuk menjamin resiliensi data saat koneksi terputus.
+\hspace*{1.5cm} Bab ini menjelaskan rancangan sistem secara keseluruhan, termasuk desain arsitektur \textit{edge-to-cloud}, perancangan perangkat keras berbasis ESP32-S3 beserta antarmuka pengguna pada perangkat, \textit{pipeline} preprocessing sinyal ECG pada mikrokontroler, implementasi model TinyML untuk deteksi aritmia secara \textit{on-device}, serta mekanisme bufer lokal menggunakan protokol MQTT untuk menjamin resiliensi data saat koneksi terputus.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 4}EKSPERIMEN DAN ANALISIS}\\
