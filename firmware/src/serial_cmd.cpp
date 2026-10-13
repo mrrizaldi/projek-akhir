@@ -7,6 +7,7 @@
 //   y      sumber ADC <-> replay   k     lewati gerbang kalibrasi (bench)
 //   m      MQTT ON/OFF             p<0-5> tangga daya, p + lainnya = normal
 //   w[n]   daftar / pilih WiFi     b[n]  daftar / pilih broker
+//   V      tangga daya mandiri     v[n]  daftar / dump hasil /daya/NNN.csv
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "serial_cmd.h"
 
@@ -120,6 +121,12 @@ void serial_cmd_layani(void)
         Serial.printf("laporan kualitas %s\n", gerbang_lapor() ? "ON" : "OFF");
     }
     else if (c == 's') status();
+    else if (c == 'v' || c == 'V') {
+        char b[8];
+        const int n = c == 'v' ? angka() : -1;
+        snprintf(b, sizeof b, n < 0 ? "%c" : "%c%d", c, n);
+        daya_serial(b);
+    }
     else if (c == 'w') {
         const int n = angka();
         if (n < 0) daftar_wifi();

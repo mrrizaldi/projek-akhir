@@ -21,4 +21,22 @@ void daya_hitung_beat(void);               // tiap beat keluar dari ecg_live
 // Tiap iterasi loop(): satu baris 'DAYA ...' per jendela 10 detik.
 void daya_layani(void);
 
+// Tangga mandiri (menu Ukur daya / serial 'V'): p0..p5 berurutan, tiap langkah
+// buang 1 jendela transien lalu ambil DAYA_BLOK jendela DAYA_JENDELA_MS (bawaan
+// 6 x 10 s, sama dengan measure_power.py; build flag -D untuk uji singkat).
+// Validasi sama dengan measure_power.py; hasil ke /daya/NNN.csv dengan kolom
+//   waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah
+// waktu = UTC ISO bila jam NTP tersinkron, selain itu "+<detik uptime>s".
+// Selesai -> kembali ke operasi normal.
+typedef struct { char mode[4]; float i_ma, sd_ma, v, p_mw; } daya_baris_t;  // mode "pN", "pN!" = tidak sah
+void daya_tangga_mulai(void);
+bool daya_tangga_aktif(void);
+void daya_tangga_tick(void);               // non-blocking, tiap iterasi loop()
+int daya_tangga_langkah(void);             // 0..5 sedang berjalan, -1 selesai/tidak aktif
+int daya_tangga_hasil(daya_baris_t *keluar, int maks);   // ringkasan per mode tangga terakhir
+int daya_tangga_berkas(void);              // nomor /daya/NNN.csv terakhir (0 = belum ada)
+// 'v' daftar berkas, 'v<n>' dump berkas n di antara ---MULAI---/---SELESAI---,
+// 'V' mulai tangga. false = bukan perintah daya.
+bool daya_serial(const char *perintah);
+
 #endif

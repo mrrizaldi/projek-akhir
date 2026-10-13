@@ -119,6 +119,7 @@ void loop()
     // walau antrean ADC sedang kosong.
     ecg_mqtt_layani();
     daya_layani();
+    daya_tangga_tick();
     serial_cmd_layani();
     layani_tombol();
     tampilan_layani();
