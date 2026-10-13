@@ -179,7 +179,7 @@ def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
     dibulatkan saja. TIDAK menyaring r yang keluar batas — `symbols` sejajar
     lewat indeks, dan batas window urusan prep_beats.valid_beat_indices().
 
-    Alasan ketiganya: docs/2026-09-19-multidataset-plan.md §2.
+    Alasan ketiganya: docs/arsip/2026-09-19-multidataset-plan.md §2.
     """
     r = np.asarray(r_locations, dtype=np.int64)
     if fs_asal == fs_target:
@@ -212,7 +212,7 @@ def selaraskan_r(r_locations: np.ndarray, filtered: np.ndarray,
     ["selaraskan"]). Sepadan dengan haluskan() di scripts/eval_detected_
     segmentation.py dan ecg_align_r() di firmware, jendela lebih sempit.
 
-    Alasan & angka: docs/2026-09-19-multidataset-plan.md §3.
+    Alasan & angka: docs/arsip/2026-09-19-multidataset-plan.md §3.
     """
     r = np.asarray(r_locations, dtype=np.int64)
     n = len(filtered)

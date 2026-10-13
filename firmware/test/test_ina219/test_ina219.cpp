@@ -3,7 +3,7 @@
 //   pio test -e native
 //
 // Register kalibrasi on-chip SENGAJA tidak dipakai (lihat
-// model/docs/2026-09-16-daya-design.md §2.1): pembagian dilakukan di sini
+// model/docs/arsip/2026-09-16-daya-design.md §2.1): pembagian dilakukan di sini
 // supaya R_SHUNT jadi knob kalibrasi yang kelihatan.
 #include <unity.h>
 #include "ina219.h"

@@ -282,7 +282,7 @@ status: rekam=0 n=0 | replay=1 | beat 44 (12 aritmia, 3 ditahan) | antrean 2 |
 **Akuntansi kehilangan:** `beat_total − ditahan = terkirim + backlog + hilang`.
 Identitas itu yang membuat uji resiliensi bisa diukur, dan ia cuma berlaku
 karena replay **deterministik** — 11 beat per putaran 6,67 detik, sudah terukur
-di board (`2026-09-18-robustness-changelog.md` §207).
+di board (`arsip/2026-09-18-robustness-changelog.md` §207).
 
 ---
 
@@ -310,7 +310,7 @@ di board (`2026-09-18-robustness-changelog.md` §207).
   dikirim ke alat. `ecg_mqtt.cpp` cuma publish.
 - **Backlog tahan reboot.** Ring ada di RAM. LittleFS sudah dipakai untuk
   rekaman mentah, jadi jalurnya ada kalau nanti dibutuhkan.
-- **`ecg_sim.h` rekaman lebih panjang/beragam.** `2026-09-18-robustness-plan.md`
+- **`ecg_sim.h` rekaman lebih panjang/beragam.** `arsip/2026-09-18-robustness-plan.md`
   Task 0 menulis: tambah **hanya kalau** dashboard butuh — keputusan setelah
   MQTT jalan, bukan sebelum. Masih berlaku.
 - **Batch adaptif / kompresi payload.** 1 beat/detik × ~300 B tidak mendekati

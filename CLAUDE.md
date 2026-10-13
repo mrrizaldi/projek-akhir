@@ -21,7 +21,7 @@ aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
 4. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
    mekanisme yang dibutuhkan sering SUDAH ada, tinggal dikerjakan atau diperluas.
    Dua contoh nyata (18 Sep 2026): sumber sinyal replay untuk uji tanpa hardware
-   sudah tertulis lengkap di `model/docs/2026-09-16-daya-plan.md` Task 4, dan
+   sudah tertulis lengkap di `model/docs/arsip/2026-09-16-daya-plan.md` Task 4, dan
    rantai penyelarasan R-peak sudah jadi di `scripts/eval_detected_segmentation.py`.
    Merancang ulang dari nol di dua tempat itu = pekerjaan ganda yang sia-sia.
 

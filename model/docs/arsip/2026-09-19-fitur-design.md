@@ -18,7 +18,7 @@ changelog itu (§B2: **ablasi 1 run tidak sah**) berlaku penuh di sini.
 Dokumen ini ditulis **sebelum** Fase A–F dijalankan. Isinya masih berbunyi
 seperti usul terbuka; sebagian besar sudah **diukur dan ditutup**. Hasil
 pengukuran ada di [`2026-09-19-faseB-changelog.md`](2026-09-19-faseB-changelog.md);
-keputusan final ada di tabel decision point [`../CLAUDE.md`](../CLAUDE.md).
+keputusan final ada di tabel decision point [`../CLAUDE.md`](../../CLAUDE.md).
 
 **Teks asli sengaja TIDAK dihapus** — alasan yang menghasilkan usul yang kalah
 sama berharganya dengan yang menang, dan §A changelog 18 Sep memang menuntut
@@ -218,7 +218,7 @@ penyebabnya.** Rencana "perbesar model karena RAM longgar" dicoret.
 ## 3. Temuan yang KONTRA dengan decision point terkunci
 
 Ini bagian terpenting dokumen. Setiap baris di bawah menabrak sesuatu yang sudah
-ditulis di [`../CLAUDE.md`](../CLAUDE.md) §"Decision point yang sudah di-lock".
+ditulis di [`../CLAUDE.md`](../../CLAUDE.md) §"Decision point yang sudah di-lock".
 Tidak ada satu pun yang boleh diubah tanpa persetujuan eksplisit.
 
 ### K1 — `class_weight` balanced ⚠️ KONTRA

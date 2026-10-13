@@ -3,7 +3,7 @@
     python scripts/cek_fp.py [--threshold 0.80]
 
 Menjawab tiga pertanyaan yang harus dijawab SEBELUM menulis post-processing
-(T5, docs/2026-09-19-fitur-design.md §5):
+(T5, docs/arsip/2026-09-19-fitur-design.md §5):
 
   1. Sebaran  — FP tersebar rata atau menumpuk di segelintir pasien?
   2. Run      — FP bergerombol atau tunggal, DIBANDING true positive?

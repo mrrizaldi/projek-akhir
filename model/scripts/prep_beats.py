@@ -62,7 +62,7 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
     """Satu record → dict siap disimpan. Murni, tidak menulis file.
 
     jitter: callable r -> r_tergeser, atau None. Dipakai untuk eksperimen
-    ketahanan terhadap error segmentasi (docs/2026-09-18-robustness-plan.md).
+    ketahanan terhadap error segmentasi (docs/arsip/2026-09-18-robustness-plan.md).
     Posisi yang sudah digeser dipakai SELURUHNYA — window dan fitur RR — karena
     detektor yang meleset merusak dua-duanya sekaligus. Label tetap dari indeks
     anotasi asli: yang bergeser cuma tempat kita memotong, bukan diagnosisnya.

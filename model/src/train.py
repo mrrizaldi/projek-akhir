@@ -55,7 +55,7 @@ class RataBobotTerbaik(callbacks.Callback):
 def train(model, train_data: dict, val_data: dict,
           epochs: int = EPOCHS, batch_size: int = BATCH_SIZE,
           pakai_class_weight: bool = True, swa_n: int = 0, lr: float = 0.0):
-    """pakai_class_weight=False untuk ablasi K1/T1 (docs/2026-09-19-fitur-design.md).
+    """pakai_class_weight=False untuk ablasi K1/T1 (docs/arsip/2026-09-19-fitur-design.md).
 
     Bawaan True = nilai terkunci, tidak berubah. P1 Tabel 4 mengukur trade-off-nya
     di varian yang HANYA beda ini: recall -7 poin, precision +31 poin.

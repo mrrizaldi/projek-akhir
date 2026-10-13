@@ -56,7 +56,7 @@ def _lebar_pada_fraksi(windows: np.ndarray, frac: float, r_idx: int,
 
     Window sudah ter-z-score dan puncak R sudah didudukkan di r_idx (=132) oleh
     segmentasi + selaraskan_r. `cari` memberi toleransi +-4 sampel karena sebaran
-    residu mitdb memang +-2 (docs/2026-09-19-multidataset-plan.md §3b).
+    residu mitdb memang +-2 (docs/arsip/2026-09-19-multidataset-plan.md §3b).
 
     Jalan kiri-kanan dari puncak sampai amplitudo turun di bawah ambang. Kalau
     tak pernah turun, tepi window dipakai — itu jujur: beat-nya memang selebar

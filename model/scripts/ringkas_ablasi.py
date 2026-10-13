@@ -4,7 +4,7 @@
     python scripts/ringkas_ablasi.py --tag w128b g_swa3
     python scripts/ringkas_ablasi.py --tag g_swa3 --vs w128b
 
-Aturan §7 (docs/2026-09-19-fitur-design.md) dipakai apa adanya:
+Aturan §7 (docs/arsip/2026-09-19-fitur-design.md) dipakai apa adanya:
   * minimal 3 seed — tag ber-seed < 3 ditandai, bukan diam-diam dipercaya
   * dilaporkan rerata DAN setengah-rentang, bukan angka tunggal
   * |delta| < AMBANG F1 BUKAN sinyal

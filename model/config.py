@@ -159,7 +159,7 @@ SPLIT_SETIAP_KE = 4
 
 # Database yang IKUT LATIH. incartdb sengaja TIDAK di sini — Fase B mengukurnya
 # merugikan meski menyumbang 256.454 beat latih (4 varian x 3 seed,
-# docs/2026-09-19-faseB-changelog.md):
+# docs/arsip/2026-09-19-faseB-changelog.md):
 #
 #                 mitdb      +svdb    +incartdb   +keduanya
 #   AUC          0,9373     0,9314     0,8881      0,9092
@@ -195,7 +195,7 @@ DROPOUT_RATE = 0.0            # 0.0 = tanpa dropout (keputusan terkunci)
 # Fitur cabang ritme. HOS (kurtosis+skewness, Dias 2021 Pers. 12-13) menempel di
 # cabang yang sama, bukan cabang morfologi: dua skalar, bukan deret waktu.
 USE_HOS = os.environ.get("PA_HOS", "0") == "1"
-# Fase D — knob T2 & T3 (docs/2026-09-19-fitur-design.md K3/K4). TANPA env,
+# Fase D — knob T2 & T3 (docs/arsip/2026-09-19-fitur-design.md K3/K4). TANPA env,
 # nilainya persis seperti semula: 3 kolom RR absolut/rasio campuran.
 #   PA_QRSW=1     +2 kolom lebar QRS ternormalisasi (P3 rank 1-2 dari 85 fitur)
 #   PA_RR_RATIO=1 bentuk RR jadi rasio semua: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0

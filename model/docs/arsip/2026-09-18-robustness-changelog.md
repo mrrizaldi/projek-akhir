@@ -2,7 +2,7 @@
 
 Catatan perubahan **rencana → pelaksanaan** untuk
 [`2026-09-18-robustness-plan.md`](2026-09-18-robustness-plan.md).
-Isi konseptualnya ada di [`jitter-walkthrough.md`](jitter-walkthrough.md); di
+Isi konseptualnya ada di [`jitter-walkthrough.md`](../jitter-walkthrough.md); di
 sini yang dicatat cuma **apa yang berbeda dari rencana, kenapa, dan bagaimana
 mengulanginya**.
 

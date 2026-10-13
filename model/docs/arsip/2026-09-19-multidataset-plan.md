@@ -66,7 +66,7 @@ informasinya tidak ada di sana, berapa pun laju cupliknya.
 | F | 394 (**372 di rec 208**) | 23 / 6 rec ❌ | **219 / 22 rec** |
 | Q | 6 | 79 / 20 rec | 6 / 5 rec |
 
-Dibekukan di [`../tests/test_multidataset.py`](../tests/test_multidataset.py).
+Dibekukan di [`../tests/test_multidataset.py`](../../tests/test_multidataset.py).
 
 **S: selesai.** 634 → ~11.250 beat, ~20 → ~102 pasien, dan record terbesar svdb
 cuma 15% dari total S-nya. Tidak ada satu pasien pun yang bisa mendominasi.
@@ -540,7 +540,7 @@ Tiga rentang disjoint, dijaga `test_rentang_id_tidak_bertumpuk`.
 
 ### Sisa yang menggantung
 
-`docs/2026-09-16-daya-plan.md:28` masih mengutip *"Aturan 1 `model/CLAUDE.md` —
+`docs/arsip/2026-09-16-daya-plan.md:28` masih mengutip *"Aturan 1 `model/CLAUDE.md` —
 USER yang menulis logika algoritma"*. Aturan itu sudah tidak ada. Dokumen itu
 milik user; tidak diubah dari sini.
 

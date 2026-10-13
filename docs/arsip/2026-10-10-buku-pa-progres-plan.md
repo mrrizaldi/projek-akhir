@@ -107,8 +107,8 @@ Butir Batasan Masalah 1–6 di `07 §4` dipakai.
 | R16 | Bab 3 payload | ±100–150 byte/paket | field identik dengan tabel proposal, ukuran ±320 byte/rekaman di paket | `firmware/src/ecg_mqtt.cpp` (`paket_buf`), `model/CLAUDE.md` jebakan Nagle (~330 B) |
 | R17 | Bab 3 ts | dari RTC | `gettimeofday` + posisi R absolut (waktu kejadian) | commit `6fc426c`, `model/CLAUDE.md` jebakan `time()` |
 | R18 | Bab 3 half-open | pantau latensi PUBACK, reconnect paksa | sama, ditambah `setNoDelay(true)` dan `WiFi.setSleep(false)` | `model/CLAUDE.md` HW-6 + jebakan Nagle |
-| R19 | Bab 3 perangkat keras | tidak ada subbab | breadboard (uji HW-1..HW-6) → PCB rev1 (rekan) → rev2 (berjalan); tambah TFT ST7789, buzzer aktif, 3 tombol, INA219 | memori PCB rev1, `model/docs/2026-10-08-pcb-rev2-adjustment.md`, `firmware/src/main.cpp`, `firmware/src/hwtest.cpp` |
-| R20 | Bab 3 tabel rencana model | target "recall tinggi", "penurunan kecil", "muat flash", "hemat daya" | recall: dilaporkan pada titik operasi hasil kalibrasi VAL (tanpa ambang numerik, PRD tidak menetapkan); delta: \|Δ recall\| < 0,02 (DoD PRD); ukuran: < 25 KB (DoD PRD); daya: diukur per mode p0–p3 (mA, mW) tanpa ambang | `model/scripts/check_poc.py` baris 100–128, `model/docs/2026-09-16-daya-design.md` |
+| R19 | Bab 3 perangkat keras | tidak ada subbab | breadboard (uji HW-1..HW-6) → PCB rev1 (rekan) → rev2 (berjalan); tambah TFT ST7789, buzzer aktif, 3 tombol, INA219 | memori PCB rev1, `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`, `firmware/src/main.cpp`, `firmware/src/hwtest.cpp` |
+| R20 | Bab 3 tabel rencana model | target "recall tinggi", "penurunan kecil", "muat flash", "hemat daya" | recall: dilaporkan pada titik operasi hasil kalibrasi VAL (tanpa ambang numerik, PRD tidak menetapkan); delta: \|Δ recall\| < 0,02 (DoD PRD); ukuran: < 25 KB (DoD PRD); daya: diukur per mode p0–p3 (mA, mW) tanpa ambang | `model/scripts/check_poc.py` baris 100–128, `model/docs/arsip/2026-09-16-daya-design.md` |
 | R21 | Bab 3 tabel rencana | tidak ada baris kesetaraan preprocessing | tambah baris "Kesetaraan C vs Python: keluaran perangkat identik dengan golden Python dalam toleransi 1 kuantum INT8" (berasal dari PRD, golden reference) | `firmware/test/golden_ref.h`, `model/CLAUDE.md` HW-1 |
 | R22 | Bab 1 | tanpa Batasan Masalah, Sistematika versi proposal | tambah Batasan Masalah (6 butir), tulis ulang Sistematika Bab 4–5 | `docs/pola-laporan-pa/07-penerapan-ke-pa-kita.md` §4 |
 
@@ -364,7 +364,7 @@ Isi (pola P7, dua paragraf): detektor R-peak di perangkat tidak selalu menaruh p
 
 **Files:**
 - Modify (timpa stub): `laporan/buku-pa/bab/bab3.tex`
-- Sumber: `laporan/proposal-pa/bab/bab3.tex`, `firmware/src/main.cpp`, `firmware/src/hwtest.cpp`, `firmware/include/ecg_mqtt.h`, `firmware/src/ecg_mqtt.cpp`, `model/docs/2026-10-08-pcb-rev2-adjustment.md`, `model/CLAUDE.md`, `dashboard/dashboard_ekg.json`
+- Sumber: `laporan/proposal-pa/bab/bab3.tex`, `firmware/src/main.cpp`, `firmware/src/hwtest.cpp`, `firmware/include/ecg_mqtt.h`, `firmware/src/ecg_mqtt.cpp`, `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`, `model/CLAUDE.md`, `dashboard/dashboard_ekg.json`
 
 Kala: Bab 3 menggambarkan **rancangan yang berlaku sekarang**, ditulis deskriptif ("dirancang", "digunakan"), tanpa "akan" dan tanpa "direncanakan". Perubahan dari proposal TIDAK diceritakan di sini (itu tugas Bab 4 pembuka 4.6).
 
@@ -391,7 +391,7 @@ Isi:
 %              INA219 (I2C) di jalur daya; sumber daya USB/baterai
 % Alur baca  : sensor kiri -> ESP32-S3 tengah -> keluaran (TFT, buzzer, WiFi) kanan; daya bawah
 % Teks       : nama komponen persis seperti di paragraf
-% Bahan repo : model/docs/2026-10-08-pcb-rev2-adjustment.md; firmware/src/hwtest.cpp
+% Bahan repo : model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md; firmware/src/hwtest.cpp
 \begin{figure}[H]
   \centering
   \PlaceholderGambar{Diagram blok perangkat keras}{ESP32-S3, AD8232, TFT, buzzer, tombol, INA219}
@@ -400,7 +400,7 @@ Isi:
 \end{figure}
 ```
 
-  c. Tabel pin map (`table` `[!ht]`, kolom: Komponen | Sinyal | Pin breadboard | Pin PCB rev1/rev2). Isi dari berkas, bukan ingatan: pin breadboard dari konstanta pin di `firmware/src/main.cpp`; pin PCB dari `firmware/src/hwtest.cpp` (komentar "Pin map PCB rev1") dan perubahan rev2 dari `model/docs/2026-10-08-pcb-rev2-adjustment.md` (BTN1 pindah ke GPIO14, J2 TFT jadi 8 pin dengan CS ke GND, divider resistor TFT dihapus). Komentar `% sumber:` per baris kelompok.
+  c. Tabel pin map (`table` `[!ht]`, kolom: Komponen | Sinyal | Pin breadboard | Pin PCB rev1/rev2). Isi dari berkas, bukan ingatan: pin breadboard dari konstanta pin di `firmware/src/main.cpp`; pin PCB dari `firmware/src/hwtest.cpp` (komentar "Pin map PCB rev1") dan perubahan rev2 dari `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md` (BTN1 pindah ke GPIO14, J2 TFT jadi 8 pin dengan CS ke GND, divider resistor TFT dihapus). Komentar `% sumber:` per baris kelompok.
   d. Paragraf versi perangkat: pengujian pada Bab 4 dilakukan pada rangkaian breadboard. Desain PCB rev1 disusun oleh rekan, dan revisi rev2 sedang dikerjakan untuk memperbaiki level tegangan GPIO 3,3 V pada tombol, INA219, dan TFT. Prinsip "GPIO hanya dari 3V3" disebut satu kalimat.
 
 - [ ] **Step 4: Gambar arsitektur dan flowchart proposal yang usang → placeholder revisi.** Untuk setiap gambar berikut, GANTI baris `\includegraphics[...]{...}` dengan placeholder, caption dan label TETAP sama, tambah blok komentar kartu:
@@ -580,7 +580,7 @@ Pilih baris yang menentukan keputusan (bersih, jitter, w128, w112, hos, w128s3, 
 
 - [ ] **Step 5: Tabel delta INT8** dari `fase7_delta.csv` (semua baris kecuali threshold), dan vonis terhadap target $|\Delta recall| < 0{,}02$.
 - [ ] **Step 6: Tabel sumber daya** (kolom Besaran | Nilai | Kondisi build | Target) dari `model/CLAUDE.md` HW-1 (26,6 ms/detak, arena 12.948 B, heap bebas 312.396 B) dan HW-6 (RAM 36,9\%, Flash 13,5\% dengan kredensial WiFi terisi), plus beban HW-3/HW-4. Ukuran model 22,94 KB vs 25 KB.
-- [ ] **Step 7: Butir g (daya)**: status belum diukur, rencana mode p0–p3 dari `model/docs/2026-09-16-daya-design.md` (sebut keempat mode), pembacaan INA219 lewat I2C belum dikerjakan (`model/docs/2026-09-16-daya-plan.md` Task 3).
+- [ ] **Step 7: Butir g (daya)**: status belum diukur, rencana mode p0–p3 dari `model/docs/arsip/2026-09-16-daya-design.md` (sebut keempat mode), pembacaan INA219 lewat I2C belum dikerjakan (`model/docs/arsip/2026-09-16-daya-plan.md` Task 3).
 - [ ] **Step 8: Verifikasi baku + Cek gaya (`bab4`).**
 
 ---
