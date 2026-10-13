@@ -24,6 +24,7 @@ constexpr size_t REKAM_SAMPEL_MAKS = (size_t)ECG_FS * 300;  // 300 detik, PSRAM 
 void rekam_siapkan(void);
 
 bool rekam_aktif(void);                    // sesi rekaman terbuka (termasuk saat jeda)
+bool rekam_tolak(const char *apa);
 bool rekam_dijeda(void);
 size_t rekam_n(void);                      // sampel di buffer
 void rekam_toggle(void);                   // mulai, atau simpan ke berkas bernomor baru

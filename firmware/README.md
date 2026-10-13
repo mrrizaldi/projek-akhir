@@ -293,8 +293,8 @@ dan ditandai bip pendek. Setiap tekanan berbunyi klik 20 ms.
 
 | Konteks | B1 | B2 | B3 |
 |---|---|---|---|
-| Monitor, pendek | bisu / bunyikan bip detak | bekukan / jalankan gelombang dan bip | tidak merekam: mulai rekam (setara `r`); merekam: jeda, dijeda: lanjut (setara `j`) |
-| Monitor, lama | — | buka menu | merekam atau dijeda: stop dan simpan ke `/rekam/NNN.csv` (setara `r`), ditandai bip panjang 400 ms setelah berkas tertulis; tidak merekam: tidak ada aksi |
+| Monitor, pendek | bisu / bunyikan bip detak | bekukan / jalankan gelombang dan bip | tidak merekam: mulai rekam (setara `r`, hanya dari sumber Sensor (ADC)); merekam: jeda, dijeda: lanjut (setara `j`) |
+| Monitor, lama | — | buka menu; selama sesi rekam ditolak (`TERKUNCI`) | merekam atau dijeda: stop dan simpan ke `/rekam/NNN.csv` (setara `r`), ditandai bip panjang 400 ms setelah berkas tertulis; tidak merekam: tidak ada aksi |
 | Menu, pendek | turun (melingkar) | kembali satu tingkat; di akar = tutup menu | naik (melingkar) |
 | Menu, lama | langsung ke monitor | pilih / masuk | langsung ke monitor |
 
@@ -305,10 +305,8 @@ menampilkan petunjuk tombol yang berlaku.
 Menu hanya mengganti isi layar dan arti tombol. Akuisisi, deteksi, inferensi,
 rekaman, publikasi MQTT, NeoPixel, dan bip detak tetap berjalan selama menu
 terbuka. Gelombang tidak digambar selama menu terbuka; layar monitor digambar
-ulang saat menu ditutup.
-Rekaman yang sedang berjalan tetap merekam (atau tetap dijeda), dan untuk
-menjeda atau menyimpannya menu ditutup lebih dulu lalu B3 ditekan pendek
-(jeda/lanjut) atau ditahan (simpan).
+ulang saat menu ditutup. Menu tidak dapat dibuka selama sesi rekam (bagian
+Merekam).
 
 ### Pohon menu
 
@@ -350,6 +348,42 @@ dapat diuji tanpa menekan tombol fisik.
    dijeda. Bip panjang menandai berkas sudah tertulis, kanan atas menampilkan
    `SIMPAN` dan nama berkas selama 3 detik, dan serial mencetak
    `SIMPAN <n> sampel (<detik> detik, <k> segmen), ... -> /rekam/NNN.csv`.
+
+Mulai rekam ditolak bila sumber sinyal bukan Sensor (ADC): layar menampilkan
+`TOLAK` / `hanya sensor ADC` selama 2 detik dengan bip tolak 150 ms, dan serial
+mencetak `REKAM hanya dari sensor`. Serial `r` juga ditolak saat menu terbuka
+(`REKAM ditolak: tutup menu dulu`) dan saat mode daya `p0`–`p5` aktif. Menolak,
+bukan menutup menu secara paksa, menjaga satu aturan untuk tombol dan serial:
+rekaman dimulai dari layar monitor.
+
+**Kunci sesi rekam.** Selama sesi rekam terbuka (merekam maupun dijeda) jalur
+sinyal dan menu tidak dapat diubah:
+
+| Aksi | Perilaku selama sesi |
+|---|---|
+| Tahan B2 (serial `T2`) | menu tidak terbuka; kanan atas `TERKUNCI` / `tahan B3=simpan` 2 detik, bip tolak, serial `DITOLAK: menu ...` |
+| `y`, `p0`–`p5`, `V`, `k`, `w<n>`, `b<n>` | ditolak, serial `DITOLAK: ganti sumber` / `mode daya` / `tangga daya` / `lewati kalibrasi` / `ganti WiFi` / `ganti broker` |
+| B1 pendek, B2 pendek, B3, `r`, `j` | tetap berlaku (bisu, beku, jeda/lanjut, simpan) |
+| `s`, `l`, `q`, `v`, `m`, `h<n>` | tetap berlaku; `d` ditolak (`Sedang merekam.`) |
+
+Pemeriksaan ada di satu fungsi, `rekam_tolak()` (`rekam.h`), yang dipanggil di
+fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `akuisisi_set_sumber`,
+`daya_set_mode`, `daya_tangga_mulai`, `gerbang_set_lewati`,
+`konfig_pilih_wifi`, dan `konfig_pilih_broker`. Jalur baru ke fungsi-fungsi itu
+otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,
+mengukur daya, atau mengganti jaringan, simpan rekaman lebih dulu.
+
+Uji alur tepi kunci ini di board (tujuh skenario, LULUS/GAGAL per skenario,
+kode keluar ≠ 0 bila ada yang gagal; membuat satu rekaman ±10 detik lalu
+menghapusnya dan mengembalikan sumber ke ADC; board harus tidak merekam, menu
+tertutup, mode daya normal):
+
+```
+cd model && .venv/bin/python scripts/uji_alur_rekam.py [/dev/ttyACM0]
+```
+
+Port bawaan: `ECG_PORT`, atau `/dev/ttyACM*` pertama. Skrip menunggu hingga
+`s` menjawab karena membuka port dapat me-reset board.
 
 Padanan serial: `r` (mulai / stop dan simpan) dan `j` (jeda / lanjut). Panjang
 maksimum 300 detik sinyal tersimpan; waktu jeda tidak dihitung. Berkas ditarik
@@ -542,4 +576,5 @@ menunggu sinkronisasi jam, `online` = normal, `mati` = MQTT dinonaktifkan.
 Nomor entri WiFi dan broker dimulai dari 0; nomor rekaman dan berkas daya dimulai dari 1.
 Angka sesudah huruf ditunggu sampai 500 ms per digit, sehingga dapat diketik
 langsung di `pio device monitor`; `t`/`T` hanya membaca satu digit. `d` ditolak
-selama merekam.
+selama merekam; `y`, `k`, `p0`–`p5`, `V`, `w<n>`, `b<n>`, dan `T2` (menu)
+ditolak selama sesi rekam (bagian Merekam).

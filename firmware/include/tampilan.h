@@ -22,6 +22,7 @@ void tampilan_layani(void);
 void tampilan_led(uint8_t r, uint8_t g, uint8_t b);
 void tampilan_bunyi(uint32_t ms);          // non-blocking
 void tampilan_hapus_jadwal(void);          // buang bip detak yang menunggu
+void tampilan_pesan(const char *besar, const char *kecil);
 
 // Per beat (HR + jadwal bip) dan per sampel (bip terjadwal + gelombang).
 void tampilan_beat(const ecg_beat_t &beat, bool aritmia);

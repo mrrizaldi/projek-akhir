@@ -359,6 +359,7 @@ static void masuk(const halaman_t *h)
 void menu_buka(void)
 {
     if (dalam >= 0) return;
+    if (rekam_tolak("menu")) { tampilan_pesan("TERKUNCI", "tahan B3=simpan"); return; }
     tampilan_set_monitor(false);
     masuk(&H_AKAR);
 }

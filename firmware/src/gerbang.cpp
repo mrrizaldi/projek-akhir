@@ -6,6 +6,7 @@
 
 #include "akuisisi.h"
 #include "perangkat.h"
+#include "rekam.h"
 #include "tampilan.h"
 
 constexpr int ADC_ATAS = 4090, ADC_BAWAH = 5;
@@ -69,6 +70,7 @@ void gerbang_mulai_sesi(void)
 
 void gerbang_set_lewati(bool on)
 {
+    if (rekam_tolak("lewati kalibrasi")) return;
     lewati_kalibrasi = on;
     if (!on) gerbang_mulai_sesi();         // gerbang penuh dari nol
 }

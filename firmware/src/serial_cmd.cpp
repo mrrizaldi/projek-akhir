@@ -141,7 +141,7 @@ void serial_cmd_layani(void)
     else if (c == 'w') {
         const int n = angka();
         if (n < 0) daftar_wifi();
-        else if (!konfig_pilih_wifi(n)) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
+        else if (!konfig_pilih_wifi(n) && !rekam_aktif()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
     }
     else if (c == 't' || c == 'T') {      // satu digit saja: angka() menunggu digit kedua 500 ms
         const uint32_t t0 = millis();
@@ -153,7 +153,7 @@ void serial_cmd_layani(void)
     else if (c == 'b') {
         const int n = angka();
         if (n < 0) daftar_broker();
-        else if (!konfig_pilih_broker(n)) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
+        else if (!konfig_pilih_broker(n) && !rekam_aktif()) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
     }
 }
 #endif

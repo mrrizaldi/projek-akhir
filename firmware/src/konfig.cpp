@@ -6,6 +6,7 @@
 #include <Preferences.h>
 
 #include "ecg_mqtt.h"
+#include "rekam.h"
 
 struct wifi_t { const char *ssid, *pass; };
 struct broker_t { const char *nama, *host; uint16_t port; const char *token; };
@@ -88,7 +89,7 @@ int konfig_broker(void) { return i_broker; }
 // menyalakan WiFi; pilih jaringan di mode normal.
 bool konfig_pilih_wifi(int i)
 {
-    if (i < 0 || i >= N_WIFI) return false;
+    if (i < 0 || i >= N_WIFI || rekam_tolak("ganti WiFi")) return false;
     i_wifi = i;
     tulis("wifi", i);
     terapkan();
@@ -98,7 +99,7 @@ bool konfig_pilih_wifi(int i)
 
 bool konfig_pilih_broker(int i)
 {
-    if (i < 0 || i >= N_BROKER) return false;
+    if (i < 0 || i >= N_BROKER || rekam_tolak("ganti broker")) return false;
     i_broker = i;
     tulis("broker", i);
     terapkan();

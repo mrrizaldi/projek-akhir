@@ -11,6 +11,7 @@
 #include "ecg_mqtt.h"
 #include "ina219.h"
 #include "perangkat.h"
+#include "rekam.h"
 
 // Bawaan = measure_power.py (jendela 10 s, --blok 6). Uji singkat di board:
 // PLATFORMIO_BUILD_FLAGS="-DDAYA_JENDELA_MS=2000 -DDAYA_BLOK=2" pio run -t upload
@@ -49,6 +50,7 @@ const char *daya_ina_teks(void)
 void daya_set_mode(int m)
 {
     static bool wifi_mati;
+    if (rekam_tolak("mode daya")) return;
     mode_daya = m;
     akuisisi_timer(m != 0);
     // esp_wifi_stop/start, bukan WiFi.mode(WIFI_OFF): yang terakhir ikut
@@ -178,6 +180,7 @@ static void mulai_langkah(int m)
 
 void daya_tangga_mulai(void)
 {
+    if (rekam_tolak("tangga daya")) return;
     if (langkah >= 0) { Serial.println("tangga: sudah berjalan"); return; }
     if (!ina_ada) { Serial.println("tangga: INA219 tidak terdeteksi, batal"); return; }
     jd_n = hasil_n = 0;

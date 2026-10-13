@@ -196,6 +196,18 @@ static void perbarui_led()
 
 static uint32_t t_1hz;
 static char kanan_lalu[32];                // isi kanan atas yang tergambar; "" = gambar ulang
+constexpr uint32_t PESAN_MS = 2000, BIP_TOLAK_MS = 150;
+static char pesan_besar[9], pesan_kecil[17];
+static uint32_t t_pesan;
+
+void tampilan_pesan(const char *besar, const char *kecil)
+{
+    snprintf(pesan_besar, sizeof pesan_besar, "%s", besar);
+    snprintf(pesan_kecil, sizeof pesan_kecil, "%s", kecil);
+    t_pesan = millis() | 1;
+    t_1hz = millis() - 1000;
+    tampilan_bunyi(BIP_TOLAK_MS);
+}
 
 // Tengah atas x 116..211, bergantian tiap 3 detik: INA219 (mA besar, V/mW
 // kecil) dan waktu (jam WIB + tanggal bila SNTP sudah masuk, selain itu
@@ -260,7 +272,11 @@ static void gambar_kanan()
     uint16_t w = ST77XX_YELLOW;
     const unsigned d = (unsigned)(rekam_n() / ECG_FS);
     const int simpan = rekam_baru_disimpan();
-    if (rekam_aktif() && !rekam_dijeda()) {
+    if (t_pesan && millis() - t_pesan < PESAN_MS) {
+        w = ST77XX_ORANGE;
+        snprintf(t, sizeof t, "%s", pesan_besar);
+        snprintf(kecil, sizeof kecil, "%s", pesan_kecil);
+    } else if (rekam_aktif() && !rekam_dijeda()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);
     } else if (rekam_aktif()) {

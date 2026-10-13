@@ -128,6 +128,7 @@ static bool pasang(int s, int nomor)
 
 bool akuisisi_set_sumber(int s, int nomor, bool simpan)
 {
+    if (rekam_tolak("ganti sumber")) return false;
     akuisisi_timer(false);                 // memuat berkas memblok; jangan dihitung sampel hilang
     const bool ok = pasang(s, nomor);
     akuisisi_timer(true);

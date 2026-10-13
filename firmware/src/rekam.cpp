@@ -7,8 +7,11 @@
 #include <sys/stat.h>
 
 #include "akuisisi.h"
+#include "daya.h"
 #include "ecg_pipeline.h"
+#include "menu.h"
 #include "perangkat.h"
+#include "tampilan.h"
 
 constexpr size_t REKAM_N = REKAM_SAMPEL_MAKS;
 constexpr int DAFTAR_MAKS = 64;            // ponytail: batas daftar tampilan saja; nomor baru tetap dari pindai penuh
@@ -26,6 +29,12 @@ static uint32_t t_simpan;
 
 bool rekam_aktif(void) { return aktif; }
 bool rekam_dijeda(void) { return aktif && jeda; }
+bool rekam_tolak(const char *apa)
+{
+    if (!aktif) return false;
+    Serial.printf("DITOLAK: %s selama sesi rekam, simpan dulu (tahan B3 / r)\n", apa);
+    return true;
+}
 int rekam_baru_disimpan(void) { return no_simpan && millis() - t_simpan < 3000 ? no_simpan : 0; }
 size_t rekam_n(void) { return n; }
 
@@ -115,6 +124,14 @@ static void simpan()
 void rekam_toggle(void)
 {
     if (aktif) { simpan(); return; }
+    const char *tolak = akuisisi_sumber() != SUMBER_ADC ? "REKAM hanya dari sensor"
+                      : daya_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
+                      : menu_terbuka() ? "REKAM ditolak: tutup menu dulu" : nullptr;
+    if (tolak) {
+        Serial.println(tolak);
+        tampilan_pesan("TOLAK", akuisisi_replay() ? "hanya sensor ADC" : "rekam ditolak");
+        return;
+    }
     n = lepas = 0;
     n_batas = 0;
     jeda = false;
