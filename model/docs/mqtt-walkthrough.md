@@ -267,12 +267,12 @@ jaringan, bukan di dirinya sendiri.
 
 | Tombol | Arti | Keluaran |
 |---|---|---|
-| **`y`** | **sumber sinyal: replay ⇄ ADC** | `replay ON (golden_raw)` / `replay OFF (ADC)` |
+| **`y`** | **sumber sinyal: replay ⇄ ADC** (setara tombol B1 ditahan 2 detik) | `replay ON (golden_raw)` / `replay OFF (ADC)` |
 | **`m`** | **publikasi MQTT: on ⇄ off** | `mqtt ON` / `mqtt OFF` |
 | **`k`** | **lewati gerbang kalibrasi** (bench saja) | `lewati gerbang kalibrasi ON` |
 | `q` | toggle laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
 | `s` | status sesaat (termasuk MQTT) | lihat di bawah |
-| `r` | rekam mentah ke LittleFS | `REKAM mulai` / `SIMPAN …` |
+| `r` | rekam mentah ke LittleFS (setara tombol B3) | `REKAM mulai` / `SIMPAN …` |
 | `d` | dump rekaman lewat serial | `---MULAI--- … ---SELESAI---` |
 
 Dua toggle itu **ortogonal**, dan itu memang tujuannya:
@@ -367,7 +367,7 @@ di board (`arsip/2026-09-18-robustness-changelog.md` §207).
   LittleFS sudah dipakai untuk rekaman mentah, jadi jalurnya tersedia bila
   dibutuhkan.
 - **`ecg_sim.h` rekaman lebih panjang/beragam.** Ditambahkan **hanya bila**
-  dashboard membutuhkannya ([`arsip/2026-09-18-robustness-plan.md`](arsip/2026-09-18-robustness-plan.md)
+  dashboard membutuhkannya ([`arsip/2026-09-18-robustness-changelog.md`](arsip/2026-09-18-robustness-changelog.md)
   Task 0); replay `golden_raw` mencukupi untuk seluruh pengukuran di §7.
 - **Batch adaptif / kompresi payload.** 1 beat/detik × ~300 B tidak mendekati
   batas apa pun.
@@ -708,8 +708,11 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
   yang dilewati replay karena record 208 memang aritmik (§3.1b).
 - **Latensi p95.** Ekor p95 bergantung pada kanal WiFi (§7c). Pengukuran ulang
   yang bersih memerlukan AP yang tidak padat dan laporan n run. Kadens deteksi
-  firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik); env
-  `hwtest` memakai `-D ECG_LIVE_TIAP=90` (deteksi tiap 250 ms). Mengubah bawaan
+  firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik), sehingga
+  bip dan gelombang di TFT tertunda 1,46 detik dari R. Build flag
+  `-D ECG_LIVE_TIAP=90` menjalankan deteksi tiap 250 ms (tunda bip 0,7 detik)
+  dengan akurasi deteksi DS1 setara (Se 0,9881 vs 0,9867, PPV 0,9870 vs
+  0,9880) dan burst deteksi 7,2 ms per putaran (2,9% CPU). Mengubah bawaan
   firmware utama adalah gate point.
 - **Dashboard.** Field `ecg_snippet` diterima dan tersimpan di ThingsBoard,
   tetapi `dashboard/dashboard_ekg.json` tidak memiliki widget yang

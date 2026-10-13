@@ -204,3 +204,15 @@ Naratif panjang → langsung ke Bab 4 laporan, jangan di sini.
 - **Jebakan "`time()` beresolusi 1 detik":** galat jam sempat menghasilkan kesimpulan
   "sisa ~1 detik milik broker" yang sudah ditulis dan di-commit; pengukuran langsung
   (`dashboard/probe_rtt.py`) membantahnya (RTT broker 1,1 ms median).
+
+## 13 Okt 2026: HW-5 ditutup, Fase 6b diukur ulang
+- **Perubahan:** baris HW-5 di `model/CLAUDE.md` berubah dari "terbuka" ke
+  "selesai"; frasa "selama validasi sinyal tubuh (HW-5) belum tuntas" (decision
+  learning rate) dan "gerbang penuh dengan sinyal tubuh (HW-5)" (HW-6) dicabut.
+  Baris Fase 6b tidak lagi bertanda "diukur pada konfigurasi window 250".
+- **Alasan / bukti:** user menyatakan pengambilan data dari tubuh sudah
+  tervalidasi seluruhnya. `scripts/eval_detected_segmentation.py` dijalankan
+  ulang dengan model produksi (window 128/128, threshold 0,80):
+  `fase6b_segmentasi_deteksi.csv` kini berisi anotasi F1 0,6594 vs deteksi
+  0,6499, recall sistem 0,6035 (baseline 12 Sep: 0,5659 / 0,5631 / 0,5656).
+  Statistik detektor tidak berubah (offset 38, sensitivity S 0,6494).

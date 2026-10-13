@@ -1,4 +1,6 @@
-// Firmware utama: akuisisi + klasifikasi aritmia langsung di alat.
+// Firmware utama: akuisisi + klasifikasi aritmia langsung di alat, dengan
+// tampilan TFT (HR, gelombang, status, daya INA219), bip buzzer per detak, dan
+// tiga tombol. Pin map PCB rev1 ada di include/perangkat.h.
 //
 // ADC dibaca di timer ISR 360 Hz dan ditaruh ke antrean; loop utama yang
 // menguras dan memproses. Pemisahan ini WAJIB: beban pemrosesan menggumpal —
@@ -21,12 +23,10 @@
 
 #include "ecg_live.h"
 #include "ecg_mqtt.h"
+#include "ina219.h"
+#include "perangkat.h"
 #include "model_int8.h"
 #include "golden_ref.h"
-
-constexpr adc1_channel_t KANAL_EKG = ADC1_CHANNEL_7;   // GPIO 8 (ADC1_CH7)
-constexpr int PIN_LOP = 17, PIN_LON = 7;
-constexpr int PIN_REC = 6, PIN_DUMP = 5, PIN_LED = 48;
 
 constexpr size_t ANTRE_N = 256;            // >= 13 (puncak burst), dibulatkan pangkat 2
 constexpr uint32_t DETIK_MAKS = 300;
@@ -105,7 +105,7 @@ static int ayun_1s, ayun_bersih_1s, hum50_1s, mentah_min_1s, mentah_maks_1s;
 static bool clipping_1s;
 static bool lapor_kualitas;                // toggle 'q': cetak tiap detik
 
-// Sumber sinyal replay: golden_raw (record 208, 2400 sampel, 8 beat = ~72 bpm)
+// Sumber sinyal replay: golden_raw (record 208, 2400 sampel, 9 beat)
 // diputar berulang menggantikan ADC. Tanpa sinyal, ecg_live_push tidak pernah
 // mengeluarkan beat — jadi replay bukan kemudahan, tapi syarat untuk mengukur
 // daya per mode (HW-7) dan untuk menguji jalur MQTT tanpa elektroda.
@@ -292,6 +292,7 @@ static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
 static void simpan()
 {
     rekam = false;
+    buzzer(false);       // menulis berkas memblok loop beberapa detik; bip jangan ikut tertahan
     File f = LittleFS.open(BERKAS, "w");
     if (!f) { Serial.println("GAGAL membuka LittleFS"); return; }
     // 'lepas' menjawab yang tidak bisa dijawab data mentah: apakah elektroda
@@ -389,31 +390,266 @@ static void perbarui_led()
     else                                   led(0, 48, 0);
 }
 
-static bool ditekan(int pin, uint32_t &terakhir, bool &sebelumnya)
+// ---------------------------------------------------------------------------
+// Antarmuka alat: TFT, buzzer, tombol.
+//
+// Layar landscape 320x172:
+//   atas   HR (merah bila detak terakhir ARITMIA), arus/tegangan INA219,
+//          status (REC detik / REPLAY / fase kualitas)
+//   tengah gelombang EKG tersaring 0,5-40 Hz, skala otomatis per sapuan
+//   bawah  tiga kotak tombol, kuning selama ditekan
+// Tombol: B1 bisu/bunyi bip detak (tahan 2 detik = ganti sumber seperti 'y'),
+//         B2 bekukan gelombang + bip, B3 mulai/simpan rekaman (seperti 'r').
+constexpr int GY = 30, GH = 112;           // area gelombang
+constexpr int DESIMASI = 3;                // 120 px/detik -> 320 px = 2,7 detik
+constexpr uint16_t ABU = 0x4208;
+constexpr uint32_t BIP_MS = 50, BIP_ARITMIA_MS = 250, TAHAN_MS = 2000;
+// Tanpa detak selama ini, HR di layar menjadi "--".
+constexpr uint32_t HR_BASI_MS = 3000;
+
+static bool bisu, beku, ina_ada;
+static bool tekan[3];
+static int hr_tampil;                      // bpm, 0 = belum ada
+static bool hr_aritmia;
+static uint32_t t_hr;
+static uint32_t buzz_sampai;
+
+static void bunyi(uint32_t ms)
 {
-    const bool kini = (digitalRead(pin) == LOW);
-    const uint32_t t = millis();
-    bool tepi = false;
-    if (kini != sebelumnya && t - terakhir > 50) {
-        tepi = kini; sebelumnya = kini; terakhir = t;
+    buzzer(true);
+    buzz_sampai = millis() + ms;
+}
+
+// Bip per detak, SINKRON dengan ritme. Beat keluar dari ecg_live bergerombol
+// tiap ECG_LIVE_TIAP sampel; membunyikannya saat keluar membuat dua detak lebur
+// jadi satu bip. Karena itu bip dijadwalkan di r_abs + TUNDA_BIP pada jam
+// sampel yang sama dengan ecg_live: semua bip telat sama rata (1,46 detik),
+// jarak antar-bip = RR persis. TUNDA = kadens deteksi + post-window (telat
+// terburuk sebuah beat keluar) + 0,1 detik margin.
+constexpr uint32_t TUNDA_BIP = ECG_LIVE_TIAP + ECG_WIN_POST + ECG_FS / 10;
+constexpr int JADWAL_N = 8;                // 250 bpm x 1,46 detik = 6 bip menunggu
+static struct { uint32_t sampel; uint16_t ms; } jadwal[JADWAL_N];
+static int j_kepala, j_isi;
+
+static void jadwalkan_bip(const ecg_beat_t &b, bool aritmia)
+{
+    if (bisu || j_isi == JADWAL_N) return;
+    auto &j = jadwal[(j_kepala + j_isi++) % JADWAL_N];
+    j.sampel = (uint32_t)b.r_abs + TUNDA_BIP;
+    j.ms = aritmia ? BIP_ARITMIA_MS : BIP_MS;
+}
+
+// ponytail: jam = sampel yang sudah diproses ecg_live, bukan yang masuk antrean;
+// saat burst deteksi bip telat paling lama sepanjang burst (~33 ms).
+static void jalankan_jadwal()
+{
+    const uint32_t kini = (uint32_t)ecg_live_total_sampel();
+    while (j_isi && (int32_t)(kini - jadwal[j_kepala].sampel) >= 0) {
+        const uint16_t ms = jadwal[j_kepala].ms;
+        j_kepala = (j_kepala + 1) % JADWAL_N;
+        j_isi--;
+        // Beku dicek saat berbunyi: layar juga ditunda TUNDA_BIP, jadi bip
+        // berhenti tepat di R terakhir yang tergambar.
+        if (!beku) bunyi(ms);
     }
-    return tepi;
+}
+
+// Gelombang di layar ikut ditunda TUNDA_BIP: R tergambar tepat saat bipnya
+// berbunyi.
+static float tunda_plot[TUNDA_BIP];
+static size_t i_plot;
+
+static float tertunda(float f)
+{
+    const float lama = tunda_plot[i_plot];
+    tunda_plot[i_plot] = f;
+    i_plot = (i_plot + 1) % TUNDA_BIP;
+    return lama;
+}
+
+static void plot(float f)
+{
+    static int n, x, y_lalu = GY + GH / 2;
+    static float lo = -300, hi = 300, mn = 1e9f, mx = -1e9f;
+
+    mn = fminf(mn, f);
+    mx = fmaxf(mx, f);
+    if (++n < DESIMASI || beku) return;
+    n = 0;
+
+    int y = GY + GH - 1 - (int)((f - lo) * (GH - 1) / (hi - lo));
+    y = constrain(y, GY, GY + GH - 1);
+    tft.fillRect(x, GY, min(4, TFT_W - x), GH, ST77XX_BLACK); // hapus di depan kursor
+    tft.drawFastVLine(x, min(y, y_lalu), abs(y - y_lalu) + 1, ST77XX_GREEN);
+    y_lalu = y;
+
+    if (++x < TFT_W) return;
+    x = 0;                                 // akhir sapuan: skala ulang dari sapuan ini
+    const float span = fmaxf(mx - mn, 50.0f);
+    lo = mn - 0.1f * span;
+    hi = lo + 1.2f * span;
+    mn = 1e9f;
+    mx = -1e9f;
+}
+
+static void mulai_rekam()
+{
+    rekam_n = rekam_lepas = n_lewat = 0;
+    rekam = true;
+    Serial.println("REKAM mulai");
+}
+
+// Sumber sinyal ADC <-> replay golden_raw. Dipakai serial 'y' dan B1 tahan 2 detik.
+static void ganti_replay()
+{
+    replay = !replay;
+    replay_i = 0;
+    // Replay tidak punya elektroda untuk distabilkan, DAN golden_raw
+    // adalah record 208 yang penuh beat ventrikular — dRR-nya memang
+    // besar, jadi kriteria "dRR <= 200 ms selama 30 detik" tidak akan
+    // pernah terpenuhi. Kriteria itu dirancang untuk subjek SEHAT yang
+    // duduk diam; dummy kita justru sengaja aritmik. Jadi saat replay,
+    // stabilisasi dilewati dan itu diumumkan.
+    if (replay) lewati_kalibrasi = true;
+    mulai_sesi();
+    j_isi = 0;                     // jam sampel ecg_live mulai dari nol lagi
+    beat_total = beat_aritmia = beat_ditahan = 0;
+    tunda_jml = tunda_n = tunda_maks = 0;
+    Serial.printf("replay %s\n", replay ? "ON (golden_raw)" : "OFF (ADC)");
+}
+
+static void gambar_tombol(int i)
+{
+    static const char *const label[3][2] = {
+        {"B1 BUNYI", "B1 BISU"}, {"B2 JALAN", "B2 BEKU"}, {"B3 REC", "B3 STOP"}};
+    const bool aktif = (i == 0) ? bisu : (i == 1) ? beku : rekam;
+    const int x = i * 107;
+    const uint16_t bg = tekan[i] ? ST77XX_YELLOW : ABU;
+    tft.fillRect(x, 148, 105, 24, bg);
+    tft.setTextSize(2);
+    tft.setTextColor(tekan[i] ? ST77XX_BLACK : ST77XX_WHITE, bg);
+    tft.setCursor(x + 6, 153);
+    tft.print(label[i][aktif]);
+}
+
+// B1 pendek (bisu) bertindak saat DILEPAS, karena tahan 2 detik punya arti lain.
+static void tombol()
+{
+    static uint32_t t_ubah[3];
+    static bool b1_lama;                   // tahan sudah dieksekusi: lepasnya bukan toggle bisu
+    if (tekan[0] && !b1_lama && millis() - t_ubah[0] >= TAHAN_MS) {
+        b1_lama = true;
+        ganti_replay();
+        bunyi(300);
+    }
+    for (int i = 0; i < 3; i++) {
+        const bool kini = digitalRead(PIN_BTN[i]) == LOW;
+        if (kini == tekan[i] || millis() - t_ubah[i] < 50) continue;   // debounce
+        tekan[i] = kini;
+        t_ubah[i] = millis();
+        if (i == 0 && !kini && !b1_lama) bisu = !bisu;
+        if (kini) {
+            bunyi(20);                     // klik
+            if (i == 0) b1_lama = false;
+            if (i == 1) beku = !beku;
+            if (i == 2) { if (rekam) simpan(); else mulai_rekam(); }
+            Serial.printf("tombol B%d (GPIO%d)\n", i + 1, PIN_BTN[i]);
+        }
+        gambar_tombol(i);
+    }
+}
+
+// HR diambil dari RR_prev beat yang lolos gerbang ayunan, sama dengan bip:
+// tanpa elektroda detektor menemukan "beat" di derau, dan itu tidak boleh
+// berbunyi atau tampil sebagai detak jantung.
+static void saat_beat_ui(const ecg_beat_t &beat, bool aritmia)
+{
+    if (ayun_bersih_1s < AMBANG_AYUN) return;
+    hr_tampil = (beat.rr[0] > 0.05f) ? (int)lroundf(60.0f / beat.rr[0]) : 0;
+    hr_aritmia = aritmia;
+    t_hr = millis();
+    jadwalkan_bip(beat, aritmia);
+}
+
+static void layar_1hz()
+{
+    static uint32_t t = 0;
+    if (millis() - t < 1000) return;
+    t = millis();
+
+    const bool hr_ada = hr_tampil > 0 && millis() - t_hr < HR_BASI_MS;
+    tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+    tft.setTextSize(2);
+    tft.setCursor(4, 8);
+    tft.print("HR");
+    tft.setTextSize(3);
+    tft.setCursor(32, 3);
+    tft.setTextColor(hr_ada && hr_aritmia ? ST77XX_RED : ST77XX_WHITE, ST77XX_BLACK);
+    if (hr_ada) tft.printf("%3d", hr_tampil);
+    else        tft.print(" --");
+    tft.setTextSize(1);
+    tft.setTextColor(ST77XX_WHITE, ST77XX_BLACK);
+    tft.setCursor(90, 17);
+    tft.print("bpm");
+
+    // Warna fase sama dengan NeoPixel.
+    tft.setTextSize(2);
+    tft.setCursor(220, 8);
+    if (rekam) {
+        tft.setTextColor(ST77XX_RED, ST77XX_BLACK);
+        tft.printf("REC%4u", (unsigned)(rekam_n / ECG_FS));
+    } else if (replay) {
+        tft.setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
+        tft.print("REPLAY ");
+    } else if (fase == FASE_KALIBRASI) {
+        tft.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+        tft.print("KALIB  ");
+    } else if (fase == FASE_BAIK) {
+        tft.setTextColor(ST77XX_GREEN, ST77XX_BLACK);
+        tft.print("BAIK   ");
+    } else {
+        tft.setTextColor(ST77XX_ORANGE, ST77XX_BLACK);
+        tft.print("BURUK  ");
+    }
+
+    // INA219 di celah x 116..215. Chip merata-rata 128 sampel (~68 ms), jadi
+    // satu baca per detik tidak melompat mengikuti burst 33 ms.
+    float mA = 0, V = 0;
+    const bool ina_ok = ina_ada && ina219_baca(R_SHUNT, &mA, &V);
+    tft.setTextSize(2);
+    tft.setCursor(116, 2);
+    tft.setTextColor(ina_ok ? ST77XX_CYAN : ST77XX_RED, ST77XX_BLACK);
+    if (ina_ok) tft.printf("%4.0fmA", mA);
+    else        tft.print("INA -- ");
+    tft.setTextSize(1);
+    tft.setCursor(116, 20);
+    if (ina_ok) tft.printf("%4.2fV %5.0fmW", V, mA * V);
+    else        tft.printf("cek SDA%d SCL%d", I2C_SDA, I2C_SCL);
+
+    // Label tombol bisa berubah lewat serial ('r'), jadi digambar ulang di sini.
+    for (int i = 0; i < 3; i++) gambar_tombol(i);
+}
+
+// Bacaan INA219 untuk baris status serial 's'.
+static const char *ina_teks()
+{
+    static char teks[48];
+    float mA, V;
+    if (ina_ada && ina219_baca(R_SHUNT, &mA, &V))
+        snprintf(teks, sizeof teks, "I=%.1f mA V=%.3f V P=%.0f mW", mA, V, mA * V);
+    else
+        snprintf(teks, sizeof teks, "tidak menjawab");
+    return teks;
 }
 
 void setup()
 {
+    perangkat_mulai();              // PERTAMA: buzzer diam secepatnya, urutan SPI di dalamnya
     Serial.begin(115200);
     delay(1500);
-    // INPUT_PULLUP, bukan INPUT: kalau kabel LO putus/lepas, pin terbaca HIGH
-    // = "elektroda lepas". Pin mengambang bisa kebetulan terbaca LOW dan
-    // melaporkan "elektroda menempel" untuk kabel yang tidak tersambung ke
-    // apa pun. Output LO AD8232 push-pull, jadi pull-up internal
-    // 45k tidak melawannya.
-    pinMode(PIN_LOP, INPUT_PULLUP); pinMode(PIN_LON, INPUT_PULLUP);
-    pinMode(PIN_REC, INPUT_PULLUP); pinMode(PIN_DUMP, INPUT_PULLUP);
-
-    adc1_config_width(ADC_WIDTH_BIT_12);
-    adc1_config_channel_atten(KANAL_EKG, ADC_ATTEN_DB_11);
+    ina_ada = ina219_mulai(I2C_SDA, I2C_SCL);
+    tft.drawFastHLine(0, GY - 2, TFT_W, ABU);
+    for (int i = 0; i < 3; i++) gambar_tombol(i);
 
     rekam_buf = (uint16_t *)ps_malloc(REKAM_N * sizeof(uint16_t));
     if (!rekam_buf) Serial.println("PERINGATAN: PSRAM gagal, perekaman mentah nonaktif");
@@ -445,18 +681,20 @@ void setup()
     timerAlarmWrite(timer, 1000000 / ECG_FS, true);
     timerAlarmEnable(timer);
 
+    bunyi(100);
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "REC=GPIO%d  DUMP=GPIO%d  |  serial: r/d/s/q/y/m/k\n",
+                  "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam)  |  serial: r/d/s/q/y/m/k\n"
+                  "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)interp->arena_used_bytes(),
-                  ECG_THRESHOLD, PIN_REC, PIN_DUMP);
+                  ECG_THRESHOLD, PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
+                  I2C_SDA, I2C_SCL, INA219_ALAMAT, ina_ada ? "siap" : "TIDAK TERDETEKSI",
+                  TFT_W, TFT_H, PIN_BUZZ, (unsigned)NADA_HZ);
 }
 
 void loop()
 {
     static ecg_beat_t beat;
-    static uint32_t t_rec = 0, t_dump = 0;
-    static bool s_rec = false, s_dump = false;
 
     // Kuras antrean ISR. Satu sampel per iterasi supaya tombol & serial tetap
     // responsif; beban 3% membuat antrean selalu terkejar.
@@ -472,6 +710,7 @@ void loop()
         const int ada_beat = ecg_live_push(sampel, &beat);
         nilai_kualitas(sampel);            // SETELAH push: baca sampel tersaring terbaru
 
+        bool aritmia = false;
         if (ada_beat) {
             nilai_fase(beat);
             if (fase == FASE_KALIBRASI) {
@@ -492,7 +731,7 @@ void loop()
                 }
             } else {
                 const float p = klasifikasi(beat);
-                const bool aritmia = p >= ECG_THRESHOLD;
+                aritmia = p >= ECG_THRESHOLD;
                 beat_total++;
                 if (aritmia) beat_aritmia++;
                 // BPM dari RR_prev, BUKAN dari selisih millis(): beat keluar
@@ -503,7 +742,10 @@ void loop()
                               beat_total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
                 publikasi(beat, p, aritmia);
             }
+            saat_beat_ui(beat, aritmia);
         }
+        jalankan_jadwal();
+        plot(tertunda(ecg_live_tersaring_terakhir()));
     }
 
     // Di luar cabang "ada sampel": sambung ulang & kuras backlog harus jalan
@@ -513,23 +755,9 @@ void loop()
 
     if (Serial.available()) {
         const char c = Serial.read();
-        if (c == 'r') { if (rekam) simpan(); else { rekam_n = rekam_lepas = n_lewat = 0; rekam = true; Serial.println("REKAM mulai"); } }
+        if (c == 'r') { if (rekam) simpan(); else mulai_rekam(); }
         else if (c == 'd') { if (!rekam) dump(); else Serial.println("Sedang merekam."); }
-        else if (c == 'y') {
-            replay = !replay;
-            replay_i = 0;
-            // Replay tidak punya elektroda untuk distabilkan, DAN golden_raw
-            // adalah record 208 yang penuh beat ventrikular — dRR-nya memang
-            // besar, jadi kriteria "dRR <= 200 ms selama 30 detik" tidak akan
-            // pernah terpenuhi. Kriteria itu dirancang untuk subjek SEHAT yang
-            // duduk diam; dummy kita justru sengaja aritmik. Jadi saat replay,
-            // stabilisasi dilewati dan itu diumumkan.
-            if (replay) lewati_kalibrasi = true;   // replay: lihat catatan di atas
-            mulai_sesi();
-            beat_total = beat_aritmia = beat_ditahan = 0;
-            tunda_jml = tunda_n = tunda_maks = 0;
-            Serial.printf("replay %s\n", replay ? "ON (golden_raw)" : "OFF (ADC)");
-        }
+        else if (c == 'y') ganti_replay();
         else if (c == 'k') {
             lewati_kalibrasi = !lewati_kalibrasi;
             Serial.printf("lewati gerbang kalibrasi %s (bench saja — bab3 menuntut "
@@ -550,7 +778,8 @@ void loop()
                           "LO %d %d | mentah %d..%d ayun %d clipping %d\n"
                           "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
                           "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
-                          "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n",
+                          "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
+                          "        INA219 %s | bisu %d | beku %d\n",
                           (int)rekam, (unsigned)rekam_n, (int)replay, nama_fase(),
                           beat_total, beat_aritmia, beat_ditahan,
                           (unsigned)((tulis - baca + ANTRE_N) % ANTRE_N), (unsigned)n_lewat,
@@ -564,14 +793,15 @@ void loop()
                               ? 100.0 * ecg_mqtt_paket_ack() / ecg_mqtt_paket_kirim() : 0.0,
                           (unsigned)(tunda_n ? tunda_jml / tunda_n : 0), (unsigned)tunda_maks,
                           (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
-                          ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms());
+                          ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
+                          ina_teks(), (int)bisu, (int)beku);
     }
 
-    if (ditekan(PIN_REC, t_rec, s_rec)) {
-        if (rekam) simpan(); else { rekam_n = rekam_lepas = n_lewat = 0; rekam = true; Serial.println("REKAM mulai"); }
-    }
-    if (ditekan(PIN_DUMP, t_dump, s_dump)) {
-        if (rekam) Serial.println("DUMP diabaikan saat merekam."); else dump();
+    tombol();
+    layar_1hz();
+    if (buzz_sampai && (int32_t)(millis() - buzz_sampai) >= 0) {
+        buzzer(false);
+        buzz_sampai = 0;
     }
 }
 #endif

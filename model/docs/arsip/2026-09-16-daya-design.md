@@ -108,6 +108,10 @@ lain, yang dikoreksi satu konstanta.
 - Mode **averaging 128 sampel** (~68 ms per pembacaan). Averaging di chip itu
   wajib: arus perangkat ini berdenyut mengikuti burst 33 ms yang sudah terukur
   di HW-3, dan pembacaan sesaat akan melompat-lompat tanpa arti.
+- **Saat WiFi menyala, PGA ÷1 tidak cukup.** ±400 mA bisa dilewati burst TX
+  WiFi dan terbaca terpotong. Sebelum mengukur dengan WiFi, ubah
+  `INA219_CONFIG` ke PGA ÷8 (`0x3FFF`, ±320 mV ≈ ±3,2 A). (Dipindah dari
+  rencana implementasi daya yang dihapus 13 Okt 2026.)
 
 ### 2.3 Siapa yang membaca
 

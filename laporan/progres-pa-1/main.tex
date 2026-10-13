@@ -1,0 +1,112 @@
+% ============================================================
+% VARIAN PROGRES 1 (dibekukan 13 Okt 2026, salinan buku-pa setelah
+% pembersihan istilah internal). Buku PA full ada di ../buku-pa.
+% Varian ini belum disempurnakan; dibahas ulang bersama user.
+% ============================================================
+% ============================================================
+% PAPER SIZE — A4 (tetap, 1 config per projek)
+% Sama seperti proposal-pa: config identik, dokumen berbeda.
+% Ganti ukuran = ganti documentclass + size file di bawah.
+% ============================================================
+\documentclass[12pt,a4paper,fleqn,twoside,openright]{report}
+
+% ============================================================
+% PREAMBLE: size config dulu, lalu common
+%   size-a4 / size-a5 → geometry, spacing, macro font heading
+%   preamble          → packages + formatting (size-independent)
+% ============================================================
+\input{../shared/size-a4}
+\input{../shared/preamble}
+
+% Cover (gaya buku-kp, warna biru)
+\usepackage{tikz}
+\definecolor{coverblue}{HTML}{1F4E79}
+
+% ============================================================
+% DATA MAHASISWA & PROYEK AKHIR
+% ============================================================
+
+\newcommand{\JudulPA}{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia}
+\newcommand{\NamaMahasiswa}{Muhammad Rafi Rizaldi}
+\newcommand{\NRP}{3123600001}
+\newcommand{\PembimbingSatu}{Prof. M. Udin Harun Al Rasyid, S.Kom, Ph.D}
+\newcommand{\NIPSatu}{198108082005011001}
+\newcommand{\PembimbingDua}{Grezio Arifiyan Primajaya, S.Kom, M.Kom}
+\newcommand{\NIPDua}{199208262022031007}
+\newcommand{\Tahun}{2026}
+
+% ============================================================
+% TAHAP DOKUMEN: progres (true) atau buku final (false)
+% ============================================================
+\newif\ifprogres
+\progrestrue
+
+% Gambar: milik buku dulu, lalu gambar proposal yang masih berlaku.
+% Entri ketiga ({../proposal-pa/}) supaya "gambar/logo-pens.png" di sampul
+% ikut terselesaikan ke ../proposal-pa/gambar/logo-pens.png.
+\graphicspath{{gambar/}{../proposal-pa/gambar/}{../proposal-pa/}}
+
+% Placeholder gambar (aturan: diagram/ilustrasi digambar user, bukan Claude).
+% Pakai di dalam figure, didahului komentar "% PLACEHOLDER-GAMBAR fig:..." + kartu.
+% Argumen ke-2 berupa teks biasa, escape karakter khusus: \% \& \_ \# \$
+\newcommand{\PlaceholderGambar}[2]{%
+  \fbox{\parbox[c][5cm][c]{0.85\linewidth}{\centering\small
+    \textbf{[PLACEHOLDER GAMBAR]}\\[3pt]
+    #1: #2\\
+    Spesifikasi lengkap ada di komentar sumber.}}}
+
+% Halaman kosong pengisi (agar bab mulai di halaman ganjil) tanpa nomor halaman.
+\makeatletter
+\renewcommand{\cleardoublepage}{\clearpage\if@twoside\ifodd\c@page\else
+  \hbox{}\thispagestyle{empty}\newpage\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+% ============================================================
+% DOKUMEN
+% ============================================================
+
+\begin{document}
+
+% --- SAMPUL ---
+\pagestyle{empty}
+\input{bab/halaman-judul}
+
+% --- FRONT MATTER (romawi) ---
+\cleardoublepage
+\pagenumbering{roman}
+\pagestyle{plain}
+\input{bab/abstrak}
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR ISI}
+\tableofcontents
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR GAMBAR}
+\listoffigures
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR TABEL}
+\listoftables
+
+% --- ISI (arab) ---
+\cleardoublepage
+\pagenumbering{arabic}
+\pagestyle{mainmatter}
+
+\input{bab/bab1}
+\input{bab/bab2}
+\input{bab/bab3}
+\input{bab/bab4}
+\input{bab/bab5}
+
+% --- DAFTAR PUSTAKA ---
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR PUSTAKA}
+\bibliography{referensi}
+
+\end{document}

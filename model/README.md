@@ -20,7 +20,6 @@ data MIT-BIH sampai header C untuk firmware ESP32-S3.
 | `config.py` | Seluruh konstanta (FS, bandpass, window, label map, threshold) |
 | `src/` | Modul murni (fungsi masukan → keluaran, tanpa efek samping) |
 | `scripts/` | Skrip eksekusi: unduh, prep, latih, evaluasi, kuantisasi, ekspor, ablasi |
-| `scripts/arsip/` | Skrip eksplorasi awal yang tidak lagi dipakai pipeline |
 | `tests/` | pytest untuk DoD tiap fase |
 | `artifacts/` | Model terlatih, `model_int8.tflite`, metrik dan plot |
 | `docs/` | Walkthrough per fase; `docs/arsip/` berisi dokumen desain, rencana, dan changelog eksperimen ([indeks](docs/arsip/README.md)) |

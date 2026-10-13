@@ -580,7 +580,7 @@ Pilih baris yang menentukan keputusan (bersih, jitter, w128, w112, hos, w128s3, 
 
 - [ ] **Step 5: Tabel delta INT8** dari `fase7_delta.csv` (semua baris kecuali threshold), dan vonis terhadap target $|\Delta recall| < 0{,}02$.
 - [ ] **Step 6: Tabel sumber daya** (kolom Besaran | Nilai | Kondisi build | Target) dari `model/CLAUDE.md` HW-1 (26,6 ms/detak, arena 12.948 B, heap bebas 312.396 B) dan HW-6 (RAM 36,9\%, Flash 13,5\% dengan kredensial WiFi terisi), plus beban HW-3/HW-4. Ukuran model 22,94 KB vs 25 KB.
-- [ ] **Step 7: Butir g (daya)**: status belum diukur, rencana mode p0–p3 dari `model/docs/arsip/2026-09-16-daya-design.md` (sebut keempat mode), pembacaan INA219 lewat I2C belum dikerjakan (`model/docs/arsip/2026-09-16-daya-plan.md` Task 3).
+- [ ] **Step 7: Butir g (daya)**: status belum diukur, rencana mode p0–p3 dari `model/docs/arsip/2026-09-16-daya-design.md` (sebut keempat mode), pembacaan INA219 lewat I2C belum dikerjakan (Task 3 rencana implementasi daya; rencana itu dihapus 13 Okt 2026, salinan di tag git `pra-bersih`).
 - [ ] **Step 8: Verifikasi baku + Cek gaya (`bab4`).**
 
 ---

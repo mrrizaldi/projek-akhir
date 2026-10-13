@@ -34,9 +34,9 @@ Agar penelitian tetap terarah dan tujuan dapat dicapai, ruang lingkup penelitian
   \item Klasifikasi dirumuskan secara biner, yaitu Normal dan Aritmia. Penamaan jenis aritmia (ventrikular, supraventrikular, atau fusi) tidak termasuk keluaran sistem.
   \item Model dilatih menggunakan MIT-BIH \textit{Arrhythmia Database} pada sadapan MLII dengan pembagian data \textit{inter-patient} (DS1 untuk pelatihan, DS2 untuk pengujian). Basis data MIT-BIH \textit{Supraventricular Arrhythmia Database} dan St.~Petersburg INCART digunakan sebagai data uji lintas basis data pada ablasi dan tidak digunakan untuk melatih model akhir yang dijalankan di perangkat.
   \item Akuisisi sinyal menggunakan modul AD8232 dalam konfigurasi single-lead Lead II dengan elektroda \textit{wet-gel}.
-  \item Pengujian perangkat dilakukan pada subjek sehat yang dianonimkan dalam lingkungan laboratorium non-klinis. Sistem tidak dirancang sebagai alat diagnosis dan pengujian ini bukan uji klinis.
+  \item Pengujian perangkat dilakukan pada subjek sehat yang dianonimkan dalam lingkungan non-klinis. Sistem tidak dirancang sebagai alat diagnosis dan pengujian ini bukan uji klinis.
   \item Ketahanan \textit{pipeline} diuji dalam batas kapasitas \textit{ring buffer} PSRAM. Kehilangan daya pada perangkat berada di luar cakupan pengujian ketahanan.
-  \item Konsumsi daya diukur, tetapi tidak dioptimasi. Rangkaian baterai dan jalur daya perangkat \textit{wearable} berada di luar lingkup penelitian ini.
+  \item Konsumsi daya tidak menjadi objek optimasi. Rangkaian baterai dan jalur daya perangkat \textit{wearable} berada di luar lingkup penelitian ini.
 \end{enumerate}
 
 \section{Tujuan}
@@ -80,8 +80,8 @@ Sistematika penulisan laporan ini disusun sebagai berikut.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 4}EKSPERIMEN DAN ANALISIS}\\
-\hspace*{1.5cm} Bab ini memaparkan parameter eksperimen, karakteristik data, tempat dan waktu ujicoba, spesifikasi peralatan, serta hasil eksperimen yang disusun per tujuan, yaitu jalur preprocessing \textit{real-time} di mikrokontroler, jalur model TinyML INT8 di ESP32-S3, dan jalur \textit{pipeline edge-to-cloud} yang resilien. Bab ini ditutup dengan analisis ketercapaian setiap tujuan pada tahap progres, perbandingan dengan penelitian terkait, dan keterbatasannya.
+\hspace*{1.5cm} Bab ini memaparkan parameter eksperimen, karakteristik data, tempat dan waktu ujicoba, spesifikasi peralatan, serta hasil eksperimen yang disusun per tujuan, yaitu jalur preprocessing \textit{real-time} di mikrokontroler, jalur model TinyML INT8 di ESP32-S3, dan jalur \textit{pipeline edge-to-cloud} yang resilien. Bab ini ditutup dengan analisis ketercapaian setiap tujuan, perbandingan dengan penelitian terkait, dan keterbatasan sistem.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 5}PENUTUP}\\
-\hspace*{1.5cm} Bab ini merangkum temuan utama dari perancangan, implementasi, dan eksperimen tahap progres, kemudian memberikan saran pengembangan untuk tahap berikutnya.
+\hspace*{1.5cm} Bab ini menyimpulkan hasil penelitian terhadap setiap tujuan beserta temuan teknis utamanya, kemudian memberikan saran pengembangan di luar lingkup penelitian ini.

@@ -39,8 +39,16 @@ texdocs/
 │   ├── main.tex          <- standalone preamble (does not use shared/preamble.tex)
 │   ├── Makefile          <- include ../shared/Makefile.inc
 │   └── images/
-└── buku-pa/              <- Buku Proyek Akhir (placeholder, no content yet)
+├── buku-pa/              <- Buku Proyek Akhir FULL (A4, mode buku final, tanpa sakelar progres)
+│                            front matter: abstrak + abstract; Bab 4–5 register capaian
+└── progres-pa-1/         <- Varian laporan Progres 1 (salinan buku-pa yang dibekukan
+                             13 Okt 2026, \progrestrue). Belum disempurnakan, dibahas
+                             ulang bersama user. Jangan disinkronkan otomatis dengan buku-pa.
 ```
+
+Kedua folder memakai `../shared/` dan `\graphicspath` ke `../proposal-pa/gambar/`.
+Perubahan isi buku dikerjakan di `buku-pa/`; `progres-pa-1/` hanya diubah atas
+permintaan eksplisit user.
 
 ### Paper Size Mechanism
 
@@ -109,6 +117,40 @@ Aturan penulisan paragraf akademik untuk proposal dan buku:
 - **Jangan pakai em dash (`—`)** di dalam paragraf. Gunakan konjungsi yang sesuai ("yang", "sehingga", "karena") atau koma
 - **Jangan pakai numbering inline** seperti `(1)`, `(2)`, `(3)` di dalam paragraf. Sebut secara naratif dengan koma dan konjungsi, atau gunakan environment `enumerate` jika butuh daftar bernomor
 - Pengecualian: titik koma dalam tabel (sel pendek) dan label heading terstruktur (misal "Tahap 1") diperbolehkan
+
+### Larangan Label Kerja Internal Repo (WAJIB)
+
+Proposal, progres, dan buku adalah dokumen akademik formal. Label kerja internal
+repo **dilarang muncul di teks yang tercetak** (semua baris non-komentar `.tex`,
+termasuk caption, sel tabel, dan argumen `\PlaceholderGambar`). Yang dilarang:
+
+- Label tahap/tugas: `HW-1`..`HW-7`, `Fase 0`..`Fase 8`, `Fase 6b/6c`, `Fase A`..`G`,
+  `Task n`, `gate point`, `decision point`, `DoD`.
+- Nama berkas dan path repo: `model/docs/...`, `firmware/src/...`, `*.md`, `*.py`,
+  `*.h`, `*.cpp` (mis. `golden_ref.h`, `model_int8.h`, `ukur_pipeline.py`), kecuali
+  dirujuk formal sebagai lampiran kode.
+- Nama env PlatformIO dan perintah (`esp32-s3`, `native`, `pio test ...`),
+  nama variabel/konstanta/knob (`PA_WIN_PRE`, `AMBANG_AYUN`, `golden_raw`, `ECG_*`),
+  nama state firmware (`calibrating`), pesan serial, toggle serial (`y`, `m`, `k`).
+- Jargon kerja: "walkthrough", "golden ref", tag ablasi (`w128b`, `fb_svdb`,
+  `t8_lr1e3`), nama himpunan internal (`TEST-B`, `TEST-C`).
+
+Ganti dengan istilah deskriptif formal, contoh: "tahap pengujian akuisisi sinyal",
+"uji publikasi MQTT", "eksperimen lintas basis data", "uji unit kode C di komputer",
+"data acuan keluaran Python (*golden reference*)" lalu "data acuan", "sinyal acuan",
+"fase kalibrasi", "ambang ayunan", "data uji SVDB/INCART", ID varian ablasi `A1`..`An`.
+Nama *field* payload/telemetri yang menjadi bagian rancangan (`signal\_quality`,
+`ts`, `ecg\_snippet`) dan nama API standar boleh tetap.
+
+Rujukan sumber ke repo tetap ditulis, tetapi **hanya di komentar `%`**, dan harus ke
+sumber yang stabil: walkthrough aktif `model/docs/*-walkthrough.md`, kode, atau
+artefak `model/artifacts/metrics/*`. Dokumen rencana di `model/docs/arsip/` bisa
+dihapus, jadi jangan dijadikan satu-satunya sumber (changelog eksperimen dan
+`2026-10-08-pcb-rev2-adjustment.md` boleh). Cek cepat sebelum selesai:
+
+```bash
+grep -nE "HW-[0-9]|Fase [0-9A-G]|\.md|\.py|walkthrough|Task [0-9]" bab/*.tex | grep -vE ":[0-9]+:\s*%"
+```
 
 ### Istilah Asing & Penulisan Teknis
 

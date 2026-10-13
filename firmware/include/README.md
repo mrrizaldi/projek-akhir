@@ -8,6 +8,7 @@
 | `ecg_live.h` | Kontrak alur streaming sampel → beat | ditulis tangan |
 | `ecg_mqtt.h` | Kontrak payload dan antrean MQTT | ditulis tangan |
 | `ina219.h` | Konversi register INA219 | ditulis tangan |
+| `perangkat.h` | Pin map PCB rev1 dan pemasangan perangkat (TFT, buzzer, tombol, ADC) untuk `main.cpp` dan test `test_hw_*` | ditulis tangan |
 | `wifi_secrets.example.h` | Templat kredensial; salin menjadi `wifi_secrets.h` (di-ignore git) | ditulis tangan |
 
 Header GENERATED tidak boleh diedit tangan. Regenerasi:

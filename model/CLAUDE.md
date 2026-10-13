@@ -2,7 +2,6 @@
 
 Spesifikasi lengkap: `PRD_Model_Aritmia_TinyML.pdf` (19 hal, Fase 0–8).
 Baca fase terkait sebelum menyentuh file apa pun. Jangan vibe-coding.
-Desain workflow: `docs/arsip/2026-08-18-workflow-model-design.md`.
 
 ## Aturan
 
@@ -55,7 +54,7 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | 4 Model | selesai | dua input, **6.417 param**, tanpa dropout |
 | 5 Latih | selesai | `artifacts/model_fp32.keras`, `class_weight` balanced, EarlyStopping(`val_auc`), Adam 1e-3 |
 | 6 Evaluasi | selesai | threshold **0,80** dari VAL. DS2: **recall 0,6996, precision 0,6235, F1 0,6594, specificity 0,9479, AUC 0,9334**. Median recall per pasien 0,9167; terburuk rec 232 (0,3541) dan 213 (0,2246) |
-| 6b Segmentasi on-device | selesai (di luar PRD) | offset detektor 38 sampel (DS1). Segmentasi tidak merusak klasifikasi; recall sistem turun karena beat tak terdeteksi (sensitivity detektor kelas S 0,6494). Diukur pada konfigurasi window 250 |
+| 6b Segmentasi on-device | selesai (di luar PRD) | offset detektor 38 sampel (DS1). Segmentasi tidak merusak klasifikasi: F1 beat terdeteksi 0,6499 vs anotasi 0,6594. Recall sistem 0,6035 (anotasi 0,6996) karena beat tak terdeteksi (sensitivity detektor kelas S 0,6494). `fase6b_segmentasi_deteksi.csv` |
 | 6c Ketahanan jitter | selesai (di luar PRD) | dikunci: `WIN_PRE/WIN_POST = 128/128`, `JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`, `THRESHOLD = 0,80`. HOS ditolak |
 | 7 Kuantisasi | selesai | PTQ INT8 penuh (varian deploy): **22,94 KB**, recall 0,7105, F1 0,6604, AUC 0,9344, delta recall **+0,0108** |
 | 8 PoC & ekspor | selesai | `make poc` 8/8 item DoD terverifikasi mekanis; `make export` → `firmware/include/model_int8.h`. Salin figure ke `laporan/` hanya dengan `--laporan` |
@@ -63,8 +62,8 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | HW-2 Deteksi R di C | selesai | Pan-Tompkins (`ecg_detect_r`, `ecg_align_r`) cocok Python 11/11 puncak di golden |
 | HW-3 Alur hidup | selesai | `src/ecg_live.cpp`: beban rata-rata 3,0% anggaran, burst puncak 33,4 ms → ADC wajib lewat ISR + antrean |
 | HW-4 Firmware produksi | selesai | timer ISR 360 Hz → antrean 256 → `ecg_live` → inferensi → LED + serial; sampel hilang 0 |
-| HW-5 Sinyal tubuh | terbuka | rekaman tubuh valid: `20260915-1130.csv` (ayun 3.128 counts, 87 bpm). Validasi penuh dengan subjek belum ditutup |
-| HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang ayunan, backlog 27.000 beat di PSRAM. PDSR 100% / 99,2%, latensi median 939 / 1.108 ms (2 ulangan). Terbuka: daya mode WiFi, gerbang penuh dengan sinyal tubuh (HW-5). Detail: `docs/mqtt-walkthrough.md` |
+| HW-5 Sinyal tubuh | selesai | akuisisi dari tubuh tervalidasi; rekaman acuan `20260915-1130.csv` (ayun 3.128 counts, 87 bpm) |
+| HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang ayunan, backlog 27.000 beat di PSRAM. PDSR 100% / 99,2%, latensi median 939 / 1.108 ms (2 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
 | HW-7 Replay | selesai | sumber sinyal replay (toggle serial `y`) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
 
 ## Walkthrough per fase
@@ -113,12 +112,12 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | `sklearn` untuk class weight | **tidak dipakai** — 3 baris numpy | rumus `balanced` cuma `N/(2·n_c)`; gate point CLAUDE.md: jangan tambah dependency (apalagi sebesar sklearn) untuk yang beberapa baris sudah selesai |
 | Monitor EarlyStopping | **`val_auc`** (mode max, patience 8, `restore_best_weights`) | `val_recall` bisa dicurangi (tebak Aritmia semua → recall 1,0); `val_loss` sudah terdistorsi `class_weight` jadi tak lagi bisa ditafsir; AUC bebas threshold & tak bisa dipalsukan satu kelas |
 | Metrik yang dipantau | **recall, precision, AUC** — accuracy TIDAK | accuracy 89,9% bisa dicapai dengan menebak Normal terus; menampilkannya cuma mengundang salah baca |
-| Learning rate | **default adam (1e-3)** — diablasi, tetap | Dengan 1e-3 `val_auc` memuncak di epoch 0 lalu turun monoton — model produksi adalah hasil SATU epoch, 8 epoch sisanya terbuang. Diablasi 3 LR × 3 seed + 39 pasien held-out: 1e-4 menaikkan AUC di 4/4 set evaluasi, TEST-C F1 +0,124, recall F dua kali lipat (0,180→0,359), recall V naik — **tapi recall S turun 0,4473→0,3126**. 3e-4 lebih buruk lagi di S (0,2024), jadi tidak ada titik manis di tengah. Defisit S diverifikasi NYATA di titik operasi setara (6/6 titik, `scripts/cek_titik_operasi.py`) — bukan artefak threshold. Dipertahankan karena **S adalah fokus penelitian ini** dan ongkos pindah (regen `model_int8.h`+`golden_ref.h`, validasi ulang board) besar selama validasi sinyal tubuh (HW-5) belum tuntas. Pertukaran ini DILAPORKAN, bukan disembunyikan. Knob `ablasi.py --lr` ditinggal. Detail: `docs/arsip/2026-09-19-faseG-changelog.md` |
+| Learning rate | **default adam (1e-3)** — diablasi, tetap | Dengan 1e-3 `val_auc` memuncak di epoch 0 lalu turun monoton — model produksi adalah hasil SATU epoch, 8 epoch sisanya terbuang. Diablasi 3 LR × 3 seed + 39 pasien held-out: 1e-4 menaikkan AUC di 4/4 set evaluasi, TEST-C F1 +0,124, recall F dua kali lipat (0,180→0,359), recall V naik — **tapi recall S turun 0,4473→0,3126**. 3e-4 lebih buruk lagi di S (0,2024), jadi tidak ada titik manis di tengah. Defisit S diverifikasi NYATA di titik operasi setara (6/6 titik, `scripts/cek_titik_operasi.py`) — bukan artefak threshold. Dipertahankan karena **S adalah fokus penelitian ini** dan ongkos pindah (regen `model_int8.h`+`golden_ref.h`, validasi ulang board) besar. Pertukaran ini DILAPORKAN, bukan disembunyikan. Knob `ablasi.py --lr` ditinggal. Detail: `docs/arsip/2026-09-19-faseG-changelog.md` |
 | Dropout Dense 16 | **0.0 (tanpa dropout)** — diablasi | val recall: 0.0→**0,700**, 0.2→0,274, 0.3→0,359, 0.5→0,651 (AUC nyaris sama semua). Dropout cuma bikin model makin konservatif — precision naik, recall turun, padahal recall yang kurang. Overfit di sini akar masalahnya variasi antar-pasien, bukan model kegedean |
 | Tipe I/O INT8 | **int8 in / int8 out** (`INT8_IO=True`) | full-INT8 end-to-end: nol kernel float, tensor arena terkecil. Firmware yang mengubah float↔int8 pakai scale/zero_point dari `model_int8.h` (jangan hardcode) |
 | Sampel kalibrasi PTQ | **300, stratified dari DS1**, seed dikunci | PRD 100-500; 300 → 30 beat Aritmia, cukup mencakup ekor distribusi, konversi tetap detikan. Stratified supaya JEBAKAN #4 (kelas minoritas tak terkalibrasi) mustahil terjadi |
 | QAT | **tidak dipakai** | PTQ sudah lolos target (|delta recall| 1,08% < 2%, 22,94 KB < 25 KB); QAT = latih ulang + sumber variasi baru untuk keuntungan yang belum tentu ada |
-| Validation set | **DS1 record 101, 114, 201, 220, 223** (`VAL_RECORDS`; 10.348 beat = 20,3% DS1, aritmia 10,11% ≈ rasio DS1, S=310 V=714) | val jadi simulasi jujur "pasien baru" → angkanya layak dipakai pilih epoch & kalibrasi threshold; DS2 tetap haram sampai Fase 6 |
+| Validation set | **DS1 record 101, 114, 201, 220, 223** (`VAL_RECORDS`; 10.349 beat per salinan = 20,3% DS1, aritmia 10,11% ≈ rasio DS1, S=310 V=714) | val jadi simulasi jujur "pasien baru" → angkanya layak dipakai pilih epoch & kalibrasi threshold; DS2 tetap haram sampai Fase 6 |
 | Rec 208 wajib di train | **ya** — jangan pernah masuk val/exclude | 372 dari 414 beat kelas F di DS1 ada di record ini; tanpa dia kelas F nyaris hilang dari training |
 | Model yang dikuantisasi | **varian deploy** (`build_deploy_model`), bukan model latih | TFLM menghitung op `MEAN` beda dari TFLite: PC 0,973 vs device 0,336, tanpa error. Bobot disalin apa adanya (identik 1,19e-07), nol latih ulang |
 | Pengganti GlobalAveragePooling | **`DepthwiseConv1D(31)` bobot 1/31**, bukan `AveragePooling1D` | op pooling MEWARISI skala kuantisasi input (0,332); rata-rata 31 nilai jauh lebih kecil → ~3 bit resolusi hilang, recall DS2 0,655→0,528. Op konvolusi dapat skala output sendiri (0,0429, sama dgn `MEAN`) |

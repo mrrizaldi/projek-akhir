@@ -1,7 +1,8 @@
 # Changelog Fase 6c — 18 September 2026
 
-Catatan perubahan **rencana → pelaksanaan** untuk
-[`2026-09-18-robustness-plan.md`](2026-09-18-robustness-plan.md).
+Catatan perubahan **rencana → pelaksanaan** untuk rencana adaptasi Dias 2021
+(rencana itu dihapus 13 Okt 2026 setelah seluruh tasknya terwujud; salinan di
+tag git `pra-bersih`).
 Isi konseptualnya ada di [`jitter-walkthrough.md`](../jitter-walkthrough.md); di
 sini yang dicatat cuma **apa yang berbeda dari rencana, kenapa, dan bagaimana
 mengulanginya**.
@@ -16,7 +17,7 @@ user tanpa arkeologi.
 
 | # | Rencana | Yang dikerjakan | Alasan |
 |---|---|---|---|
-| A1 | Task 0: kerjakan `daya-plan` Task 4 | ✅ sama, tanpa perubahan | — |
+| A1 | Task 0: kerjakan Task 4 rencana implementasi daya (sumber replay) | ✅ sama, tanpa perubahan | — |
 | A2 | Task 1: skrip baru yang menjalankan rantai penyelarasan | `ukur_jitter.py` **mengimpor** `haluskan()` dari `eval_detected_segmentation.py` | rantai yang sama sudah ada sejak Fase 6b; menyalinnya = dua sumber kebenaran yang bisa berbeda diam-diam |
 | A3 | Task 2: `--jitter/--seed/--out` di `prep_beats.py` **dan** `build_split.py`, npz per varian | `process_record(jitter=callable)` saja; `sweep_jitter.py` & `ablasi.py` merakit **di memori** | npz per (δ, seed) = 50+ set file untuk data yang dipakai sekali. Cache sinyal+bandpass sekali, ulang cuma pemotongan — sweep 51 konfigurasi jadi hitungan menit |
 | A4 | Task 3: "ulangi kurva Task 2 untuk model baru" (kurva δ=0..18 per varian) | dua titik ukur per varian: DS2 anotasi + DS2 jitter empiris | kurva penuh × 5 varian × 3 seed = 765 evaluasi untuk informasi yang sama. Titik empiris adalah kondisi deploy; sisa kurva sudah dijawab §4 walkthrough |
@@ -210,7 +211,7 @@ TIDAK menampilkannya walau node-nya ada — jangan pakai itu sebagai penentu.
 ### Bug yang ditemukan DI SINI (bukan di rencana, bukan dari paper)
 
 **Float di dalam ISR.** Kode replay versi pertama — yang ditulis persis seperti
-sketsa di `2026-09-16-daya-plan.md` Task 4 Step 3 — mengalikan float di
+sketsa di rencana implementasi daya (Task 4 Step 3) — mengalikan float di
 `on_timer()`. Board panic `Coprocessor exception` (EXCCAUSE 4) di **detik 18,49**
 lalu reboot. ESP32 tidak menyimpan register FPU di konteks interrupt.
 
@@ -218,8 +219,7 @@ Kenapa lolos sejauh ini: ter-build bersih, dan **tidak crash seketika** — pani
 baru meledak saat task ber-FPU dijadwalkan lagi. Uji 20 detik pertama lolos tipis.
 
 Perbaikan: konversi sekali di `setup()` → `static uint16_t sim_counts[GOLDEN_N]`
-(4.800 B, RAM 21,2% → 22,7%), ISR tinggal menyalin integer. Sketsa di daya-plan
-sudah dikoreksi beserta peringatannya.
+(4.800 B, RAM 21,2% → 22,7%), ISR tinggal menyalin integer.
 
 **Dua jebakan pengukuran yang ikut ketemu**, keduanya menghasilkan angka yang
 kelihatan benar:

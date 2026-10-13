@@ -92,7 +92,7 @@ Tambahkan subbab kecil **4.1.x Lingkup Tahap Progres** (pola GDD 4.1.4):
 
 | Diukur penuh | Fungsional/parsial | Ditunda + alasan |
 |---|---|---|
-| model DS2, kuantisasi, kesetaraan, kinerja di perangkat, pipeline dengan replay | akuisisi sinyal tubuh (1 rekaman berhasil), gerbang penuh dengan sinyal tubuh | daya (pembacaan INA219 lewat I2C belum), PCB rev2 |
+| model DS2, kuantisasi, kesetaraan, kinerja di perangkat, pipeline dengan replay, akuisisi sinyal tubuh | gerbang penuh dengan sinyal tubuh | daya (pembacaan INA219 lewat I2C belum), PCB rev2 |
 
 ### 4.2 Karakteristik Data
 
@@ -108,13 +108,13 @@ empiris dua salinan hanya di DS1. Tabel:
 | Himpunan | Record/pasien | Beat | % Aritmia | Dipakai untuk |
 |---|---|---|---|---|
 | DS1 (dengan augmentasi) | `[MC]` | 152.904 `[MC]` | 10,1 `[MC]` | latih |
-| VAL | 5 record | `[lama]` hitung ulang | | pilih epoch, kalibrasi threshold |
+| VAL | 5 record | 10.349 per salinan (31.047 dengan augmentasi) `[MC]` | 10,1 `[MC]` | pilih epoch, kalibrasi threshold |
 | DS2 | `[MC]` 22 pasien | 49.656 `[MC]` | 11,0 `[MC]` | uji, dibuka sekali |
 | TEST-B svdb, TEST-C incartdb | 39 pasien `[MC]` | 85.812 `[MC]` | | uji lintas basis data |
 
 b. **Data primer perangkat.** Rekaman AD8232 di `data/recordings/`: berapa
 rekaman, durasi, subjek, kondisi (Lead II, stabilisasi). Termasuk rekaman yang
-gagal, karena itu bukti diagnosis HW-5. Subjek **anonim**: hanya kode (S01,
+gagal, karena itu bukti diagnosis masalah akuisisi. Subjek **anonim**: hanya kode (S01,
 S02, ...), jenis kelamin dan rentang usia bila perlu. Tanpa nama dan tanpa
 foto wajah. Kondisi "subjek sehat" dan persetujuan disebut satu kalimat.
 
@@ -147,7 +147,7 @@ berbeda dari tanggal percobaan. Ambil tanggal final dari log/rekaman.
 |---|---|
 | Model Fase 0–8 | s.d. 10 Sep 2026 |
 | Port C dan firmware HW-1 sampai HW-4 | 10–12 Sep 2026 |
-| Akuisisi sinyal tubuh HW-5 | 10–15 Sep 2026 (rekaman) |
+| Akuisisi sinyal tubuh HW-5 | 10 Sep – 11 Okt 2026 (rekaman di `model/data/recordings/`) |
 | Segmentasi 6b, jitter 6c, kunci window | 12–18 Sep 2026 |
 | Ablasi A–G | 19 Sep 2026 |
 | Pipeline MQTT HW-6 | 18–19 Sep 2026 |
@@ -209,7 +209,7 @@ kondisi awal + perbaikan → hasil → vonis → jembatan.
 | a. Verifikasi di Python | R-peak MLII, bandpass kausal, segmentasi | plot fase 0, fase 1, segmentasi | group delay +4 sampel (+11,2 ms) `[MC]` |
 | b. Port C + kesetaraan | preprocessing dan Pan-Tompkins di C diadu dengan golden Python | **tabel kesetaraan** | deteksi 11/11 puncak `[MC]`, `pio test -e native` lulus |
 | c. Alur hidup dan beban | ISR 360 Hz → antrean → loop | diagram alur ISR (placeholder), tabel beban | 82 µs/sampel = 3,0% anggaran, burst 33,4 ms, antrean min 13 `[MC]`; produksi: antrean 12 saat burst, hilang 0 `[MC]` |
-| d. Segmentasi di perangkat | biaya detektor terhadap recall sistem | tabel sensitivity detektor per kelas | sensitivity S 0,6494 vs Normal 0,9614 `[lama]` |
+| d. Segmentasi di perangkat | biaya detektor terhadap recall sistem | tabel sensitivity detektor per kelas | sensitivity S 0,6494 vs Normal 0,9614; recall sistem 0,6035 (anotasi 0,6996) `[MC]` (`fase6b_segmentasi_deteksi.csv`) |
 | e. Akuisisi sinyal tubuh | rekaman AD8232, diagnosis eliminasi satu variabel | **tabel kualitas rekaman** + plot rekaman berhasil vs gagal | 1 rekaman 3128 counts, 6 rekaman 40–55 counts `[MC]` |
 
 Butir e adalah **kondisi awal + perbaikan versi panjang** (pola AFIB 4.6.1).
@@ -237,7 +237,7 @@ Format tabel kualitas rekaman:
 | d. Ablasi dan keputusan | yang dikunci, yang ditolak, yang bukan sinyal | **tabel ablasi** | ambang beda bermakna sekitar 0,04 F1, rerata 3 seed `[MC]` |
 | e. Kuantisasi INT8 | PTQ full INT8, varian deploy | **tabel delta** + plot CM INT8 | 22,94 KB, delta recall +0,0108 `[MC]` |
 | f. Kesetaraan dan kinerja di perangkat | probabilitas perangkat vs PC, sumber daya | tabel kesetaraan, **tabel sumber daya** | 26,6 ms/detak, arena 12.948 B, heap bebas 312.396 B, `pio test -e esp32-s3` 16/16 `[MC]` |
-| g. Konsumsi daya | per mode | tabel daya | **belum diukur** (HW-7 Task 3). Tetap tulis subbabnya dengan status dan rencana |
+| g. Konsumsi daya | per mode | tabel daya | **belum diukur** (rancangan: `model/docs/arsip/2026-09-16-daya-design.md`). Tetap tulis subbabnya dengan status dan rencana |
 
 Butir b **tidak boleh** meniru AFIB ("kurang lebih 4.000"). Tulis keempat sel
 CM persis dan rumus metrik sekali saja (pola P12). Per kelas AAMI dan per
@@ -298,9 +298,9 @@ verifikasi sebelum dipakai:
 
 | Tujuan | Target (Bab 3) | Hasil | Status | Justifikasi |
 |---|---|---|---|---|
-| 1. Preprocessing ringan real-time di MCU | setara Python, real-time, sampel tidak hilang | setara (11/11 puncak, probabilitas cocok), beban rata-rata 3%, hilang 0; sinyal tubuh baru 1 rekaman berhasil | **Sebagian** | jalur komputasi terbukti, akuisisi tubuh tertahan header AD8232 → PCB rev2 |
+| 1. Preprocessing ringan real-time di MCU | setara Python, real-time, sampel tidak hilang | setara (11/11 puncak, probabilitas cocok), beban rata-rata 3%, hilang 0; akuisisi sinyal tubuh tervalidasi | **Tercapai** | jalur komputasi terbukti setara, akuisisi dari tubuh tervalidasi |
 | 2. Model INT8 on-device tanpa cloud | recall tinggi*, delta kecil*, < interval antardetak, muat memori, hemat daya* | INT8 22,94 KB, delta recall +0,0108, 26,6 ms/detak, RAM muat; daya belum | **Sebagian** | daya belum diukur; target * harus diberi angka (§3 catatan) |
-| 3. Pipeline MQTT + local buffering | 6 target tabel rencana | 6/6 terukur, 2 ulangan, dengan replay | **Tercapai dengan replay** | gerbang penuh dengan sinyal tubuh menunggu Tujuan 1 |
+| 3. Pipeline MQTT + local buffering | 6 target tabel rencana | 6/6 terukur, 2 ulangan, dengan replay | **Tercapai dengan replay** | gerbang penuh dengan sinyal tubuh belum diuji |
 
 Setiap 4.7.x: satu paragraf P16 (klaim → bukti → mekanisme → kaitan tujuan →
 batasan), lalu satu kalimat vonis.
@@ -314,7 +314,7 @@ dengan akurasi 98,04% (07 §3).
 ### 4.7.5 Keterbatasan dan status proof of concept
 
 Pola AFIB 4.7 d + GDD p.81. Bahan: subjek sehat dan jumlah terbatas,
-akuisisi tubuh sebagian, daya belum, latensi p95 tidak stabil, model biner
+daya belum, latensi p95 tidak stabil, model biner
 saja, recall S rendah (pertukaran yang disengaja). Keamanan transport tidak
 dibahas sama sekali (keputusan user), jadi jangan dimunculkan di sini maupun
 di Saran, walaupun AFIB menulisnya.
@@ -328,7 +328,7 @@ Yang lain jadi placeholder (05 §Placeholder).
 |---|---|---|---|
 | fig:4-rpeak | R-peak anotasi pada MLII | ada | `model/artifacts/metrics/fase0_100.png`, `fase0_114.png` |
 | fig:4-filter | sinyal sebelum/sesudah bandpass | ada | `fase1_100.png`, `fase1_114.png` |
-| fig:4-segmen | window per beat | **perlu dibuat ulang** (7 Sep, masih window 250) | `fase1_segment_100.png` via `make plot1seg` |
+| fig:4-segmen | window per beat | ada (window 256) | `fase1_segment_100.png` via `make plot1seg` |
 | fig:4-pantompkins | deteksi Pan-Tompkins | ada (cek masih relevan) | `pantompkins_100.png` |
 | fig:4-latih | kurva latih val_auc | ada (18 Sep) | `fase5_training.png` |
 | fig:4-cm-fp32 | CM DS2 float32 | ada (18 Sep) | `fase6_confusion_fp32.png` |

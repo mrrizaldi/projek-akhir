@@ -32,7 +32,7 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
         ▼
         │
    [5]  │  train.py           class_weight, EarlyStopping(val_auc)
-        ▼                     → model_fp32.keras   (val: recall 0,81)
+        ▼                     → model_fp32.keras   (VAL @0,80: recall 0,654, F1 0,692)
         │
         │  calibrate_threshold.py   threshold 0,80 dikunci DI VAL
         ▼
@@ -58,7 +58,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | # | Dokumen | Menjawab |
 |---|---|---|
 | 0 | [io-mitdb](io-mitdb-walkthrough.md) | Dari mana data datang, kenapa MLII, apa yang dibuang sebelum apa pun dihitung |
-| 1 | [preprocessing](preprocessing-walkthrough.md) | Kenapa filter kausal, bagaimana Butterworth & Pan-Tompkins bekerja, kenapa window 250 |
+| 1 | [preprocessing](preprocessing-walkthrough.md) | Kenapa filter kausal, bagaimana Butterworth & Pan-Tompkins bekerja, kenapa window 256 (128/128) |
 | 2 | [features-rr](features-rr-walkthrough.md) | Kenapa butuh fitur ritme selain bentuk, bagaimana label AAMI dipetakan, jebakan alignment |
 | 2b | [prep-beats](prep-beats-walkthrough.md) | Siapa yang menjalankan Fase 0-2 ke 44 record, beat mana yang dibuang & pembukuannya |
 | 3 | [dataset](dataset-walkthrough.md) | Kenapa split per pasien, apa itu kebocoran identitas |
@@ -110,6 +110,8 @@ threshold   0,80  (F1 maksimum di VAL; VAL ikut ber-jitter)
 DS2 fp32    recall 0,6996  precision 0,6235  F1 0,6594  AUC 0,9334
 DS2 INT8    recall 0,7105  precision 0,6169  F1 0,6604  AUC 0,9344   22,94 KB
 device      26,6 ms/detak, tensor arena 12.948 B
+per kelas   V 0,9248 | S 0,4390 | F 0,0670
+seg. deteksi F1 0,6499 (anotasi 0,6594), recall sistem 0,6035
 ```
 
 Baseline pembanding (window 90/160 = 250, tanpa augmentasi, threshold 0,35).
@@ -140,10 +142,10 @@ Kedua perbaikan dikunci di `config.py`: `WIN_PRE = WIN_POST = 128`
 
 Dua angka yang paling perlu dapat dijelaskan di sidang:
 
-1. **Accuracy DS2 (0,8878) lebih rendah dari menebak Normal terus (0,8903)** —
-   dan mengapa model tetap jauh lebih berguna. → [5](train-walkthrough.md) §3,
-   [6](evaluate-walkthrough.md) §4
-2. **Recall F hanya 0,1675** — dan mengapa hal itu dapat diramalkan sejak Fase 3
+1. **Accuracy DS2 0,9207 hanya 3 poin di atas menebak Normal terus (0,8902)** —
+   padahal tebak-Normal ber-recall 0 dan model 0,70; itu sebabnya accuracy
+   tidak dipakai. → [5](train-walkthrough.md) §3, [6](evaluate-walkthrough.md) §4
+2. **Recall F hanya 0,0670** — dan mengapa hal itu dapat diramalkan sejak Fase 3
    (372 dari 414 beat F di DS1 berada di record 208 saja). →
    [6](evaluate-walkthrough.md) §5
 

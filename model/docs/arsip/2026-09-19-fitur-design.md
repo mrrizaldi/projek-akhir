@@ -7,8 +7,8 @@ dipakai, temuan mana yang **bertabrakan dengan decision point yang sudah
 dikunci**, dan urutan kerja yang diusulkan. Rencana bertahap (`-plan.md`) ditulis
 setelah dokumen ini disetujui.
 
-Lanjutan dari [`2026-09-18-robustness-plan.md`](2026-09-18-robustness-plan.md) /
-[`-changelog.md`](2026-09-18-robustness-changelog.md). Aturan metodologis dari
+Lanjutan dari Fase 6c
+([`2026-09-18-robustness-changelog.md`](2026-09-18-robustness-changelog.md)). Aturan metodologis dari
 changelog itu (§B2: **ablasi 1 run tidak sah**) berlaku penuh di sini.
 
 ---
@@ -501,7 +501,7 @@ di muka, keduanya digabung jadi satu perubahan dan satu ablasi.
 
 - Setiap perubahan `features_rr.py` mengubah `N_RR_FEATURES` → **bentuk input
   model berubah** → `model_int8.h` **dan** `golden_ref.h` wajib di-regen bersama
-  (`golden_ref.h` = regression test, bukan pagar desain — lihat robustness-plan).
+  (`golden_ref.h` = regression test, bukan pagar desain — lihat `CLAUDE.md` root).
 - `RR+1` menambah **tunda 1 beat** di firmware: keputusan tidak boleh keluar
   sebelum R berikutnya terdeteksi. Ring buffer dan urutan di `ecg_pipeline.cpp`
   ikut berubah.

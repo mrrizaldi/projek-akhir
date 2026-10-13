@@ -13,6 +13,7 @@ DISIPLIN:
 - DS2 dilihat kedua kalinya di sini, MURNI untuk mengukur; tidak ada parameter
   yang diambil darinya. Dicatat di ../CLAUDE.md.
 """
+import csv
 import os
 import sys
 
@@ -164,14 +165,22 @@ def main() -> None:
               f"{int((pp >= THRESHOLD).sum()):,} diklasifikasi Aritmia "
               f"({100 * (pp >= THRESHOLD).mean():.1f}%) → alarm palsu tambahan")
 
-    print("\nD. Pembanding Fase 6 (segmentasi anotasi, float32, threshold sama)")
-    print("   recall 0.6661  precision 0.4919  F1 0.5659")
+    # Pembanding dibaca dari keluaran eval_fp32.py, bukan dihafal: angka
+    # hafalan basi diam-diam setiap kali model atau config berganti.
+    with open(os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")) as f:
+        a = next(csv.DictReader(f))
+    print("\nD. Pembanding Fase 6 (segmentasi anotasi, float32, threshold "
+          f"{a['threshold']}; fase6_metrics_fp32.csv)")
+    print(f"   recall {float(a['recall']):.4f}  precision {float(a['precision']):.4f}  "
+          f"F1 {float(a['f1']):.4f}")
 
     os.makedirs(METRICS_DIR, exist_ok=True)
     out = os.path.join(METRICS_DIR, "fase6b_segmentasi_deteksi.csv")
     with open(out, "w") as f:
         f.write("segmentasi,tp,fn,fp,tn,recall,precision,f1,recall_sistem,offset_sampel\n")
-        f.write("anotasi,3630,1820,3750,40454,0.666055,0.491870,0.565903,0.666055,0\n")
+        f.write("anotasi,%s,%s,%s,%s,%s,%s,%s,%s,0\n" % (
+            a["tp"], a["fn"], a["fp"], a["tn"], a["recall"], a["precision"], a["f1"],
+            a["recall"]))
         f.write("deteksi,%d,%d,%d,%d,%.6f,%.6f,%.6f,%.6f,%d\n" % (
             c["tp"], c["fn"], c["fp"], c["tn"], m["recall"], m["precision"], m["f1"],
             sistem_tp / n_aritmia_total, offset))

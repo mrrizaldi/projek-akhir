@@ -24,9 +24,9 @@ aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
    Read `pages=`). Ikuti kontrak fungsi & jebakan di sana; jangan vibe-coding.
 4. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
    mekanisme yang dibutuhkan sering SUDAH ada, tinggal dikerjakan atau diperluas.
-   Contoh: sumber sinyal replay untuk uji tanpa hardware tertulis lengkap di
-   `model/docs/arsip/2026-09-16-daya-plan.md` Task 4, dan rantai penyelarasan
-   R-peak sudah jadi di `model/scripts/eval_detected_segmentation.py`. Merancang
+   Contoh: sumber sinyal replay untuk uji tanpa hardware sudah ada di firmware
+   (toggle serial `y`), dan rantai penyelarasan R-peak sudah jadi di
+   `model/scripts/eval_detected_segmentation.py`. Merancang
    ulang dari nol di tempat seperti itu = pekerjaan ganda yang sia-sia.
 
 ## Bukti mengalahkan kekakuan
@@ -103,8 +103,8 @@ terbukti tidak membeku jadi dogma.
   `YYYY-MM-DD-<topik>.md`), atau dipindah ke sana setelah selesai. Riwayat yang
   dikeluarkan dari sebuah dokumen aktif → `arsip/riwayat-<nama-dokumen>.md`.
   Perubahan terhadap rencana awal dicatat dengan tanggalnya di changelog arsip.
-- **Alat sekali pakai → `*/arsip/`** (mis. `firmware/arsip/`,
-  `model/scripts/arsip/`).
+- **Alat sekali pakai → `*/arsip/`** (mis. `firmware/arsip/`), atau dihapus
+  bila tidak dirujuk lagi (git tetap menyimpannya).
 - **Yang usang dibuang dari dokumen aktif & kode**, bukan ditandai "lama"
   (contoh: buzzer aktif yang sudah tidak dipakai). Kalau bermuatan informasi,
   pindahkan ke arsip.
@@ -119,7 +119,8 @@ terbukti tidak membeku jadi dogma.
 
 - `model/` → `model_int8.h` → `firmware/include/` (GENERATED, jangan edit tangan)
 - `model/scripts/export_golden.py` → `firmware/test/golden_ref.h` (GENERATED)
-- `model/` & `diagrams/` → figure → `laporan/*/gambar/`
+- `model/artifacts/metrics/*.png` & `dashboard/preview.png` → figure →
+  `laporan/*/gambar/` (`export_artifacts.sh --laporan`)
 - Sinkron via `scripts/export_artifacts.sh`. **Jangan copy manual.**
 - Kebijakan commit: **B1** — figure final + `.h` di-commit; data mentah
   MIT-BIH & `.npz` intermediate di-ignore (`.gitignore`).
@@ -142,8 +143,8 @@ terbukti tidak membeku jadi dogma.
 Semua kerja ESP32/mikrokontroler (build, flash, monitor, test, cek library,
 cek board/pin) **lewat PlatformIO CLI (`pio`)**, bukan Arduino IDE/CLI, bukan
 `idf.py`/`esptool.py` langsung. Konfigurasi tunggal = `firmware/platformio.ini`
-(env `esp32-s3` = firmware utama di board N16R8, env `hwtest` = uji perangkat
-keras, env `native` = test di PC). Jalankan dari `firmware/`.
+(env `esp32-s3` = firmware utama + test perangkat `test_hw_*` di board N16R8,
+env `native` = test di PC). Jalankan dari `firmware/`.
 
 - Build:        `pio run` (default env `esp32-s3`)
 - Flash:        `pio run -t upload` · monitor: `pio device monitor` (115200)
@@ -159,15 +160,15 @@ keras, env `native` = test di PC). Jalankan dari `firmware/`.
 - **Uji tanpa sensor lewat flag/mode simulasi** (replay golden, toggle serial,
   build flag), bukan salinan kode terpisah.
 - **Sebelum mengubah pin/driver**, pastikan perangkat keras yang sedang dipakai
-  (breadboard atau PCB rev N). Pin map ada di `firmware/src/main.cpp` dan
-  `firmware/src/hwtest.cpp`; penyesuaian PCB rev2 di
+  (breadboard atau PCB rev N). Pin map tunggal ada di
+  `firmware/include/perangkat.h`; penyesuaian PCB rev2 di
   `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`.
 
 ## Diagrams & gambar laporan
 
 - **Claude TIDAK membuat diagram/gambar ilustrasi sendiri**: tidak ada Mermaid,
-  TikZ, PlantUML, Graphviz, SVG/draw.io, skrip gambar baru, atau gambar AI, dan
-  tidak menambah berkas ke `diagrams/src/`. Di posisi gambar, taruh
+  TikZ, PlantUML, Graphviz, SVG/draw.io, skrip gambar baru, atau gambar AI.
+  Di posisi gambar, taruh
   **placeholder** + kartu spesifikasi isi (jenis, pesan, elemen wajib, alur
   baca, bahan di repo); **user yang menggambar**. Caption, `\label`, `\ref`, dan
   paragraf pengantar/penjelas tetap ditulis final. Templat:
@@ -187,6 +188,14 @@ struktur; aturan gaya tulis tetap `laporan/CLAUDE.md`. Keputusan lingkup yang
 sudah diambil user (PA individu, subjek uji anonim, TLS tidak dibahas, progres
 dan buku satu projek `laporan/buku-pa`) ada di
 `docs/pola-laporan-pa/07-penerapan-ke-pa-kita.md` §6.
+
+- **Label kerja internal repo TIDAK boleh muncul di teks laporan resmi**
+  (`laporan/**/*.tex` yang dicetak): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,
+  path berkas, nama skrip, nama env/knob (`PA_*`, env PlatformIO), dan kata
+  "walkthrough". Label itu hanya untuk dokumen internal repo (`model/docs/`,
+  `CLAUDE.md`, README). Di laporan, sebut isinya dengan istilah umum
+  ("pengujian akuisisi sinyal tubuh", "ablasi ukuran window"). Komentar
+  `% sumber:` di `.tex` tidak dicetak, jadi boleh memuat path.
 
 ## Gate points (berhenti, minta konfirmasi)
 

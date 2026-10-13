@@ -33,5 +33,4 @@ else
   echo "==> figure -> laporan/: DILEWATI (pakai --laporan untuk menyalin)"
 fi
 
-# 3) diagrams/src/*.mmd -> render -> laporan/  : TODO, belum ada sumber .mmd
 echo "==> selesai."

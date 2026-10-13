@@ -540,9 +540,8 @@ Tiga rentang disjoint, dijaga `test_rentang_id_tidak_bertumpuk`.
 
 ### Sisa yang menggantung
 
-`docs/arsip/2026-09-16-daya-plan.md:28` masih mengutip *"Aturan 1 `model/CLAUDE.md` —
-USER yang menulis logika algoritma"*. Aturan itu sudah tidak ada. Dokumen itu
-milik user; tidak diubah dari sini.
+Rencana implementasi daya (kini dihapus) sempat mengutip *"Aturan 1
+`model/CLAUDE.md` — USER yang menulis logika algoritma"*. Aturan itu sudah tidak ada.
 
 ---
 

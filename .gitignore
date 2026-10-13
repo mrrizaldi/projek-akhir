@@ -16,6 +16,8 @@ model/artifacts/**/*.log
 # bukan artefak final. Polanya TIDAK kena model_fp32.keras: B1 tetap berlaku,
 # model produksi & model_int8.tflite sengaja di-commit.
 model/artifacts/model_fp32_*.keras
+# Plot cek cepat dari scripts/check_dataset.py — dibuat ulang tiap `make check`.
+model/scripts/ecg_sample.png
 # Gate B = B1: figure final (*.png) & model_int8.h/.tflite SENGAJA di-commit.
 # Jangan tambah aturan yang meng-ignore mereka.
 

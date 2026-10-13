@@ -1,4 +1,4 @@
-"""Ablasi ketahanan: satu varian, ujung ke ujung. docs/arsip/2026-09-18-robustness-plan.md
+"""Ablasi ketahanan: satu varian, ujung ke ujung. docs/arsip/2026-09-18-robustness-changelog.md
 
     python scripts/ablasi.py --tag bersih
     python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2

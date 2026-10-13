@@ -117,8 +117,8 @@ padahal tabelnya baru muncul di bawah (AFIB p.121).
 
 1. **Claude tidak membuat diagram atau gambar ilustrasi sendiri.** Tidak ada
    Mermaid (`.mmd`), TikZ/pgfplots, PlantUML, Graphviz, SVG/draw.io, skrip
-   Python untuk menggambar ilustrasi, atau gambar hasil AI. Tidak menambah
-   berkas ke `diagrams/src/`. Isi `diagrams/` yang sudah ada dibiarkan.
+   Python untuk menggambar ilustrasi, atau gambar hasil AI. Gambar ilustrasi
+   buatan penulis langsung masuk `laporan/*/gambar/`.
 2. Sebagai gantinya Claude menaruh **placeholder** di posisi gambar, berisi
    kartu spesifikasi (lihat §Kartu). User yang menggambar.
 3. Yang **tetap** ditulis Claude secara final: caption, `\label`, semua

@@ -30,12 +30,6 @@
 \newcommand{\NIPDua}{199208262022031007}
 \newcommand{\Tahun}{2026}
 
-% ============================================================
-% TAHAP DOKUMEN: progres (true) atau buku final (false)
-% ============================================================
-\newif\ifprogres
-\progrestrue
-
 % Gambar: milik buku dulu, lalu gambar proposal yang masih berlaku.
 % Entri ketiga ({../proposal-pa/}) supaya "gambar/logo-pens.png" di sampul
 % ikut terselesaikan ke ../proposal-pa/gambar/logo-pens.png.
@@ -71,6 +65,9 @@
 \pagenumbering{roman}
 \pagestyle{plain}
 \input{bab/abstrak}
+
+\cleardoublepage
+\input{bab/abstract}
 
 \cleardoublepage
 \phantomsection

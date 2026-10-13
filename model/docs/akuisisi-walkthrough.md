@@ -1,7 +1,7 @@
 # Walkthrough akuisisi sinyal — dari elektroda ke grafik
 
 > **Ruang lingkup:** prosedur merekam EKG dari tubuh dengan firmware utama, menarik rekaman ke laptop, dan menilai kualitasnya.
-> **Kode terkait:** `firmware/src/main.cpp`, `model/scripts/pull_recording.py`, `model/scripts/analyze_recording.py`, `model/Makefile` (target `pull`, `analisis`)
+> **Kode terkait:** `firmware/src/main.cpp`, `firmware/include/perangkat.h`, `model/scripts/pull_recording.py`, `model/scripts/analyze_recording.py`, `model/Makefile` (target `pull`, `analisis`)
 > **Prasyarat:** [`firmware-walkthrough.md`](firmware-walkthrough.md)
 
 Panduan kerja, bukan spesifikasi: merekam dari badan, menarik data, menilai
@@ -14,7 +14,7 @@ kualitas, membuat grafik.
 ```
 elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           │
-                     tombol REC → PSRAM → LittleFS  (/rekaman.csv di board)
+                  tombol B3 (REC) → PSRAM → LittleFS  (/rekaman.csv di board)
                           │
                      make pull                      ← colok USB ke laptop
                           ▼
@@ -31,11 +31,10 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
 
 | Kabel | GPIO | Posisi elektroda |
 |---|---|---|
-| `OUTPUT` | **8** (ADC1_CH7) | — |
-| `LO+` | 17 | — |
-| `LO−` | 7 | — |
-| REC | 6 | — |
-| DUMP | 5 | — |
+| `OUTPUT` | **1** (ADC1_CH0) | — |
+| `LO+` | 42 | — |
+| `LO−` | 2 | — |
+| B3 (REC) | 6 | — |
 | **RA (merah)** | — | bawah selangka kanan |
 | **LA (kuning)** | — | bawah rusuk kiri ← mengukur bersama merah |
 | **RL (hijau)** | — | bawah rusuk kanan (referensi) |
@@ -45,11 +44,12 @@ WiFi menyala. Jalur OUTPUT yang putus membuat pin ADC mengambang dan menyerap
 jala-jala; gejalanya `dengung50` ~930 counts di laporan `q` walau elektroda
 terpasang (lihat §7).
 
-Tabel di atas adalah peta pin firmware utama (`main.cpp`, env `esp32-s3`,
-rangkaian breadboard). Firmware uji `hwtest.cpp` (env `hwtest`) memakai peta pin
-PCB rev1: OUTPUT di GPIO1 (ADC1_CH0), LO− GPIO2, LO+ GPIO42, tombol B1/B2/B3 di
-GPIO4/5/6 (B3 = REKAM). Format rekaman dan protokol serialnya (`r`, `d`, `s`)
-sama, jadi `make pull` berlaku untuk keduanya.
+Tabel di atas adalah bagian akuisisi dari peta pin PCB rev1
+(`firmware/include/perangkat.h`). Peta lengkap, termasuk TFT, buzzer, tombol
+B1/B2, dan INA219, ada di [`firmware/README.md`](../../firmware/README.md).
+Jalur akuisisi dapat diperiksa tanpa elektroda dengan
+`pio test -e esp32-s3 -f test_hw_adc` (ADC terbaca, timer tepat 360 sampel per
+detik, status LO dicetak).
 
 Sumbu merah→kuning meniru **MLII**, lead yang dipakai MIT-BIH. Kalau kuning
 ditaruh di dada kiri atas (seperti diagram 3-lead klinis), yang terukur jadi
@@ -93,7 +93,9 @@ LED dievaluasi tiap 250 ms dengan urutan prioritas berikut (`perbarui_led()`):
 | **Hijau** | ayunan bersih ≥ 60 | sinyal sehat, boleh rekam |
 
 Empat keadaan, tanpa kedip. Merekam saat oranye = rekaman kosong; perbaiki
-elektrodanya lebih dulu.
+elektrodanya lebih dulu. Pojok kanan atas TFT menampilkan keadaan yang sama
+dengan warna yang sama: `REC <detik>` (merah), `KALIB` (biru muda), `BURUK`
+(oranye), `BAIK` (hijau), ditambah `REPLAY` (kuning) saat sumber sinyal replay.
 
 **Fase kalibrasi (biru).** Setiap sesi dimulai di fase kalibrasi dan baru
 berpindah ke pemantauan bila tiga syarat terpenuhi bersamaan: sesi sudah
@@ -123,9 +125,10 @@ cukup.
    **tercabut**.
 2. Pastikan kualitas sinyal: LED **hijau**, atau selama fase kalibrasi (biru)
    `BERSIH ≥ 60` dan `clipping 0` di laporan `q`.
-3. Tekan **REC** (GPIO 6). LED menjadi merah; serial mencetak `REKAM mulai`.
+3. Tekan **B3 REC** (GPIO 6). LED menjadi merah, TFT menampilkan `REC` beserta
+   detiknya, dan serial mencetak `REKAM mulai`.
 4. Duduk diam, lengan bertumpu, **25 detik**.
-5. Tekan **REC** lagi. Hasil yang diharapkan di serial:
+5. Tekan **B3 REC** lagi. Hasil yang diharapkan di serial:
 
    ```
    SIMPAN <n> sampel (<detik> detik), 0 terlewat, elektroda lepas 0% -> /rekaman.csv
@@ -134,8 +137,8 @@ cukup.
    Bila muncul `PERINGATAN: elektroda lepas >10%`, rekaman kemungkinan besar
    kosong; ulangi dari langkah 1.
 
-Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat REC
-kedua ditekan, sehingga bertahan walau board mati. Maksimum 5 menit
+Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat B3
+ditekan kedua kali, sehingga bertahan walau board mati. Maksimum 5 menit
 (`DETIK_MAKS` = 300); rekaman baru menimpa yang lama. Persentase `elektroda
 lepas` berasal dari pin LO+/LO−; nilai 0% bukan jaminan ada sinyal (LO cukup
 dipuaskan satu jalur impedansi rendah), jadi wasitnya tetap ayunan di §6.
@@ -167,7 +170,7 @@ Bila board masih merekam, `make pull` menghentikan dan menyimpannya lebih dulu
 secara otomatis.
 
 Nama berkas = **waktu tarik**, bukan waktu rekam (`datetime.now()` di
-`pull_recording.py`). Rekaman lama yang belum ditimpa akan tampak baru bila REC
+`pull_recording.py`). Rekaman lama yang belum ditimpa akan tampak baru bila B3
 tidak ditekan.
 
 Semuanya jalan di `.venv` yang sama — `pyserial` sudah masuk `requirements.txt`.
@@ -253,10 +256,10 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 |---|---|---|
 | LED oranye terus | elektroda habis / lead tertukar | ganti elektroda baru; pastikan kuning di rusuk kiri, hijau di rusuk kanan |
 | `make pull` → "Tidak bisa membuka" | serial monitor lain terbuka | `lsof /dev/ttyACM0`, tutup PlatformIO monitor di VS Code |
-| `make pull` → "Tidak ada rekaman" | belum pernah menekan REC | rekam lebih dulu |
+| `make pull` → "Tidak ada rekaman" | belum pernah menekan B3 REC | rekam lebih dulu |
 | dengung > 200% | USB laptop tertancap saat merekam | powerbank |
 | amplitudo kecil, dengung rendah | LA & RL tertukar | tukar kuning dan hijau |
-| `dengung50` ~930 counts di `q` walau elektroda terpasang | jalur OUTPUT putus, pin ADC mengambang | periksa kabel OUTPUT → GPIO8; pastikan pin di ADC1 |
+| `dengung50` ~930 counts di `q` walau elektroda terpasang | jalur OUTPUT putus, pin ADC mengambang | periksa kabel OUTPUT → GPIO1; pastikan pin di ADC1 |
 | ayunan tertahan 40–55 counts (lantai derau, ~38 µV input-referred) | sambungan header modul AD8232 tidak tersolder / intermiten | solder header modul, ulangi rekam |
 | `elektroda lepas 0%` tetapi rekaman kosong | LO dipuaskan satu jalur (mis. RL saja) | nilai dari ayunan, bukan dari LO |
 | ADC 0 mutlak | pin/jalur korslet atau modul tak bertenaga | `s` di serial, lihat status |
@@ -271,9 +274,9 @@ Board menerima satu huruf lewat serial 115200 (`pio device monitor`):
 
 | Huruf | Efek |
 |---|---|
-| `r` | mulai / berhenti merekam (setara tombol REC) |
-| `d` | dump rekaman (setara tombol DUMP, GPIO 5) |
-| `s` | status sesaat: rekam, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT |
+| `r` | mulai / berhenti merekam (setara tombol B3) |
+| `d` | dump rekaman ke serial (dipakai `make pull`; tidak ada tombol fisiknya) |
+| `s` | status sesaat: rekam, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT, INA219 |
 | `q` | toggle laporan kualitas tiap detik |
 | `k` | toggle lewati gerbang kalibrasi (uji meja saja) |
 | `y` | toggle sumber sinyal replay ⇄ ADC |

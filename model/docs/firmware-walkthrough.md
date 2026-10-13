@@ -1,7 +1,7 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
 > **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/perangkat.cpp`, `firmware/include/perangkat.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
 > **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
 
 Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
@@ -11,16 +11,15 @@ Reproduksi:
 ```
 cd firmware
 pio test -e native      # preprocessing, INA219, payload & ring MQTT di PC, tanpa board
-pio test -e esp32-s3    # preprocessing + inferensi di board sungguhan
+pio test -e esp32-s3    # preprocessing, inferensi, dan perangkat PCB di board sungguhan
 pio run                 # build firmware utama (env esp32-s3)
 ```
 
-`platformio.ini` memuat tiga env:
+`platformio.ini` memuat dua env:
 
 | Env | Isi | Dipakai untuk |
 |---|---|---|
-| `esp32-s3` | `main.cpp` + seluruh pipeline + MQTT | firmware utama (bawaan `pio run`) |
-| `hwtest` | `hwtest.cpp` + `ecg_live` + `ecg_pipeline` + `ina219` | uji hardware PCB rev1: AD8232, TFT ST7789, buzzer, tombol |
+| `esp32-s3` | `main.cpp` + seluruh pipeline + MQTT + perangkat PCB (TFT, buzzer, tombol, INA219) | firmware utama (bawaan `pio run`) dan test di board |
 | `native` | modul murni tanpa Arduino | `pio test -e native` di PC |
 
 ---
@@ -332,8 +331,15 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
                                               ├─ publikasi → ring backlog MQTT
                                               ├─ ecg_mqtt_layani (non-blocking)
                                               ├─ LED kualitas sinyal / rekam
-                                              └─ REC: simpan mentah ke LittleFS
+                                              ├─ TFT: HR, gelombang, status, INA219
+                                              ├─ buzzer: bip per detak (terjadwal)
+                                              └─ tombol B1/B2/B3: bisu, beku, rekam
 ```
+
+Pin map PCB rev1 dan urutan pemasangan perangkat berada di
+`firmware/include/perangkat.h` dan `firmware/src/perangkat.cpp`, dipakai
+bersama oleh `main.cpp` dan test device `test_hw_*`. Tabel pin dan arti tombol
+ada di [`firmware/README.md`](../../firmware/README.md).
 
 Arti LED dan prosedur rekam ada di
 [`akuisisi-walkthrough.md`](akuisisi-walkthrough.md) §2–3; gerbang kalibrasi dan
@@ -370,12 +376,11 @@ pengukuran §5b.
 ### Sumber sinyal replay (toggle serial `y`)
 
 Tekan `y` dan ISR berhenti membaca ADC; gantinya `golden_raw` (record 208, 2400
-sampel, 8 beat, ~72 bpm) diputar berulang sebagai counts ADC:
+sampel, 9 beat) diputar berulang sebagai counts ADC:
 
 ```cpp
 if (replay) {
-    float v = golden_raw[replay_i] * SKALA_REPLAY + OFFSET_REPLAY;  // 1000 c/mV, +2048
-    ...
+    antre[tulis] = sim_counts[replay_i];   // dikonversi sekali di setup(): 1000 c/mV, +2048
     replay_i = (replay_i + 1) % GOLDEN_N;
 } else {
     antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);
@@ -522,10 +527,11 @@ pembahasan yang baik di laporan.
 | Perintah | Melihat apa |
 |---|---|
 | `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
-| `pio test -e esp32-s3` | 16 test di board: `test_preproc` 11 + `test_inference` 5 |
-| `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG) |
+| `pio test -e esp32-s3` | 33 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_buzzer` 4, `test_hw_tft` 3, `test_hw_adc` 3, `test_hw_ina219` 2, `test_hw_integrasi` 5 |
+| `pio test -e esp32-s3 -f test_hw_buzzer` | satu suite saja |
+| `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG, bacaan perangkat) |
 | `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |
-| `pio run -e hwtest -t upload` | flash firmware uji hardware PCB rev1 (`hwtest.cpp`) |
+| `pio run -t upload` | flash firmware utama |
 | `cd model && make export` | regenerasi `model_int8.h` setelah model berubah |
 
 ---

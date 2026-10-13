@@ -24,7 +24,7 @@ Fakta proyek diambil 10 Okt 2026 dari `model/CLAUDE.md`, `README.md`,
 | Jumlah eksperimen | 3–7 uji per laporan | Fase 0–8, 6b, 6c, A–G, HW-1 sampai HW-7 | Bab 4 akan jauh lebih besar dari rata-rata korpus. Perlu pengelompokan yang tegas (08 §2) |
 | Kebenaran deploy | tidak ada | golden reference C vs Python, cocok per beat | Pola baru: tabel kesetaraan PC vs perangkat (08) |
 | Data subjek manusia | AFIB subjek sehat, ISYARAT wawancara | rekaman AD8232 pada subjek sehat | Perlu Batasan dan catatan etika yang tegas |
-| Ketergantungan fisik | AFIB saja | elektroda, header modul, PCB rev1 → rev2 | Ada uji yang **buntu karena fisik** (HW-5). Pola progres yang jujur (01 §4) jadi wajib |
+| Ketergantungan fisik | AFIB saja | elektroda, header modul, PCB rev1 → rev2 | Uji akuisisi sempat tertahan masalah fisik (sambungan header modul) sebelum tervalidasi. Pola progres yang jujur (01 §4) tetap wajib |
 | Pembimbing | — | **Pembimbing 1 dan 2 sama dengan AFIB** | AFIB adalah pendahulu langsung yang sudah dibaca pembimbing. Lihat §3 |
 | Produk bersama | OFFLINE dan GDD adalah dua PA pada satu produk (Work Fusion) | **PA individu**. PCB rev1 dirancang rekan, bukan penulis | Tidak perlu pembagian lingkup antarpenulis. Cukup kredit untuk rancangan PCB (§5) |
 
@@ -129,7 +129,7 @@ butir batasan.
   (§3).
 - **Perbarui baris "Proposed System"**. Klaim "< 20 KB" sudah usang: model
   deploy 22,9 KB dengan batas yang disetujui 25 KB. Klaim "hemat daya" baru
-  boleh tetap setelah daya diukur (HW-7 Task 3 belum).
+  boleh tetap setelah daya diukur (pengukuran daya belum dijalankan).
 - Teori yang tumbuh karena realisasi dan layak ditambah: skema inter-patient
   de Chazal + kelas AAMI, metrik evaluasi (recall/precision/F1/AUC dan alasan
   menolak accuracy), augmentasi jitter (Dias 2021, diadopsi karena paper
@@ -173,8 +173,8 @@ angka di `model/CLAUDE.md`:
    ukuran data berubah.
 
 Pilih 3–4 yang paling relevan dengan tujuan. **Saran** = roadmap konkret:
-HW-5 dengan PCB rev2, pengukuran daya (HW-7 Task 3), gerbang penuh dengan
-sinyal tubuh, pertukaran LR (S vs F) yang dibuka lagi bila S tidak lagi jadi
+akuisisi pada PCB rev2, pengukuran daya (rancangan:
+`model/docs/arsip/2026-09-16-daya-design.md`), gerbang penuh dengan sinyal tubuh, pertukaran LR (S vs F) yang dibuka lagi bila S tidak lagi jadi
 fokus, kernel ESP-NN bila daya jadi kendala.
 
 ## 5. Hal khusus hardware/biomedis yang tidak ada di korpus software

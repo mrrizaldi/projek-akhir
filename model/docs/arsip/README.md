@@ -13,27 +13,22 @@ sementara ("belum diimplementasikan", checklist terbuka) dan angka dari
 konfigurasi yang kemudian diganti. Kolom *Status akhir* di bawah menyatakan
 nasib akhir tiap dokumen terhadap kode saat ini.
 
+Rencana yang isinya sudah sepenuhnya terwujud di kode dan walkthrough dihapus
+pada 13 Okt 2026 (desain workflow `model/`, rencana implementasi daya, rencana
+ketahanan Fase 6c, skrip eksplorasi awal `scripts/arsip/`). Salinannya tersedia
+di git pada tag `pra-bersih`.
+
 ## Dokumen desain, rencana, dan changelog
 
 | Tanggal | Dokumen | Ringkasan | Status akhir / vonis |
 |---|---|---|---|
-| 2026-08-18 | [workflow-model-design](2026-08-18-workflow-model-design.md) | Desain workflow dan kontrak antar-fase `model/`: pemisahan `src/` (fungsi murni) dan `scripts/` (efek samping), kontrak `.npz`, orkestrasi Makefile, `model/CLAUDE.md` sebagai logbook | Diterapkan. Struktur `model/` mengikuti dokumen ini |
-| 2026-09-16 | [daya-design](2026-09-16-daya-design.md) | Desain pengukuran konsumsi daya (HW-7): tangga mode beban, pembacaan INA219 tanpa library, pemasangan fisik, konversi mA ke mAh | Diterapkan sebagian lewat daya-plan (lihat baris berikut) |
-| 2026-09-16 | [daya-plan](2026-09-16-daya-plan.md) | Rencana implementasi HW-7 dalam 8 task | Task 1 (`cosf` keluar dari jalur per-sampel), Task 2 (konversi INA219 murni, `ina219.cpp` + `test_ina219`), dan Task 4 (sumber sinyal replay, toggle `y`) diterapkan. Task 3 dan 5–8 (perintah `i`, mode `p0`–`p4`, `measure_power.py`) tidak ada di firmware utama; pembacaan INA219 berjalan di env `hwtest` |
-| 2026-09-18 | [robustness-plan](2026-09-18-robustness-plan.md) | Adaptasi Dias 2021: ukur jitter R-peak sungguhan, latih dengan jitter, ablasi window dan HOS | Task 0–6 selesai. Window 128/128 dan threshold 0,80 dikunci; F1 DS2 0,5659 → 0,6594, AUC 0,8866 → 0,9334. HOS dan penggantian filter ditolak |
-| 2026-09-18 | [robustness-changelog](2026-09-18-robustness-changelog.md) | Penyimpangan rencana → pelaksanaan Fase 6c, keputusan yang diambil, cara mengulang, verifikasi di board | Rujukan pelaksanaan Fase 6c. Temuan metodologis: seed terkunci tidak mengunci hasil, sehingga ablasi memakai 3 seed |
+| 2026-09-16 | [daya-design](2026-09-16-daya-design.md) | Desain pengukuran konsumsi daya: tangga mode beban `p0`–`p4`, pembacaan INA219 tanpa library, pemasangan fisik, konversi mA ke mAh | Belum dijalankan; satu-satunya spesifikasi pengukuran daya yang masih terbuka. Yang sudah ada di kode: konversi INA219 murni (`ina219.cpp` + `test_ina219`) dan sumber sinyal replay (toggle `y`) |
+| 2026-09-18 | [robustness-changelog](2026-09-18-robustness-changelog.md) | Fase 6c (adaptasi Dias 2021): rencana → pelaksanaan, keputusan yang diambil, cara mengulang, verifikasi di board | Window 128/128 dan threshold 0,80 dikunci; F1 DS2 0,5659 → 0,6594, AUC 0,8866 → 0,9334. HOS dan penggantian filter ditolak. Temuan metodologis: seed terkunci tidak mengunci hasil, sehingga ablasi memakai 3 seed |
 | 2026-09-19 | [fitur-design](2026-09-19-fitur-design.md) | Sintesis 7 paper; 10 usul yang bertabrakan dengan decision point terkunci; §9 skor akhir dan prasyarat pembukaan kembali | Ditutup tanpa perubahan konfigurasi: 4 gugur, 2 dorman, 3 dikonfirmasi, 4 dihentikan. Satu-satunya yang masuk produksi: assert `MAX_RHYTHM_SCALE` |
 | 2026-09-19 | [multidataset-plan](2026-09-19-multidataset-plan.md) | Fase A: gabungan mitdb + svdb + incartdb, frekuensi, gate polaritas lead, split, audit 13 pemeriksaan | Infrastruktur multi-database tersedia (`ablasi.py --db`), DS2 byte-identik. Database latih tetap mitdb |
 | 2026-09-19 | [faseB-changelog](2026-09-19-faseB-changelog.md) | Fase B–F: 4 varian database × 3 seed, `class_weight`, titik operasi, tabel 2×2 dataset × fitur, tahap 2 | Tanpa perubahan konfigurasi. `class_weight` balanced tetap; efek svdb dan fitur baru saling meniadakan |
 | 2026-09-19 | [faseG-changelog](2026-09-19-faseG-changelog.md) | Fase G: regime latih (rata-rata bobot, learning rate, k-dari-n), TEST-B/TEST-C sebagai wasit | Tanpa perubahan konfigurasi. Learning rate tetap 1e-3: 1e-4 menaikkan AUC tetapi menurunkan recall S; pertukaran dilaporkan |
 | 2026-10-08 | [pcb-rev2-adjustment](2026-10-08-pcb-rev2-adjustment.md) | Penyesuaian skematik PCB rev1 → rev2: TFT, buzzer, tombol, AD8232, pin map rev2, catatan rangkaian baterai, checklist pabrik | Pin map rev2 dipakai `firmware/src/hwtest.cpp`. Rangkaian baterai dan checklist pabrik berada di luar lingkup firmware |
-
-## Kode yang diarsipkan
-
-| Lokasi | Isi | Status |
-|---|---|---|
-| [`model/scripts/arsip/`](../../scripts/arsip/) | `explore.py`, `explore_record.py`, `explore_filter.py`: eksplorasi awal Fase 0–1 (pembacaan record, perbandingan filter) | Tidak dipanggil fase mana pun. Jalur produksi Fase 0: `src/io_mitdb.load_record()` + `scripts/plot_fase0.py` |
-| [`firmware/arsip/buzztest.cpp`](../../../firmware/arsip/buzztest.cpp) | Uji buzzer terpisah: GPIO 13 dan LED onboard saja, siklus ~17 detik | Tidak di-build; env `buzztest` tidak tercantum di `platformio.ini`. Uji buzzer berjalan di env `hwtest` (perintah serial `g`) |
 
 ## Riwayat per dokumen
 
