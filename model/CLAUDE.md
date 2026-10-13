@@ -70,6 +70,14 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 
 ## Pekerjaan terbuka
 
+- **(13 Okt 2026) Skematik PCB rev2 (`~/Downloads/schematic_rev2.pdf`, di luar
+  repo) — perbaiki sebelum fabrikasi.** Pull-up tombol R11–R13 1 kΩ masih ke
+  +5V padahal GPIO ESP32-S3 maks 3,6 V (firmware sudah `INPUT_PULLUP`: buang
+  R11–R13 atau pindah ke 3V3); TFT BLK tidak tersambung (ke 3V3 atau GPIO12).
+  Sisanya cocok dengan `firmware/include/perangkat.h` dan
+  `docs/arsip/2026-10-08-pcb-rev2-adjustment.md`. Ukur tegangan VIN_ESP setelah
+  D2 saat dicatu baterai.
+
 Daftar hal yang BELUM selesai dan mudah terlupa. Butir bertanggal; hapus butir
 hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
 
