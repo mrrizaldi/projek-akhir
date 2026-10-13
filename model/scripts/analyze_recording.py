@@ -1,6 +1,6 @@
 """Analisis kualitas rekaman EKG dari device.
 
-    python scripts/analyze_recording.py <rekaman.csv> [nama]
+    python scripts/analyze_recording.py <berkas>.csv [nama]
 
 Masukan: keluaran `dump` firmware (baris '# fs=.. n=.. lewat=..' lalu satu
 nilai ADC per baris). Menilai dengan ANGKA, bukan dengan melihat grafik:

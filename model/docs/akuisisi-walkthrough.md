@@ -22,7 +22,7 @@ kualitas, membuat grafik.
 ```
 elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           │
-                  tombol B3 (REC) → PSRAM → LittleFS  (/rekaman.csv di board)
+                  tombol B3 (REC) → PSRAM → LittleFS  (/rekam/NNN.csv di board)
                           │
                      make pull                      ← colok USB ke laptop
                           ▼
@@ -152,7 +152,7 @@ cukup.
 5. Tekan **B3 REC** lagi. Hasil yang diharapkan di serial:
 
    ```
-   SIMPAN <n> sampel (<detik> detik), 0 terlewat, elektroda lepas 0% -> /rekaman.csv
+   SIMPAN <n> sampel (<detik> detik), 0 terlewat, elektroda lepas 0% -> /rekam/001.csv
    ```
 
    Bila muncul `PERINGATAN: elektroda lepas >10%`, rekaman kemungkinan besar
@@ -160,7 +160,9 @@ cukup.
 
 Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat B3
 ditekan kedua kali, sehingga bertahan walau board mati. Maksimum 5 menit
-(`DETIK_MAKS` = 300); rekaman baru menimpa yang lama. Persentase `elektroda
+(`DETIK_MAKS` = 300). Tiap rekaman disimpan sebagai berkas bernomor baru
+(`/rekam/001.csv`, `002`, ...); daftarnya dilihat dengan serial `l` dan berkas
+lama dihapus dengan `h<n>`. Persentase `elektroda
 lepas` berasal dari pin LO+/LO−; nilai 0% bukan jaminan ada sinyal (LO cukup
 dipuaskan satu jalur impedansi rendah), jadi wasitnya tetap ayunan di §6.
 
@@ -192,8 +194,9 @@ Bila board masih merekam, `make pull` menghentikan dan menyimpannya lebih dulu
 secara otomatis.
 
 Nama berkas = **waktu tarik**, bukan waktu rekam (`datetime.now()` di
-`pull_recording.py`). Rekaman lama yang belum ditimpa akan tampak baru bila B3
-tidak ditekan.
+`pull_recording.py`). `make pull` menarik rekaman bernomor terakhir; bila B3
+tidak ditekan sejak tarikan sebelumnya, rekaman lama itu tertarik lagi dengan
+nama baru. Rekaman bernomor lain ditarik lewat serial `d<n>`.
 
 Semuanya jalan di `.venv` yang sama — `pyserial` sudah masuk `requirements.txt`.
 Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
@@ -299,7 +302,9 @@ Board menerima satu huruf lewat serial 115200 (`pio device monitor`):
 | Huruf | Efek |
 |---|---|
 | `r` | mulai / berhenti merekam (setara tombol B3) |
-| `d` | dump rekaman ke serial (dipakai `make pull`; tidak ada tombol fisiknya) |
+| `d` / `d<n>` | dump rekaman terakhir / nomor `<n>` ke serial (`make pull` memakai `d`; tidak ada tombol fisiknya) |
+| `l` | daftar rekaman di LittleFS: nomor, ukuran, header |
+| `h<n>` | hapus rekaman nomor `<n>` |
 | `s` | status sesaat: rekam, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT, INA219 |
 | `q` | toggle laporan kualitas tiap detik |
 | `k` | toggle override gerbang kalibrasi untuk uji meja; OFF = sesi baru, gerbang penuh dari nol (lihat §2) |

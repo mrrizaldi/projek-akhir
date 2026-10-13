@@ -276,24 +276,34 @@ backlog **menunggu** — sengaja tidak mengirim dengan ts salah.
 
 ## 4. Cara memakai — toggling lengkap
 
-### 4.1 Sekali di awal: kredensial
+### 4.1 Sekali di awal: kredensial dan broker
 
 ```bash
 cd dashboard && docker compose up -d      # broker + dashboard
 python3 smoke_test.py                     # cetak: device ... token=XXXX
-ip addr                                   # IP laptop, BUKAN localhost
+cd ../model && make broker-info           # SSID laptop, IP LAN, port 1883, saran entri
 
 cd ../firmware
 cp include/wifi_secrets.example.h include/wifi_secrets.h
-$EDITOR include/wifi_secrets.h            # isi SSID/PASS/TB_HOST/TB_TOKEN
+$EDITOR include/wifi_secrets.h            # isi WIFI_DAFTAR dan BROKER_DAFTAR
 ```
 
 `include/wifi_secrets.h` ada di `.gitignore` — kredensial tidak pernah masuk git.
 **Tanpa file itu firmware tetap ter-build dan tetap jalan**, MQTT-nya saja yang
 nonaktif dengan satu baris peringatan saat boot (`#if __has_include`).
 
-`TB_HOST` = IP laptop di jaringan, bukan `localhost`: board mencarinya di
-jaringan, bukan di dirinya sendiri.
+Daftar berbentuk array: `WIFI_DAFTAR {ssid, sandi}` dan
+`BROKER_DAFTAR {nama tampil, host, port, token}`. `host` adalah **alamat IP**
+laptop di jaringan WiFi board, bukan `localhost` (board mencarinya di jaringan,
+bukan di dirinya sendiri) dan bukan nama host (firmware tidak me-resolve nama).
+Akibatnya **board dan laptop harus terhubung ke SSID yang sama**; `make
+broker-info` mencetak SSID laptop untuk dicocokkan. Entri aktif dipilih lewat
+serial `w<n>` / `b<n>` (indeks mulai 0) dan disimpan di NVS; entri 0 dipakai
+bila belum pernah memilih. Makro tunggal lama (`WIFI_SSID`, `WIFI_PASS`,
+`TB_HOST`, `TB_PORT`, `TB_TOKEN`) tetap diterima sebagai daftar satu entri.
+Format lengkap, server selain laptop, dan troubleshooting SSID/IP/port:
+[`firmware/README.md`](../../firmware/README.md) bagian Konfigurasi jaringan dan
+broker.
 
 ### 4.2 Toggle serial
 
@@ -304,8 +314,9 @@ jaringan, bukan di dirinya sendiri.
 | **`k`** | **lewati gerbang kalibrasi** (bench saja); OFF memulai sesi baru dengan gerbang penuh | `lewati gerbang kalibrasi ON` / `OFF` |
 | `q` | toggle laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
 | `s` | status sesaat (termasuk MQTT) | lihat di bawah |
-| `r` | rekam mentah ke LittleFS (setara tombol B3) | `REKAM mulai` / `SIMPAN …` |
-| `d` | dump rekaman lewat serial | `---MULAI--- … ---SELESAI---` |
+| `r` | rekam mentah ke LittleFS `/rekam/NNN.csv` (setara tombol B3) | `REKAM mulai` / `SIMPAN … -> /rekam/NNN.csv` |
+| `d` / `d<n>` | dump rekaman terakhir / nomor `<n>` lewat serial | `---MULAI--- … ---SELESAI---` |
+| `w` / `b` | daftar WiFi / broker; `w<n>` / `b<n>` memilih entri | `wifi *0 …` / `broker *0 nama  IP:port` |
 
 Dua toggle itu **ortogonal**, dan itu memang tujuannya:
 

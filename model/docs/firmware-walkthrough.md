@@ -544,26 +544,34 @@ Tegangan bus (VIN− terhadap GND) 0–4 mV, sedangkan tegangan shunt melompat
 133–220 mV antar-bacaan. Arus 1,3–2,2 A pada bus 0 V tidak mungkin berasal dari
 beban; kedua pin VIN mengambang. INA219 belum berada di jalur arus alat, dan
 board menerima daya langsung dari konektor USB. Angka arus di layar dan di baris
-status saat ini bukan konsumsi alat. Jalur ukur (firmware + skrip) sudah diuji
+status pada kondisi ini bukan konsumsi alat. Jalur ukur (firmware + skrip) sudah diuji
 ujung ke ujung dengan `--paksa`: keenam mode terkonfirmasi, `lewat = 0` di semua
 mode, dan radio kembali tersambung di `p5`.
 
 ### Prosedur ukur daya
 
-Shunt disisipkan di kawat VBUS kabel USB, sesuai rancangan §3. D+, D−, dan GND
-tidak diputus, sehingga serial tetap berjalan dan mode tetap bisa diperintah.
+INA219 dipasang di sisi baterai: TP4056 `OUT+` → `VIN+` → `VIN−` → masukan
+konverter DC-DC, yang keluarannya mencatu pin 5V board. Rangkaian, tabel pin,
+bacaan pemeriksaan, dan hal yang perlu dicek pada regulator board:
+[`firmware/README.md`](../../firmware/README.md) bagian Catu daya dan
+pengukuran arus. Karena arus diukur di sel, hasilnya sudah memuat rugi
+konverter dan langsung dipakai untuk umur baterai (kapasitas mAh dibagi arus
+mA), tanpa konversi efisiensi.
 
-1. Cabut USB. Sambungkan pin logika INA219: `VCC` → 3V3 board (bukan 5V),
-   `GND` → GND board, `SDA` → GPIO 17, `SCL` → GPIO 18.
-2. Siapkan kabel USB ukur: kupas selubung di tengah, potong **hanya kawat
-   merah** (VBUS). Ujung sisi laptop → `VIN+`, ujung sisi board → `VIN−`.
-   Solder, jangan dupont: seluruh arus board lewat sambungan ini.
-3. Pastikan tidak ada catu lain ke board (powerbank, pin 5V, port USB kedua).
-   Dua jalur catu membagi arus dan angkanya mengecil tanpa tanda.
-4. Colokkan kabel ukur ke laptop dan ke port USB board yang dipakai serial
-   (`/dev/ttyACM0`). Ketik `s` di `pio device monitor`: baris `INA219` harus
-   menunjukkan `V` sekitar 4,7–5,1 V dan `I` positif dan stabil. `I` negatif
-   berarti `VIN+`/`VIN−` tertukar; `V` ~0 berarti VIN− belum tersambung.
+Tangga `p0`–`p5` saat ini diperintah dari laptop lewat serial. Kabel USB biasa
+tidak dapat dipakai selama pengukuran, karena VBUS-nya ikut mencatu board dan
+membagi arus dengan baterai. Jalur serial memakai kabel USB data tanpa VBUS:
+kawat merah (VBUS) diputus dan ujungnya diisolasi, sedangkan D+, D−, dan GND
+tetap tersambung.
+
+1. Rakit rangkaian catu dan sambungkan pin logika INA219 dengan semua catu
+   terlepas.
+2. Cabut masukan pengisi TP4056, lalu nyalakan alat dari baterai.
+3. Sambungkan kabel data tanpa VBUS ke port USB board yang dipakai serial.
+   Pastikan port muncul (`pio device list`).
+4. Ketik `s` di `pio device monitor`. Baris `INA219` harus menunjukkan `V`
+   3,0–4,2 V dan `I` positif dan stabil. Bila tidak, ikuti tabel bacaan di
+   README.
 5. Tutup monitor serial (port tidak boleh dipakai dua program), lalu jalankan
    dari folder `model/`:
 
@@ -571,16 +579,26 @@ tidak diputus, sehingga serial tetap berjalan dan mode tetap bisa diperintah.
    .venv/bin/python scripts/measure_power.py
    ```
 
-   Durasi sekitar 7,5 menit (6 mode × 70 detik). Untuk `p5` mewakili operasi
-   normal, broker harus terjangkau: `TB_HOST` di `firmware/include/wifi_secrets.h`
-   sama dengan IP laptop saat itu.
-6. Cek silang sekali dengan multimeter mode arus (atau USB power meter) di celah
-   VBUS yang sama pada satu mode; selisih dikoreksi lewat `R_SHUNT` di
-   `perangkat.h` (`R_baru = R_lama × I_ina219 / I_multimeter`).
+   Durasi sekitar 7,5 menit (6 mode × 70 detik). Agar `p5` mewakili operasi
+   normal, broker aktif harus terjangkau; periksa dengan `make broker-info`
+   (port 1883 `terbuka`) sebelum mulai. Pemeriksaan tegangan bus < 1 V di skrip
+   tetap berlaku untuk baterai: tegangan sel minimum 3,0 V, sehingga bacaan di
+   bawah 1 V hanya muncul bila INA219 tidak berada di jalur arus.
+6. Cek silang sekali dengan multimeter mode arus yang disisipkan di titik yang
+   sama (antara TP4056 `OUT+` dan masukan konverter) pada satu mode; selisih
+   dikoreksi lewat `R_SHUNT` di `perangkat.h`
+   (`R_baru = R_lama × I_ina219 / I_multimeter`).
+7. Ulangi pada beberapa tegangan sel (mis. sel penuh dan sel sekitar 3,5 V):
+   arus di sisi baterai naik saat tegangan sel turun, karena konverter
+   menjaga daya keluaran.
 
-Alternatif tanpa memotong kabel: USB power meter di antara laptop dan board.
-Alat itu tidak terbaca firmware, jadi angka per mode dicatat manual sambil
-mode diganti lewat serial (`p0`…`p5`, jeda 60 detik per mode).
+Ukur daya mandiri tanpa laptop direncanakan sebagai menu perangkat
+**Ukur daya**: tangga `p0`–`p5` dijalankan dari tombol, hasil per mode tampil
+di layar dan disimpan ke `/daya/NNN.csv` di LittleFS, lalu ditarik dengan
+`make pull-daya` (rencana
+[`docs/2026-10-13-firmware-menu-plan.md`](../../docs/2026-10-13-firmware-menu-plan.md)
+fase 5). Setelah menu tersedia, pengukuran tidak lagi memerlukan kabel data
+tanpa VBUS.
 
 ## 6. Angka device
 

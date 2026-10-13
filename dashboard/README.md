@@ -23,14 +23,15 @@ Berhenti: `docker compose stop` (data tetap). Hapus total: `docker compose down 
 ThingsBoard di-self-host, bukan memakai `demo.thingsboard.io`, karena registrasi
 demo diarahkan ke ThingsBoard Cloud yang retensi telemetrinya dibatasi paket, dan
 uji resiliensi membutuhkan pemutusan broker secara terkendali tanpa memutus
-koneksi laptop. Pemindahan ke VPS hanya memerlukan penggantian `TB_HOST` di
-firmware.
+koneksi laptop. Pemindahan ke VPS hanya memerlukan penambahan entri broker di
+firmware ([`firmware/README.md`](../firmware/README.md) bagian Konfigurasi jaringan
+dan broker).
 
 ## Kontrak dengan firmware
 
 | Hal | Nilai |
 |---|---|
-| Host / port | host laptop, `1883` (plaintext) |
+| Host / port | Alamat IP laptop di jaringan WiFi yang sama dengan board, `1883` (plaintext); IP dan SSID laptop dicetak `make broker-info` di `model/` |
 | Username MQTT | access token device |
 | Password MQTT | kosong |
 | Topic | `v1/devices/me/telemetry` |

@@ -126,6 +126,16 @@ dinyatakan terus terang di walkthrough.
 
 ## 3. Pemasangan fisik
 
+> **Catatan rakitan (13 Okt 2026).** Rakitan yang dipakai untuk pengukuran
+> adalah INA219 di **sisi baterai**: 18650 → TP4056 `OUT+` → `VIN+` → `VIN−` →
+> konverter DC-DC → pin 5V board, GND bersama, USB board dicabut saat mengukur.
+> Pemasangan di kawat VBUS USB pada bagian ini tidak dipakai. Karena arus
+> diukur di sel, konversi §6 (`I_baterai = P / (3,7 × eta)`) tidak diperlukan:
+> arus terukur sudah arus baterai, termasuk rugi konverter. Tegangan bus yang
+> terbaca 3,0–4,2 V. Rangkaian dan prosedur:
+> [`firmware/README.md`](../../../firmware/README.md) bagian Catu daya dan
+> pengukuran arus, serta [`../firmware-walkthrough.md`](../firmware-walkthrough.md) §5d.
+
 Tidak ada rangkaian baru. Yang diputus **hanya VBUS**; D+/D−/GND utuh, jadi
 serial monitor tetap jalan dan mode `p0`–`p4` tetap bisa diperintah dari
 keyboard.

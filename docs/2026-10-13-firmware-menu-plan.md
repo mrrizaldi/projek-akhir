@@ -12,7 +12,7 @@ dokumentasi firmware & walkthrough terkait.
 | Ambang tekan lama | **800 ms** (event lama terpicu saat ambang tercapai + bip pendek; event pendek saat dilepas) |
 | Replay rekaman | **Daftar beberapa rekaman** bernomor di LittleFS, dipilih dari menu |
 | Catu baterai | 18650 → TP4056 → konverter DC-DC keluaran ±4,x V → pin 5V board |
-| Broker | Masih lokal (laptop). **Tanpa mDNS** (diputuskan user): host = IP di daftar; `make broker-info` mencetak IP & SSID laptop |
+| Broker | Masih lokal (laptop). **Host = alamat IP**, tanpa resolusi nama (diputuskan user); `make broker-info` mencetak IP & SSID laptop |
 | Modularitas | `main.cpp` hanya merangkai modul |
 
 ## Peta tombol
@@ -46,7 +46,7 @@ MENU
 
 - `wifi_secrets.h`: `WIFI_DAFTAR {ssid, sandi}` dan `BROKER_DAFTAR {nama, host-IP, port, token}`;
   format lama satu entri tetap diterima. Pilihan indeks disimpan di NVS (`w<n>`, `b<n>`, menu).
-- Tanpa mDNS: board dan laptop harus satu jaringan WiFi; IP laptop dicek dengan
+- Tanpa resolusi nama host: board dan laptop harus satu jaringan WiFi; IP laptop dicek dengan
   `make broker-info` (dari `model/`), yang juga mencetak SSID laptop.
 
 ## Modul firmware (sasaran)
