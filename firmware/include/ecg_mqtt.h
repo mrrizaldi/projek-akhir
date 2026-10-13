@@ -88,6 +88,10 @@ void ecg_mqtt_antre_buang(size_t n);
 
 // ---------- JARINGAN (hanya di board) ----------
 #ifdef ARDUINO
+// Target WiFi + broker (dari konfig.cpp). host = alamat IP. Memutus sambungan
+// broker; WiFi baru dipakai setelah ecg_mqtt_mulai().
+void ecg_mqtt_atur(const char *ssid, const char *pass, const char *host, uint16_t port,
+                   const char *token);
 // Mulai WiFi + sinkron waktu (SNTP). Tidak memblokir: sambungan diurus
 // ecg_mqtt_loop(). Aman dipanggil walau kredensial kosong (fitur mati).
 void ecg_mqtt_mulai(void);

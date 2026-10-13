@@ -102,17 +102,6 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
 #include <time.h>
 #include <sys/time.h>
 
-#if __has_include("wifi_secrets.h")
-#include "wifi_secrets.h"
-#endif
-#ifndef WIFI_SSID
-#define WIFI_SSID ""
-#define WIFI_PASS ""
-#define TB_HOST   ""
-#define TB_PORT   1883
-#define TB_TOKEN  ""
-#endif
-
 #define TOPIK "v1/devices/me/telemetry"
 
 // Klien MQTT ditulis langsung di atas WiFiClient, bukan menambah PubSubClient.
@@ -121,6 +110,10 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
 // SAMA dengan byte yang sama. Sejalan dgn gate point CLAUDE.md (jangan tambah
 // dependency untuk yang beberapa baris sudah selesai) dan dengan preseden
 // ina219.cpp yang juga tanpa library.
+// Target diisi konfig.cpp lewat ecg_mqtt_atur(); string-nya statis milik pemanggil.
+static const char *w_ssid = "", *w_pass = "", *b_host = "", *b_token = "";
+static uint16_t b_port = 1883;
+
 static WiFiClient sock;
 static bool aktif = true, tersambung;
 static uint32_t t_coba, t_ping, t_layani, terkirim, gagal;
@@ -191,7 +184,7 @@ static bool kirim_sampai_habis(const uint8_t *p, size_t n)
 // berikutnya — tidak ada satu pun panggilan yang menunggu jaringan di tempat.
 static void kirim_connect()
 {
-    const char *cid = "esp32-ecg", *user = TB_TOKEN;
+    const char *cid = "esp32-ecg", *user = b_token;
     const size_t lc = strlen(cid), lu = strlen(user);
     uint8_t var[16];
     size_t v = 0;
@@ -311,9 +304,17 @@ static void pungut_masuk()
     }
 }
 
+void ecg_mqtt_atur(const char *ssid, const char *pass, const char *host, uint16_t port,
+                   const char *token)
+{
+    w_ssid = ssid; w_pass = pass; b_host = host; b_port = port; b_token = token;
+    putus("ganti target");
+    t_coba = 0;
+}
+
 void ecg_mqtt_mulai(void)
 {
-    if (!strlen(WIFI_SSID)) {
+    if (!strlen(w_ssid)) {
         Serial.println("mqtt NONAKTIF: include/wifi_secrets.h belum ada "
                        "(salin dari wifi_secrets.example.h)");
         aktif = false;
@@ -330,12 +331,12 @@ void ecg_mqtt_mulai(void)
     // ONGKOSNYA DAYA (~+30 mA). Pengukuran daya mode WiFi (HW-7) harus diambil
     // DENGAN setelan ini, bukan tanpa.
     WiFi.setSleep(false);
-    WiFi.begin(WIFI_SSID, WIFI_PASS);
+    WiFi.begin(w_ssid, w_pass);
     // SNTP dipakai supaya ts tiap beat adalah waktu KEJADIAN. Tanpa jam benar,
     // beat hasil flush backlog akan menumpuk di detik yang sama dan grafik
     // dashboard berbohong.
     configTime(0, 0, "pool.ntp.org", "time.google.com");
-    Serial.printf("mqtt: WiFi \"%s\" -> %s:%d\n", WIFI_SSID, TB_HOST, TB_PORT);
+    Serial.printf("mqtt: WiFi \"%s\" -> %s:%u\n", w_ssid, b_host, (unsigned)b_port);
 }
 
 static void sinkron_jam()
@@ -387,11 +388,13 @@ void ecg_mqtt_layani(void)
         //
         // IPAddress, bukan hostname: resolusi DNS itu panggilan blocking
         // TERPISAH yang tidak ikut dibatasi argumen timeout ini.
-        static IPAddress ip;
-        static bool ip_siap;
-        if (!ip_siap) ip_siap = ip.fromString(TB_HOST);
-        if (!ip_siap) { Serial.println("mqtt: TB_HOST bukan alamat IP"); aktif = false; return; }
-        if (!sock.connect(ip, TB_PORT, 300)) return;
+        IPAddress ip;
+        if (!ip.fromString(b_host)) {
+            Serial.printf("mqtt: host broker \"%s\" bukan alamat IP\n", b_host);
+            aktif = false;
+            return;
+        }
+        if (!sock.connect(ip, b_port, 300)) return;
         // TCP_NODELAY. Tanpa ini algoritma Nagle menahan segmen kecil sampai
         // ACK segmen sebelumnya datang; berpasangan dengan delayed-ACK broker,
         // PUBACK jadi terlambat 1,0-4,8 detik dengan nilai yang berulang di
