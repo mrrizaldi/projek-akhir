@@ -161,7 +161,7 @@ int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat
 
 // ── Pan-Tompkins ────────────────────────────────────────────────────────────
 // Port dari model/src/preprocessing.py. Tiap tahap kausal, jadi bisa dijalankan
-// per potongan nanti; versi ini masih blok penuh supaya mudah diadu ke golden.
+// per potongan; implementasi ini memproses blok penuh supaya mudah diadu ke golden.
 
 static void pt_bandpass(const float *in, float *out, size_t n)
 {

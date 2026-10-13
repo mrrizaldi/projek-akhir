@@ -123,11 +123,11 @@ static volatile size_t replay_i;
 constexpr float SKALA_REPLAY = 1000.0f;
 constexpr float OFFSET_REPLAY = 2048.0f;
 
-// Konversi dilakukan SEKALI di setup(), bukan di ISR. Versi pertama mengalikan
-// float di dalam on_timer() dan board panic "Coprocessor exception" (EXCCAUSE 4)
-// setelah ~18 detik: ESP32 tidak menyimpan register FPU di konteks interrupt,
-// jadi float di ISR merusak state FPU task yang sedang diinterupsi. Bukan crash
-// seketika — itu sebabnya sempat lolos uji 20 detik.
+// Konversi dilakukan SEKALI di setup(), bukan di ISR. ESP32 tidak menyimpan
+// register FPU di konteks interrupt, jadi operasi float di on_timer() merusak
+// state FPU task yang sedang diinterupsi. Gejalanya panic "Coprocessor
+// exception" (EXCCAUSE 4) setelah ~18 detik, bukan crash seketika — cukup
+// lambat untuk lolos uji 20 detik.
 static uint16_t sim_counts[GOLDEN_N];
 
 void IRAM_ATTR on_timer()
@@ -369,10 +369,10 @@ static void nilai_kualitas(float mentah)
 //   merah  : sedang merekam — HANYA itu, tidak ada arti lain
 //   oranye : ayunan BERSIH < ambang — kontak kurang / dengung dominan
 //   hijau  : ayunan sehat, siap rekam
-// Tiga keadaan, tanpa kedip. Clipping DULU punya pola merah kedip sendiri;
-// dicabut karena menumpuk arti di satu warna dan bikin merah ambigu. Clipping
-// tetap dihitung dan dilaporkan lewat serial ('q' tiap detik, 's' sesaat) —
-// yang hilang cuma penanda visualnya, jadi sinyal terpotong kini tampil HIJAU.
+// Tiga keadaan, tanpa kedip. Clipping sengaja tidak punya pola LED sendiri:
+// pola tambahan menumpuk arti di satu warna dan membuat merah ambigu. Clipping
+// tetap dihitung dan dilaporkan lewat serial ('q' tiap detik, 's' sesaat);
+// sinyal terpotong tampil HIJAU.
 // LO+/LO- SENGAJA tidak dipakai menyetir LED: ia hanya melaporkan elektroda
 // lepas total, dan pada 3-lead tanpa RL yang rapat ia menyala terus walau
 // sinyalnya sebenarnya bagus. Ayunan mengukur yang benar-benar kita butuhkan.
@@ -405,9 +405,9 @@ void setup()
     Serial.begin(115200);
     delay(1500);
     // INPUT_PULLUP, bukan INPUT: kalau kabel LO putus/lepas, pin terbaca HIGH
-    // = "elektroda lepas". Pin mengambang yang kebetulan terbaca LOW pernah
-    // menipu kami — ia melaporkan "elektroda menempel" untuk kabel yang tidak
-    // tersambung ke apa pun. Output LO AD8232 push-pull, jadi pull-up internal
+    // = "elektroda lepas". Pin mengambang bisa kebetulan terbaca LOW dan
+    // melaporkan "elektroda menempel" untuk kabel yang tidak tersambung ke
+    // apa pun. Output LO AD8232 push-pull, jadi pull-up internal
     // 45k tidak melawannya.
     pinMode(PIN_LOP, INPUT_PULLUP); pinMode(PIN_LON, INPUT_PULLUP);
     pinMode(PIN_REC, INPUT_PULLUP); pinMode(PIN_DUMP, INPUT_PULLUP);

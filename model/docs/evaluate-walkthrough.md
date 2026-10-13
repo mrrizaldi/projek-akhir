@@ -1,8 +1,16 @@
 # Walkthrough `src/evaluate.py` — Fase 6
 
+> **Ruang lingkup:** kalibrasi threshold di VAL lalu evaluasi model float32 di DS2 (inter-patient), termasuk bedah kegagalan per kelas dan per pasien.
+> **Kode terkait:** `src/evaluate.py`, `scripts/calibrate_threshold.py`, `scripts/eval_fp32.py`, `config.py` (`THRESHOLD`)
+> **Prasyarat:** [`train-walkthrough.md`](train-walkthrough.md) (Fase 5)
+
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 15. Lanjutan dari
-[`train-walkthrough.md`](train-walkthrough.md) (Fase 5).
+`PRD_Model_Aritmia_TinyML.pdf` hal. 15.
+
+Konfigurasi yang diukur di dokumen ini: window 128/128 (256 sampel), DS1
+diaugmentasi jitter empiris (1 salinan bersih + 2 salinan ber-jitter), threshold
+0,80. Kondisi ukur: artefak `model_fp32.keras` dan `fase6_*.csv` hasil rantai
+penuh 18 Sep 2026.
 
 Reproduksi:
 
@@ -13,7 +21,7 @@ make eval                               # evaluasi di DS2
 ```
 
 > **Ini fase paling menentukan di seluruh PA.** Angka di sini adalah klaim
-> ilmiah primer-mu. Semua yang dilakukan di fase 0–5 adalah persiapan supaya
+> ilmiah primer. Semua yang dilakukan di fase 0–5 adalah persiapan supaya
 > angka ini jujur.
 
 ---
@@ -26,7 +34,7 @@ Fase 5 selesai → model_fp32.keras beku
         ▼
 calibrate_threshold.py   ← pakai VAL (5 record DS1). Threshold ditetapkan DI SINI.
         │
-        ▼  config.THRESHOLD = 0.35   (dikunci)
+        ▼  config.THRESHOLD = 0.80   (dikunci)
         │
         ▼
     make eval            ← DS2 dibuka. SEKALI. Dilapor apa adanya.
@@ -38,7 +46,8 @@ baru", tapi "performa terbaik yang bisa saya cari-cari pada pasien uji" — dan
 penguji yang paham akan langsung menyerang itu.
 
 Makanya kalibrasi punya skripnya sendiri (`calibrate_threshold.py`) yang secara
-struktural **tidak bisa** menyentuh DS2: dia cuma memuat `train.npz`.
+struktural **tidak bisa** menyentuh DS2: dia cuma memuat `train.npz` lalu
+mengambil record VAL lewat `split_train_val`.
 
 ---
 
@@ -69,30 +78,41 @@ menjalar ke tabel delta Fase 7 dan merusak perbandingan float32 vs INT8.
 
 ## 2. Kalibrasi threshold — kriteria yang ditulis SEBELUM melihat hasil
 
-Kriteria terkunci: **F1 maksimum, tie-break ke recall bila selisih F1 < 0,005.**
+Kriteria terkunci: **F1 maksimum, tie-break ke recall bila selisih F1 < 0,005**
+(`F1_TIE_MARGIN` di `calibrate_threshold.py`).
 
-Kenapa kriterianya perlu ditulis dulu: kalau kamu melihat tabel sweep dulu baru
-memilih "yang paling enak dilihat", itu tuning yang tidak bisa
+Kriteria perlu ditetapkan lebih dulu: memilih threshold "yang paling enak
+dilihat" sesudah membaca tabel sweep adalah tuning yang tidak bisa
 dipertanggungjawabkan. Dengan kriteria eksplisit, `calibrate_threshold.py`
 menghasilkan angka yang sama tiap kali dijalankan siapa pun.
 
-Sweep di VAL (10.348 beat DS1 yang disisihkan):
+Sweep di VAL (5 record DS1, 31.047 beat termasuk salinan ber-jitter; sebagian
+baris dari `fase5_threshold_sweep.csv`):
 
 | thr | recall | precision | F1 | specificity |
 |---|---|---|---|---|
-| 0,20 | 0,8881 | 0,5038 | 0,6429 | 0,9016 |
-| 0,30 | 0,8375 | 0,7436 | 0,7878 | 0,9675 |
-| **0,35** ✓ | **0,8117** | **0,8132** | **0,8124** | **0,9790** |
-| 0,40 | 0,7725 | 0,8596 | **0,8137** | 0,9858 |
-| 0,50 | 0,6960 | 0,9157 | 0,7909 | 0,9928 |
-| 0,70 | 0,5010 | 0,9632 | 0,6591 | 0,9978 |
+| 0,20 | 0,9446 | 0,1480 | 0,2559 | 0,3888 |
+| 0,50 | 0,8445 | 0,3193 | 0,4634 | 0,7976 |
+| 0,70 | 0,7240 | 0,6085 | 0,6612 | 0,9476 |
+| 0,75 | 0,6909 | 0,6704 | 0,6805 | 0,9618 |
+| **0,80** (terpilih) | **0,6539** | **0,7342** | **0,6917** | **0,9734** |
+| 0,85 | 0,6141 | 0,7837 | 0,6886 | 0,9809 |
+| 0,90 | 0,5542 | 0,8504 | 0,6710 | 0,9890 |
 
-F1 maksimum ada di 0,40 (0,8137), tapi 0,35 hanya berbeda 0,0013 — di dalam
-margin — dan memberi recall **+3,9 poin**. Tie-break memilih 0,35.
+F1 maksimum ada di 0,80 (0,6917). Kandidat lain di dalam margin hanya 0,85
+(selisih 0,0031); tie-break memilih recall yang lebih tinggi, jadi 0,80.
 
-Perhatikan bentuk trade-off-nya: menaikkan threshold selalu menaikkan precision
-dan menurunkan recall. Tidak ada threshold "benar" secara universal; yang ada
-adalah threshold yang sesuai dengan biaya kesalahan di domainmu.
+Threshold 0,80 tampak tinggi, tetapi itu bukan tanda model konservatif. VAL
+dirakit dari DS1 teraugmentasi, sehingga ikut berisi salinan ber-jitter, dan
+window yang bergeser cenderung diberi probabilitas Aritmia lebih tinggi.
+Sebaran probabilitas bergeser ke atas, dan titik operasi yang benar ikut
+bergeser. Pada threshold 0,35 model ini hanya mencapai precision 0,19 di VAL.
+Konsekuensinya: **threshold milik satu model terlatih, bukan konstanta
+pipeline** — setiap latih ulang wajib diikuti `calibrate_threshold.py`.
+
+Bentuk trade-off-nya: menaikkan threshold selalu menaikkan precision dan
+menurunkan recall. Tidak ada threshold "benar" secara universal; yang ada
+adalah threshold yang sesuai dengan biaya kesalahan di domainnya.
 
 ---
 
@@ -110,30 +130,51 @@ untuk semua sampel akan terlihat AUC 1,0 padahal seharusnya 0,5. Itu di-assert
 di `test_auc_sempurna_acak_dan_seri`.
 
 Kenapa AUC dilaporkan bersama recall: **AUC tidak tergantung threshold**. Kalau
-suatu saat threshold berubah, recall dan precision ikut berubah tapi AUC tidak —
+threshold berubah, recall dan precision ikut berubah tapi AUC tidak —
 jadi dialah yang bisa membandingkan *kualitas model* lintas konfigurasi.
+Perbandingan antar-varian di [`jitter-walkthrough.md`](jitter-walkthrough.md)
+bersandar pada sifat ini.
 
 ---
 
-## 4. Hasil DS2 — angka jujur
+## 4. Hasil DS2
 
 ```
-DS2  49.654 beat dari 22 pasien  (5.450 aritmia)   threshold 0,35 (dari DS1/val)
-  TP=3630  FN=1820  FP=3750  TN=40454
-  recall 0,6661   precision 0,4919   F1 0,5659
-  specificity 0,9152   accuracy 0,8878   AUC 0,8866
+DS2  49.656 beat dari 22 pasien  (5.450 aritmia)   threshold 0,80 (dari DS1/val)
+  TP=3813  FN=1637  FP=2302  TN=41904
+  recall 0,6996   precision 0,6235   F1 0,6594
+  specificity 0,9479   accuracy 0,9207   AUC 0,9334
 ```
 
-Bandingkan dengan VAL: recall 0,8117 → **0,6661**, precision 0,8132 → **0,4919**.
+Bandingkan dengan VAL @0,80: recall 0,6539 → **0,6996**, precision 0,7342 →
+**0,6235**, F1 0,6917 → **0,6594**. Jarak VAL→DS2 muncul terutama di
+precision: pada pasien yang benar-benar baru, lebih banyak beat Normal yang
+morfologinya tidak dikenal dan ikut ditandai Aritmia. Perbandingan ini
+perkiraan kasar, karena VAL berisi salinan ber-jitter sedangkan DS2 bersih.
 
-Penurunan sebesar ini **normal dan diharapkan** untuk inter-patient. Val masih
-berisi pasien DS1 — sekelompok orang yang sebagian karakteristiknya sudah
-terwakili di data latih. DS2 benar-benar orang lain. Selisih inilah ukuran
-sebenarnya dari "seberapa jauh model bisa menyeberang ke pasien baru".
+**Accuracy 0,9207 sengaja tidak dijadikan judul.** Menebak Normal untuk semua
+beat sudah memberi 0,8902 (44.206 dari 49.656 beat). Selisih 3 poin itu
+menyembunyikan perbedaan yang sesungguhnya: tebak-Normal punya recall 0,
+model ini 0,70. Itu sebabnya accuracy tidak dipakai sebagai metrik utama di data
+timpang.
 
-**Accuracy 0,8878 sengaja tidak dijadikan judul.** Menebak Normal terus memberi
-0,8903 — *lebih tinggi* dari model kita. Ini bukti hidup kenapa accuracy dilarang
-jadi metrik utama di data timpang.
+### Model pembanding
+
+Konfigurasi pembanding yang dipakai di Fase 6b dan 6c adalah model baseline:
+window 90/160 (250 sampel), tanpa augmentasi, threshold 0,35 (dikalibrasi di
+VAL bersih), DS2 49.654 beat.
+
+| | baseline (90/160, 0,35) | berlaku (128/128 + jitter, 0,80) |
+|---|---|---|
+| recall | 0,6661 | **0,6996** |
+| precision | 0,4919 | **0,6235** |
+| F1 | 0,5659 | **0,6594** |
+| specificity | 0,9152 | **0,9479** |
+| AUC | 0,8866 | **0,9334** |
+| accuracy | 0,8878 (di bawah tebak-Normal 0,8902) | 0,9207 |
+
+Penjelasan selisihnya (window dan augmentasi) ada di
+[`jitter-walkthrough.md`](jitter-walkthrough.md) §5.
 
 ---
 
@@ -145,35 +186,40 @@ Di sinilah kolom `symbols` (Fase 2) dan `records` (Fase 3) membayar dirinya.
 
 | Kelas | n di DS2 | recall | tafsir |
 |---|---|---|---|
-| **V** (ventricular) | 3.219 | **0,9332** | morfologi jelas beda → CNN menangkapnya |
-| **S** (supraventricular) | 1.836 | **0,3034** | bentuk mirip normal, cuma beda timing |
-| **F** (fusion) | 388 | **0,1675** | hampir gagal total |
+| **V** (ventricular) | 3.219 | **0,9248** | morfologi jelas beda → CNN menangkapnya |
+| **S** (supraventricular) | 1.836 | **0,4390** | bentuk mirip normal, beda di gelombang P dan timing |
+| **F** (fusion) | 388 | **0,0670** | gagal hampir total |
 | Q | 7 | 0,5714 | terlalu sedikit untuk disimpulkan |
-| N (normal) | 44.204 | FP rate 0,0848 | 3.750 alarm palsu |
+| N (normal) | 44.206 | FP rate 0,0521 | 2.302 alarm palsu |
 
 Tiga temuan yang layak masuk Bab 4–5:
 
 **1. V baik, S dan F jatuh — ini pola inter-patient klasik**, bukan bug. PRD
-sendiri sudah memperkirakannya (alasan klasifikasi dibikin biner).
+sendiri sudah memperkirakannya (alasan klasifikasi dibikin biner). Window
+128/128 menaikkan recall S dan menurunkan recall F terhadap baseline (S 0,3034
+→ 0,4390, F 0,1675 → 0,0670); pertukaran ini disengaja dan dijelaskan di
+[`jitter-walkthrough.md`](jitter-walkthrough.md) §5.
 
-**2. Kegagalan F sudah bisa diramalkan sejak Fase 5.** Dari 414 beat kelas F di
-DS1, **372 ada di record 208 sendirian**. Model tidak pernah melihat fusion dari
-pasien yang beragam, jadi yang dipelajarinya adalah "fusion pada jantung pasien
-208". Recall 0,17 di DS2 adalah konsekuensi langsung komposisi dataset — bukan
-kesalahan arsitektur.
+**2. Kegagalan F bisa diramalkan dari komposisi dataset.** Dari 414 beat kelas F
+di DS1, **372 ada di record 208 sendirian**. Model tidak pernah melihat fusion
+dari pasien yang beragam, jadi yang dipelajarinya adalah "fusion pada jantung
+pasien 208". Di sisi uji polanya sama: **362 dari 388 beat F di DS2 ada di
+record 213**, dan recall F di sana 0,0387. Kelas F diuji praktis oleh satu
+pasien yang berbeda dari satu pasien yang mengajarkannya — konsekuensi langsung
+komposisi dataset, bukan kesalahan arsitektur.
 
 **3. Satu pasien menyeret metrik global.** Recall per pasien:
 
 ```
-median recall  0,8933  (atas 21 pasien beraritmia)
-rec 232        0,2042  ← 1.381 aritmia, semuanya kelas S
-rec 100        0,2353  ← cuma 34 aritmia
-rec 234        0,3019
+median recall  0,9167  (atas 21 pasien beraritmia)
+rec 232        0,3541  ← 1.381 aritmia, semuanya kelas S
+rec 213        0,2246  ← 610 aritmia, 362 di antaranya kelas F
+rec 100        0,2059  ← cuma 34 aritmia
 ```
 
-Median 0,89 vs agregat 0,67 — jaraknya jauh. Sebabnya rec 232: 1.381 dari 1.836
-beat S di seluruh DS2 ada di pasien ini, dan recall S di sana cuma 0,2042
-sementara di pasien DS2 lainnya 0,6044. Satu pasien memegang 25% seluruh
+Median 0,92 vs agregat 0,70 — jaraknya jauh. Sebab utamanya rec 232: 1.381 dari
+1.836 beat S di seluruh DS2 ada di pasien ini, dan recall S di sana cuma 0,3541
+sementara di pasien DS2 lainnya 0,6967. Satu pasien memegang 25% seluruh
 aritmia DS2, jadi kegagalannya mendominasi angka beat-level.
 
 Agregasi tetap di **level beat** (keputusan PRD, standar & sebanding dengan
@@ -185,11 +231,11 @@ diceritakan.
 
 ## 6. Yang sengaja TIDAK dilakukan
 
-**Tidak mengulang training setelah melihat DS2.** Godaan terbesar setelah melihat
-recall 0,67. Sekali model diperbaiki berdasarkan DS2, DS2 jadi validation dan
-klaim inter-patient gugur. Kalau memang mau memperbaiki, jalurnya: kembali ke
-DS1/val, ubah sesuatu, evaluasi ulang di val, **lalu** DS2 dibuka lagi — dan
-fakta bahwa DS2 sudah dilihat harus dicatat jujur di laporan.
+**Tidak mengulang training sebagai reaksi atas hasil DS2.** Sekali model
+diperbaiki berdasarkan DS2, DS2 jadi validation dan klaim inter-patient gugur.
+Jalur perbaikan yang sah: kembali ke DS1/VAL, ubah sesuatu, evaluasi ulang di
+VAL, **lalu** DS2 dibuka lagi — dan jumlah pembukaan DS2 dicatat terbuka di
+laporan.
 
 **Tidak menggeser threshold setelah melihat DS2.** Sama alasannya.
 
@@ -201,16 +247,18 @@ lalu jelaskan sebarannya.
 
 ## 7. Cek pemahaman
 
-1. Menebak "Normal" untuk semua beat DS2 memberi accuracy 0,8903 — lebih tinggi
-   dari model (0,8878). Metrik mana yang menunjukkan model tetap jauh lebih
+1. Menebak "Normal" untuk semua beat DS2 memberi accuracy 0,8902, hanya 3 poin
+   di bawah model (0,9207). Metrik mana yang menunjukkan model jauh lebih
    berguna, dan kenapa?
-2. Recall kelas F 0,1675. Kembali ke Fase 3: keputusan mana yang membuat hasil
+2. Recall kelas F 0,0670. Kembali ke Fase 3: keputusan mana yang membuat hasil
    ini praktis tidak terhindarkan, dan apa yang harus berubah untuk
    memperbaikinya?
-3. Threshold dinaikkan 0,35 → 0,50 di DS2 dan precision membaik. Kenapa angka
+3. Threshold dinaikkan 0,80 → 0,90 di DS2 dan precision membaik. Kenapa angka
    itu tetap tidak boleh dilaporkan sebagai hasil?
-4. AUC DS2 0,8866 padahal F1 cuma 0,5659. Bagaimana model bisa "mengurutkan"
+4. AUC DS2 0,9334 padahal F1 cuma 0,6594. Bagaimana model bisa "mengurutkan"
    dengan baik tapi berkinerja sedang saat dipaksa memilih 0/1?
+5. Kenapa threshold 0,35 yang benar untuk model baseline memberi precision 0,19
+   pada model yang berlaku?
 
 ## 8. Skrip pendukung
 
@@ -218,7 +266,7 @@ lalu jelaskan sebarannya.
 |---|---|
 | `python scripts/calibrate_threshold.py` | Tabel sweep val + `fase5_threshold_sweep.csv` |
 | `make eval` | `fase6_confusion_fp32.png`, `fase6_metrics_fp32.csv`, `fase6_per_record_fp32.csv` |
-| `make test` | 42 test — 8 di antaranya mengunci rumus metrik & AUC |
+| `make test` | seluruh suite pytest; 8 test di `tests/test_evaluate.py` mengunci rumus metrik & AUC |
 
 ---
 

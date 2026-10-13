@@ -1,6 +1,6 @@
 """Fase 0 — download database PhysioNet beranotasi-beat ke data/raw/<db>/.
 
-    python scripts/download_data.py                 # mitdb saja (perilaku lama)
+    python scripts/download_data.py                 # mitdb saja (bawaan)
     python scripts/download_data.py svdb incartdb   # dataset tambahan Fase A
     python scripts/download_data.py --semua         # ketiganya
 

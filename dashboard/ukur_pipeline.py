@@ -12,8 +12,9 @@ rantai: deteksi -> inferensi -> antre -> MQTT -> rule engine -> tersedia di API.
 Batas ketelitian yang jujur:
   - periode polling (~100 ms) masuk sebagai bias KE ATAS; latensi sebenarnya
     lebih kecil atau sama. Dilaporkan juga latensi minimum sebagai batas bawah.
-  - jam board (SNTP pool.ntp.org) vs jam laptop: dua-duanya NTP, selisih puluhan
-    ms. Kalau hasilnya negatif, itu tanda skew dan dilaporkan apa adanya.
+  - jam board (SNTP pool.ntp.org) vs jam laptop: selisihnya diukur dari
+    epoch_ms di baris status board lalu dikoreksi (lihat "selisih jam" di
+    bawah). Sisa galatnya ongkos serial (~ms).
 
 PDSR diambil dari pencacah firmware lewat serial ('s'), bukan ditebak dari data.
 """

@@ -41,8 +41,8 @@ def hos_features(windows: np.ndarray) -> np.ndarray:
     sebabnya fitur ini nyaris gratis di MCU — window-nya bahkan sudah di RAM.
 
     Kurtosis dilaporkan MENTAH (bukan excess / dikurangi 3) mengikuti Pers. 12,
-    dan momen memakai pembagi N (bias), bukan N-1: window selalu 250 sampel,
-    jadi selisihnya konstan 0,4% dan diserap bobot lapisan pertama.
+    dan momen memakai pembagi N (bias), bukan N-1: panjang window tetap
+    (WIN_LEN), jadi selisihnya konstan (~0,4%) dan diserap bobot lapisan pertama.
     """
     w = np.asarray(windows, dtype=np.float64)
     kurt = (w ** 4).mean(axis=1)
@@ -114,7 +114,7 @@ def compute_rr_ratio_features(r_locations: np.ndarray, fs: int = FS) -> np.ndarr
 
     Kenapa rasio: nilai absolut (detik) berbeda antar-orang, jadi model belajar
     identitas pasien — lawan semangat inter-patient. Window kita sudah ter-z-score
-    (amplitudo ternormalisasi) tapi fitur RR lama masih detik absolut: tidak
+    (amplitudo ternormalisasi) tapi fitur RR bawaan masih detik absolut: tidak
     konsisten. P3 rank: RR0/avgRR #3, RR+1/RR0 #4, RR-1/RR0 #10.
 
     `RR+1` BUTUH beat ke depan -> kolom terakhir NaN, dan pemanggil (prep_beats

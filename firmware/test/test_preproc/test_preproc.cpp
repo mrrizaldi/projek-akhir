@@ -148,8 +148,8 @@ void test_detect_r(void)
 // ECG_WIN_PRE + ECG_GROUP_DELAY dalam window — persis seperti window training.
 // Meleset 4 sampel saja menjatuhkan precision model 4x.
 //
-// Ditulis sebagai RUMUS, bukan angka: window pernah 90/160 (R di 94) dan pindah
-// ke 128/127 (R di 132) setelah ablasi Fase 6c. Test yang menghafal 94 akan
+// Ditulis sebagai RUMUS, bukan angka: posisi R ikut ukuran window (128/128 ->
+// R di 132; ablasi bisa mengubah WIN_PRE). Test yang menghafal satu angka akan
 // gagal karena alasan yang salah.
 #define R_IDX (ECG_WIN_PRE + ECG_GROUP_DELAY)
 

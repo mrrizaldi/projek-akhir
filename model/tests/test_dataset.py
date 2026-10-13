@@ -32,12 +32,11 @@ def test_bentuk_dan_kekekalan_jumlah():
         assert d["records"].shape == (n,)
         assert not np.isnan(d["X_rr"]).any()
         assert set(np.unique(d["y"])) <= {0, 1}
-    # Sejak augmentasi Fase 6c (18 Sep 2026) angka totalnya tidak lagi satu
-    # konstanta: DS1 ditumpuk (JITTER_SALINAN + 1) salinan dan tiap salinan
-    # membuang beat tepi yang sedikit berbeda (jitter menggeser R ke luar sinyal).
-    # Yang tetap boleh di-assert keras: DS2 TIDAK PERNAH dijitter.
-    # 49.656, bukan 49.654 seperti sebelum 18 Sep 2026: window 128/128 membuang
-    # beat tepi yang sedikit berbeda dari window 90/160.
+    # Dengan augmentasi Fase 6c angka total DS1 bukan satu konstanta: DS1
+    # ditumpuk (JITTER_SALINAN + 1) salinan dan tiap salinan membuang beat tepi
+    # yang sedikit berbeda (jitter menggeser R ke luar sinyal), jadi DS1 dicek
+    # dengan toleransi 1%. Yang boleh di-assert keras: DS2 TIDAK PERNAH dijitter,
+    # 49.656 beat pada window 128/128.
     assert len(test["y"]) == 49656                      # == DS2 Fase 3, utuh
     lipat = JITTER_SALINAN + 1
     assert abs(len(train["y"]) - lipat * 50965) < 0.01 * lipat * 50965

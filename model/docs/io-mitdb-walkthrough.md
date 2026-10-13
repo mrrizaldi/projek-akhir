@@ -1,8 +1,12 @@
 # Walkthrough `src/io_mitdb.py` — Fase 0
 
+> **Ruang lingkup:** pemuatan satu record PhysioNet beranotasi-beat menjadi sinyal satu kanal, posisi R-peak, dan simbol beat.
+> **Kode terkait:** `src/io_mitdb.py`, `config.py` (`CHANNEL`, `BEAT_SYMBOLS`, `DATASETS`), `scripts/plot_fase0.py`, `tests/test_io_mitdb.py`
+> **Prasyarat:** —
+
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 5–6. Fase paling awal, dan fase yang
-kesalahannya paling mahal — semua fase sesudahnya memakai keluarannya apa adanya.
+`PRD_Model_Aritmia_TinyML.pdf` hal. 5–6. Fase ini paling awal, dan kesalahannya
+paling mahal: semua fase sesudahnya memakai keluarannya apa adanya.
 
 Reproduksi:
 
@@ -52,18 +56,26 @@ annotation = wfdb.rdann(path, "atr")  # .atr
 
 Anotasi itulah aset paling berharga dari MIT-BIH: dua kardiolog independen
 menandai **tiap** detak selama 30 menit × 48 rekaman. Itu sebabnya dataset 1980-an
-ini masih jadi standar sampai sekarang.
+ini masih menjadi standar evaluasi klasifikasi aritmia.
 
 ---
 
 ## 2. Dua gerbang yang gagal berisik
 
 ```python
-if record.fs != FS:
-    raise ValueError(f"record {record_id}: fs={record.fs}, harus {FS}")
-if CHANNEL not in record.sig_name:
-    raise ValueError(f"record {record_id}: kanal {CHANNEL} tidak ada, hanya {record.sig_name}")
+spec = DATASETS[db]
+if record.fs != spec["fs"]:
+    raise ValueError(
+        f"record {record_id} ({db}): fs={record.fs}, DATASETS menjanjikan {spec['fs']}"
+    )
+channel = pilih_lead(record_id, record.sig_name, spec["leads"])   # raise kalau nihil
 ```
+
+Untuk mitdb (`db="mitdb"`, bawaan), `DATASETS["mitdb"]` menjanjikan `fs = 360`
+dan lead `("MLII",)`. Database lain (svdb, incartdb) memakai gerbang yang sama
+dengan janji masing-masing, lalu di-resample ke 360 Hz oleh `resample_to_fs`.
+Pemeriksaan `fs` dilakukan **sebelum** resample, supaya resample tidak menutupi
+record yang rusak atau tabel `config.py` yang salah.
 
 **Kenapa `raise`, bukan `continue` atau resample diam-diam.** Kalau satu record
 ber-`fs` berbeda lolos, seluruh fitur RR-nya salah skala (dibagi 360 padahal
@@ -73,8 +85,8 @@ awal jauh lebih murah daripada angka yang salah diam-diam di Fase 6.
 Yang benar-benar tertangkap gerbang ini:
 
 ```
-102 → ValueError: kanal MLII tidak ada, hanya ['V5', 'V2']
-104 → ValueError: kanal MLII tidak ada, hanya ['V5', 'V2']
+102 → ValueError: record 102: tidak ada kanal ['MLII'], hanya ['V5', 'V2']
+104 → ValueError: record 104: tidak ada kanal ['MLII'], hanya ['V5', 'V2']
 ```
 
 Dua record itu memang tidak punya MLII. Mereka juga ada di
@@ -86,7 +98,13 @@ Dua record itu memang tidak punya MLII. Mereka juga ada di
 ## 3. Jebakan urutan kanal — record 114
 
 ```python
-channel = record.sig_name.index(CHANNEL)
+def pilih_lead(record_id, sig_name, leads):
+    for lead in leads:
+        if lead in sig_name:
+            return sig_name.index(lead)
+    raise ValueError(...)
+
+channel = pilih_lead(record_id, record.sig_name, spec["leads"])
 signal = record.p_signal[:, channel].astype(np.float32)
 ```
 
@@ -102,7 +120,8 @@ record 114 → sig_name = ['V5', 'MLII']    → MLII di index 1  ←
 kanal yang salah** untuk 114. Sinyal V5 tetap terlihat seperti EKG normal di
 plot; yang berubah cuma morfologi QRS — persis hal yang dipelajari model.
 
-Karena itu kanal dicari **lewat nama**, tidak pernah lewat indeks tetap.
+Karena itu kanal dicari **lewat nama**, tidak pernah lewat indeks tetap, dan
+`pilih_lead` menolak (bukan jatuh ke kanal 0) kalau nama yang diminta tidak ada.
 Verifikasinya: `make plot0 REC=114` — garis R-peak anotasi harus mendarat tepat
 di puncak R, plus assert mekanis membandingkan hasil `load_record` dengan
 `p_signal[:, 1]`.
@@ -165,11 +184,11 @@ pada mayoritas orang — sumbu jantung kira-kira sejajar dengannya. Praktisnya:
 46 dari 48 record MIT-BIH punya MLII, dan alat sadap satu-lead seperti AD8232
 di proyek ini juga memasang elektroda pada posisi yang mendekati lead II. Jadi
 memilih MLII bukan cuma soal ketersediaan data — itu menjaga **kesamaan antara
-data latih dan sinyal yang nanti benar-benar masuk ke ESP32**.
+data latih dan sinyal yang benar-benar masuk ke ESP32 saat deploy**.
 
 `astype(np.float32)`: `p_signal` bawaan wfdb float64. Separuh memori, dan sama
-dengan presisi yang dipakai TFLite nanti. 650.000 sampel × 48 record: 250 MB vs
-125 MB.
+dengan presisi input model float32 sebelum kuantisasi. 650.000 sampel × 48
+record: 250 MB vs 125 MB.
 
 ---
 

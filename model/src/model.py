@@ -31,12 +31,13 @@ def build_deploy_model(trained: Model) -> Model:
     """Varian DEPLOY dengan bobot identik — untuk TFLite Micro, bukan untuk latih.
 
     Dua op diganti karena TFLM menghitungnya berbeda dari TFLite biasa:
-      GlobalAveragePooling1D (MEAN) → DepthwiseConv1D(31) berbobot 1/31
+      GlobalAveragePooling1D (MEAN) → DepthwiseConv1D(L) berbobot 1/L,
+                                     L = panjang tensor (32 pada window 256)
       Dense                          → Conv1D kernel 1 (tetap 3-D, tanpa Flatten)
 
     Kenapa DepthwiseConv1D, bukan AveragePooling1D yang lebih jelas maksudnya:
     op pooling MEWARISI skala kuantisasi input-nya (0,332 di sini), sedangkan
-    rata-rata 31 nilai jauh lebih kecil dari rentang itu → resolusi terbuang dan
+    rata-rata L nilai jauh lebih kecil dari rentang itu → resolusi terbuang dan
     recall INT8 di DS2 jatuh ke 0,53. Op konvolusi mendapat skala output SENDIRI
     (0,0429, persis yang dipilih MEAN), jadi presisinya kembali utuh.
 

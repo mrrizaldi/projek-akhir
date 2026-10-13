@@ -2,7 +2,7 @@ import os
 
 
 def _env_int(nama: str, bawaan: int) -> int:
-    """Knob ablasi lewat environment. TANPA env, nilainya persis seperti dulu.
+    """Knob ablasi lewat environment. TANPA env, nilainya sama dengan `bawaan`.
 
     Dipakai scripts/ablasi.py untuk menjalankan varian di proses terpisah —
     konstanta di sini dibaca saat import, jadi tidak bisa diganti setelahnya.
@@ -16,13 +16,13 @@ FS = 360 # Hz, sampling MIT-BIH
 BANDPASS_LOW = 0.5 # Hz, cutoff bawah Butterworth
 BANDPASS_HIGH = 40.0 # Hz, cutoff atas Butterworth
 BANDPASS_ORDER = 4 # orde 2–4
-# Window 128/128 = 256 sampel, DIKUNCI 18 Sep 2026 menggantikan 90/160 (250).
-# Bukan karena paper memakainya, tapi karena ablasi 3 seed: F1 DS2 0,5660 ->
-# 0,6911. Varian penentu justru yang KALAH — 112/144 juga 256 sampel, juga
-# kelipatan 8, cakupan T malah lebih panjang, hasilnya setara baseline. Jadi yang
-# membayar konteks 128 sampel SEBELUM R, bukan panjang window.
-# R mendarat di indeks 132 (128 + group delay 4), bukan 94 lagi.
-# Rantai pooling jadi 256->128->64->32 tanpa pemotongan (250 dulu 125->62->31).
+# Window 128/128 = 256 sampel. Dipilih lewat ablasi 3 seed, bukan karena paper
+# memakainya: terhadap pembanding 90/160 (250 sampel), F1 DS2 0,5660 -> 0,6911.
+# Varian penentu justru yang KALAH — 112/144 juga 256 sampel, juga kelipatan 8,
+# cakupan T malah lebih panjang, hasilnya setara pembanding. Jadi yang membayar
+# konteks 128 sampel SEBELUM R, bukan panjang window.
+# R mendarat di indeks 132 (128 + group delay 4).
+# Rantai pooling 256->128->64->32 tanpa pemotongan.
 WIN_PRE = _env_int("PA_WIN_PRE", 128)   # sampel sebelum R-peak
 WIN_POST = _env_int("PA_WIN_POST", 128) # sampel sesudah R-peak
 WIN_LEN = WIN_PRE + WIN_POST # = 256 
@@ -77,8 +77,8 @@ DS1 = [101, 106, 108, 109, 112, 114, 115, 116, 118, 119, 122, 124,
        201, 203, 205, 207, 208, 209, 215, 220, 223, 230]   # latih (22)
 DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
        213, 214, 219, 221, 222, 228, 231, 232, 233, 234]   # uji  (22)
-# ── Fase A (19 Sep 2026) — dataset tambahan: svdb + incartdb ─────────────────
-# Permintaan pembimbing dari awal: perluas data latih. Sebaran di bawah TERUKUR
+# ── Fase A — dataset tambahan: svdb + incartdb ────────────────────────────────
+# Tujuan (permintaan pembimbing): memperluas data latih. Sebaran di bawah TERUKUR
 # dari anotasi asli PhysioNet, dipetakan lewat AAMI_MAP di atas — bukan angka
 # yang disalin dari paper:
 #
@@ -112,7 +112,8 @@ DS2 = [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210, 212,
 #
 # leads: dipilih yang PERTAMA tersedia. mitdb MLII = acuan alat (AD8232 lead II).
 # incartdb "II" paling dekat dengannya. svdb Holter, lead tidak dinamai -> ECG1
-# dipakai dan POLARITASNYA BELUM DIVERIFIKASI (gate, lihat docs plan §3).
+# dipakai; polaritasnya diverifikasi lewat scripts/cek_lead.py (gate A2:
+# 8/8 record svdb positif di R, docs/arsip/2026-09-19-multidataset-plan.md §3b).
 # selaraskan: geser anotasi R ke puncak sebenarnya sebelum memotong window.
 # Perlu karena konvensi anotasi antar-database BEDA — terukur 19 Sep atas beat
 # normal, posisi puncak relatif anotasi di sinyal ter-bandpass:
@@ -196,10 +197,10 @@ DROPOUT_RATE = 0.0            # 0.0 = tanpa dropout (keputusan terkunci)
 # cabang yang sama, bukan cabang morfologi: dua skalar, bukan deret waktu.
 USE_HOS = os.environ.get("PA_HOS", "0") == "1"
 # Fase D — knob T2 & T3 (docs/arsip/2026-09-19-fitur-design.md K3/K4). TANPA env,
-# nilainya persis seperti semula: 3 kolom RR absolut/rasio campuran.
+# nilainya bawaan: 3 kolom RR absolut/rasio campuran.
 #   PA_QRSW=1     +2 kolom lebar QRS ternormalisasi (P3 rank 1-2 dari 85 fitur)
 #   PA_RR_RATIO=1 bentuk RR jadi rasio semua: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0
-#                 -> 4 kolom, menggantikan 3 yang lama. BUTUH beat ke depan, jadi
+#                 -> 4 kolom, menggantikan 3 kolom bawaan. BUTUH beat ke depan, jadi
 #                 prep_beats ikut membuang beat TERAKHIR tiap record.
 USE_QRSW = os.environ.get("PA_QRSW", "0") == "1"
 USE_RR_RATIO = os.environ.get("PA_RR_RATIO", "0") == "1"
@@ -207,8 +208,7 @@ N_RR_BASE = 4 if USE_RR_RATIO else 3
 N_RR_FEATURES = N_RR_BASE + (2 if USE_HOS else 0) + (2 if USE_QRSW else 0)
 
 # Fase D — indeks R di dalam window (WIN_PRE + group delay bandpass kausal).
-# Dipakai qrs_width_features untuk tahu di mana puncaknya. Sama dengan angka di
-# decision point "R sekarang di indeks 132".
+# Dipakai qrs_width_features untuk tahu di mana puncaknya (indeks 132).
 R_IN_WINDOW = WIN_PRE + 4
 
 # Fase 6c — augmentasi ketahanan segmentasi (docs/jitter-walkthrough.md).
@@ -237,20 +237,19 @@ EARLY_STOP_MONITOR = "val_auc"   # AUC, bukan recall: recall bisa "dicurangi" te
 # Threshold DIKUNCI dari kalibrasi di VAL (DS1), bukan DS2 — JEBAKAN PRD Fase 6.
 # Kriteria: F1 maksimum, tie-break ke recall bila selisih F1 < 0,005 (tidak berubah).
 #
-# 18 Sep 2026: 0,35 -> 0,80 setelah window 128/128 + augmentasi jitter.
+# Nilai 0,80 berlaku untuk model window 128/128 + augmentasi jitter.
 # Val F1 maksimum 0,6917; kandidat dalam margin {0,80; 0,85} -> recall menang -> 0,80.
-# Naik drastis BUKAN karena model jadi konservatif, tapi karena VAL sekarang ikut
-# ber-jitter: sebaran probabilitasnya bergeser ke atas, jadi titik operasi yang
-# benar ikut bergeser. Memakai 0,35 di model ini memberi precision 0,19.
-# Angka lama (val F1 0,8124 @ 0,35) diukur di val BERSIH — tidak sebanding.
+# Tingginya BUKAN karena model konservatif, tapi karena VAL ikut ber-jitter:
+# sebaran probabilitasnya bergeser ke atas, jadi titik operasi yang benar ikut
+# bergeser. Memakai 0,35 di model ini memberi precision 0,19.
 # Reproduksi: python scripts/calibrate_threshold.py
 THRESHOLD = 0.80
 
 # Fase 7 — PTQ INT8 (PRD hal. 16-17).
 REP_SAMPLES = 300        # sampel kalibrasi, stratified dari DS1 (PRD: ~100-500)
 INT8_IO = True           # True = full-INT8 end-to-end; harus konsisten dgn firmware
-# DoD PRD semula < 20 KB. Dinaikkan ke 25 KB setelah terbukti varian deploy
-# (tanpa MEAN & tanpa shape dinamis) yang jalan benar di TFLM memakan 20,8 KB.
+# Batas 25 KB, di atas DoD PRD (< 20 KB): varian deploy (tanpa MEAN & tanpa
+# shape dinamis) yang jalan benar di TFLM memakan 22,94 KB (window 256).
 # Flash ESP32-S3 16 MB — batas ini soal disiplin, bukan kapasitas.
 MAX_MODEL_KB = 25
 # Ambang skala kuantisasi tensor input ritme (Fase 7). Bukan hiasan: skala INT8
@@ -259,14 +258,14 @@ MAX_MODEL_KB = 25
 # Kalau kena, skala melompat ~40x dan RR normal (0,18-2,58 s) tinggal ~3 level
 # int8 -> cabang ritme praktis mati, dan GEJALANYA recall S buruk, BUKAN error.
 # Peluang per seed terukur 19 Sep: 4,6% (mitdb saja), 1,8% (tiga database).
-# Nilai sehat sekarang 0,0129; sehat secara teori ~0,0197 (p99,99 |X_rr| = 2,51);
+# Nilai pada model terpasang 0,0129; sehat secara teori ~0,0197 (p99,99 |X_rr| = 2,51);
 # yang rusak ~0,78. Ambang 0,05 = ~2,5x headroom dari sehat, ~15x di bawah rusak.
 MAX_RHYTHM_SCALE = 0.05
 
 # Fase E — presisi minimum sebuah NAMA sebelum boleh ditampilkan. Bukan F1:
 # memaksimalkan F1 kelas V di antara beat yang ditandai justru memberi hadiah
-# untuk "namai semuanya V" (V ~50% dari yang ditandai), dan itu yang terjadi di
-# percobaan pertama — 4.387 dinamai V, cuma 1.664 benar (presisi 37,9%).
+# untuk "namai semuanya V" (V ~50% dari yang ditandai); terukur: 4.387 dinamai
+# V, cuma 1.664 benar (presisi 37,9%).
 # Alat boleh DIAM ("tipe tak pasti") tanpa berbohong, tapi tidak boleh bilang "V"
 # kalau salah 6 dari 10. Terukur di DS2: ambang 40 ms -> presisi 91,7% cakupan
 # 40,4%; 30 ms -> 51,7%. Jadi 0,90 bisa dicapai dengan cakupan yang berguna.
@@ -274,7 +273,8 @@ MIN_PRESISI_NAMA = 0.90
 
 # Fase 6b — penyelarasan R-peak untuk segmentasi ON-DEVICE (docs/segmentasi-deteksi).
 # Urutan wajib: r - PT_DETECTOR_OFFSET -> puncak dlm +-PT_REFINE_WIN -> - GROUP_DELAY.
-# Salah satu terlewat: R tidak mendarat di indeks 94 dan precision jatuh 4x.
+# Salah satu terlewat: R tidak mendarat di indeks R_IN_WINDOW (132) dan
+# precision jatuh 4x.
 PT_DETECTOR_OFFSET = 38   # median (deteksi - anotasi) di DS1; std 13
 PT_REFINE_WIN = 25        # +-70 ms, cari puncak R sebenarnya
 GROUP_DELAY_SAMPLES = 4   # geseran bandpass kausal 0,5-40 Hz (JEBAKAN Fase 1)

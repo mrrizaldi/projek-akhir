@@ -248,7 +248,8 @@ static void bunyi(uint32_t ms)
 }
 
 // Bip per beat, SINKRON dengan ritme. ecg_live mengeluarkan beat berkelompok
-// tiap 1 detik, 0,36-1,36 detik sesudah R terjadi; bunyi saat beat keluar =
+// tiap ECG_LIVE_TIAP sampel (bawaan 1 detik: 0,36-1,36 detik sesudah R terjadi);
+// bunyi saat beat keluar =
 // dua beat lebur jadi satu bip, laju tertahan ~60/menit. Jadi bip dijadwalkan
 // di r_abs + TUNDA: semua bip telat sama rata, jarak antar-bip = RR persis.
 // TUNDA = kadens deteksi + post-window (batas telat terburuk) + 0,1 dtk margin

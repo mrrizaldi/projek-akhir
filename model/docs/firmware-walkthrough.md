@@ -1,17 +1,27 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
-Dokumen belajar, bukan spesifikasi. Lanjutan dari
-[`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7). Ini jalur
-"menunggu hardware" di Lampiran C PRD.
+> **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
+
+Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
 
 Reproduksi:
 
 ```
 cd firmware
-pio test -e native      # preprocessing di PC, tanpa board
+pio test -e native      # preprocessing, INA219, payload & ring MQTT di PC, tanpa board
 pio test -e esp32-s3    # preprocessing + inferensi di board sungguhan
-pio run                 # build firmware
+pio run                 # build firmware utama (env esp32-s3)
 ```
+
+`platformio.ini` memuat tiga env:
+
+| Env | Isi | Dipakai untuk |
+|---|---|---|
+| `esp32-s3` | `main.cpp` + seluruh pipeline + MQTT | firmware utama (bawaan `pio run`) |
+| `hwtest` | `hwtest.cpp` + `ecg_live` + `ecg_pipeline` + `ina219` | uji hardware PCB rev1: AD8232, TFT ST7789, buzzer, tombol |
+| `native` | modul murni tanpa Arduino | `pio test -e native` di PC |
 
 ---
 
@@ -137,10 +147,10 @@ dibatasi ±20 di sekitar `R_IDX` — `argmax` global tidak bisa dipakai karena
 record 208 punya detak berdekatan (697 → 853) sehingga window selebar ini sering
 memuat R tetangga yang lebih tinggi.
 
-Namanya dulu `..._di_94` dan angkanya ditulis lurus di dua tempat. Saat window
-pindah ke 128/128 (18 Sep 2026), yang satu terlewat dan test merah dengan pesan
-yang menuduh firmware. Pelajarannya: **test yang menjaga sifat harus menuliskan
-sifatnya, bukan hasil hitungannya.**
+Prinsipnya: **test yang menjaga sifat harus menuliskan sifatnya, bukan hasil
+hitungannya.** Indeks R yang ditulis sebagai angka lurus di lebih dari satu
+tempat akan tertinggal saat window berubah, dan test-nya gagal dengan pesan yang
+menuduh firmware.
 
 ---
 
@@ -161,8 +171,8 @@ lalu membandingkan ke window golden — dan lolos.
 
 Alasannya elegan: **z-score membagi dengan simpangan baku**, jadi pergeseran
 yang dialami bersama oleh seluruh window ikut ternormalisasi. Keputusan Fase 1
-yang diambil demi kekebalan antar-pasien ternyata sekaligus membeli toleransi
-presisi di device.
+yang diambil demi kekebalan antar-pasien sekaligus memberi toleransi presisi di
+device.
 
 ---
 
@@ -183,7 +193,7 @@ Python sinyal selalu tersedia utuh.
 
 ## 5. Jebakan TFLite Micro: op yang sama, hasil berbeda
 
-Ini temuan terbesar jalur hardware, dan hampir seluruhnya tak terlihat tanpa
+Ini jebakan terbesar jalur hardware, dan hampir seluruhnya tak terlihat tanpa
 harness.
 
 ### Gejala
@@ -198,7 +208,7 @@ beat 3 (N):  PC 0,0039   device 0,0391
 Semua tertekan ke tengah — model masih mengurutkan benar, tapi keyakinannya
 runtuh. Di threshold 0,35, beat aritmia berubah jadi "normal".
 
-### Pengejaran
+### Penelusuran
 
 | Langkah | Hasil | Kesimpulan |
 |---|---|---|
@@ -216,14 +226,14 @@ hipotesis "bug library" dan mengarahkan ke **op**.
 TFLite biasa. Solusinya mengganti cara rata-rata itu **dituliskan**, bukan
 mengubah modelnya.
 
-### Empat percobaan, dan kenapa tiga gagal
+### Empat cara menulis rata-rata, dan kenapa tiga ditolak
 
 | Rata-rata ditulis sebagai | Ukuran | Di PC | Di device |
 |---|---|---|---|
-| `MEAN` (asli) | 17,8 KB | 0,973 | **0,336** ✗ |
-| `AVERAGE_POOL_2D` | 20,8 KB | 0,945 | 0,945 ✓ tapi **recall DS2 0,528** ✗ |
-| `AVERAGE_POOL_2D` + `Flatten` | 19,4 KB | 0,945 | **0,418** ✗ |
-| **`DEPTHWISE_CONV_2D` bobot 1/31** | 22,9 KB | 0,973 | **0,973** ✓ |
+| `MEAN` (model latih) | 17,8 KB | 0,973 | **0,336** (salah) |
+| `AVERAGE_POOL_2D` | 20,8 KB | 0,945 | 0,945 (cocok), tapi **recall DS2 0,528** |
+| `AVERAGE_POOL_2D` + `Flatten` | 19,4 KB | 0,945 | **0,418** (salah) |
+| **`DEPTHWISE_CONV_2D` bobot 1/31** | 22,9 KB | 0,973 | **0,973** (dipakai) |
 
 **Kenapa pooling gagal walau hasilnya "benar":** op pooling **mewarisi skala
 kuantisasi input-nya** (0,332 di sini), sedangkan op konvolusi mendapat skala
@@ -284,7 +294,7 @@ beat keluar   : 6 (6 cocok anotasi, 6 prediksi benar)
   r=1181 (N) p=0.0039 -> 0   r=1860 (N) p=0.0117 -> 0
 ```
 
-Mode putar-ulang ini bukan alat sementara. Setelah elektroda ada pun, dia
+Mode putar-ulang ini bukan alat sementara. Dengan elektroda terpasang pun, dia
 satu-satunya cara menguji firmware secara **deterministik** — sinyal tubuh tidak
 pernah sama dua kali, jadi perubahan hasil tidak bisa dibedakan antara "kode
 berubah" dan "jantung berbeda". Dia juga memisahkan dua jenis kegagalan: kalau
@@ -316,11 +326,18 @@ supaya antreannya bisa disizing dengan angka, bukan tebakan.
 
 ```
 timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
-   adc1_get_raw()                             ├─ ecg_live_push
-                                              ├─ inferensi tiap beat
-                                              ├─ LED kedip (merah = aritmia)
+   adc1_get_raw()                             ├─ ecg_live_push + nilai_kualitas
+   (atau sim_counts[] saat replay)            ├─ nilai_fase (gerbang kalibrasi)
+                                              ├─ inferensi tiap beat (fase pemantauan)
+                                              ├─ publikasi → ring backlog MQTT
+                                              ├─ ecg_mqtt_layani (non-blocking)
+                                              ├─ LED kualitas sinyal / rekam
                                               └─ REC: simpan mentah ke LittleFS
 ```
+
+Arti LED dan prosedur rekam ada di
+[`akuisisi-walkthrough.md`](akuisisi-walkthrough.md) §2–3; gerbang kalibrasi dan
+publikasi ada di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.
 
 **ADC dibaca DI DALAM ISR, bukan di loop.** Ini konsekuensi langsung dari
 temuan §5b: beban menggumpal sampai 33 ms. Kalau ISR cuma menaikkan penanda dan
@@ -332,11 +349,15 @@ itu masuk langsung ke interval RR.
 dan tidak aman dipanggil dari ISR.
 
 Antrean 256 sampel (0,7 detik) — jauh di atas 13 yang dibutuhkan, tapi murah
-(512 byte) dan memberi ruang kalau nanti WiFi/MQTT ikut mencuri waktu loop.
+(512 byte) dan memberi ruang bagi WiFi/MQTT yang ikut memakai waktu loop. Batas
+711 ms inilah yang membatasi setiap operasi jaringan di `ecg_mqtt.cpp`
+([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §7b).
 `n_lewat` menghitung sampel yang hilang saat antrean penuh; angkanya **harus
 tetap 0**, dan ikut disimpan ke berkas rekaman.
 
 ### Terukur di board (tanpa elektroda, ADC membaca derau)
+
+Kondisi uji: build inti tanpa modul MQTT dan tanpa tabel replay.
 
 ```
 RAM   21,2% (69.404 B)    Flash 6,4% (419.209 B)
@@ -362,8 +383,8 @@ if (replay) {
 ```
 
 Satu cabang di ISR, dan **seluruh jalur di hilirnya tidak berubah** — bandpass,
-deteksi, penyelarasan, inferensi, LED, REC, dan nanti MQTT semuanya berjalan
-seperti biasa. Kalau simulasi punya jalur sendiri, yang tervalidasi bukan jalur
+deteksi, penyelarasan, inferensi, LED, REC, dan MQTT semuanya berjalan seperti
+biasa. Kalau simulasi punya jalur sendiri, yang tervalidasi bukan jalur
 produksi.
 
 Skalanya bebas (bandpass membuang DC, z-score membuang skala); yang haram cuma
@@ -376,19 +397,21 @@ Dua kegunaan, dan yang kedua justru yang lebih penting:
 2. **Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis.** Itu yang
    membuat kehilangan data di jalur MQTT bisa diukur, bukan cuma dirasakan:
    beat hilang = beat seharusnya − beat yang sampai di broker. `y` juga
-   me-reset `ecg_live` dan pencacah beat supaya hitungannya mulai dari nol.
+   me-reset `ecg_live` dan pencacah beat supaya hitungannya mulai dari nol, dan
+   saat menyala sekaligus melewati gerbang kalibrasi (record 208 memang
+   aritmik; lihat [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
 
 Konsekuensinya: uji resiliensi pipeline tidak perlu menunggu elektroda.
 
 #### JEBAKAN: float di dalam ISR membunuh board, pelan-pelan
 
-Versi pertama mengalikan langsung di `on_timer()`:
+Mengalikan langsung di `on_timer()` tampak wajar:
 
 ```cpp
 float v = golden_raw[replay_i] * SKALA_REPLAY + OFFSET_REPLAY;   // SALAH
 ```
 
-Ter-build bersih, jalan 20 detik, lalu:
+Kode itu ter-build bersih dan berjalan sekitar 20 detik, lalu:
 
 ```
 Guru Meditation Error: Core 1 panic'ed (Coprocessor exception).
@@ -401,14 +424,17 @@ merusak state FPU task yang sedang diinterupsi, dan panic-nya baru muncul saat
 task itu dijadwalkan lagi — jadi **bukan crash seketika**, yang membuatnya lolos
 uji pendek. Terukur: panic di detik 18,49.
 
-Obatnya konversi sekali di `setup()` ke `static uint16_t sim_counts[GOLDEN_N]`
-(4.800 byte), ISR tinggal menyalin integer. RAM 21,2% → 22,7%.
+Obatnya konversi sekali di `setup()` (`siapkan_replay()`) ke
+`static uint16_t sim_counts[GOLDEN_N]` (4.800 byte), ISR tinggal menyalin
+integer. Ongkosnya RAM 21,2% → 22,7%.
 
 Gejala turunannya lebih berbahaya daripada crash-nya: board reboot diam-diam,
 `replay` kembali `false`, dan pengukuran berikutnya melaporkan **angka yang
 masuk akal tapi salah objek** — 2 beat/detik dari derau ADC, bukan dari replay.
 
-#### Terukur di board (18 Sep 2026, tanpa elektroda)
+#### Terukur di board
+
+Kondisi uji: board N16R8, 18 Sep 2026, tanpa elektroda, replay ON.
 
 ```
 periode putaran : 11 beat / 6,67 detik golden  (1,58 beat/detik)
@@ -427,20 +453,20 @@ dikirim alat, bukan apa yang ada di anotasi.
 
 #### Tanpa elektroda dan tanpa replay, alat ini mengarang aritmia
 
-Diukur tidak sengaja saat memburu bug di atas: dengan input ADC mengambang,
-firmware mengeluarkan **~2 beat/detik, 57% diklasifikasi ARITMIA**. Derau
+Dengan input ADC mengambang (tanpa elektroda, replay OFF), firmware
+mengeluarkan **~2 beat/detik, 57% diklasifikasi ARITMIA**. Derau
 kecil (ayun 15 counts) tetap punya puncak, dan Pan-Tompkins berambang adaptif
 selalu menemukan sesuatu — ambangnya relatif terhadap sinyal yang ada, jadi
 "tidak ada sinyal" bukan kondisi yang ia kenali.
 
-Untuk jalur MQTT nanti ini **wajib** jadi gerbang: publikasi harus tunduk pada
-penilai kualitas sinyal (`AMBANG_AYUN`), bukan pada ada-tidaknya beat. Kalau
-tidak, elektroda lepas = banjir alarm palsu ke broker.
+Karena itu publikasi MQTT digerbangi penilai kualitas sinyal (`AMBANG_AYUN`)
+dan fase kalibrasi, bukan ada-tidaknya beat
+([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1). Tanpa gerbang itu,
+elektroda lepas = banjir alarm palsu ke broker.
 
-### Jebakan kecil yang sempat muncul: BPM dari `millis()`
+### Jebakan kecil: BPM dari `millis()`
 
-Versi pertama menghitung BPM dari selisih waktu antar-cetak. Hasilnya
-"2000 bpm", karena beat keluar **bergerombol** — deteksi berjalan sekali per
+Menghitung BPM dari selisih waktu antar-cetak menghasilkan "2000 bpm", karena beat keluar **bergerombol** — deteksi berjalan sekali per
 detik lalu mengeluarkan beberapa beat sekaligus. Jarak waktu antar-cetak bukan
 jarak antar-detak. BPM harus dihitung dari `beat.rr[0]`, satu-satunya sumber
 yang benar-benar mengukur interval jantung.
@@ -449,22 +475,30 @@ yang benar-benar mengukur interval jantung.
 
 ## 6. Angka device
 
+Kondisi uji: board N16R8, 18 Sep 2026, window 256, `pio test -e esp32-s3`.
+
 ```
 inferensi     : 26,6 ms per detak (240 MHz, kernel referensi tanpa ESP-NN)
 tensor arena  : 12.948 byte dari 24.576 dialokasikan
-model         : 22,94 KB   (window 256, 18 Sep 2026)
+model         : 22,94 KB
 heap bebas    : 312.396 byte
-RAM firmware  : 74.284 byte (22,7% dari 320 KB)   +4.800 B tabel replay
-Flash firmware: 430.569 byte (6,6% dari 6,25 MB)
+RAM firmware  : 74.284 byte (22,7% dari 320 KB)   build inti + 4.800 B tabel replay
+Flash firmware: 430.569 byte (6,6% dari 6,25 MB)  build inti
 ```
 
-Angka sebelum window 256 (rujukan): inferensi 26,0 ms, arena 12.756 B,
-model 22,91 KB. Window +2,4% → latensi +0,6 ms. Sepadan dengan F1 +0,09.
+Build firmware utama lengkap (dengan modul MQTT dan `wifi_secrets.h` terisi),
+`pio run`: **RAM 37,0% (121.336 B), Flash 13,5% (887.873 B)**. Selisihnya
+dari build inti adalah tumpukan WiFi, buffer paket MQTT, dan ring cadangan;
+rinciannya di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §7.
+
+Biaya window 256 dibanding window 250 yang diuji sebagai pembanding: inferensi
+26,0 → 26,6 ms (+0,6 ms), arena 12.756 → 12.948 B, model 22,91 → 22,94 KB.
+Sepadan dengan F1 +0,09.
 
 Satu detak ~0,8 detik, jadi 26 ms = **3,3% duty cycle** — cukup longgar untuk
-kontinu. Kalau nanti daya jadi kendala, `esp-tflite-micro` dengan kernel ESP-NN
-(SIMD khusus S3) bisa memangkasnya beberapa kali lipat; selisihnya justru bahan
-pembahasan yang bagus di laporan.
+kontinu. Bila daya menjadi kendala, `esp-tflite-micro` dengan kernel ESP-NN
+(SIMD khusus S3) dapat memangkasnya beberapa kali lipat; selisihnya bahan
+pembahasan yang baik di laporan.
 
 `+119 KB flash` itu library TFLM, bukan modelnya (22,9 KB). Karena itu
 `MicroMutableOpResolver<8>` mendaftarkan persis 8 op yang dipakai — bukan
@@ -487,10 +521,11 @@ pembahasan yang bagus di laporan.
 
 | Perintah | Melihat apa |
 |---|---|
-| `pio test -e native` | 11 test di PC (preprocessing, deteksi R, alur hidup) |
-| `pio test -e esp32-s3` | preprocessing + inferensi di board |
+| `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
+| `pio test -e esp32-s3` | 16 test di board: `test_preproc` 11 + `test_inference` 5 |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG) |
-| `pio run` | build firmware, lihat RAM/Flash |
+| `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |
+| `pio run -e hwtest -t upload` | flash firmware uji hardware PCB rev1 (`hwtest.cpp`) |
 | `cd model && make export` | regenerasi `model_int8.h` setelah model berubah |
 
 ---

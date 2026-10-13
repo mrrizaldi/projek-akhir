@@ -1,5 +1,9 @@
 # Walkthrough `src/train.py` — Fase 5
 
+> **Ruang lingkup:** pelatihan model hybrid di DS1: class weight, metrik yang dipantau, EarlyStopping, dan jadwal latih pada konfigurasi terkunci.
+> **Kode terkait:** `src/train.py`, `scripts/train_model.py`, `scripts/ablasi.py`, `src/dataset.py` (`split_train_val`), `config.py` (`EPOCHS`, `BATCH_SIZE`, `EARLY_STOP_*`, `VAL_RECORDS`, `SEED`, `THRESHOLD`), `tests/test_train.py`
+> **Prasyarat:** [`model-walkthrough.md`](model-walkthrough.md)
+
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
 `PRD_Model_Aritmia_TinyML.pdf` hal. 13–14. Lanjutan dari
 [`model-walkthrough.md`](model-walkthrough.md) (Fase 4).
@@ -16,12 +20,12 @@ make train          # → artifacts/model_fp32.keras + artifacts/metrics/fase5_t
 ## 0. Peta besar
 
 ```
-train.npz (DS1, 50.965 beat)
+train.npz (DS1, 152.904 beat = 50.968 × 3 salinan)
         │
-        │  split_train_val()   ← per pasien: 5 record disisihkan
+        │  split_train_val()   ← per pasien: 5 record VAL_RECORDS disisihkan
         ▼
- train 40.617 beat            val 10.348 beat
- (4.105 aritmia, 10,11%)      (1.046 aritmia, 10,11%)
+ train 121.857 beat           val 31.047 beat
+ (12.315 aritmia, 10,11%)     (3.138 aritmia, 10,11%)
         │                            │
         │  class_weight              │  EarlyStopping(val_auc)
         ▼                            ▼
@@ -30,19 +34,21 @@ train.npz (DS1, 50.965 beat)
 ```
 
 **DS2 tidak disentuh sama sekali di fase ini.** Semua angka yang kamu lihat —
-loss, recall, AUC, threshold — datang dari DS1.
+loss, recall, AUC, threshold — datang dari DS1. Train dan val sama-sama memuat
+salinan ber-jitter (satu bersih + dua ber-jitter per beat), karena keduanya
+dipotong dari `train.npz` yang sama.
 
 ---
 
 ## 1. Masalahnya: 90% Normal
 
-Kalau model menebak "Normal" untuk semua 40.617 beat, accuracy-nya **89,9%**.
+Kalau model menebak "Normal" untuk semua 121.857 beat, accuracy-nya **89,9%**.
 Terdengar bagus, gunanya nol: recall aritmia = 0. Untuk deteksi dini, satu-satunya
 kesalahan yang benar-benar berbahaya adalah **aritmia yang lolos** (false
 negative), dan justru itu yang model malas pelajari kalau dibiarkan.
 
-Tanpa penanganan, gradien dari 36.512 beat Normal menenggelamkan gradien dari
-4.105 beat Aritmia. Model menemukan jalan pintas, dan jalan pintas itu terlihat
+Tanpa penanganan, gradien dari 109.542 beat Normal menenggelamkan gradien dari
+12.315 beat Aritmia. Model menemukan jalan pintas, dan jalan pintas itu terlihat
 sukses di metrik yang salah.
 
 ---
@@ -62,12 +68,12 @@ $$w_c = \frac{N}{K \cdot n_c}, \qquad K = 2\ \text{kelas}$$
 
 Untuk DS1-train:
 
-$$w_0 = \frac{40617}{2 \cdot 36512} = 0{,}556, \qquad
-w_1 = \frac{40617}{2 \cdot 4105} = 4{,}947$$
+$$w_0 = \frac{121857}{2 \cdot 109542} = 0{,}556, \qquad
+w_1 = \frac{121857}{2 \cdot 12315} = 4{,}948$$
 
 Yang penting bukan angkanya, tapi **hasil kalinya**:
 
-$$n_0 w_0 = 36512 \times 0{,}556 \approx 20308 \approx 4105 \times 4{,}947 = n_1 w_1$$
+$$n_0 w_0 = 109542 \times 0{,}556 \approx 60929 \approx 12315 \times 4{,}948 = n_1 w_1$$
 
 Kedua kelas menyumbang total loss yang sama besar. Satu beat Aritmia yang salah
 "berteriak" 8,9× lebih keras daripada satu beat Normal yang salah. Ini
@@ -84,7 +90,7 @@ dua-duanya (bisa over-koreksi).
 ### Kenapa tidak pakai `sklearn.utils.class_weight`
 
 PRD mencontohkan `compute_class_weight("balanced", ...)`. Rumusnya persis dua
-baris di atas, dan `scikit-learn` belum ada di `requirements.txt`. Aturan gate
+baris di atas, dan `scikit-learn` tidak ada di `requirements.txt`. Aturan gate
 point `CLAUDE.md`: jangan tambah dependency untuk sesuatu yang beberapa baris
 sudah selesai — apalagi paket sebesar sklearn yang cuma dipakai satu fungsi.
 
@@ -120,45 +126,55 @@ Tiga kandidat yang dipertimbangkan:
 |---|---|
 | `val_recall` | Bisa "dicurangi": tebak Aritmia untuk semua → recall 1,0, precision hancur. Metrik yang bisa dimaksimalkan dengan model rusak bukan pemandu yang aman. |
 | `val_loss` | Loss di sini sudah **terdistorsi `class_weight`** — nilainya bukan lagi likelihood yang bisa ditafsir langsung, dan bergerak tidak sejalan dengan kualitas urutan. |
-| **`val_auc`** ✓ | Mengukur kualitas **peringkat** probabilitas, tidak tergantung threshold, dan tidak bisa dipalsukan dengan menebak satu kelas. |
+| **`val_auc`** (dipakai) | Mengukur kualitas **peringkat** probabilitas, tidak tergantung threshold, dan tidak bisa dipalsukan dengan menebak satu kelas. |
 
 `restore_best_weights=True` penting: setelah `patience=8` epoch tanpa perbaikan,
 bobot dikembalikan ke epoch terbaik — bukan bobot epoch terakhir yang sudah
 overfit. `EPOCHS = 60` di `config.py` cuma batas atas; yang benar-benar
 menentukan kapan berhenti adalah callback ini.
 
-> Pada konfigurasi terkunci sekarang, "epoch terbaik" itu **epoch 0** — jadi
-> `patience=8` melatih 8 epoch yang seluruhnya dibuang. Lihat §6b.
+Pada konfigurasi terkunci, "epoch terbaik" adalah **epoch 0**, sehingga
+`patience=8` melatih 8 epoch yang seluruhnya dibuang. Lihat §6b.
 
 ---
 
 ## 5. Hasil training
 
-```
-train 40617 beat (4105 aritmia)   val 10348 beat (1046 aritmia)
-class_weight  Normal 0.556  Aritmia 4.947
+Model produksi (`artifacts/model_fp32.keras`), konfigurasi terkunci:
 
-VAL @ threshold 0.5   TP=728  FN=318  FP=67  TN=9235
-  recall 0.6960    precision 0.9157    specificity 0.9928
+```
+train 121857 beat (12315 aritmia)  val 31047 beat (3138 aritmia)
+class_weight  Normal 0.556  Aritmia 4.948
+
+VAL @ threshold 0.8   TP=2052  FN=1086  FP=743  TN=27166
+  recall(sensitivity) 0.6539   precision 0.7342   specificity 0.9734
 ```
 
 Kurvanya: `artifacts/metrics/fase5_training.png`.
 
 ### Membaca angkanya jujur
 
-**Recall 0,70** — dari 1.046 beat aritmia di val, 728 tertangkap, **318 lolos**.
-Untuk inter-patient yang jujur ini masuk akal (literatur intra-patient yang
-melaporkan 99% bermain di aturan berbeda), tapi jelas belum layak klinis.
+`make train` mencetak VAL pada `THRESHOLD` terkunci (0,80), bukan 0,5. Pada 0,5
+model yang sama memberi recall 0,8445 tetapi precision cuma 0,3193 (5.650 alarm
+palsu dari 27.909 beat normal). Threshold 0,80 dipilih di VAL dengan kriteria F1
+maksimum dan memindahkan titik operasi ke recall 0,65 / precision 0,73. Itu
+pertukaran yang sah karena dikalibrasi **di val, bukan DS2**; prosedurnya milik
+Fase 6 (`scripts/calibrate_threshold.py`).
 
-**Precision 0,92 & specificity 0,993** — kalau alat berbunyi, hampir selalu
-benar. Dari 9.302 beat normal, cuma 67 memicu alarm palsu.
+**Recall 0,65** — dari 3.138 beat aritmia di val, 2.052 tertangkap, **1.086
+lolos**. Untuk inter-patient yang jujur ini masuk akal (literatur intra-patient
+yang melaporkan 99% bermain di aturan berbeda), tapi jelas belum layak klinis.
 
-**Ketimpangan recall vs precision itu petunjuk arah:** model terlalu
-konservatif di threshold 0,5. Menurunkan threshold akan menukar precision
-(yang berlebih) dengan recall (yang kurang) — dan PRD memang menyebut threshold
-sebagai knob yang boleh dikalibrasi **di val, bukan DS2**.
+**Specificity 0,973** — dari 27.909 beat normal, 743 memicu alarm palsu.
 
 ### Yang terlihat dari kurva: overfitting nyata
+
+Kondisi ukur bagian ini dan §6: window 90/160 (250 sampel), tanpa augmentasi
+jitter, Adam 1e-3, threshold 0,5. Pada konfigurasi itu val berisi 10.348 beat
+(1.046 aritmia) dan model terbaik memberi VAL @0,5: TP=728 FN=318 FP=67 TN=9235
+(recall 0,6960, precision 0,9157, specificity 0,9928). Pelajaran tentang
+overfitting dan `restore_best_weights` berlaku sama pada konfigurasi terkunci,
+yang bahkan memuncak lebih awal (§6b).
 
 | | epoch 4 (terbaik) | epoch 12 (berhenti) |
 |---|---|---|
@@ -173,15 +189,16 @@ tersimpan adalah versi epoch 12 dengan precision anjlok ke 0,69.
 
 ---
 
-## 6. Dropout: keputusan diuji ulang dengan angka
+## 6. Dropout: keputusan diuji dengan angka
 
-Keputusan awal (`DROPOUT_RATE = 0.0`) diambil dari rasio 50.965 sampel : 6.417
-param ≈ 8. Begitu kurva menunjukkan overfit, keputusan itu **wajib diuji ulang**
-— bukan dipertahankan karena sudah tertulis. Empat nilai, seed sama:
+`DROPOUT_RATE = 0.0` berangkat dari rasio data : parameter
+([`model-walkthrough.md`](model-walkthrough.md) §4). Karena kurva menunjukkan
+overfit, nilai itu diuji, bukan dipertahankan karena sudah tertulis. Empat
+nilai, seed sama, kondisi ukur seperti §5:
 
 | dropout | val AUC | val recall | val precision |
 |---|---|---|---|
-| **0.0** ✓ | 0,9576 | **0,6998** | 0,9470 |
+| **0.0** (dipakai) | 0,9576 | **0,6998** | 0,9470 |
 | 0.2 | 0,9616 | 0,2744 | 0,9863 |
 | 0.3 | 0,9290 | 0,3585 | 0,9446 |
 | 0.5 | 0,9615 | 0,6511 | 0,9813 |
@@ -198,14 +215,13 @@ Pelajarannya: overfitting yang terlihat di kurva **tidak otomatis berarti
 
 ---
 
-## 6b. Fase G — kurva yang tidak pernah benar-benar dilihat
+## 6b. Jadwal latih pada konfigurasi terkunci
 
-Angka di §5 berasal dari konfigurasi **lama** (window 250, tanpa augmentasi
-jitter): berhenti epoch 12, terbaik epoch 4. Setelah window 256 + augmentasi
-jitter dikunci (18 Sep), kurvanya tidak pernah dilihat ulang. Ternyata
-bentuknya berubah total.
+Pada konfigurasi window 90/160 tanpa augmentasi (§5), training berhenti di
+epoch 12 dengan epoch terbaik 4. Pada konfigurasi terkunci (window 128/128 +
+augmentasi jitter ×3), bentuk kurvanya lain sama sekali.
 
-### Temuan: model produksi adalah hasil SATU epoch
+### Model produksi adalah hasil SATU epoch
 
 ```
 lr 1e-3 (terkunci), seed 7      lr 1e-4, seed 7
@@ -229,9 +245,10 @@ satu epoch sudah lebih dari cukup untuk menghafal. Yang terlihat sebagai
 
 Pelajaran umum: **jangan pernah menilai lama latih dari jumlah epoch** tanpa
 mengalikannya dengan langkah per epoch. Augmentasi ×3 di Fase 6c melipatgandakan
-langkah per epoch tanpa ada yang meninjau ulang jadwal latihnya.
+langkah per epoch, jadi setiap kali ukuran data latih berubah, kurva `val_auc`
+perlu dicetak ulang untuk melihat letak puncaknya.
 
-### Yang dicoba dan GAGAL: rata-rata bobot (`--swa N`)
+### Alternatif yang tidak dipakai: rata-rata bobot (`--swa N`)
 
 Hipotesis: kalau yang memilih bobot akhir adalah lotere `val_auc` yang berisik,
 rata-ratakan saja beberapa epoch teratas alih-alih memungut argmax-nya.
@@ -265,7 +282,19 @@ AUC naik di 4 dari 4 set. Tapi ada pertukaran tajam: **recall V naik di 3 dari
 operasi: modelnya memang memeringkat beat S lebih buruk.
 
 Artinya 1e-4 memperbaiki kelas yang sudah kuat (V) dan memperburuk yang lemah
-(S) — arah yang berlawanan dengan kebutuhan proyek ini. **Tidak dikunci.**
+(S) — arah yang berlawanan dengan kebutuhan proyek ini. Recall per kelas di
+DS2 (rerata 3 seed), termasuk LR tengah 3e-4:
+
+| LR | recall **S** | recall **V** | recall **F** | DS2 AUC | TEST-C F1 |
+|---|---|---|---|---|---|
+| **1e-3** (dipakai) | **0,4473** | 0,9151 | 0,1804 | 0,9305 | 0,6784 ±0,1080 |
+| 3e-4 | 0,2024 | 0,9663 | 0,3265 | 0,9348 | **0,8481 ±0,0098** |
+| 1e-4 | 0,3126 | **0,9736** | **0,3591** | **0,9415** | 0,8025 ±0,0277 |
+
+3e-4 justru paling buruk di S, jadi tidak ada titik tengah yang memuaskan
+keduanya: menurunkan LR menurunkan S dan menaikkan yang lain. Defisit S
+terbukti nyata di titik operasi yang setara (6 dari 6 titik,
+`scripts/cek_titik_operasi.py`), bukan artefak threshold. **LR tetap 1e-3.**
 
 ### Efek samping metodologis: ambang 0,04 berlaku untuk rerata 3 seed
 
@@ -277,8 +306,7 @@ batch 2   F1 DS2 0,6535 ±0,0280
 selisih   0,0376
 ```
 
-Selama ini "3 seed" dianggap cukup untuk menstabilkan vonis. Ternyata
-**rerata 3 seed pun bergoyang ~0,04 antar batch.** Konsekuensinya: selisih di
+**Rerata 3 seed pun bergoyang ~0,04 antar batch.** Konsekuensinya: selisih di
 bawah 0,04 tidak berubah jadi sinyal hanya karena diulang 3 seed. Yang benar-benar
 menaikkan daya pisah adalah **set uji yang lebih besar** — itulah gunanya
 TEST-B/TEST-C (39 pasien held-out, `ablasi.py --lintas-db`).
@@ -290,23 +318,17 @@ TEST-B/TEST-C (39 pasien held-out, `ablasi.py --lintas-db`).
 **Tidak menyentuh DS2.** Termasuk untuk "mengintip" saja. Sekali dilihat untuk
 mengambil keputusan, DS2 tidak murni lagi dan seluruh klaim Fase 6 gugur.
 
-**Tidak mengubah threshold di sini.** Tetap 0,5. Kalibrasinya boleh, tapi
-memakai kurva val — dan itu urusan Fase 6 dengan prosedur yang tercatat.
+**Tidak mengkalibrasi threshold di sini.** Metrik Keras selama latih memakai
+0,5 bawaan. Kalibrasi threshold memakai kurva val dan merupakan urusan Fase 6
+dengan prosedur yang tercatat (`scripts/calibrate_threshold.py` → 0,80);
+`make train` hanya membaca `THRESHOLD` untuk ringkasan VAL.
 
-**Tidak menyetel learning rate.** `adam` default (1e-3). Menambah knob yang
-belum terbukti perlu = ruang tuning yang harus dipertanggungjawabkan di sidang
-tanpa alasan kuat.
-
-> ⚠️ **Alasan ini gugur 19 Sep 2026.** Diukur, bukan diperdebatkan: dengan
-> konfigurasi terkunci sekarang, `val_auc` memuncak di **epoch 0** lalu turun
-> monoton — model produksi adalah hasil **satu epoch** latih. Itu bukan
-> "knob yang belum terbukti perlu", itu regime latih yang rusak. Lihat §6b.
->
-> **Nilainya tetap 1e-3**, tapi sekarang atas dasar yang berbeda: LR lebih
-> rendah sudah diablasi (3 LR × 3 seed + 39 pasien held-out) dan terbukti
-> **menukar recall S dengan recall V dan F**. Karena S fokus penelitian ini,
-> pertukarannya ditolak dan dilaporkan. Yang berubah bukan angkanya, melainkan
-> apakah kita tahu konsekuensinya — dan sekarang tahu.
+**Tidak menurunkan learning rate.** `adam` bawaan (1e-3). Konsekuensinya
+diketahui: `val_auc` memuncak di **epoch 0**, jadi model produksi adalah hasil
+**satu epoch** latih (§6b). LR lebih rendah sudah diablasi (3 LR × 3 seed + 39
+pasien held-out) dan **menukar recall S dengan recall V dan F**. Karena S adalah
+fokus penelitian ini, pertukaran itu ditolak dan dilaporkan apa adanya. Knob
+`ablasi.py --lr` tersedia untuk pengujian ulang.
 
 **Seed dikunci** (`np.random.seed(SEED)`, `tf.random.set_seed(SEED)`) sebelum
 model dibangun. Tanpa ini, hasil tidak reproducible dan angka di Bab 4 tidak
@@ -330,7 +352,7 @@ bisa diulang oleh penguji.
 | Perintah | Melihat apa |
 |---|---|
 | `make train` | Latih + simpan model & kurva + ringkasan confusion matrix val |
-| `make test` | 34 test — 4 di antaranya mengunci rumus class weight |
+| `make test` | Seluruh test; `tests/test_train.py` mengunci rumus class weight dan `RataBobotTerbaik` |
 
 ---
 

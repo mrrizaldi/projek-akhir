@@ -1,5 +1,9 @@
 # Walkthrough `src/features_rr.py` — Fase 2
 
+> **Ruang lingkup:** pemetaan simbol beat ke label biner dan tiga fitur ritme (RR_prev, RR_ratio, dRR) per detak.
+> **Kode terkait:** `src/features_rr.py`, `config.py` (`AAMI_MAP`, `ARRHYTHMIA_SYMBOLS`, `RR_LOCAL_WINDOW_BEATS`), `scripts/prep_beats.py`, `tests/test_features_rr.py`
+> **Prasyarat:** [`preprocessing-walkthrough.md`](preprocessing-walkthrough.md)
+
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
 `PRD_Model_Aritmia_TinyML.pdf` hal. 10–11. Lanjutan dari
 [`preprocessing-walkthrough.md`](preprocessing-walkthrough.md) (Fase 1).
@@ -20,8 +24,8 @@ print(compute_rr_features(r)[:5])
 ```
 
 > File `src/features_rr.py` sengaja **tanpa komentar**. Penjelasannya ada di sini
-> — kode dijaga sependek mungkin supaya gampang dibaca sebagai persamaan, dan
-> supaya nanti tinggal diterjemahkan ke C untuk firmware.
+> — kode dijaga sependek mungkin supaya gampang dibaca sebagai persamaan dan
+> gampang dipadankan dengan port C-nya (`firmware/src/ecg_pipeline.cpp`).
 
 ---
 
@@ -38,7 +42,7 @@ Fase 1 menghasilkan **bentuk** (morfologi) tiap detak. Fase 2 menambahkan
   bandpass → segment   compute_rr_       to_aami_class
   → z-score            features()        → to_binary_label
         │                  │                │
-   windows [K,250]     rr [K,3]         labels [K]
+   windows [K,256]     rr [K,3]         labels [K]
         └──────────────────┴────────────────┘
                            │
                   valid_beat_indices()   ◄── prep_beats.py, BUKAN src/
@@ -46,7 +50,7 @@ Fase 1 menghasilkan **bentuk** (morfologi) tiap detak. Fase 2 menambahkan
                     data/processed/per_record/<rec>.npz
 ```
 
-Model nanti menerima **dua input**: window morfologi 250 sampel dan vektor
+Model menerima **dua input**: window morfologi 256 sampel dan vektor
 ritme 3 angka. Dua-duanya wajib — PVC dan beat normal bisa mirip bentuknya,
 yang membedakan justru kedatangannya yang prematur.
 
@@ -90,7 +94,7 @@ AAMI_MAP = {"N":"N", "L":"N", "R":"N", "e":"N", "j":"N",
 ```
 
 Aturannya hidup sebagai **data di `config.py`**, bukan sebagai rantai `if` di
-`src/`. Mau ubah "L → S" nanti? Satu baris config, `src/` tak tersentuh.
+`src/`. Mengubah "L → S" cukup satu baris config, `src/` tak tersentuh.
 
 **L & R (bundle branch block) → N** adalah keputusan yang terasa salah secara
 klinis (LBBB jelas patologis) tapi benar secara metodologis: standar AAMI
@@ -229,8 +233,9 @@ Di awal record jendela **menyusut**, bukan di-pad: beat ke-3 memakai rata-rata 3
 interval yang benar-benar ada. Padding nol akan menciptakan interval palsu 0
 detik yang menyeret `local_avg` ke bawah dan bikin `RR_ratio` meledak.
 
-Di MCU nanti bentuk yang setara: ring buffer 10 `float` + `running_sum += baru −
-terlama`. O(1) per beat, RAM 40 byte.
+Di firmware, `ecg_rr_features` (`firmware/src/ecg_pipeline.cpp`) menjumlahkan
+ulang paling banyak 10 interval dari riwayat indeks R untuk tiap beat: O(10) per
+beat, tanpa state tambahan di luar riwayat R yang memang sudah disimpan.
 
 ### 2.5 Keputusan: NaN, bukan 0
 
@@ -241,7 +246,7 @@ khas beat Normal. Kalau 0 juga dipakai sebagai penanda "tidak diketahui", model
 belajar dari dua hal berbeda yang tampak identik. NaN tidak punya tafsir sah
 apa pun, jadi aman sebagai sentinel.
 
-Bonus: NaN adalah **detektor bug alignment gratis**. Kalau nanti `loss = nan` di
+Bonus: NaN adalah **detektor bug alignment gratis**. Kalau `loss = nan` muncul di
 Fase 5, itu bukti langsung `valid_beat_indices` tidak membuang beat 0 & 1 —
 bukan misteri yang harus diburu.
 
@@ -257,6 +262,15 @@ statistiknya dari **dalam window itu sendiri**, tidak butuh apa pun dari dataset
 
 **Tidak menyaring apa pun.** Fungsi mengembalikan `[M, 3]` sepanjang
 `r_locations` utuh. Alasannya di §3.
+
+### 2.7 Fitur opsional (nonaktif di konfigurasi terkunci)
+
+`src/features_rr.py` juga memuat `compute_rr_ratio_features` (bentuk rasio
+4 kolom, butuh RR beat berikutnya), `qrs_width_features` (QRSw2 & QRSw4), dan
+`hos_features` (kurtosis & skewness). Ketiganya dirakit oleh `rakit_fitur_ritme`
+hanya bila knob `PA_RR_RATIO`, `PA_QRSW`, atau `PA_HOS` dinyalakan, dan dipakai
+untuk ablasi. Konfigurasi terkunci memakai tiga kolom di atas saja: di mitdb,
+fitur tambahan tidak memberi selisih F1 yang melampaui variasi antar-run.
 
 ---
 
@@ -327,15 +341,21 @@ sepanjang record selalu mendekati nol (teleskopik) — jantung tidak bisa terus
 melambat selamanya. Yang informatif simpangannya, bukan reratanya.
 
 **Ketimpangannya ekstrem (1,5%)** — dan itu wajar untuk MIT-BIH. Justru inilah
-alasan Fase 5 memakai class weighting. Kalau distribusinya ternyata seimbang,
+alasan Fase 5 memakai class weighting. Kalau distribusinya tampak seimbang,
 mapping label yang salah.
 
 ### Seluruh dataset (`make prep`)
 
+Data bersih, tanpa augmentasi (`python scripts/prep_beats.py --jitter none --db mitdb`):
+
 ```
-44 record   100.619 beat   Normal 90.018 (89,5%)   Aritmia 10.601 (10,5%)
-dibuang     114 beat = 88 (beat 0 & 1 tiap record) + 26 (window tak muat di tepi)
+44 record   100.624 beat   Normal 90.023 (89,5%)   Aritmia 10.601 (10,5%)
+dibuang     109 beat = 88 (beat 0 & 1 tiap record) + 21 (window tak muat di tepi)
 ```
+
+Bawaan `make prep` menambahkan dua salinan ber-jitter untuk record DS1
+(augmentasi, lihat [`jitter-walkthrough.md`](jitter-walkthrough.md)), sehingga
+totalnya 202.560 beat; DS2 tetap satu salinan bersih.
 
 Rasio global 10,5% jauh lebih ramah daripada record 100 (1,5%) — record 100
 kebetulan pasien yang tenang. Sebarannya sendiri liar: **212 → 0% aritmia**
@@ -361,7 +381,7 @@ aritmia). Inilah kenapa split harus per pasien: kalau 232 masuk train dan
 
 | Perintah | Melihat apa |
 |---|---|
-| `make test` | 16 test — 7 di antaranya mengunci perilaku `features_rr` |
+| `make test` | Seluruh test; `tests/test_features_rr.py` mengunci perilaku `features_rr` |
 | `make prep` | Fase 2 end-to-end → 44 × `per_record/*.npz` + tabel distribusi |
 
 ---

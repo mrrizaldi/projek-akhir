@@ -137,8 +137,9 @@ static size_t n_terbang;                   // beat yang sudah dikirim, belum ber
 static uint16_t pid;
 static uint64_t ts_base_ms;            // epoch ms saat millis() == 0
 // Satu buffer saja. Payload dirakit LANGSUNG di dalam paket, di belakang ruang
-// header, lalu headernya ditempel mundur tepat sebelum payload. Versi dua-buffer
-// (payload + paket) memakan 32 KB RAM internal untuk batch 50; ini setengahnya.
+// header, lalu headernya ditempel mundur tepat sebelum payload. Alternatif
+// dua-buffer (payload + paket) tidak dipakai: memakan 32 KB RAM internal untuk
+// batch 50, dua kali lipat satu buffer.
 //
 // Header tidak bisa dipadding: panjang sisa MQTT harus dikodekan minimal, jadi
 // jumlah bytenya ikut berubah dengan ukuran payload. Karena itu headernya dirakit
@@ -266,15 +267,16 @@ static bool kirim_batch(const ecg_mqtt_beat_t *b, size_t nb, uint64_t base)
 
 // Memungut SEMUA paket masuk tanpa memblokir, dan membuang yang tidak diminta.
 //
-// Versi pertama cuma membaca 4 byte begitu `available() >= 4` dan menganggapnya
-// PUBACK. Itu salah: kita mengirim PINGREQ tiap 30 detik dan broker membalas
-// PINGRESP (2 byte, 0xD0 0x00) yang tidak pernah dibaca. Dua byte nyasar itu
-// mengendap di socket, lalu terbaca sebagai DUA BYTE PERTAMA "PUBACK"
+// Tiap paket dibaca menurut header-nya, bukan dengan menganggap setiap 4 byte
+// yang tersedia sebagai PUBACK. PINGREQ dikirim tiap 30 detik dan broker
+// membalas PINGRESP (2 byte, 0xD0 0x00); kalau tidak dibaca, dua byte itu
+// mengendap di socket lalu terbaca sebagai DUA BYTE PERTAMA "PUBACK"
 // berikutnya — aliran baca desync permanen sampai reconnect.
 //
-// Gejalanya di board: `PUBACK timeout` acak tiap ~30 detik walau broker sehat,
-// dan latensi end-to-end berekor panjang (p95 10,4 detik, maks 19,5 detik)
-// karena setiap desync memakan 5 detik timeout + reconnect. Diukur 19 Sep 2026.
+// Gejala desync itu di board: `PUBACK timeout` acak tiap ~30 detik walau broker
+// sehat, dan latensi end-to-end berekor panjang (p95 10,4 detik, maks 19,5
+// detik) karena setiap desync memakan 5 detik timeout + reconnect. Diukur
+// 19 Sep 2026.
 static void pungut_masuk()
 {
     while (sock.available() >= 2) {
@@ -325,8 +327,8 @@ void ecg_mqtt_mulai(void)
     // broker yang lambat: dari laptop ke broker yang SAMA, RTT-nya 1,1 ms
     // median dengan nol kejadian >1 detik.
     //
-    // ONGKOSNYA DAYA (~+30 mA). Pengukuran daya mode WiFi (HW-7) belum
-    // dijalankan, jadi angkanya harus diambil DENGAN setelan ini, bukan tanpa.
+    // ONGKOSNYA DAYA (~+30 mA). Pengukuran daya mode WiFi (HW-7) harus diambil
+    // DENGAN setelan ini, bukan tanpa.
     WiFi.setSleep(false);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     // SNTP dipakai supaya ts tiap beat adalah waktu KEJADIAN. Tanpa jam benar,

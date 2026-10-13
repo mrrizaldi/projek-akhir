@@ -5,13 +5,13 @@
 Semua metrik Fase 6 diukur dengan window yang dipotong dari R-peak ANOTASI
 kardiolog. Di alat, window dipotong dari R-peak hasil DETEKSI — setiap deteksi
 yang meleset menggeser window, dan setiap beat yang tak terdeteksi tidak pernah
-sampai ke model. Selisih dua angka itu belum pernah diukur.
+sampai ke model. Skrip ini mengukur selisih dua angka itu.
 
 DISIPLIN:
 - Offset detektor dikalibrasi di DS1. DS2 tidak menyetel apa pun.
 - Model float32 (bukan INT8) supaya yang berubah cuma segmentasi.
 - DS2 dilihat kedua kalinya di sini, MURNI untuk mengukur; tidak ada parameter
-  yang diambil darinya. Dicatat jujur di ../CLAUDE.md.
+  yang diambil darinya. Dicatat di ../CLAUDE.md.
 """
 import os
 import sys
@@ -40,8 +40,9 @@ TOLERANSI_MS = 150
 def haluskan(r_kasar, filtered):
     """Geser tiap deteksi ke puncak R sebenarnya, lalu kembalikan group delay.
 
-    Tanpa ini R mendarat di indeks acak sekitar 94 (std delay detektor 13 sampel).
-    Tanpa `- GROUP_DELAY` R mendarat di 90, bukan 94 — dan geseran 4 sampel saja
+    Tanpa ini R mendarat di indeks acak sekitar WIN_PRE+4 = 132 (std delay
+    detektor 13 sampel). Tanpa `- GROUP_DELAY` R mendarat di WIN_PRE, bukan
+    WIN_PRE+4 — dan geseran 4 sampel saja
     (11 ms) menjatuhkan precision dari 0,48 ke 0,12. Lihat docs.
     """
     hasil = []

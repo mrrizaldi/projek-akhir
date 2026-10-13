@@ -2,12 +2,12 @@
 
     make prep        (atau: python scripts/prep_beats.py)
 
-Sejak 18 Sep 2026 record DS1 ditumpuk dengan SALINAN ber-jitter (augmentasi
-ketahanan segmentasi, Fase 6c). DS2 tidak pernah dijitter — dia tolok ukur
-jujur. Matikan dengan `--jitter none` kalau ingin data Fase 2 yang asli.
+Record DS1 ditumpuk dengan SALINAN ber-jitter (augmentasi ketahanan
+segmentasi, Fase 6c). DS2 tidak pernah dijitter — dia tolok ukur jujur.
+Matikan dengan `--jitter none` kalau ingin data tanpa augmentasi.
 
 Keluaran: data/processed/per_record/<rec>.npz dengan key
-    windows   float32 [K,250]   window ter-z-score
+    windows   float32 [K,256]   window ter-z-score (256 = WIN_LEN)
     rr        float32 [K,3]     RR_prev, RR_ratio, dRR
     labels    int8    [K]       0=Normal, 1=Aritmia
     symbols   <U2     [K]       simbol MIT-BIH asli (audit error Fase 6)

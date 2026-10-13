@@ -43,22 +43,21 @@ extern "C" {
 // Kalau nanti perlu tahan reboot, LittleFS sudah dipakai di main.cpp.
 
 // Batas beat per PUBLISH saat menguras backlog. Membatasi ukuran payload
-// sekaligus memberi PUBACK titik pijak: gagal di tengah = ulangi 8, bukan 64.
-// bab3.tex menargetkan 50-100 rekaman/paket supaya round-trip PUBACK turun
-// 50-100x. Sempat diturunkan ke 8 karena paket besar tidak habis ditulis sekali
-// jalan dan paket MQTT terpotong tidak pernah di-PUBACK; sesudah penulisannya
-// dibuat bertahap sampai habis (kirim_sampai_habis) batas itu hilang, jadi
-// dinaikkan ke 50 = batas bawah rentang proposal. Payload ~15 KB.
+// sekaligus memberi PUBACK titik pijak: gagal di tengah = ulangi satu batch,
+// bukan seluruh backlog. bab3.tex menargetkan 50-100 rekaman/paket supaya
+// round-trip PUBACK turun 50-100x; 50 = batas bawah rentang proposal, payload
+// ~15 KB. Paket sebesar itu aman karena kirim_sampai_habis() menulis bertahap
+// sampai habis — paket MQTT yang terpotong tidak pernah di-PUBACK.
 #define ECG_MQTT_BATCH_N 50
 
 typedef struct {
-    uint32_t ms;                      // millis() saat beat keluar
+    uint32_t ms;                      // waktu KEJADIAN beat dalam domain millis()
     float bpm;
     float rr_ms;
     float confidence;                 // keyakinan pada KEPUTUSAN, bukan p mentah
     int label;                        // 0 normal, 1 aritmia
     int quality_ok;                   // ayunan bersih >= AMBANG_AYUN
-    int16_t snippet[ECG_SNIPPET_N];   // window z-score x1000, di sekitar R
+    int16_t snippet[ECG_SNIPPET_N];   // window z-score x1000, dicuplik merata
 } ecg_mqtt_beat_t;
 
 // ---------- MURNI (native-testable) ----------

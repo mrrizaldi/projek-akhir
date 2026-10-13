@@ -1,5 +1,9 @@
 # Walkthrough Fase 6b — biaya segmentasi on-device
 
+> **Ruang lingkup:** mengukur berapa yang hilang ketika window dipotong dari deteksi Pan-Tompkins, bukan dari R-peak anotasi, dan menetapkan urutan penyelarasan R-peak yang wajib diikuti firmware.
+> **Kode terkait:** `scripts/eval_detected_segmentation.py`, `src/evaluate.py` (`pair_detected`), `config.py` (`PT_DETECTOR_OFFSET`, `PT_REFINE_WIN`, `GROUP_DELAY_SAMPLES`, `PT_REFRACTORY_MS`), `firmware/include/ecg_preproc.h`
+> **Prasyarat:** [`evaluate-walkthrough.md`](evaluate-walkthrough.md) (Fase 6)
+
 Dokumen belajar, bukan spesifikasi. Eksperimen tambahan di luar PRD, menjawab
 pertanyaan yang tidak terjawab oleh Fase 6.
 
@@ -21,8 +25,8 @@ deteksi Pan-Tompkins**. Dua hal berubah sekaligus:
 1. Beat yang **tidak terdeteksi** tidak pernah sampai ke model
 2. Beat yang terdeteksi punya posisi R yang **sedikit meleset**
 
-Berapa biayanya? Itu belum pernah diukur, dan tanpa angka ini klaim "recall
-0,6661" berlaku untuk laboratorium, bukan untuk alat.
+Berapa biayanya? Tanpa angka ini, recall Fase 6 berlaku untuk laboratorium,
+bukan untuk alat.
 
 **Disiplin:** offset detektor dikalibrasi di **DS1**; DS2 tidak menyetel apa
 pun. Model float32 (bukan INT8) supaya yang berubah hanya segmentasi. DS2
@@ -57,20 +61,21 @@ Ini yang paling halus, dan paling merusak kalau terlewat.
 
 Window training dipotong di `r_anotasi - WIN_PRE`, sedangkan sinyal yang
 difilter menggeser puncak R **+4 sampel** (JEBAKAN Fase 1). Jadi saat training,
-R selalu mendarat di **`WIN_PRE + 4`** — 94 saat dokumen ini ditulis
-(window 90/160), **132** sejak window 128/128 dikunci 18 Sep 2026. Angka 94 di
-sisa dokumen ini dibiarkan apa adanya: ia merekam pengukuran yang memang
-dilakukan pada window lama.
+R selalu mendarat di **`WIN_PRE + 4`** — indeks **132** pada window 128/128
+yang berlaku (94 pada window baseline 90/160).
 
 Penyelarasan di (b) menemukan puncak di sinyal terfilter, yaitu `r + 4`. Kalau
-langsung dipakai, window mulai di `r + 4 - 90` dan R mendarat di **90**.
-Karena itu hasil penyelarasan dikurangi 4.
+langsung dipakai, window mulai di `r + 4 - WIN_PRE` dan R mendarat di
+`WIN_PRE` (128), bukan 132. Karena itu hasil penyelarasan dikurangi 4
+(`GROUP_DELAY_SAMPLES`).
 
 ---
 
 ## 2. Model SANGAT peka pada posisi R
 
-Geser 4 sampel — 11 milidetik — ke arah mana pun:
+Geser 4 sampel — 11 milidetik — ke arah mana pun. Diukur pada model baseline
+(window 90/160, tanpa augmentasi, threshold 0,35), sehingga posisi yang benar
+adalah indeks 94:
 
 | Posisi R di window | recall | precision | F1 |
 |---|---|---|---|
@@ -82,20 +87,26 @@ Precision jatuh **hampir 4×** untuk geseran 11 ms, dan simetris ke dua arah.
 
 ### Kenapa sepeka itu, padahal ada GlobalAveragePooling?
 
-GAP memang membuang informasi *posisi absolut*, tapi jalur sebelumnya punya tiga
+GAP memang membuang informasi *posisi absolut*, tapi lapisan sebelum GAP punya tiga
 `MaxPooling1D(2)` — stride total **8**. Geseran 4 sampel = **setengah bin
 pooling**. Sampel yang tadinya jatuh di bin A pindah ke bin B, jadi representasi
 yang masuk GAP benar-benar berubah fase. Model tidak pernah melihat variasi ini
 saat training karena semua window disegmentasi dari anotasi yang presisi.
 
-Konsekuensi praktis: **firmware wajib menaruh R di indeks 94**, dan itu bukan
-detail kosmetik. Konsekuensi untuk pekerjaan lanjutan: melatih ulang dengan
-augmentasi geseran acak ±4 sampel akan membuat model jauh lebih tahan — dan itu
-saran yang bisa dipertanggungjawabkan dengan tabel di atas.
+Konsekuensi praktis: **firmware wajib menaruh R di indeks `WIN_PRE + 4`**
+(132), dan itu bukan detail kosmetik. Kepekaan ini juga menjadi dasar Fase 6c:
+model yang berlaku dilatih dengan posisi R yang digeser sesuai residu detektor
+terukur, supaya tidak bergantung pada fase window yang persis. Lihat
+[`jitter-walkthrough.md`](jitter-walkthrough.md).
 
 ---
 
 ## 3. Hasil
+
+Angka di bawah diukur untuk dua model: **baseline** (window 90/160, tanpa
+augmentasi, threshold 0,35) dan **model berlaku** (window 128/128, augmentasi
+jitter, threshold 0,80; kondisi ukur: skrip yang sama, 13 Okt 2026).
+Statistik detektor tidak bergantung pada model, jadi sama untuk keduanya:
 
 ```
 Detektor di DS2: 47.074 terdeteksi, 2.638 terlewat (sensitivity 0,9469),
@@ -104,28 +115,33 @@ Detektor di DS2: 47.074 terdeteksi, 2.638 terlewat (sensitivity 0,9469),
 
 ### A. Klasifikasi pada beat yang berhasil terdeteksi
 
-| | Anotasi (Fase 6) | Deteksi (Fase 6b) |
-|---|---|---|
-| recall | 0,6661 | **0,6821** |
-| precision | 0,4919 | **0,4794** |
-| F1 | 0,5659 | **0,5631** |
+| | baseline: anotasi | baseline: deteksi | berlaku: anotasi | berlaku: deteksi |
+|---|---|---|---|---|
+| recall | 0,6661 | **0,6821** | 0,6996 | **0,7279** |
+| precision | 0,4919 | **0,4794** | 0,6235 | **0,5869** |
+| F1 | 0,5659 | **0,5631** | 0,6594 | **0,6499** |
 
-Praktis identik. **Segmentasi on-device tidak merusak klasifikasi** — asalkan
+Pada kedua model, F1 dengan segmentasi deteksi berselisih kurang dari 0,01 dari
+F1 dengan anotasi. **Segmentasi on-device tidak merusak klasifikasi** — asalkan
 ketiga koreksi di §1 dilakukan.
 
 ### B. Tingkat sistem
 
 ```
-aritmia asli 5.453   tertangkap 3.084   → recall sistem 0,5656
+                aritmia asli   tertangkap   recall sistem
+baseline           5.453         3.084         0,5656   (anotasi 0,6661)
+berlaku            5.453         3.291         0,6035   (anotasi 0,6996)
 ```
 
-Turun dari 0,6661. Seluruh kerugian berasal dari beat yang tidak pernah
-terdeteksi, bukan dari window yang bergeser.
+Recall sistem turun sekitar 10 poin dari recall dengan anotasi. Seluruh
+kerugian berasal dari beat yang tidak pernah terdeteksi, bukan dari window yang
+bergeser: pada beat yang terdeteksi, recall justru sedikit lebih tinggi (A).
 
 ### C. Deteksi palsu
 
-2.194 window tanpa beat asli; **43,9% diklasifikasi Aritmia** → 964 alarm palsu
-tambahan di luar 3.349 yang sudah ada.
+2.194 window tanpa beat asli. Pada baseline **43,9%** diklasifikasi Aritmia →
+964 alarm palsu tambahan di luar 3.349 yang sudah ada. Pada model berlaku
+**50,4%** → 1.106 alarm palsu tambahan di luar 2.316.
 
 ---
 
@@ -146,8 +162,9 @@ memblokir deteksi selama **periode refraktori 200 ms** setelah detak sebelumnya
 (`PT_REFRACTORY_MS` di `config.py`). Beat yang datang terlalu cepat justru
 terblokir — padahal "datang terlalu cepat" itulah definisi beat prematur.
 
-Efeknya berlipat: kelas S sudah punya recall klasifikasi 0,3034 (Fase 6), dan
-sekarang cuma 65% di antaranya yang bahkan sampai ke model. Ini penjelasan
+Efeknya berlipat: recall klasifikasi kelas S sudah rendah (0,4390 pada model
+berlaku, 0,3034 pada baseline), dan hanya 65% beat S yang bahkan sampai ke
+model. Ini penjelasan
 kuantitatif kenapa kelas S menjadi titik terlemah seluruh sistem — dan arah
 perbaikan yang jelas: menurunkan refraktori menaikkan sensitivity S dengan biaya
 lebih banyak deteksi palsu. Trade-off itu bisa diukur dengan skrip yang sama.
@@ -161,11 +178,14 @@ lebih banyak deteksi palsu. Trade-off itu bisa diukur dengan skrip yang sama.
 r_kasar   = pan_tompkins(filtered)      // punya delay ~38 sampel
 r_kompen  = r_kasar - 38                // kompensasi median (kalibrasi DS1)
 r_halus   = argmax(filtered, r_kompen +- 25)   // puncak sebenarnya
-r_pakai   = r_halus - 4                 // kembalikan group delay -> R di indeks 94
-window    = filtered[r_pakai - 90 : r_pakai + 160]
+r_pakai   = r_halus - 4                 // kembalikan group delay -> R di indeks 132
+window    = filtered[r_pakai - 128 : r_pakai + 128]   // WIN_PRE / WIN_POST
 ```
 
-Salah satu saja terlewat, precision jatuh 4× tanpa satu pun error.
+Konstanta yang sama di firmware: `ECG_PT_OFFSET` 38, `ECG_GROUP_DELAY` 4,
+`ECG_WIN_PRE`/`ECG_WIN_POST` 128 (`firmware/include/ecg_preproc.h`). Salah satu
+langkah saja terlewat, precision jatuh hingga 4× (terukur pada baseline) tanpa
+satu pun error.
 
 ---
 
@@ -173,8 +193,8 @@ Salah satu saja terlewat, precision jatuh 4× tanpa satu pun error.
 
 1. Kenapa geseran 4 sampel merusak model padahal GAP seharusnya membuat model
    tahan geser? (Petunjuk: hitung stride total tiga MaxPooling.)
-2. Recall klasifikasi pada beat terdeteksi (0,6821) sedikit LEBIH TINGGI
-   daripada dengan anotasi (0,6661). Kenapa itu bukan bukti deteksi lebih baik?
+2. Recall klasifikasi pada beat terdeteksi (0,7279) sedikit LEBIH TINGGI
+   daripada dengan anotasi (0,6996). Kenapa itu bukan bukti deteksi lebih baik?
 3. Refraktori diturunkan 200 → 150 ms. Metrik mana yang membaik, mana yang
    memburuk, dan bagaimana mengukurnya tanpa menyentuh DS2 lagi?
 4. Kenapa eksperimen ini memakai model float32, bukan INT8 yang akan benar-benar

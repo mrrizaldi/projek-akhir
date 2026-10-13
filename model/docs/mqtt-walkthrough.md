@@ -1,16 +1,16 @@
 # HW-6 — publikasi MQTT: dari beat di alat sampai baris di dashboard
 
-**19 September 2026.** Modul: `firmware/src/ecg_mqtt.cpp`, `include/ecg_mqtt.h`,
-plus sambungannya di `firmware/src/main.cpp`.
+> **Ruang lingkup:** publikasi hasil klasifikasi per beat dari ESP32-S3 ke ThingsBoard CE lewat MQTT QoS 1, beserta gerbang kualitas, backlog, dan prosedur uji tanpa elektroda.
+> **Kode terkait:** `firmware/src/ecg_mqtt.cpp`, `firmware/include/ecg_mqtt.h`, `firmware/src/main.cpp` (`nilai_fase()`, `publikasi()`), `firmware/test/test_mqtt/`, `dashboard/`
+> **Prasyarat:** [`firmware-walkthrough.md`](firmware-walkthrough.md) §5b–5c, [`akuisisi-walkthrough.md`](akuisisi-walkthrough.md) §2
 
-✅ **Status: TERVERIFIKASI DI BOARD, 19 September 2026.** Seluruh mekanisme
+Kondisi: terverifikasi di board (N16R8, 19 Sep 2026). Seluruh mekanisme
 `bab3.tex` §Pipeline Edge-to-Cloud yang Resilien terpasang, dan **6 dari 6 target
-Tabel Rencana Pengukuran terukur** — 5 lulus, 1 lulus di median tapi tidak di p95
-(§7c).  `pio test -e native`
-22/22, `pio test -e esp32-s3` 16/16, dan telemetri sungguhan mendarat di
-ThingsBoard lewat WiFi. Uji resiliensi lulus: broker dibekukan 24 detik, deret
-waktu di dashboard **tidak berlubang** (jeda maksimum 911 ms). Angka lengkap di
-§7, tiga bug yang cuma muncul di hardware di §7b.
+Tabel Rencana Pengukuran terukur** — 5 lulus, 1 lulus di median tapi tidak stabil
+di p95 (§7c). `pio test -e native` 23/23, `pio test -e esp32-s3` 16/16, dan
+telemetri mendarat di ThingsBoard lewat WiFi. Uji resiliensi lulus: broker
+dibekukan 24 detik, deret waktu di dashboard **tidak berlubang** (jeda maksimum
+911 ms). Angka lengkap di §7, bug yang hanya muncul di hardware di §7b.
 
 ---
 
@@ -34,33 +34,35 @@ waktu di dashboard **tidak berlubang** (jeda maksimum 911 ms). Angka lengkap di
                       │ && !beat.sinyal_hilang        │
                       └──────────────┬────────────────┘
                                      v
-                      ring backlog 64 beat (ecg_mqtt_antre_isi)
+        ring backlog 27.000 beat di PSRAM, cadangan 64 (ecg_mqtt_antre_isi)
                                      │
                                      v   ecg_mqtt_layani(), tiap loop()
                       PUBLISH QoS 1 ──► broker ──► PUBACK
                                      │                  │
-                          batch <=16 │       geser ring SETELAH PUBACK
+                          batch <=50 │       geser ring SETELAH PUBACK
                                      v
                           ThingsBoard CE: ts_kv → widget
 ```
 
 Satu kalimat: **beat yang lolos gerbang kualitas masuk ring; ring dikuras ke
-broker; ring baru digeser setelah PUBACK.**
+broker; ring baru digeser setelah PUBACK.** Gerbang pada diagram adalah gerbang
+per detak; di depannya, setiap sesi harus lulus gerbang masuk berupa fase
+kalibrasi (§3.1).
 
 ---
 
-## 2. Yang sudah ada sebelum HW-6 (jangan dibangun ulang)
+## 2. Komponen yang dipakai ulang (jangan dibangun ulang)
 
-| Bagian | Sudah ada di | Sejak |
-|---|---|---|
-| Sumber sinyal dummy | `main.cpp` `replay` / `sim_counts[]`, toggle `'y'` | HW-7 Task 4, **verified di board 18 Sep** |
-| Broker + rule engine + dashboard | `dashboard/` (ThingsBoard CE) | b906903 |
-| Kontrak payload (7 field, QoS 1, topic) | `dashboard/README.md`, `bab3.tex` | b906903 |
-| Referensi kawat MQTT yang terbukti | `dashboard/smoke_test.py` | b906903 |
-| Penilai kualitas sinyal | `main.cpp` `nilai_kualitas()`, `AMBANG_AYUN` | HW-4 |
+| Bagian | Letak |
+|---|---|
+| Sumber sinyal dummy | `main.cpp` `replay` / `sim_counts[]`, toggle `'y'` ([firmware §5c](firmware-walkthrough.md)) |
+| Broker + rule engine + dashboard | `dashboard/` (ThingsBoard CE) |
+| Kontrak payload (7 field, QoS 1, topic) | `dashboard/README.md`, `bab3.tex` |
+| Referensi kawat MQTT yang terbukti | `dashboard/smoke_test.py` |
+| Penilai kualitas sinyal | `main.cpp` `nilai_kualitas()`, `AMBANG_AYUN` |
 
-HW-6 **tidak menambah satu pun** dari daftar itu. Yang ditambah cuma klien MQTT
-dan gerbangnya.
+Modul MQTT **tidak menduplikasi satu pun** dari daftar itu. Yang ditambahkan
+hanya klien MQTT, ring backlog, dan gerbangnya.
 
 ---
 
@@ -79,10 +81,15 @@ KALIBRASI -> BAIK butuh tiga hal sekaligus:
 ```
 
 Selama `calibrating` **CNN tidak dijalankan** (bab3: *"inferensi CNN belum
-dijalankan"*) dan tidak ada yang dipublikasikan. Detektor tetap jalan — RR-nya
-justru yang dipakai menilai kelayakan.
+dijalankan"*), tidak ada yang dipublikasikan, dan LED menyala biru. Detektor
+tetap jalan — RR-nya justru yang dipakai menilai kelayakan. Serial mencetak
+baris `calibrating | RR=… dRR=… | tenang …/30 s | ayun … | stabil …/600 s` tiap
+5 detik.
 
-> ⚠️ **Kriteria RR itu gerbang MASUK, bukan gerbang per detak.** Sesudah fase
+Sesudah fase pemantauan dimulai, fase berganti antara `good` dan `poor` menurut
+ayunan bersih saja.
+
+> **Penting: kriteria RR itu gerbang MASUK, bukan gerbang per detak.** Sesudah fase
 > pemantauan mulai, `dRR` TIDAK lagi dibatasi. Menegakkan `dRR <= 200 ms`
 > terus-menerus akan membungkam justru aritmia yang ingin dideteksi — beat
 > ventrikular memang datang dengan `dRR` besar. `bab3.tex` juga menuliskannya
@@ -112,7 +119,13 @@ pernah terpenuhi** — dan memang tidak seharusnya: kriteria itu untuk subjek
 Dua hal itu tidak bisa dipenuhi bersamaan, jadi yang mengalah gerbangnya, dengan
 pengumuman: toggle `y` otomatis menyalakan `lewati_kalibrasi` dan serial mencetak
 `GERBANG DILEWATI (bench)` saat fase berpindah. Toggle `k` melakukan hal sama
-untuk jalur ADC. **Jalur sinyal tubuh tetap menegakkan gerbang penuh.**
+untuk jalur ADC. **Jalur sinyal tubuh menegakkan gerbang penuh** selama
+`lewati_kalibrasi` mati.
+
+Perhatikan: mematikan replay (`y` kedua) **tidak** mematikan
+`lewati_kalibrasi`. Untuk kembali ke gerbang penuh dengan sinyal tubuh setelah
+memakai replay, tekan `k` sampai serial mencetak `lewati gerbang kalibrasi OFF`,
+atau reboot board.
 
 **Digerbangi kualitas sinyal, bukan ada-tidaknya beat.** Alasannya terukur dan
 sudah masuk daftar jebakan `../CLAUDE.md`:
@@ -151,6 +164,20 @@ kontrak ThingsBoard (`dashboard/README.md`: real-time vs batch flush).
 
 **`ts` tiap beat = `ts_base_ms + beat.ms`.** Ini inti dari klaim resiliensi:
 beat yang tertahan 40 detik di backlog tetap membawa waktu **kejadian**-nya.
+
+`beat.ms` diisi `publikasi()` dari indeks sampel puncak R, bukan dari
+`millis()` saat beat keluar:
+
+```c
+t.ms = t_sesi_ms + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
+```
+
+Deteksi berjalan tiap 1 detik atas ring 4 detik, sehingga beberapa beat keluar
+bergerombol dalam milidetik yang sama; `millis()` saat keluar membuat dashboard
+menampilkan denyut berdesakan lalu menganggur (terukur: jeda antar-`ts` minimum
+28 ms, padahal RR terpendek ~200 ms). Konsekuensinya, sampel yang hilang di
+antrean menggeser `ts` sebesar durasi yang hilang — karena itu `sampel hilang`
+ikut dilaporkan di baris `s`.
 Kalau `ts` diambil saat kirim, seluruh backlog menumpuk di satu detik dan
 grafik dashboard berbohong — dan yang lebih buruk, uji dedup `smoke_test.py`
 tetap lulus, jadi kesalahannya tidak akan ketahuan dari situ.
@@ -179,6 +206,12 @@ Kalau digabung jadi satu `ambil()`, beat hilang setiap kali PUBACK tidak datang
 — dan QoS 1 jadi hiasan. `dashboard/README.md` menulis syarat ini sebagai
 kontrak: *"geser read pointer ring buffer hanya setelah PUBACK"*.
 
+Kapasitas ring **27.000 beat** (`ECG_MQTT_ANTRE_TARGET`), dialokasikan di PSRAM
+saat `setup()` lalu dipasang lewat `ecg_mqtt_antre_pasang()`; satu entri 40 byte,
+total ~1,05 MB dari 8 MB. Bila alokasi PSRAM gagal, ring turun ke cadangan
+statis 64 beat (`ECG_MQTT_ANTRE_MIN`) dan serial mencetak peringatan. Bagian
+murni ini tidak tahu soal PSRAM, sehingga uji native cukup memasang array statis.
+
 Ring penuh → **buang yang TERTUA**. Alat monitoring lebih butuh menit terakhir
 daripada menit pertama saat koneksi baru pulih. Yang terbuang dicatat di
 `ecg_mqtt_antre_hilang()`, tidak disembunyikan.
@@ -194,12 +227,17 @@ yang sama dengan byte yang sama (`0x10` CONNECT flags `0x80` username-saja,
 ### 3.6 Jam — `configTime()` + `ts_base_ms`
 
 ```c
-ts_base_ms = (uint64_t)t * 1000ULL - (uint64_t)millis();
+struct timeval tv;
+gettimeofday(&tv, NULL);
+const uint64_t kini_ms = (uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000);
+ts_base_ms = kini_ms - (uint64_t)millis();
 ```
 
-Epoch ms saat `millis() == 0`, dihitung sekali begitu SNTP masuk. Sesudah itu
-tiap beat cukup menyimpan `millis()` (4 byte) dan waktunya direkonstruksi saat
-payload disusun. Tanpa jam benar, `ecg_mqtt_status()` melapor `tunggu-jam` dan
+Epoch ms saat `millis() == 0`, dihitung sekali begitu SNTP masuk
+(`tv_sec ≥ 1.700.000.000`). `gettimeofday()` dipakai, bukan `time()`: resolusi
+`time()` satu detik dan pembulatannya menjadi galat sistematis di setiap `ts`
+(§7b bug 6). Setelah `ts_base_ms` diketahui, tiap beat cukup menyimpan waktu
+relatif `ms` (4 byte) dan waktunya direkonstruksi saat payload disusun. Tanpa jam benar, `ecg_mqtt_status()` melapor `tunggu-jam` dan
 backlog **menunggu** — sengaja tidak mengirim dengan ts salah.
 
 ---
@@ -232,7 +270,7 @@ jaringan, bukan di dirinya sendiri.
 | **`y`** | **sumber sinyal: replay ⇄ ADC** | `replay ON (golden_raw)` / `replay OFF (ADC)` |
 | **`m`** | **publikasi MQTT: on ⇄ off** | `mqtt ON` / `mqtt OFF` |
 | **`k`** | **lewati gerbang kalibrasi** (bench saja) | `lewati gerbang kalibrasi ON` |
-| `q` | laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
+| `q` | toggle laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
 | `s` | status sesaat (termasuk MQTT) | lihat di bawah |
 | `r` | rekam mentah ke LittleFS | `REKAM mulai` / `SIMPAN …` |
 | `d` | dump rekaman lewat serial | `---MULAI--- … ---SELESAI---` |
@@ -241,40 +279,56 @@ Dua toggle itu **ortogonal**, dan itu memang tujuannya:
 
 | | `m` OFF | `m` ON |
 |---|---|---|
-| **`y` ON (replay)** | uji pipeline & daya, offline | **uji MQTT tanpa elektroda** ← dipakai selama PCB masih desain |
+| **`y` ON (replay)** | uji pipeline & daya, offline | **uji MQTT tanpa elektroda** (uji meja) |
 | **`y` OFF (ADC)** | akuisisi & rekam, offline | operasi normal |
 
-### 4.3 Demo tanpa elektroda — urutan persis
+### 4.3 Demo tanpa elektroda — prosedur
 
-```
-1. boot, tunggu:   mqtt: WiFi "…" -> 192.168.x.x:1883
-2. tekan 'm'  (kalau belum ON)  ->  mqtt ON
-3. tekan 'y'                    ->  replay ON (golden_raw)
-4. tunggu ~7 detik              ->  beat mulai keluar di serial
-5. tekan 's'                    ->  mqtt online | terkirim N | backlog 0
-6. buka http://localhost:8080   ->  telemetri masuk
-```
+Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
+`wifi_secrets.h` terisi (§4.1). Buka serial dengan `pio device monitor` dari
+`firmware/`.
 
-**Kenapa replay lolos gerbang kualitas tanpa perlakuan khusus:** ayunannya
+| Langkah | Aksi | Hasil yang diharapkan di serial |
+|---|---|---|
+| 1 | boot, tunggu | `mqtt: WiFi "…" -> 192.168.x.x:1883`, lalu `mqtt: jam tersinkron, epoch_ms …` dan `mqtt tersambung, backlog 0 beat` |
+| 2 | tekan `m` (bila belum ON) | `mqtt ON` |
+| 3 | tekan `y` | `replay ON (golden_raw)` |
+| 4 | tunggu ~7 detik | `kualitas: calibrating -> good (GERBANG DILEWATI (bench), …)`, lalu baris `beat …` mulai keluar |
+| 5 | tekan `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
+| 6 | buka `http://localhost:8080` | telemetri masuk di dashboard |
+
+**Kenapa replay lolos gerbang ayunan tanpa perlakuan khusus:** ayunannya
 ~2700 counts, jauh di atas `AMBANG_AYUN` 60. Jadi dummy dan sinyal tubuh
-melewati **satu jalur kode yang sama persis** — tidak ada cabang `if (dummy)`
-di mana pun. Itu disengaja: cabang khusus dummy berarti yang didemokan bukan
-yang dipakai nanti.
+melewati **gerbang per detak dan jalur publikasi yang sama persis** — tidak ada
+cabang `if (dummy)` di `publikasi()` maupun `ecg_mqtt.cpp`. Satu-satunya
+perlakuan replay adalah melewati gerbang kalibrasi, dan itu diumumkan di serial
+(§3.1b). Cabang khusus dummy di jalur publikasi berarti yang didemokan bukan yang
+dipakai.
 
 ### 4.4 Membaca baris status
 
+Format (dua baris; angka contoh, `<…>` = isian):
+
 ```
-status: rekam=0 n=0 | replay=1 | beat 44 (12 aritmia, 3 ditahan) | antrean 2 |
+status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan) | antrean 2 |
         sampel hilang 0 | LO 1 1 | mentah 1204..3550 ayun 2701 clipping 0
-        mqtt online | terkirim 41 | backlog 0 | hilang 0 | gagal 0
+        mqtt online | terkirim 41 | backlog 0/27000 | hilang 0 | gagal 0 |
+        paket <ack>/<kirim> PDSR <x>% | tunda alat rata <ms> ms maks <ms> ms |
+        RTT maks <ms> ms (lambat <n>) | RSSI <dBm> dBm | epoch_ms <epoch>
 ```
 
-| Kolom | Artinya kalau tidak nol |
+| Kolom | Artinya |
 |---|---|
-| `ditahan` | beat yang sengaja TIDAK dipublikasi (kualitas / timeout) |
-| `backlog` | beat menunggu di ring — broker sedang tak terjangkau |
-| `hilang` | ring penuh, beat tertua dibuang — outage > ~53 detik |
-| `gagal` | PUBACK tidak datang / tidak cocok |
+| `kualitas` | fase: `calibrating`, `good`, atau `poor` |
+| `ditahan` | beat yang sengaja TIDAK dipublikasi (fase bukan `good` / beat timeout) |
+| `backlog` | beat menunggu di ring / kapasitas ring — tidak nol = broker sedang tak terjangkau |
+| `hilang` | ring penuh, beat tertua dibuang — outage melebihi kapasitas ring (27.000 beat ≈ 4–7 jam; 64 beat bila PSRAM gagal) |
+| `gagal` | PUBACK tidak datang / tidak cocok, atau paket tidak habis ditulis |
+| `paket … PDSR` | paket ber-PUBACK / paket PUBLISH; PDSR dihitung per paket, bukan per beat |
+| `tunda alat` | dari beat TERJADI sampai paketnya masuk ring (§7c) |
+| `RTT maks (lambat)` | RTT PUBACK terburuk, dan berapa kali > 1 detik |
+| `RSSI` | kuat sinyal WiFi |
+| `epoch_ms` | jam board; dipakai alat ukur di laptop untuk mengoreksi selisih jam |
 
 `mqtt` bisa berisi: `mati` (toggle `m` off atau tanpa kredensial), `no-wifi`,
 `no-broker`, `tunggu-jam` (SNTP belum masuk), `online`.
@@ -291,8 +345,8 @@ di board (`arsip/2026-09-18-robustness-changelog.md` §207).
 | Keputusan | Dipilih | Ditolak, dan kenapa |
 |---|---|---|
 | Letak data dummy | **sumber sinyal (ADC)** | *dummy di publisher* — melewati bandpass, detektor, dan inferensi. Yang teruji cuma JSON + WiFi, padahal klaim PA ini "klasifikasi di edge". Makin dekat titik injeksi ke tepi sistem, makin banyak kode nyata ikut teruji |
-| Bentuk toggle | **runtime (`y`, `m`)** | *compile-time `#ifdef DUMMY`* — dua binary, dan yang didemokan bukan yang di-flash nanti |
-| Klien MQTT | **ditulis sendiri, 4 paket** | *PubSubClient* — gate point CLAUDE.md (jangan tambah dependency untuk yang beberapa baris selesai); kawatnya sudah terbukti di `smoke_test.py`; preseden `ina219.cpp` yang juga tanpa library. **Kalau nanti butuh QoS 2, retained, atau subscribe, pindah ke PubSubClient — itu batas atas pilihan ini** |
+| Bentuk toggle | **runtime (`y`, `m`)** | *compile-time `#ifdef DUMMY`* — dua binary, dan yang didemokan bukan yang di-flash untuk operasi |
+| Klien MQTT | **ditulis sendiri, 4 paket** | *PubSubClient* — gate point CLAUDE.md (jangan tambah dependency untuk yang beberapa baris selesai); kawatnya sudah terbukti di `smoke_test.py`; preseden `ina219.cpp` yang juga tanpa library. **Bila dibutuhkan QoS 2, retained, atau subscribe, pindah ke PubSubClient — itu batas atas pilihan ini** |
 | Gerbang publikasi | **ayunan sinyal** | *ada-tidaknya beat* — derau pun menghasilkan beat, 57% "ARITMIA" |
 | `ts` | **waktu kejadian** (`base + millis`) | *waktu kirim* — backlog menumpuk di satu detik, dan `smoke_test.py` tetap lulus jadi tidak ketahuan |
 | Geser ring | **setelah PUBACK** | *saat kirim* — QoS 1 jadi hiasan |
@@ -304,32 +358,39 @@ di board (`arsip/2026-09-18-robustness-changelog.md` §207).
 
 ## 6. Yang sengaja TIDAK dilakukan
 
-- **TLS (port 8883).** Broker jalan di jaringan lokal untuk PoC. Pindah ke VPS
-  nanti butuh ini, dan butuh sertifikat di flash — bukan pekerjaan PoC.
-- **Subscribe / RPC dari dashboard ke alat.** Belum ada perintah yang perlu
+- **TLS (port 8883).** Broker jalan di jaringan lokal untuk PoC. Memindahkan
+  broker ke VPS memerlukan TLS dan sertifikat di flash — di luar cakupan PoC.
+- **Subscribe / RPC dari dashboard ke alat.** Tidak ada perintah yang perlu
   dikirim ke alat. `ecg_mqtt.cpp` cuma publish.
-- **Backlog tahan reboot.** Ring ada di RAM. LittleFS sudah dipakai untuk
-  rekaman mentah, jadi jalurnya ada kalau nanti dibutuhkan.
-- **`ecg_sim.h` rekaman lebih panjang/beragam.** `arsip/2026-09-18-robustness-plan.md`
-  Task 0 menulis: tambah **hanya kalau** dashboard butuh — keputusan setelah
-  MQTT jalan, bukan sebelum. Masih berlaku.
+- **Backlog tahan reboot.** Ring ada di PSRAM, yang volatil — sesuai asumsi
+  `bab3.tex` (wearable diisi daya rutin; kehilangan daya di luar cakupan).
+  LittleFS sudah dipakai untuk rekaman mentah, jadi jalurnya tersedia bila
+  dibutuhkan.
+- **`ecg_sim.h` rekaman lebih panjang/beragam.** Ditambahkan **hanya bila**
+  dashboard membutuhkannya ([`arsip/2026-09-18-robustness-plan.md`](arsip/2026-09-18-robustness-plan.md)
+  Task 0); replay `golden_raw` mencukupi untuk seluruh pengukuran di §7.
 - **Batch adaptif / kompresi payload.** 1 beat/detik × ~300 B tidak mendekati
   batas apa pun.
 
 ---
 
-## 7. Angka nyata (diukur di board, 19 Sep 2026)
+## 7. Angka nyata
 
-| Hal | Sebelum HW-6 | Sesudah |
+Kondisi uji: board N16R8, 19 Sep 2026, replay ON (tanpa elektroda), broker
+ThingsBoard CE di laptop pada jaringan WiFi rumah. Angka build dari `pio run`
+pada kode saat ini dengan `wifi_secrets.h` terisi.
+
+| Hal | Build inti (tanpa MQTT) | Firmware utama dengan MQTT |
 |---|---|---|
-| `pio test -e native` | 17/17 | **22/22** (+5 uji payload & ring) |
+| `pio test -e native` | 17/17 | **23/23** (+6 uji payload & ring) |
 | `pio test -e esp32-s3` | 16/16 | **16/16** — inferensi tidak tersentuh |
-| RAM (build) | 21,2% | **36,9%** (121.008 B) |
-| Flash (build) | 6,6% | **13,5%** (881.861 B) |
+| RAM (build) | 21,2% | **37,0%** (121.336 B) |
+| Flash (build) | 6,6% | **13,5%** (887.873 B) |
 | Ukuran payload 1 beat | — | ~330 B; batch 50 beat ~15 KB |
 | Backlog | — | **27.000 beat** di PSRAM (1.054 KB, 40 B/entri) ≈ 4–7 jam |
 
-⚠️ **Jangan memakai angka RAM/Flash yang diukur tanpa `wifi_secrets.h`.**
+**Catatan pengukuran build: jangan memakai angka RAM/Flash yang diukur tanpa
+`wifi_secrets.h`.**
 Tanpa file itu `WIFI_SSID` adalah `""`, `strlen("")` dilipat jadi konstanta oleh
 kompilator, `WiFi.begin()` jadi kode mati, dan **seluruh tumpukan WiFi tidak
 ikut di-link**: 26,4% / 8,0% — selisih 358 KB flash dari angka sebenarnya. Dua
@@ -375,10 +436,11 @@ ring; jaringan diurus `ecg_mqtt_layani()` di luar jalur beat.
 
 ---
 
-## 7b. Tiga bug yang HANYA muncul di hardware
+## 7b. Enam bug yang HANYA muncul di hardware
 
-Semuanya lolos `pio test -e native` 22/22 dan lolos build. Ini catatan kenapa
-"kode jadi" bukan "kode benar".
+Keenamnya lolos `pio test -e native` dan lolos build. Bagian ini menjelaskan
+kenapa "kode jadi" bukan "kode benar"; setiap bug ditulis sebagai gejala, sebab,
+perbaikan yang berlaku di kode, dan hasil terukur.
 
 ### (1) Menunggu PUBACK memblokir loop → 4.493 sampel hilang
 
@@ -389,7 +451,7 @@ di dalam loop yang sedang menguras antrean ADC. Antrean 256 sampel @360 Hz =
 rusak, yaitu persis kegagalan yang arsitektur HW-4 dibangun untuk mencegah.
 
 Perbaikan: PUBACK dipungut **lintas iterasi** `loop()` (`menunggu_ack` +
-`pungut_ack()`), bukan di dalam satu panggilan. Tambahan: `ecg_mqtt_layani()`
+`pungut_masuk()`, timeout 5 detik), bukan di dalam satu panggilan. Tambahan: `ecg_mqtt_layani()`
 dibatasi tiap 20 ms — dipanggil 360×/detik, `WiFi.status()` + `time()` sebanyak
 itu ikut memakan anggaran 2.778 µs/sampel.
 
@@ -406,16 +468,17 @@ Perbaikan: `sock.connect(ip, port, 300)` — batas 300 ms, di bawah kedalaman
 antrean 711 ms. Dan `IPAddress`, bukan hostname: resolusi DNS adalah panggilan
 blocking **terpisah** yang tidak ikut dibatasi argumen timeout itu.
 
-Hasil: 2.788 → **290**. Sisa 290 dari `tunggu()` CONNACK yang masih blocking
-1.500 ms → CONNACK pun dijadikan non-blocking (`pungut_connack()`), dan fungsi
-`tunggu()` dihapus seluruhnya.
+Hasil: 2.788 → **290**. Sisa 290 berasal dari menunggu CONNACK di tempat
+(1.500 ms). CONNACK karena itu juga dipungut lintas iterasi (`pungut_connack()`,
+batas 2 detik), sehingga tidak ada satu pun panggilan yang menunggu jaringan di
+tempat.
 
 Hasil akhir: **0**.
 
-### (3) Enam `sock.write()` tanpa memeriksa nilai kembalian → paket terpotong
+### (3) `sock.write()` tanpa memeriksa nilai kembalian → paket terpotong
 
-Gejala paling menipu dari ketiganya: `PUBACK timeout` berulang **padahal broker
-sehat**, dan **hanya** saat backlog dikuras. Log broker bersih — nol petunjuk di
+Gejala paling menipu: `PUBACK timeout` berulang **padahal broker sehat**, dan
+**hanya** saat backlog dikuras. Log broker bersih — nol petunjuk di
 sisi sana. Sebab: paket MQTT ditulis 6 kali terpisah dan nilai kembaliannya
 diabaikan. Saat payload besar (16 beat ≈ 4,8 KB) socket tidak menampung
 semuanya; write pendek meninggalkan paket MQTT **terpotong**, broker menunggu
@@ -424,16 +487,24 @@ sisa yang tidak pernah datang, dan tidak pernah mengirim PUBACK.
 Jadi gejalanya menyamar sebagai "broker lambat", padahal pengirimnya yang
 berbohong soal berapa byte yang berhasil ditulis.
 
-Perbaikan: satu paket dirakit di satu buffer, **satu** `sock.write()`, dan
-panjangnya diperiksa (`!= q` → putus). `ECG_MQTT_BATCH_N` 16 → 8 supaya paket
-tetap ~2,4 KB.
+Perbaikan yang berlaku di kode:
 
-Hasil: `gagal` berhenti di 1 — satu-satunya yang sah, saat broker memang
-dibekukan.
+- Satu paket dirakit di **satu buffer** (`paket_buf`): payload ditulis langsung
+  di belakang ruang header, lalu header MQTT ditempel mundur tepat sebelum
+  payload. Dua buffer terpisah (payload + paket) memakan 32 KB RAM internal untuk
+  batch 50; satu buffer memakan setengahnya.
+- `kirim_sampai_habis()` mengulang `sock.write()` untuk sisa yang belum
+  tertulis, dengan batas 200 ms — di bawah kedalaman antrean ADC 711 ms. Tidak
+  habis dalam batas itu → `gagal++` dan `putus()`, backlog tidak digeser.
+- Karena penulisan bertahap ini, `ECG_MQTT_BATCH_N` = **50** (~15 KB), batas
+  bawah target `bab3.tex` 50–100 rekaman per paket.
+
+Hasil (uji resiliensi §7): `gagal` berhenti di 1 — satu-satunya yang sah, saat
+broker memang dibekukan.
 
 ### (4) PINGRESP tidak pernah dibaca → aliran baca desync
 
-Kita mengirim PINGREQ tiap 30 detik; broker membalas PINGRESP (2 byte,
+Firmware mengirim PINGREQ tiap 30 detik; broker membalas PINGRESP (2 byte,
 `0xD0 0x00`) yang tidak pernah dibaca. Dua byte nyasar itu mengendap di socket
 lalu terbaca sebagai dua byte pertama "PUBACK" berikutnya — aliran baca desync
 permanen sampai reconnect.
@@ -441,15 +512,14 @@ permanen sampai reconnect.
 Perbaikan: `pungut_masuk()` membaca header 2 byte, mengurus PUBACK, dan **membuang
 isi paket lain secara utuh** supaya byte berikutnya tetap jatuh di batas paket.
 
-**Catatan kejujuran:** ini bug nyata dan perbaikannya benar, **tapi ternyata bukan
-penyebab** `PUBACK timeout` yang sedang dikejar — sesudah diperbaiki, `gagal`
-masih 4 dalam 150 detik. Hipotesisnya salah, dan yang membuktikannya bukan
-penalaran melainkan pencacah baru di bug (5).
+Bug ini nyata dan perbaikannya benar, tetapi **bukan satu-satunya penyebab**
+`PUBACK timeout`: dengan perbaikan ini saja, `gagal` masih 4 dalam 150 detik.
+Penyebab sisanya adalah bug (5), yang teridentifikasi lewat pencacah RTT.
 
 ### (5) Nagle menahan segmen kecil → PUBACK terlambat 1–4,8 detik
 
-Alih-alih menebak lagi, dipasang pencacah RTT PUBACK dan pencetak keadaan saat
-timeout. Hasilnya menunjuk satu arah:
+Pencacah RTT PUBACK (`rtt_maks`, `rtt_lambat`) dan cetakan keadaan socket saat
+timeout menunjuk satu arah:
 
 ```
 mqtt: PUBACK lambat 1266 ms (1 beat)      <- berulang di ~1.250 ms
@@ -467,7 +537,7 @@ sampai ACK segmen sebelumnya datang.
 
 Perbaikan: `sock.setNoDelay(true)` sesudah connect — satu baris.
 
-| | sebelum | sesudah |
+| | tanpa `setNoDelay` | dengan `setNoDelay` |
 |---|---|---|
 | `gagal` / 150 dtk | 4 | **0** |
 | latensi p95 | 13.259 ms | **3.402 ms** |
@@ -476,11 +546,10 @@ Perbaikan: `sock.setNoDelay(true)` sesudah connect — satu baris.
 
 ### (6) `time()` beresolusi 1 detik → galat sistematis 1 detik di SETIAP `ts`
 
-Ini yang paling mahal, karena ia tidak merusak sistem melainkan **merusak semua
-pengukuran dan satu kesimpulan yang sudah ditulis**.
+Bug ini tidak merusak sistem, tetapi **merusak semua pengukuran latensi**.
 
-`sinkron_jam()` memakai `time(NULL)`, yang beresolusi detik. Pembulatannya masuk
-ke `ts_base_ms` dan dari situ ke **setiap** `ts` yang dikirim — galat sistematis
+`sinkron_jam()` yang memakai `time(NULL)` mewarisi resolusi detik. Pembulatannya
+masuk ke `ts_base_ms` dan dari situ ke **setiap** `ts` yang dikirim — galat sistematis
 0–1.000 ms per boot, tetap sepanjang sesi. Gejalanya: latensi minimum bergeser
 934 / 1.045 / 1.286 / 1.347 ms antar-boot tanpa ada yang berubah di sistem, dan
 satu kali melompat seragam ke 3.437 ms di semua persentil sekaligus.
@@ -488,20 +557,20 @@ satu kali melompat seragam ke 3.437 ms di semua persentil sekaligus.
 **Pergeseran yang seragam di semua persentil itu tanda selisih jam, bukan
 latensi.** Latensi nyata menggeser ekor lebih banyak daripada median.
 
-Perbaikan: `gettimeofday()` (resolusi µs) menggantikan `time()`, dan alat ukur
-di laptop ikut mengukur selisih jam kedua sisi lewat `epoch_ms` di baris status
-lalu mengoreksinya. Sesudah itu selisihnya tinggal −70 sampai −414 ms, dan
-angkanya berubah drastis:
+Perbaikan: `sinkron_jam()` memakai `gettimeofday()` (resolusi µs), dan alat ukur
+di laptop (`dashboard/ukur_pipeline.py`) mengukur selisih jam kedua sisi lewat
+`epoch_ms` di baris status lalu mengoreksinya. Selisih jam terukur −70 sampai
+−414 ms, dan angkanya berubah drastis:
 
-| | sebelum | sesudah |
+| | `time()` | `gettimeofday()` + koreksi jam |
 |---|---|---|
 | latensi minimum | 1.286 ms | **429 ms** |
 | latensi median | 1.907 ms | **939–1.108 ms** |
 
 **Pola yang sama di keenamnya:** gagal tanpa error, dan gejalanya menunjuk ke
 tempat yang salah (broker, bukan firmware). Senada dengan jebakan op `MEAN` di
-TFLM dan `float` di ISR — repo ini sudah beberapa kali tertipu pola "salah tanpa
-berisik".
+TFLM dan `float` di ISR ([`firmware-walkthrough.md`](firmware-walkthrough.md)
+§5, §5b) — pola "salah tanpa berisik".
 
 Pelajaran kedua, khusus dari (4) vs (5): **dua bug dengan gejala identik bisa
 hidup berdampingan.** Memperbaiki yang satu tidak menghilangkan gejalanya, dan
@@ -513,24 +582,24 @@ bukan menalar mana yang "paling mungkin".
 ## 7c. Target `bab3.tex` Tabel *Rencana pengukuran pada pengujian pipeline*
 
 Diukur dengan `dashboard/ukur_pipeline.py 180` (replay ON, tanpa elektroda),
-**dua ulangan** — aturan §7 no.1 repo ini (satu run tidak sah) berlaku di sini
-juga.
+**dua ulangan** — aturan repo bahwa satu run tidak sah berlaku di sini juga.
 
 | Aspek | Target | Run 1 | Run 2 | Vonis |
 |---|---|---|---|---|
-| PDSR | ≥ 95% | **100,0%** (292/292) | **99,2%** (253/255) | ✅ |
-| Latensi median | ≤ 2 dtk | **939 ms** | **1.108 ms** | ✅ |
-| Latensi p95 | ≤ 2 dtk | **1.404 ms** ✅ | 3.304 ms ❌ | ⚠️ tidak stabil |
+| PDSR | ≥ 95% | **100,0%** (292/292) | **99,2%** (253/255) | lulus |
+| Latensi median | ≤ 2 dtk | **939 ms** | **1.108 ms** | lulus |
+| Latensi p95 | ≤ 2 dtk | **1.404 ms** (lulus) | 3.304 ms (tidak lulus) | tidak stabil |
 | Latensi minimum | — | 429 ms | 527 ms | — |
-| Bufer lokal | ±27.000 | 27.000 terpasang | idem | ✅ |
-| Integritas saat putus | tanpa kehilangan | `hilang 0` | `hilang 0` | ✅ |
-| Pemulihan bufer | ≤ 60 dtk | ~24 dtk (43 beat) | idem | ✅ |
-| Deduplikasi cloud | duplikat dikenali | 0 ts duplikat | idem | ✅ |
+| Bufer lokal | ±27.000 | 27.000 terpasang | idem | lulus |
+| Integritas saat putus | tanpa kehilangan | `hilang 0` | `hilang 0` | lulus |
+| Pemulihan bufer | ≤ 60 dtk | ~24 dtk (43 beat) | idem | lulus |
+| Deduplikasi cloud | duplikat dikenali | 0 ts duplikat | idem | lulus |
 
 ### Latensi dipecah
 
-`tunda alat` (beat TERJADI → paket ditulis ke socket) dicacah firmware dan
-**stabil di 7 pengukuran**: 887 / 880 / 879 / 878 / 876 / 870 / **869 ms**
+`tunda alat` (beat TERJADI → beat masuk ring di `publikasi()`; dengan backlog
+kosong, ring dikuras dalam ≤ 20 ms) dicacah firmware dan **stabil di 7
+pengukuran**: 887 / 880 / 879 / 878 / 876 / 870 / **869 ms**
 (maks 1.353 ms).
 
 ```
@@ -547,12 +616,11 @@ Sisi alat itu **arsitektural**: `ecg_live.h` menjalankan deteksi tiap
 Jadi **89% latensi milik alat, dan itu kadens deteksi, bukan inefisiensi.**
 Jaringan + ThingsBoard cuma ~130 ms.
 
-### ⚠️ KOREKSI: broker TIDAK lambat
+### Broker bukan sumber latensi
 
-Versi dokumen ini sebelumnya menulis *"sisa ~1 detik milik broker"* dan
-menyalahkan ThingsBoard yang berbagi laptop dengan 9 container lain. **Itu
-salah**, dan yang membantahnya satu eksperimen 60 detik
-(`scratchpad/probe_rtt.py`, publish 1/detik dari laptop ke broker yang SAMA):
+ThingsBoard berjalan di laptop yang sama dengan 9 container lain, tetapi broker
+tidak lambat. Probe 60 detik (`dashboard/probe_rtt.py`, publish 1/detik dari
+laptop ke broker yang SAMA):
 
 ```
 RTT PUBACK laptop -> broker, n=60
@@ -560,8 +628,11 @@ RTT PUBACK laptop -> broker, n=60
   > 1000 ms: 0 dari 60
 ```
 
-Broker menjawab dalam **satu milidetik**. Angka ~1 detik yang dulu kubebankan
-padanya sebetulnya galat jam bug (6), dan sisanya retransmisi WiFi di bawah.
+Broker menjawab dalam **satu milidetik**. Latensi ~1 detik di luar sisi alat yang
+muncul pada pengukuran berbasis `time()` adalah galat jam bug (6); ekor yang
+tersisa adalah retransmisi WiFi (di bawah). Pelajarannya: komponen jauh yang
+paling sulit diukur juga paling gampang disalahkan — probe langsung lebih murah
+daripada dugaan.
 
 ### Ekor p95: retransmisi TCP, dan kenapa ia tidak dikejar
 
@@ -570,25 +641,25 @@ TCP 1–2–4, tanda segmen hilang lalu dikirim ulang. Bukan broker (lihat atas)
 bukan desync (`sock.available()` = 0 byte saat timeout), dan bukan sinyal lemah
 (**RSSI −50 dBm**). Sisanya kontensi kanal WiFi rumah.
 
-Yang sudah dikerjakan dan efeknya terukur pada porsi paket ber-RTT >1 detik:
+Efek setelan firmware pada porsi paket ber-RTT > 1 detik:
 
-| Perubahan | paket lambat |
+| Setelan | paket lambat |
 |---|---|
-| awal | 23/207 = 11,1% |
+| tanpa `setNoDelay` dan tanpa `setSleep(false)` | 23/207 = 11,1% |
 | `setNoDelay(true)` (bug 5) | 18/222 = 8,1% |
-| `WiFi.setSleep(false)` | 11/217 = 5,1% |
-| dua run terakhir | 3/292 = **1,0%** / 24/255 = 9,4% |
+| `setNoDelay(true)` + `WiFi.setSleep(false)` | 11/217 = 5,1% |
+| idem, run 1 / run 2 §7c | 3/292 = **1,0%** / 24/255 = 9,4% |
 
 Angka terakhir itu **berayun 1–9% antar-run** dan itulah kenapa p95 lulus di run
 1 dan gagal di run 2. Yang mengayun bukan kode, melainkan kanal.
 
 `WiFi.setSleep(false)` **berongkos daya (~+30 mA)**. Pengukuran daya mode WiFi
-(HW-7) belum dijalankan, jadi angkanya nanti harus diambil DENGAN setelan ini.
+harus diambil DENGAN setelan ini, karena itulah konfigurasi firmware utama.
 
 **Keputusan: tidak dikejar lebih jauh.** Satu-satunya tuas firmware yang tersisa
 adalah mengizinkan lebih dari satu PUBLISH beredar (pipelining QoS-1), dan itu
 menambah pembukuan `pid → jumlah beat` plus aturan "geser ring hanya setelah ack
-tertua" ke implementasi QoS-1 yang sekarang sederhana dan terbukti — ongkos nyata
+tertua" ke implementasi QoS-1 yang sederhana dan terbukti — ongkos nyata
 untuk kejadian 1-dari-20 di jaringan bangku uji. Median lulus di dua run, PDSR
 lulus, dan `bab3.tex` menyebut targetnya **indikatif** untuk pengujian yang
 **fungsional, bukan klinis**. Kalau laporan butuh p95 yang bersih, ukur di AP
@@ -601,7 +672,8 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
 1. Kenapa `ecg_mqtt_antre_buang()` dipisah dari `ecg_mqtt_antre_intip()`, dan
    apa yang rusak kalau digabung?
 2. Alat kehilangan WiFi 2 menit lalu pulih. Berapa beat sampai di broker, dan
-   `ts`-nya menunjukkan waktu apa? (petunjuk: 64 vs 53 detik)
+   `ts`-nya menunjukkan waktu apa? Bagaimana jawabannya berubah bila alokasi
+   PSRAM gagal saat boot? (petunjuk: 27.000 vs 64 beat)
 3. Elektroda dilepas tapi `m` masih ON. Berapa banyak yang terkirim ke broker,
    dan angka mana di baris `'s'` yang bergerak?
 4. Kenapa replay tidak butuh cabang khusus untuk lolos gerbang kualitas?
@@ -617,24 +689,32 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
 |---|---|
 | `firmware/include/ecg_mqtt.h` | kontrak; bagian murni vs jaringan dipisah `#ifdef ARDUINO` |
 | `firmware/src/ecg_mqtt.cpp` | payload + ring (murni), WiFi + MQTT (board) |
-| `firmware/test/test_mqtt/test_mqtt.cpp` | 5 uji: format, batch, buffer kurang, FIFO, ring penuh |
+| `firmware/test/test_mqtt/test_mqtt.cpp` | 6 uji: format tunggal, batch array, buffer kurang, FIFO, ring penuh buang tertua, pasang kapasitas |
 | `firmware/include/wifi_secrets.example.h` | templat kredensial |
 | `dashboard/smoke_test.py` | referensi kawat MQTT + uji dedup `ts_kv` |
+| `dashboard/ukur_pipeline.py` | pengukur target §7c (PDSR, latensi dengan koreksi jam, dedup) |
+| `dashboard/probe_rtt.py` | probe RTT PUBACK laptop → broker |
 | `dashboard/README.md` | kontrak field, dan kenapa ThingsBoard |
 
-## 10. Sisa pekerjaan HW-6
+## 10. Cakupan dan batas pengujian
 
-- [x] Nyalakan di board dengan broker hidup — **selesai 19 Sep 2026**, 171 baris
-      mendarat, laju 1,60 beat/detik cocok dengan 1,58 milik HW-7
-- [x] Uji resiliensi — **lulus**, jeda maksimum 911 ms untuk outage 24 detik
-- [ ] **Ukur daya mode MQTT.** HW-7 punya tangga mode `p0`–`p4` tapi WiFi belum
-      pernah masuk pengukuran, dan radio itu beban terbesar di seluruh alat.
-      Angka daya di laporan saat ini belum mencakupnya
-- [ ] **Uji dengan sinyal tubuh** (tertahan HW-5: header AD8232 belum disolder).
-      Dua hal yang cuma bisa diuji di sana: (a) apakah `AMBANG_AYUN` 60 memisahkan
-      elektroda lepas dari sinyal tubuh lemah — replay ~2700 counts terlalu jauh di
-      atas ambang; (b) **gerbang kalibrasi penuh** (10 menit + RR tenang 30 detik),
-      yang tidak bisa dilewati replay karena record 208 memang aritmik (§3.1b)
-- [ ] Ukur ulang latensi p95 di broker yang tidak bersaing beban dengan 9 container
-      lain, atau turunkan `ECG_LIVE_TIAP` (gate point — lihat §7c)
-- [ ] Widget dashboard untuk `ecg_snippet` (datanya sudah masuk, belum digambar)
+- **Daya.** Pengukuran daya per mode (HW-7, tangga `p0`–`p4`) tidak mencakup
+  mode WiFi/MQTT, padahal radio adalah beban terbesar alat. Angka daya mode
+  WiFi harus diambil dengan `WiFi.setSleep(false)` aktif (§7c).
+- **Sinyal tubuh.** Seluruh angka di dokumen ini diukur dengan replay. Dua hal
+  hanya dapat diuji dengan sinyal tubuh: (a) apakah `AMBANG_AYUN` 60 memisahkan
+  elektroda lepas dari sinyal tubuh lemah — replay ~2700 counts terlalu jauh di
+  atas ambang; (b) **gerbang kalibrasi penuh** (10 menit + RR tenang 30 detik),
+  yang dilewati replay karena record 208 memang aritmik (§3.1b).
+- **Latensi p95.** Ekor p95 bergantung pada kanal WiFi (§7c). Pengukuran ulang
+  yang bersih memerlukan AP yang tidak padat dan laporan n run. Kadens deteksi
+  firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik); env
+  `hwtest` memakai `-D ECG_LIVE_TIAP=90` (deteksi tiap 250 ms). Mengubah bawaan
+  firmware utama adalah gate point.
+- **Dashboard.** Field `ecg_snippet` diterima dan tersimpan di ThingsBoard,
+  tetapi `dashboard/dashboard_ekg.json` tidak memiliki widget yang
+  menggambarkannya.
+
+Uji fungsional yang sudah tercakup: telemetri mendarat di broker (171 baris,
+laju 1,60 beat/detik, sesuai 1,58 beat/detik replay) dan uji resiliensi (jeda
+maksimum 911 ms untuk outage 24 detik), §7.

@@ -1,10 +1,10 @@
-# dashboard/ — export JSON rule chain & widget ThingsBoard CE.
+# dashboard/ — ThingsBoard CE dan pengukuran pipeline
 
 Broker MQTT, rule engine, dan dashboard web dipegang satu platform: **ThingsBoard
 Community Edition**. Tidak ada Mosquitto, tidak ada backend tambahan, tidak ada
-web app sendiri. Alasannya ada di `bab3.tex` §deduplikasi — klaim "dedup tanpa
-komponen tambahan" itu bergantung pada perilaku `ts_kv` ThingsBoard; ganti broker
-berarti klaim di proposal ikut gugur.
+web app sendiri. Alasannya ada di `bab3.tex` §deduplikasi: klaim "dedup tanpa
+komponen tambahan" bergantung pada perilaku `ts_kv` ThingsBoard, sehingga
+penggantian broker menggugurkan klaim tersebut.
 
 ## Jalankan
 
@@ -20,10 +20,11 @@ UI di <http://localhost:8080>, login `tenant@thingsboard.org` / `tenant`.
 
 Berhenti: `docker compose stop` (data tetap). Hapus total: `docker compose down -v`.
 
-Kenapa self-host dan bukan `demo.thingsboard.io`: registrasi demo sudah
-dibelokkan ke ThingsBoard Cloud yang retensi telemetri-nya dibatasi paket, dan
-uji resiliensi butuh memutus broker secara terkendali tanpa ikut memutus koneksi
-laptop. Pindah ke VPS nanti cuma ganti hostname di firmware.
+ThingsBoard di-self-host, bukan memakai `demo.thingsboard.io`, karena registrasi
+demo diarahkan ke ThingsBoard Cloud yang retensi telemetrinya dibatasi paket, dan
+uji resiliensi membutuhkan pemutusan broker secara terkendali tanpa memutus
+koneksi laptop. Pemindahan ke VPS hanya memerlukan penggantian `TB_HOST` di
+firmware.
 
 ## Kontrak dengan firmware
 
@@ -41,10 +42,10 @@ Field di dalam `values` ikut Tabel struktur payload di `bab3.tex`
 §\ref{subsubsec:payload-json} — `bpm`, `rr_interval_ms`, `label`, `label_str`,
 `confidence`, `signal_quality`, `ecg_snippet`.
 
-Catatan: docs ThingsBoard menyarankan camelCase untuk nama key (mempermudah
-skrip Rule Engine). Proposal sudah terlanjur menulis snake_case dan snake_case
-tetap jalan normal, jadi dibiarkan. Kalau nanti ada node skrip yang ditulis
-tangan, ingat bedanya.
+Catatan: dokumentasi ThingsBoard menyarankan camelCase untuk nama key
+(mempermudah skrip Rule Engine). Payload memakai snake_case sesuai Tabel payload
+Bab 3 dan berjalan normal; node skrip Rule Engine yang ditulis tangan harus
+memperhitungkan perbedaan ini.
 
 ## Mengukur target pengujian pipeline
 
@@ -61,24 +62,24 @@ batas itu = ongkos alat ukurnya sendiri, dan ikut dicetak.
 
 Skrip menyalakan replay (`y`) dan melewati gerbang kalibrasi (`k`) sendiri, jadi
 tidak butuh elektroda. Hasil terukur ada di
-`../model/docs/mqtt-walkthrough.md` §7c.
+[`mqtt-walkthrough.md`](../model/docs/mqtt-walkthrough.md) §7c.
 
-`smoke_test.py` menembak
+`smoke_test.py` menguji
 klaim yang paling rapuh: publikasi ulang dengan `ts` identik harus meng-UPSERT
-baris, bukan menambah. Kalau assert itu jatuh, kalimat dedup di Bab 3 salah.
+baris, bukan menambah. Bila assert itu gagal, klaim dedup di Bab 3 tidak berlaku.
 
 ## Dashboard
 
 `provision_dashboard.py` membangun dashboard "Pemantauan EKG" lewat REST lalu
 mengekspor hasilnya ke `dashboard_ekg.json`. Dibangun dengan skrip, bukan diklik
-di UI, supaya bisa diulang setelah `docker compose down -v` dan supaya diff-nya
-kelihatan di git. Skrip idempoten: dashboard lama dengan judul sama dihapus dulu.
+di UI, agar dapat diulang setelah `docker compose down -v` dan agar diff-nya
+terlihat di git. Skrip idempoten: dashboard dengan judul sama dihapus lebih dulu.
 
 Tujuh widget, semuanya bawaan ThingsBoard, tidak ada widget custom dan tidak ada
 JS yang ditulis tangan: kartu BPM, kartu klasifikasi, kartu kualitas sinyal,
 kartu confidence, chart BPM, chart interval R-R, dan tabel riwayat.
 
-Dua jebakan yang sudah kena dan sudah dikunci di skrip:
+Dua jebakan yang ditangani skrip:
 
 - **`typeFullFqn` wajib di-prefix scope**, `"system.time_series_chart"`, bukan
   `"time_series_chart"`. Tanpa prefix, REST tetap menyimpan dashboard dengan
@@ -93,18 +94,18 @@ Dua jebakan yang sudah kena dan sudah dikunci di skrip:
 BPM dan interval R-R sengaja dipisah jadi dua chart. Digabung dalam satu chart,
 BPM (60-100) gepeng menempel di dasar karena RR (600-1000) mendominasi sumbu,
 dan konfigurasi sumbu-kanan (`yAxisId`) tidak menempel lewat REST. Dua chart
-auto-scale sendiri, nol konfigurasi yang bisa salah.
+melakukan auto-scale sendiri tanpa konfigurasi sumbu tambahan.
 
 ## Rule chain
 
 Tidak ada. Node **Save Timeseries** di Root Rule Chain bawaan sudah menerima
 format array multiple timestamped key-value apa adanya, memakai `ts` tiap
-rekaman sebagai event time. Folder ini baru akan berisi export JSON begitu ada
-alarm rule (notifikasi dini) atau dashboard yang perlu di-versi.
+rekaman sebagai event time. Export rule chain baru diperlukan bila ditambahkan
+alarm rule (notifikasi dini).
 
-## Multi-pasien (belum dikerjakan)
+## Multi-pasien (di luar lingkup MVP)
 
-MVP: satu device, satu pasien. Yang perlu diketahui sebelum itu berubah —
+MVP memakai satu device untuk satu pasien. Catatan desain untuk perluasan:
 
 ThingsBoard menyimpan tiap baris `ts_kv` milik **entity**, dan entity-nya adalah
 device. Jadi kalau satu alat dipakai bergantian oleh beberapa pasien, identitas
@@ -121,6 +122,5 @@ pasien harus ikut pindah bersama datanya. Dua jalan, ongkosnya beda jauh:
   kapasitas ring buffer PSRAM turun sekitar 7% (±27.000 → ±25.000 rekaman) —
   masih jauh di atas target 4 jam.
 
-Jalan kedua yang benar, dan cuma satu field. Belum ditambahkan karena MVP tidak
-memakainya dan Tabel payload di Bab 3 sudah dicetak. Tambahkan saat ada pasien
-kedua, bukan sebelumnya.
+Jalan kedua yang dipilih untuk perluasan, dan cukup satu field. Field ini tidak
+ada pada MVP karena hanya ada satu pasien dan Tabel payload Bab 3 tidak memuatnya.

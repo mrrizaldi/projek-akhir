@@ -7,11 +7,11 @@ dari VAL (§7 aturan 4). Kolom "DS2-opt" ada untuk mengukur berapa yang hilang,
 bukan untuk dipakai.
 
 Membandingkan tiga set kalibrasi yang semuanya SAH (bukan train, bukan DS2):
-    VAL sekarang        5 pasien mitdb
+    VAL (bawaan)        5 pasien mitdb
     + svdb held-out    25 pasien
     + incartdb held-out 44 pasien
 
-Catatan jujur: skrip ini memuat model yang tersimpan, dan ablasi.py cuma
+Keterbatasan: skrip ini memuat model yang tersimpan, dan ablasi.py cuma
 menyimpan seed utama. Jadi hasilnya SATU seed — dan masalah sebenarnya
 (variansi threshold antar-seed) butuh tiga seed untuk dibuktikan.
 """

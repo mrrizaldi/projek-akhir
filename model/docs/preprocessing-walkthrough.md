@@ -1,5 +1,9 @@
 # Walkthrough `src/preprocessing.py` — Fase 1
 
+> **Ruang lingkup:** bandpass kausal, detektor Pan-Tompkins, segmentasi per detak, dan normalisasi z-score per window.
+> **Kode terkait:** `src/preprocessing.py`, `config.py` (`BANDPASS_*`, `PT_*`, `WIN_PRE`, `WIN_POST`), `scripts/plot_fase1.py`, `scripts/plot_fase1_segment.py`, `scripts/bench_pantompkins.py`, `scripts/plot_walkthrough.py`
+> **Prasyarat:** [`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md)
+
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
 `PRD_Model_Aritmia_TinyML.pdf` hal. 7–9. Lanjutan dari
 [`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md) (Fase 0). Semua angka & gambar di sini dari
@@ -29,7 +33,7 @@ cd model
         │  JALUR TRAINING    ├──► segment_beats(filtered, r_locations)   ◄── R dari anotasi
         │                    │            │
         │                    │            ▼
-        │                    │      zscore_per_window(...)  ──► (N, 250) float32 → Fase 2
+        │                    │      zscore_per_window(...)  ──► (N, 256) float32 → Fase 2
         │                    │
         └──── JALUR BENCHMARK└──► pan_tompkins_detect(filtered)  ──► indeks R hasil deteksi
                                         (dibandingkan dengan anotasi, TIDAK masuk training)
@@ -37,8 +41,9 @@ cd model
 
 Kenapa dipisah: segmentasi training pakai R-peak **anotasi kardiolog** supaya
 error detektor tidak mencemari label model (keputusan terkunci, PRD Fase 2).
-Pan-Tompkins ada di file yang sama karena nanti dia yang jalan di ESP32 —
-kita cuma perlu tahu **seberapa akurat dia** sebelum ditulis ulang di C.
+Pan-Tompkins ada di file yang sama karena dialah detektor yang berjalan di
+ESP32 (port C: `ecg_detect_r`). Versi Python menjadi acuan **seberapa akurat
+dia** dan sumber golden reference untuk port C.
 
 ![Pipeline 4 langkah](../artifacts/metrics/walkthrough_pipeline_100.png)
 
@@ -83,8 +88,8 @@ kaskade biquad:
 
 $$H(z) = \prod_{k=1}^{4} \frac{b_{0k} + b_{1k}z^{-1} + b_{2k}z^{-2}}{1 + a_{1k}z^{-1} + a_{2k}z^{-2}}$$
 
-Tiap section cuma orde 2 → numerik aman. Bonus: format ini persis yang nanti
-ditulis ulang di firmware C sebagai 4 biquad berantai.
+Tiap section cuma orde 2 → numerik aman. Bonus: format ini persis yang dipakai
+firmware C sebagai 4 biquad berantai.
 
 ---
 
@@ -249,11 +254,13 @@ jumlah group delay bandpass 5–15 Hz + 2 sampel derivative + $\approx N/2 = 27$
 sampel MWI. Konsekuensinya:
 
 - Untuk benchmark, toleransi $\pm 150$ ms (`bench_pantompkins.py`) menutupi delay ini.
-- Kalau nanti Pan-Tompkins dipakai untuk segmentasi on-device, **delay harus
-  dikompensasi** (geser indeks ke kiri), atau window-nya bergeser sistematis dari
-  yang dilihat model saat training.
+- Segmentasi on-device memakai Pan-Tompkins, jadi **delay ini dikompensasi**
+  (indeks digeser ke kiri sebesar `PT_DETECTOR_OFFSET = 38`, median DS1) sebelum
+  window dipotong. Tanpa kompensasi, window bergeser sistematis dari yang dilihat
+  model saat training. Rinciannya:
+  [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md).
 
-Skor record 100 hari ini: `TP=2263  FN=10  FP=9` → sensitivity 0.996,
+Skor record 100: `TP=2263  FN=10  FP=9` → sensitivity 0.996,
 precision 0.996.
 
 ---
@@ -261,34 +268,42 @@ precision 0.996.
 ## 4. `segment_beats()` — potong per detak
 
 ```python
-start, end = r - WIN_PRE, r + WIN_POST      # 90 sebelum, 160 sesudah
+start, end = r - WIN_PRE, r + WIN_POST      # 128 sebelum, 128 sesudah
 if start < 0 or end > len(signal): continue
 ```
 
-> **Diperbarui 18 Sep 2026:** window sekarang $[R-128,\ R+128)$ = **256 sampel
-> = 711 ms**, R di indeks 128. Angka 90/160 di bawah ini dipertahankan karena
-> penjelasannya tetap berlaku — yang berubah nilainya, bukan alasannya. Kenapa
-> berubah: [`jitter-walkthrough.md`](jitter-walkthrough.md) §5-6.
+Tiap beat jadi window $[R-128,\ R+128)$ = **256 sampel = 711 ms**, dengan
+R-peak anotasi selalu di indeks 128 (pada sinyal hasil filter, puncaknya tampak
+di indeks 132 karena group delay +4 sampel). Alignment tetap ini penting: CNN 1-D
+belajar pola relatif posisi, jadi kalau R-peak berpindah-pindah tiap sampel,
+model harus buang kapasitas untuk belajar invariansi geser.
 
-Tiap beat jadi window $[R-90,\ R+160)$ = **250 sampel = 694 ms**, dengan R-peak
-selalu di indeks 90. Alignment tetap ini penting: CNN 1-D belajar pola relatif
-posisi, jadi kalau R-peak berpindah-pindah tiap sampel, model harus buang
-kapasitas untuk belajar invariansi geser.
-
-Pembagian asimetris (90 sebelum, 160 sesudah) mengikuti anatomi:
+Cakupan window terhadap anatomi satu detak:
 
 | Bagian | Perkiraan durasi | Masuk window? |
 |---|---|---|
-| Gelombang P + interval PR | ~200 ms | ya (90 sampel = 250 ms) |
+| Garis dasar + gelombang P + interval PR | ~200 ms | ya (128 sampel = 356 ms) |
 | QRS | 80–120 ms | ya |
-| Segmen ST + gelombang T | ~300–400 ms | ya (160 sampel = 444 ms) |
+| Segmen ST + gelombang T | ~300–400 ms | sebagian besar (128 sampel = 356 ms) |
 
-Gelombang T harus ikut karena morfologinya membedakan PVC dari beat normal.
+Gelombang T perlu ikut karena morfologinya membedakan PVC dari beat normal.
+Sisi kiri sengaja sama panjang dengan sisi kanan: beat supraventrikular dibedakan
+oleh gelombang P dan interval PR, dan model butuh P **beserta garis dasar
+sebelumnya** untuk mengenalinya sebagai P.
+
+**Alternatif yang tidak dipakai.** Window asimetris 90/160 (250 sampel), yang
+cakupan T-nya lebih panjang, kalah dalam ablasi 3 seed: F1 DS2 0,5660 vs 0,6911
+untuk 128/128. Varian 112/144 (juga 256 sampel, juga kelipatan 8, cakupan T lebih
+panjang) setara 90/160, jadi yang menentukan adalah **konteks 128 sampel sebelum
+R**, bukan panjang window. Recall S naik monoton dengan `WIN_PRE` (90 → 0,268,
+112 → 0,369, 128 → 0,42–0,49), dengan harga recall F turun (0,308 → 0,15–0,20)
+karena cakupan T dipangkas. Data lengkap:
+[`jitter-walkthrough.md`](jitter-walkthrough.md) §5–6.
 
 Guard `start < 0 or end > len(signal)` membuang beat di tepi rekaman. Record 100:
 **2 dari 2273 beat terbuang** (indeks 77 di awal, 649991 di akhir dari 650000
 sampel) → tersisa 2271 window. Cek `len(window) != WIN_LEN` setelahnya redundan
-secara logika, tapi murah dan bikin kontrak `(N, 250)` tidak bisa bohong.
+secara logika, tapi murah dan bikin kontrak `(N, 256)` tidak bisa bohong.
 
 Return `np.empty((0, WIN_LEN))` saat kosong, bukan `[]` — supaya `.shape[1]` di
 hilir tetap valid dan tidak perlu cek None.
@@ -301,7 +316,7 @@ $$z_i[n] = \frac{x_i[n] - \mu_i}{\sigma_i + \varepsilon}, \qquad
 \mu_i = \frac{1}{L}\sum_{n} x_i[n], \quad
 \sigma_i = \sqrt{\frac{1}{L}\sum_n (x_i[n]-\mu_i)^2}$$
 
-dengan $L = 250$, $\varepsilon = 10^{-8}$.
+dengan $L = 256$, $\varepsilon = 10^{-8}$.
 
 ```python
 mean = windows.mean(axis=1, keepdims=True)   # (N, 1) — per window, bukan global
@@ -327,7 +342,7 @@ mV ke satuan "berapa simpangan baku". Verifikasi: `z.mean() = -0.0000`,
 `z.std() = 1.0000`.
 
 Cast `float32` di akhir: setengah memori `float64` dan format yang sama dengan
-input TFLite nanti.
+input TFLite.
 
 ---
 
@@ -351,7 +366,7 @@ delay deteksi median = 40 sampel = 111 ms
 2. Kenapa `_pt_derivative` boleh digeser 2 sampel tanpa merusak deteksi, tapi
    `filtfilt` tidak boleh dipakai sama sekali? (Petunjuk: konstan vs
    bergantung-masa-depan.)
-3. `WIN_POST` dinaikkan 160 → 200. Berapa beat yang terbuang di record 100, dan
+3. `WIN_POST` dinaikkan 128 → 200. Berapa beat yang terbuang di record 100, dan
    bagian gelombang apa yang mulai ikut tercakup?
 4. Kalau `zscore_per_window` diganti normalisasi global (satu $\mu,\sigma$ untuk
    semua window), metrik mana yang naik palsu saat evaluasi inter-patient?

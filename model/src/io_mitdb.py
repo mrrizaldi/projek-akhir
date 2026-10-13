@@ -30,8 +30,8 @@ def pilih_lead(record_id: str, sig_name: list, leads) -> int:
 def load_record(record_id: str, raw_dir: str = None, db: str = "mitdb"):
     """Baca satu record PhysioNet beranotasi-beat, diseragamkan ke FS.
 
-    db="mitdb" (default) berperilaku PERSIS seperti sebelum Fase A: fs sudah 360
-    jadi resample_to_fs() melewatkannya, dan lead-nya tetap CHANNEL = "MLII".
+    db="mitdb" (default): fs sudah 360 jadi resample_to_fs() melewatkannya, dan
+    lead-nya CHANNEL = "MLII".
 
     Returns:
         signal (np.ndarray, [N] float32): satu kanal, laju FS, belum difilter.
@@ -43,7 +43,6 @@ def load_record(record_id: str, raw_dir: str = None, db: str = "mitdb"):
         KeyError: db tak ada di DATASETS.
         ValueError: record tidak punya satu pun lead yang diminta, atau fs-nya
             tidak sama dengan yang dijanjikan DATASETS[db]["fs"].
-        NotImplementedError: db butuh resample tapi resample_to_fs masih stub.
     """
     spec = DATASETS[db]
     path = os.path.join(_raw_dir(db) if raw_dir is None else raw_dir, str(record_id))

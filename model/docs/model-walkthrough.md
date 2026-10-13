@@ -1,5 +1,9 @@
 # Walkthrough `src/model.py` — Fase 4
 
+> **Ruang lingkup:** arsitektur CNN 1-D hybrid dua input (morfologi + ritme) untuk klasifikasi biner Normal/Aritmia, beserta varian deploy-nya.
+> **Kode terkait:** `src/model.py`, `config.py` (`CONV_FILTERS`, `CONV_KERNELS`, `POOL_SIZE`, `DENSE_UNITS`, `DROPOUT_RATE`, `WIN_LEN`, `N_RR_FEATURES`), `tests/test_model.py`
+> **Prasyarat:** [`dataset-walkthrough.md`](dataset-walkthrough.md)
+
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
 `PRD_Model_Aritmia_TinyML.pdf` hal. 12–13. Lanjutan dari
 [`dataset-walkthrough.md`](dataset-walkthrough.md) (Fase 3).
@@ -20,7 +24,7 @@ build_hybrid_model().summary()
 ## 0. Peta besar — dua cabang, satu keputusan
 
 ```
- X_morph [N,250,1]                          X_rr [N,3]
+ X_morph [N,256,1]                          X_rr [N,3]
         │                                        │
    Conv1D(16,7) → MaxPool                        │
    Conv1D(32,5) → MaxPool                        │   RR_prev
@@ -79,13 +83,13 @@ Perjalanan bentuknya:
 
 | Tahap | Output | Param | Cakupan 1 neuron (reseptif) |
 |---|---|---|---|
-| Input | (250, 1) | — | 1 sampel = 2,8 ms |
-| Conv1D(16, 7) | (250, 16) | 128 | 7 sampel ≈ 19 ms |
-| MaxPool 2 | (125, 16) | 0 | 39 ms |
-| Conv1D(32, 5) | (125, 32) | 2.592 | ~19 sampel asli ≈ 53 ms |
-| MaxPool 2 | (62, 32) | 0 | 106 ms |
-| Conv1D(32, 3) | (62, 32) | 3.104 | ~35 sampel asli ≈ 97 ms |
-| MaxPool 2 | (31, 32) | 0 | ~194 ms |
+| Input | (256, 1) | — | 1 sampel = 2,8 ms |
+| Conv1D(16, 7) | (256, 16) | 128 | 7 sampel ≈ 19 ms |
+| MaxPool 2 | (128, 16) | 0 | 39 ms |
+| Conv1D(32, 5) | (128, 32) | 2.592 | ~19 sampel asli ≈ 53 ms |
+| MaxPool 2 | (64, 32) | 0 | 106 ms |
+| Conv1D(32, 3) | (64, 32) | 3.104 | ~35 sampel asli ≈ 97 ms |
+| MaxPool 2 | (32, 32) | 0 | ~194 ms |
 | GAP | (32,) | 0 | seluruh window |
 
 **Kernel mengerucut 7 → 5 → 3** mengikuti logika ini: di awal, satu sampel cuma
@@ -99,29 +103,30 @@ dengan keragaman pola. Blok ketiga tidak naik ke 64: itu akan menambah ~6.000
 param sendirian dan melanggar anggaran.
 
 `padding="same"` menjaga panjang tetap sebelum pooling, jadi aritmatika
-bentuknya bisa diprediksi: 250 → 125 → 62 → 31 (pembagian 2 yang membulat ke
-bawah). Nanti saat ditulis di C, angka-angka ini yang jadi ukuran buffer.
+bentuknya bisa diprediksi: 256 → 128 → 64 → 32, habis dibagi 2 di tiap tahap
+tanpa pembulatan. Angka-angka ini juga menentukan ukuran tensor antara di tensor
+arena TFLM pada firmware.
 
 ---
 
 ## 3. `GlobalAveragePooling1D` — keputusan yang menyelamatkan anggaran
 
-Setelah blok terakhir, tensor berbentuk `(31, 32)` = 992 angka. Dua cara
+Setelah blok terakhir, tensor berbentuk `(32, 32)` = 1.024 angka. Dua cara
 memampatkannya jadi vektor:
 
 | | `Flatten` | **`GlobalAveragePooling1D`** |
 |---|---|---|
-| Output | 992-dim | 32-dim |
-| Param `Dense(16)` berikutnya | 992×16 + 16 = **15.888** | 35×16 + 16 = **576** |
-| Total model | ~21.700 | **6.417** |
-| INT8 di flash | ~22 KB | **< 20 KB** ✓ |
+| Output | 1.024-dim | 32-dim |
+| Param `Dense(16)` berikutnya | (1.024+3)×16 + 16 = **16.448** | 35×16 + 16 = **576** |
+| Total model | ~22.300 | **6.417** |
+| INT8 di flash | bobot saja ~22 KB | **22,94 KB** model utuh, di bawah batas 25 KB |
 | Sifat | hafal *di mana* pola muncul | tahan geser: *apakah* pola muncul |
 
 GAP merata-ratakan tiap feature map jadi satu angka: "seberapa kuat filter ini
 menyala di sepanjang window". Untuk EKG itu justru cocok — R-peak sudah selalu
-di indeks ~94 berkat segmentasi Fase 1, jadi model tidak perlu menghafal posisi.
+di indeks ~132 berkat segmentasi Fase 1, jadi model tidak perlu menghafal posisi.
 
-Ini alasan tunggal terbesar model bisa muat di ESP32. Kalau suatu saat
+Ini alasan tunggal terbesar model bisa muat di ESP32. Kalau
 `count_params()` melompat ke puluhan ribu, tersangka pertama: `Flatten`
 menyelinap masuk.
 
@@ -143,17 +148,20 @@ sangat mungkin PVC". Sebelum lapisan ini, kedua cabang tidak saling tahu.
 
 $$\sigma(z) = \frac{1}{1 + e^{-z}}$$
 
-Dipasangkan dengan `binary_crossentropy` (Fase 5). Threshold 0,5 adalah default
-yang **dikalibrasi di DS1/val, bukan DS2** — dan menurunkannya adalah cara sah
-menaikkan sensitivity nanti.
+Dipasangkan dengan `binary_crossentropy` (Fase 5). Titik potong probabilitas
+tidak ditetapkan di model: threshold **dikalibrasi di VAL (bagian DS1), bukan
+DS2**, dan nilai terkuncinya `THRESHOLD = 0,80` (lihat
+[`evaluate-walkthrough.md`](evaluate-walkthrough.md)). Menggeser threshold
+adalah cara sah menukar sensitivity dengan precision.
 
 ### Keputusan: tanpa dropout
 
 `DROPOUT_RATE = 0.0` di `config.py`. Alasannya rasio data:
 
-$$\frac{50.965\ \text{sampel latih}}{6.417\ \text{parameter}} \approx 8$$
+$$\frac{40.619\ \text{beat latih unik}}{6.417\ \text{parameter}} \approx 6$$
 
-Model sekecil ini dengan data sebanyak itu lebih mungkin **underfit** daripada
+(121.857 baris latih bila salinan jitter dihitung, ≈ 19 per parameter.) Model
+sekecil ini dengan data sebanyak itu lebih mungkin **underfit** daripada
 overfit. Dropout 0,3 di lapisan 16-unit berarti mematikan ~5 neuron tiap step —
 agresif untuk satu-satunya tempat morfologi dan ritme bertemu, dan berisiko
 mengganggu kelas minoritas yang cuma 10%.
@@ -165,9 +173,10 @@ if dropout_rate > 0:
     merged = layers.Dropout(dropout_rate)(merged)
 ```
 
-Jadi `build_hybrid_model(dropout_rate=0.3)` langsung bisa dipakai kalau kurva
-Fase 5 menunjukkan val recall menyimpang dari train. Keputusan berdasar bukti,
-bukan berdasar kebiasaan.
+Jadi `build_hybrid_model(dropout_rate=0.3)` langsung bisa dipakai untuk
+menguji dropout. Pengujian di Fase 5 menunjukkan dropout 0,2/0,3/0,5 menurunkan
+val recall dengan AUC nyaris sama, sehingga nilai 0,0 dipertahankan (lihat
+[`train-walkthrough.md`](train-walkthrough.md) §6).
 
 ---
 
@@ -178,8 +187,8 @@ Total params: 6,417 (25.07 KB)
 ```
 
 Rinciannya: 128 + 2.592 + 3.104 + 576 + 17. Cocok dengan target PRD ~6.000.
-25 KB itu float32; INT8 nanti ≈ 6,4 KB bobot + overhead runtime → target < 20 KB
-masih longgar.
+Jumlah parameter tidak bergantung panjang window karena GAP. 25 KB itu float32;
+hasil INT8 Fase 7 (varian deploy) 22,94 KB, di bawah batas `MAX_MODEL_KB = 25`.
 
 Empat test mengunci kontraknya (`tests/test_model.py`):
 
@@ -193,7 +202,7 @@ Empat test mengunci kontraknya (`tests/test_model.py`):
 Yang terakhir paling berharga dan paling gampang dilupakan: ubah **hanya**
 `X_rr`, morfologi dibiarkan nol, output harus berubah. Kalau cabang RR
 tak tersambung, model tetap latih mulus, akurasi tetap masuk akal, dan tidak
-ada satu pun error — persis jenis bug yang baru ketahuan saat recall APC
+ada satu pun error — jenis bug yang tidak terlihat sampai recall APC
 mengecewakan di Fase 6.
 
 ---
@@ -210,8 +219,8 @@ runtime kecil dengan benar". Lihat [`firmware-walkthrough`](firmware-walkthrough
 
 1. `padding="same"` diganti `"valid"`. Panjang tiap tahap jadi berapa, dan
    kenapa `count_params()` **tidak** berubah?
-2. Blok Conv terakhir dinaikkan 32 → 64 filter. Berapa param totalnya sekarang,
-   dan apakah masih < 20 KB setelah INT8?
+2. Blok Conv terakhir dinaikkan 32 → 64 filter. Berapa param totalnya, dan
+   apakah masih < 25 KB setelah INT8?
 3. GAP diganti `GlobalMaxPooling1D`. Apa yang berubah secara makna untuk sinyal
    EKG yang sudah ter-z-score?
 4. Cabang RR dihapus (model cuma morfologi). Kelas aritmia mana yang paling
@@ -221,7 +230,7 @@ runtime kecil dengan benar". Lihat [`firmware-walkthrough`](firmware-walkthrough
 
 | Perintah | Melihat apa |
 |---|---|
-| `make test` | 28 test — 4 di antaranya mengunci arsitektur Fase 4 |
+| `make test` | Seluruh test; 4 test di `tests/test_model.py` mengunci arsitektur Fase 4 |
 | `python -c "...build_hybrid_model().summary()"` | Tabel layer + `count_params()` |
 
 ---

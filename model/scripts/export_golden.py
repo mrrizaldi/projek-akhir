@@ -7,8 +7,8 @@ Menghasilkan DUA header:
     firmware/test/golden_ref.h       sinyal mentah + hasil tiap tahap (uji)
 
 Kode C wajib menghasilkan angka yang sama dari sinyal mentah yang sama.
-Dibuat SEBELUM kode C ditulis — kalau dibuat sesudah, toleransinya cenderung
-disesuaikan supaya lolos, dan itu bukan verifikasi.
+Vektor uji ditetapkan lebih dulu daripada kode C: toleransi yang ditetapkan
+sesudah kode ada cenderung disesuaikan supaya lolos, dan itu bukan verifikasi.
 
 Record 208 (DS1), 5 detik pertama: memuat beat N, F, dan V sekaligus.
 Filter kausal → memfilter potongan 1800 sampel identik dengan memfilter sinyal

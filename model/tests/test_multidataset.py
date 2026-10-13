@@ -1,4 +1,4 @@
-"""Assert DoD Fase A (19 Sep 2026) — penggabungan mitdb + svdb + incartdb.
+"""Assert DoD Fase A — penggabungan mitdb + svdb + incartdb.
 
     make test        (atau: pytest tests/test_multidataset.py -q)
 
@@ -174,7 +174,7 @@ def test_resample_mitdb_dilewati():
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_resample_kontrak(db):
-    """Sebelum diisi: NotImplementedError. Sesudah: fs & posisi R harus benar."""
+    """Hasil resample: fs & posisi R harus benar, durasi kekal."""
     if not _ada(db):
         pytest.skip(f"{db} belum di-download")
     from src.io_mitdb import load_record
@@ -233,8 +233,8 @@ def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
     """Fase A tidak boleh mengubah SATU angka pun di mitdb.
 
     Dipilih record DS2 (tak pernah dijitter) supaya deterministik tanpa harus
-    memutar ulang urutan rng. Cek penuh 44/44 record sudah dijalankan manual
-    19 Sep — hasilnya 44 identik, 0 berubah (plan §3).
+    memutar ulang urutan rng. Cek penuh 44/44 record (manual, 19 Sep 2026):
+    44 identik, 0 berubah (plan §3).
     """
     npz = os.path.join(config.PER_RECORD_DIR, f"{rec}.npz")
     if not os.path.exists(npz):
@@ -257,7 +257,7 @@ def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
     h = build_split_multi()
     assert "train" in h and "ds2" in h
 
-    # DS2 di split gabungan HARUS identik dengan test.npz jalur lama.
+    # DS2 di split gabungan HARUS identik dengan test.npz jalur mitdb-only.
     _, test_lama = build_split()
     for k in ("X_morph", "X_rr", "y", "records"):
         assert np.array_equal(h["ds2"][k], test_lama[k]), f"ds2 {k} bergeser"

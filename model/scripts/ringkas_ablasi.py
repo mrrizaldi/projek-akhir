@@ -9,7 +9,7 @@ Aturan §7 (docs/arsip/2026-09-19-fitur-design.md) dipakai apa adanya:
   * dilaporkan rerata DAN setengah-rentang, bukan angka tunggal
   * |delta| < AMBANG F1 BUKAN sinyal
 
-Dipakai supaya vonis ablasi tidak lagi dihitung tangan tiap kali — kesalahan
+Dipakai supaya vonis ablasi tidak dihitung tangan tiap kali — kesalahan
 paling mahal di repo ini bukan yang crash, tapi yang menghasilkan angka yang
 kelihatan bagus.
 """

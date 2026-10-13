@@ -1,11 +1,14 @@
 # Walkthrough jitter — ketahanan terhadap error segmentasi
 
+> **Ruang lingkup:** mengukur error posisi R-peak detektor, mengukur dampaknya pada model, lalu melatih model yang tahan terhadapnya (augmentasi jitter) dan memilih ukuran window lewat ablasi.
+> **Kode terkait:** `scripts/ukur_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_SALINAN`, `USE_HOS`)
+> **Prasyarat:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Fase 6b)
+
 Fase 6c, di luar PRD. Adaptasi Dias et al. 2021 (*Arrhythmia classification from
 single-lead ECG signals using the inter-patient paradigm*, CMPB 202:105948,
 doi:10.1016/j.cmpb.2021.105948), bagian yang dia ablasi sendiri.
-
-Lanjutan dari [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md),
-yang menemukan masalahnya. Dokumen ini mengukur dan memperbaikinya.
+`segmentasi-deteksi-walkthrough.md` menemukan masalahnya; dokumen ini mengukur
+dan memperbaikinya.
 
 ---
 
@@ -42,13 +45,12 @@ Fase 2 memotong window dari `r` **anotasi kardiolog**. Itu keputusan yang benar
 dan tetap benar: jalur training harus bersih dari error detektor, kalau tidak
 kita tidak pernah tahu yang rusak itu modelnya atau detektornya.
 
-Tapi keputusan itu punya konsekuensi yang belum pernah dibayar. Di alat, tidak
-ada kardiolog. Yang ada `ecg_detect_r` → `ecg_align_r`, dan hasilnya meleset.
+Tapi keputusan itu punya konsekuensi. Di alat, tidak ada kardiolog. Yang ada `ecg_detect_r` → `ecg_align_r`, dan hasilnya meleset.
 `segmentasi-deteksi-walkthrough.md` §2 sudah mencatat betapa pekanya model ini:
 **geser 4 sampel (11 ms) saja, precision jatuh 0,479 → 0,124.**
 
-Jadi metrik Fase 6 itu batas atas, bukan ramalan. Yang belum ada: berapa jauh
-kenyataan dari batas atas itu.
+Jadi metrik yang diukur dengan anotasi adalah batas atas, bukan ramalan.
+Pertanyaannya: berapa jauh kenyataan dari batas atas itu.
 
 Dias 2021 mengalami persoalan yang sama dan menyelesaikannya dengan satu ide
 sederhana: **kalau posisi R di alat meleset, rusak saja posisi R di data latih,
@@ -203,7 +205,8 @@ satu sweep memakan puluhan menit.
 
 ### Hasil: model kita jauh lebih rapuh dari model paper
 
-Model Fase 5, threshold terkunci 0,35, DS2:
+Model baseline (window 90/160, tanpa augmentasi), threshold 0,35 yang
+dikalibrasi di VAL bersih, DS2:
 
 | jitter | recall | precision | F1 | AUC | recall S | recall V |
 |---|---|---|---|---|---|---|
@@ -253,19 +256,24 @@ menumpuk sebagai baris di `artifacts/metrics/ablasi/ablasi.csv`.
 
 Knob ukuran window dan HOS dibaca `config.py` **saat import**, jadi tidak bisa
 diganti di tengah proses. Karena itu lewat environment, dan tiap varian jalan
-di proses sendiri:
+di proses sendiri. Bawaan `config.py` adalah 128/128 tanpa HOS, jadi varian
+berwindow 90/160 wajib menyebut window-nya secara eksplisit:
 
 ```bash
-python scripts/ablasi.py --tag bersih
-python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2
-PA_WIN_PRE=128 PA_WIN_POST=127 python scripts/ablasi.py --tag w128 --jitter empiris --salinan 2
-PA_WIN_PRE=112 PA_WIN_POST=144 python scripts/ablasi.py --tag w112 --jitter empiris --salinan 2
-PA_HOS=1                       python scripts/ablasi.py --tag hos  --jitter empiris --salinan 2
+PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag bersih
+PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2
+PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128   --jitter empiris --salinan 2
+PA_WIN_PRE=112 PA_WIN_POST=144          python scripts/ablasi.py --tag w112   --jitter empiris --salinan 2
+PA_WIN_PRE=90  PA_WIN_POST=160 PA_HOS=1 python scripts/ablasi.py --tag hos    --jitter empiris --salinan 2
+                                        python scripts/ablasi.py --tag w128b  --jitter empiris --salinan 2
+PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128s3 --jitter empiris --salinan 3
 ```
 
-Tanpa env, `config.py` memberi nilai yang persis sama seperti sebelumnya —
-ablasi tidak menyentuh gate point. Yang menang baru dikunci dengan mengubah
-bawaannya, dan itu keputusan user.
+Tiap baris diulang dengan `--seed 42`, `--seed 7`, dan `--seed 13`.
+
+Tanpa env, `config.py` memakai nilai bawaannya, jadi ablasi tidak mengubah
+nilai final dan tidak menyentuh gate point. Varian yang menang dikunci dengan
+mengubah bawaan di `config.py`, dan itu keputusan user.
 
 **Salinan bersih selalu ikut** (`--salinan N` = N tiruan ber-jitter DI ATAS satu
 salinan bersih). Alasannya ada di angka §2: 80% beat di alat meleset ≤1 sampel,
@@ -273,8 +281,8 @@ jadi kasus "tepat" bukan kasus langka yang boleh dikorbankan.
 
 ### Sebelum membaca hasil: satu seed tidak cukup, dan ini bukan basa-basi
 
-Batch pertama dijalankan sekali per varian. Saat diulang dengan **seed yang
-sama dan kode yang sama**, angkanya berbeda:
+Satu run per varian tidak bisa dipercaya. Dua run dengan **seed yang sama dan
+kode yang sama** memberi angka berbeda (F1 DS2 anotasi):
 
 | varian | run-1 (seed 42) | run-2 (seed 42) |
 |---|---|---|
@@ -298,6 +306,11 @@ setengah-rentang. Selisih di bawah ~0,04 F1 di sini **bukan sinyal**.
 | `w128` | 128/127 | **0,6775** ± 0,0112 | **0,9394** ± 0,0047 | **0,6670** ± 0,0194 | 0,55–0,85 |
 | `w112` | 112/144 | 0,5786 ± 0,0311 | 0,9069 ± 0,0113 | 0,5607 ± 0,0337 | 0,55–0,85 |
 | `hos` | 90/160 + HOS | 0,6150 ± 0,0509 | 0,8882 ± 0,0363 | 0,6099 ± 0,0501 | 0,55–0,70 |
+| `w128b` | 128/128 | **0,6911** ± 0,0290 | 0,9373 ± 0,0087 | **0,6750** ± 0,0208 | 0,50–0,75 |
+| `w128s3` | 128/127, 3 salinan | 0,6099 ± 0,0254 | 0,9146 ± 0,0163 | 0,5964 ± 0,0242 | 0,45–0,90 |
+
+Varian selain `bersih` memakai jitter `empiris`; jumlah salinan ber-jitter 2,
+kecuali `w128s3` (3).
 
 **1. Augmentasi jitter menang, dan menang DUA KALI.** Rentang `jitter`
 [0,593–0,678] tidak bertumpang tindih dengan `bersih` [0,546–0,587]. Yang tidak
@@ -307,16 +320,16 @@ tapi bekerja sebagai **regularisasi**: model dipaksa berhenti bergantung pada
 fase yang persis dan belajar bentuk yang lebih umum. Efek yang sama persis
 dengan random crop di penglihatan komputer.
 
-**2. Window paper menang, dan alasannya bukan yang diduga.** `w128` unggul di
-semua kolom, dengan rentang paling sempit dari semua varian (±0,0112 F1,
-±0,0047 AUC). Hipotesis awal dokumen ini — "250 sudah cukup, yang dibeli paper
-cuma garis dasar" — **salah**.
+**2. Window paper menang, dan alasannya bukan argumen fisiologis.** `w128`
+unggul atas semua varian berwindow 90/160 di semua kolom, dengan rentang paling
+sempit (±0,0112 F1, ±0,0047 AUC). Argumen tandingannya — "250 sudah cukup, yang
+dibeli paper cuma garis dasar" (§6) — tidak bertahan.
 
 Tapi perhatikan `w112`: panjangnya **sama** 256 sampel, habis dibagi 8, dan
 cakupan T-nya lebih panjang dari `w128`. Hasilnya setara baseline, jauh di bawah
 `w128`. Jadi yang membayar **bukan** panjang window dan **bukan** kelipatan 8 —
 melainkan **konteks 128 sampel sebelum R**. Segmen PR dan garis dasar sebelum P
-ternyata memuat informasi, bukan ruang kosong.
+memuat informasi, bukan ruang kosong.
 
 ### Per simbol: di mana window itu sebenarnya membayar
 
@@ -338,9 +351,9 @@ Inilah mekanismenya, dan ia masuk akal secara fisiologis: beat supraventrikular
 dibedakan oleh **gelombang P dan interval PR** — persis yang tinggal di sisi kiri
 window. Menambah konteks sebelum R memberi model lebih banyak bukti P.
 
-Perhatikan ini **membalik** argumen di §6. Dugaan awal: "PR 43–72 sampel, jadi
-`WIN_PRE = 90` sudah memuat P dengan sisa". Muatnya memang muat — tapi muat saja
-tidak cukup. Model butuh P **beserta garis dasar sebelumnya** untuk tahu bahwa
+Ini **membantah** argumen fisiologis di §6: "PR 43–72 sampel, jadi
+`WIN_PRE = 90` sudah memuat P dengan sisa". Gelombang P memang muat — tapi muat
+saja tidak cukup. Model butuh P **beserta garis dasar sebelumnya** untuk tahu bahwa
 yang dilihatnya P, bukan riak. Yang dibeli 38 sampel tambahan itu konteks, bukan
 cakupan.
 
@@ -356,28 +369,37 @@ recall F**, dan S sepuluh kali lebih banyak di DS2.
 tindih penuh. Kesimpulan jujurnya bukan "HOS merusak", melainkan **"tidak ada
 bukti HOS menolong"** — dan fitur tanpa bukti tetap harus diimplementasikan
 ulang di C, diuji, dan dijaga. Ditolak karena ongkos, bukan karena terbukti
-buruk. (Satu run pertama sempat terbaca "HOS merugikan"; dengan tiga seed,
-klaim itu tidak bertahan.)
+buruk.
+
+**4. Konfigurasi yang dikunci di `config.py`.** `WIN_PRE/WIN_POST = 128/128`,
+`JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`. Bentuk 128/128 (`w128b`)
+dipilih atas 128/127 karena hasilnya setara (0,6911 vs 0,6775, selisih di bawah
+ambang 0,04) dan panjang 256 habis dibagi stride 8, sehingga rantai pooling
+256 → 128 → 64 → 32 berjalan tanpa pemotongan. Tiga salinan ber-jitter
+(`w128s3`, 0,6099) lebih buruk dari dua (`w128`, 0,6775), jadi dua. Threshold
+model produksi dikalibrasi ulang di VAL dan menjadi 0,80; hasil DS2-nya ada di
+[`evaluate-walkthrough.md`](evaluate-walkthrough.md) §4 (F1 0,6594 — satu run
+latih, masih di dalam sebaran run `w128b`).
 
 ---
 
-## 6. Ukuran window — kenapa 256 tidak langsung diambil
+## 6. Ukuran window — dua argumen yang bersaing
 
-Paper memakai 256 sampel: 128 sebelum R, 127 sesudah. Kita 250: 90 sebelum,
-160 sesudah. Panjang totalnya nyaris sama (711 vs 694 ms); yang beda **letak R**.
+Paper memakai 256 sampel: 128 sebelum R, 127 sesudah. Baseline repo ini 250:
+90 sebelum, 160 sesudah. Panjang totalnya nyaris sama (711 vs 694 ms); yang beda **letak R**.
 
 | | pre-R | post-R |
 |---|---|---|
-| kita | 90 sampel = 250 ms | 160 sampel = 444 ms |
+| baseline | 90 sampel = 250 ms | 160 sampel = 444 ms |
 | paper | 128 sampel = 355 ms | 127 sampel = 353 ms |
 
-Interval PR normal 120–200 ms = 43–72 sampel, jadi `WIN_PRE = 90` **sudah**
-memuat gelombang P dengan sisa. Tambahan 38 sampel milik paper membeli garis
-dasar sebelum P, bukan informasi P yang kita belum punya. Sebaliknya di kanan:
-pada denyut lambat, gelombang T bisa melewati 353 ms — window paper memotongnya,
-window kita tidak, dan T yang lebar itu justru penanda beat ventrikular.
+Argumen fisiologis untuk 90/160: interval PR normal 120–200 ms = 43–72 sampel,
+jadi `WIN_PRE = 90` sudah memuat gelombang P dengan sisa, dan tambahan 38 sampel
+milik paper hanya membeli garis dasar sebelum P. Sebaliknya di kanan: pada
+denyut lambat, gelombang T bisa melewati 353 ms — window paper memotongnya,
+window baseline tidak, dan T yang lebar itu justru penanda beat ventrikular.
 
-Satu hal yang memang lebih rapi di 256: stride total CNN = 8 (tiga pooling), dan
+Argumen aritmetika untuk 256: stride total CNN = 8 (tiga pooling), dan
 256 habis dibagi 8 sedangkan 250 tidak (250 → 125 → 62 → 31, ada pembulatan).
 
 Karena ada argumen fisiologis untuk 90/160 dan argumen aritmetika untuk 128/127,
@@ -390,7 +412,7 @@ panjang. Satu-satunya yang membedakan `w128` adalah 128 sampel sebelum R.
 
 Pelajaran metodologisnya lebih besar dari angkanya: penalaran "gelombang P
 sudah muat di 90 sampel, jadi 128 cuma membeli garis dasar" itu **masuk akal
-dan salah**. Yang memutuskan eksperimen, bukan argumen yang enak dibaca.
+tetapi tidak benar**. Yang memutuskan eksperimen, bukan argumen yang enak dibaca.
 
 ---
 
@@ -401,14 +423,14 @@ sensitivitas kelas S cuma 2,2% (Tabel 8). Yang menarik bukan kekuatannya,
 melainkan bahwa ia **datar terhadap jitter** — 2,2 → 13 dari δ=0 ke δ=18, naik,
 bukan turun. Momen statistik tidak peduli jendela bergeser sedikit.
 
-Di kita ongkosnya hampir nol, karena window yang masuk **sudah ter-z-score**:
+Di repo ini ongkosnya hampir nol, karena window yang masuk **sudah ter-z-score**:
 
 ```
 mean = 0, std = 1  →  penyebut Pers. 12-13 tinggal 1
 kurtosis = mean(s⁴)      skewness = mean(s³)
 ```
 
-Dua pass atas 250 float yang sudah ada di RAM. Di MCU itu tidak terasa.
+Dua pass atas 256 float yang sudah ada di RAM. Di MCU itu tidak terasa.
 
 Ditempelkan ke **cabang ritme**, bukan cabang morfologi: dua skalar bukan deret
 waktu, dan cabang RR memang tempat fitur ringkasan berkumpul. `N_RR_FEATURES`
@@ -422,8 +444,8 @@ menambah apa-apa yang belum ia lihat, beda dengan classifier linier paper yang
 memang cuma punya ringkasan.
 
 Tidak diadopsi. Kode `hos_features` tetap ditinggal di `src/features_rr.py`
-beserta knob `PA_HOS`: mengulang ablasinya nanti (misalnya setelah window
-berubah) cukup satu perintah, dan yang mahal bukan 5 baris itu melainkan
+beserta knob `PA_HOS`: mengulang ablasinya (misalnya untuk konfigurasi window
+lain) cukup satu perintah, dan yang mahal bukan 5 baris itu melainkan
 menemukan kembali cara mengujinya.
 
 ---
@@ -440,7 +462,7 @@ menemukan kembali cara mengujinya.
   biner (Normal vs Aritmia) dan F/Q masuk Aritmia. Ini beda metodologis yang
   **dicatat sebagai batas pembandingan**, bukan diubah: SeS 92,5 milik paper
   tidak sebanding lurus dengan recall kita.
-- **Fitur RR versi paper (`ln`, median ±15 beat, rerata seluruh record) belum
+- **Fitur RR versi paper (`ln`, median ±15 beat, rerata seluruh record) tidak
   diuji.** `ln` menolong classifier linier (LDA) karena membuat sebaran lebih
   simetris; untuk NN dengan input yang sudah dinormalisasi manfaatnya belum
   jelas. Rerata seluruh record juga tidak kausal — di alat, "seluruh record"

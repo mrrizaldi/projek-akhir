@@ -66,10 +66,10 @@ static void siapkan_model(void)
                               "AllocateTensors gagal — arena kurang besar?");
 
     // Urutan input di .tflite TIDAK dijamin sama dengan di Keras. Bedakan lewat
-    // jumlah dimensi: RR (1,3) 2 dimensi, morfologi (1,250,1) 3 dimensi.
+    // ukuran tensor: RR (1,3) jauh lebih kecil dari morfologi (1,256,1).
     TfLiteTensor *a = interpreter->input(0);
     TfLiteTensor *b = interpreter->input(1);
-    const bool a_kecil = a->bytes < b->bytes;      // RR 3 byte vs morfologi 250
+    const bool a_kecil = a->bytes < b->bytes;      // RR 3 byte vs morfologi 256
     in_rr = a_kecil ? a : b;
     in_morph = a_kecil ? b : a;
     out = interpreter->output(0);

@@ -61,7 +61,7 @@ def kalibrasi_ambang(f: dict, aami: np.ndarray, ditandai: np.ndarray,
 
     BUKAN F1. Memaksimalkan F1 kelas V di antara beat yang ditandai memberi
     hadiah untuk "namai semuanya V" — V sekitar separuh dari yang ditandai, jadi
-    aturan malas itu skor F1-nya bagus. Percobaan pertama memang begitu: ambang
+    aturan malas itu skor F1-nya bagus. Terukur dengan kriteria F1: ambang
     mendarat di dasar grid, 4.387 dinamai V, cuma 1.664 benar.
 
     Ambang TERKECIL yang lolos = cakupan terbesar pada presisi yang dijanjikan.

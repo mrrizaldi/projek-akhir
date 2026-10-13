@@ -158,10 +158,10 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
 # svdb 128 Hz dan incartdb 257 Hz harus jadi 360 Hz sebelum masuk pipeline, dan
 # alasannya BUKAN kerapian: WIN_PRE terdefinisi dalam SAMPEL, bukan waktu.
 #
-#     128 sampel @ 360 Hz =  355 ms   <- yang diablasi & dikunci 18 Sep
+#     128 sampel @ 360 Hz =  355 ms   <- yang diablasi & dikunci
 #     128 sampel @ 128 Hz = 1000 ms   <- fisiologi lain sama sekali
 #
-# Decision point 18 Sep bilang yang membayar itu "konteks 128 sampel SEBELUM R",
+# Decision point ukuran window: yang membayar itu "konteks 128 sampel SEBELUM R",
 # dan mekanismenya gelombang P & interval PR yang hidup ~150-200 ms sebelum R.
 # Itu durasi FISIOLOGIS. Memakai 128 sampel di 128 Hz bukan menyalin keputusan
 # itu — itu melanggarnya sambil terlihat konsisten.

@@ -5,7 +5,7 @@
     python scripts/build_split.py --gabungan   # Fase A: + svdb & incartdb
 
 Keluaran default: data/processed/train.npz (DS1) & test.npz (DS2), key
-    X_morph float32 [N,250,1]   (channel dim untuk Conv1D)
+    X_morph float32 [N,256,1]   (channel dim untuk Conv1D; 256 = WIN_LEN)
     X_rr    float32 [N,3]
     y       int8    [N]
     records int32   [N]         asal record tiap beat (untuk metrik per-record)
@@ -35,7 +35,7 @@ def _ringkas(nama: str, d: dict) -> None:
 
 
 def main_multi() -> None:
-    """Fase A — train gabungan + test per database, NAMA FILE BEDA dari yang lama.
+    """Fase A — train gabungan + test per database, NAMA FILE terpisah dari jalur mitdb-only.
 
     train_multi.npz / test_ds2.npz / test_<db>.npz. train.npz & test.npz (jalur
     mitdb-only) TIDAK ditimpa: keduanya masih dipakai mereproduksi ablasi terkunci.
