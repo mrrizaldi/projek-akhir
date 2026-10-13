@@ -31,19 +31,77 @@
 \newcommand{\Tahun}{2026}
 
 % ============================================================
+% TAHAP DOKUMEN: progres (true) atau buku final (false)
+% ============================================================
+\newif\ifprogres
+\progrestrue
+
+% Gambar: milik buku dulu, lalu gambar proposal yang masih berlaku.
+% Entri ketiga ({../proposal-pa/}) supaya "gambar/logo-pens.png" di sampul
+% ikut terselesaikan ke ../proposal-pa/gambar/logo-pens.png.
+\graphicspath{{gambar/}{../proposal-pa/gambar/}{../proposal-pa/}}
+
+% Placeholder gambar (aturan: diagram/ilustrasi digambar user, bukan Claude).
+% Pakai di dalam figure, didahului komentar "% PLACEHOLDER-GAMBAR fig:..." + kartu.
+% Argumen ke-2 berupa teks biasa, escape karakter khusus: \% \& \_ \# \$
+\newcommand{\PlaceholderGambar}[2]{%
+  \fbox{\parbox[c][5cm][c]{0.85\linewidth}{\centering\small
+    \textbf{[PLACEHOLDER GAMBAR]}\\[3pt]
+    #1: #2\\
+    Spesifikasi lengkap ada di komentar sumber.}}}
+
+% Halaman kosong pengisi (agar bab mulai di halaman ganjil) tanpa nomor halaman.
+\makeatletter
+\renewcommand{\cleardoublepage}{\clearpage\if@twoside\ifodd\c@page\else
+  \hbox{}\thispagestyle{empty}\newpage\if@twocolumn\hbox{}\newpage\fi\fi\fi}
+\makeatother
+
+% ============================================================
 % DOKUMEN
 % ============================================================
 
 \begin{document}
 
-% --- HALAMAN ISI (angka arab, tengah bawah) ---
+% --- SAMPUL ---
+\pagestyle{empty}
+\input{bab/halaman-judul}
+
+% --- FRONT MATTER (romawi) ---
+\cleardoublepage
+\pagenumbering{roman}
+\pagestyle{plain}
+\input{bab/abstrak}
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR ISI}
+\tableofcontents
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR GAMBAR}
+\listoffigures
+
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR TABEL}
+\listoftables
+
+% --- ISI (arab) ---
+\cleardoublepage
 \pagenumbering{arabic}
 \pagestyle{mainmatter}
 
 \input{bab/bab1}
+\input{bab/bab2}
+\input{bab/bab3}
+\input{bab/bab4}
+\input{bab/bab5}
 
 % --- DAFTAR PUSTAKA ---
-\clearpage
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{DAFTAR PUSTAKA}
 \bibliography{referensi}
 
 \end{document}

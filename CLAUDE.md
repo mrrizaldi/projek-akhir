@@ -71,11 +71,45 @@ terbukti tidak membeku jadi dogma.
   Python 3.11.9 (`model/.python-version`), venv di `model/.venv`,
   deps di `model/requirements.txt`. Script cek/eksplorasi ad-hoc → `model/scripts/`
   (dijalankan dari folder `model/`).
-- Firmware: `cd firmware && pio run` *(stub; verifikasi board id ESP32-S3 N16R8)*
+- Firmware: lihat **ESP32 / mikrokontroler** di bawah.
 
-## Diagrams
+## ESP32 / mikrokontroler → PlatformIO
 
-Label requirement `RM1..RM4` **TIDAK boleh muncul** di diagram apa pun.
+Semua kerja ESP32/mikrokontroler (build, flash, monitor, test, cek library,
+cek board/pin) **lewat PlatformIO CLI (`pio`)**, bukan Arduino IDE/CLI, bukan
+`idf.py`/`esptool.py` langsung. Konfigurasi tunggal = `firmware/platformio.ini`
+(env `esp32-s3` = board N16R8, env `native` = test di PC). Jalankan dari `firmware/`.
+
+- Build:        `pio run` (default env `esp32-s3`)
+- Flash:        `pio run -t upload` · monitor: `pio device monitor` (115200)
+- Port/board:   `pio device list` · `pio boards <kata>`
+- Test PC:      `pio test -e native` (tanpa board) · di device: `pio test -e esp32-s3`
+- Library:      `pio pkg search|show <nama>`; tambah ke `lib_deps` di
+  `platformio.ini` = dependency baru → **gate point, tanya dulu**.
+- Info board/framework: baca dari `~/.platformio/platforms/espressif32` &
+  `~/.platformio/packages/` (versi terpasang) sebelum menebak dari ingatan.
+
+## Diagrams & gambar laporan
+
+- **Claude TIDAK membuat diagram/gambar ilustrasi sendiri**: tidak ada Mermaid,
+  TikZ, PlantUML, Graphviz, SVG/draw.io, skrip gambar baru, atau gambar AI, dan
+  tidak menambah berkas ke `diagrams/src/`. Di posisi gambar, taruh
+  **placeholder** + kartu spesifikasi isi (jenis, pesan, elemen wajib, alur
+  baca, bahan di repo); **user yang menggambar**. Caption, `\label`, `\ref`, dan
+  paragraf pengantar/penjelas tetap ditulis final. Templat:
+  `docs/pola-laporan-pa/05-gambar-tabel-persamaan.md` §Placeholder gambar.
+  Sisa placeholder: `grep -rn "PLACEHOLDER-GAMBAR" laporan/`.
+- Plot data eksperimen (confusion matrix, kurva, grafik latensi) hasil pipeline
+  repo bukan ilustrasi: rujuk berkas yang sudah di-export. Kalau belum ada →
+  placeholder + sebut skrip penghasilnya, jangan tulis skrip plot baru tanpa diminta.
+- Label requirement `RM1..RM4` **TIDAK boleh muncul** di diagram apa pun.
+
+## Menulis laporan (progres / buku PA)
+
+Pola bab → paragraf → kalimat dari 6 laporan PA PENS (2 buku full, 4 progres 1),
+beda sistemik progres vs buku, anti-pola, dan kerangka progres untuk PA ini ada
+di `docs/pola-laporan-pa/` (mulai dari `README.md`). Pakai sebagai acuan
+struktur; aturan gaya tulis tetap `laporan/CLAUDE.md`.
 
 ## Gate points (berhenti, minta konfirmasi)
 

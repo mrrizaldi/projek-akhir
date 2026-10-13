@@ -16,14 +16,19 @@ echo "==> model -> firmware/include/model_int8.h"
 (cd "$MODEL_DIR" && "$PY" scripts/export_model_h.py)
 
 # 2) figure final -> laporan/<projek>/gambar/   (opt-in)
+#    LAPORAN_PROJ memilih projek tujuan (default buku-pa; proposal-pa = arsip).
 if [[ "${1:-}" == "--laporan" ]]; then
-  DEST="$ROOT/laporan/proposal-pa/gambar"
+  DEST="$ROOT/laporan/${LAPORAN_PROJ:-buku-pa}/gambar"
   echo "==> figure -> $DEST"
   mkdir -p "$DEST"
-  for f in fase1_100 fase1_segment_100 fase5_training fase6_confusion_fp32 fase7_confusion_int8; do
+  for f in fase0_100 fase1_100 fase1_segment_100 pantompkins_100 \
+           fase5_training fase6_confusion_fp32 fase7_confusion_int8 \
+           jitter/jitter_residu jitter/sweep_jitter_dasar \
+           akuisisi/akuisisi_20260915-1130 akuisisi/akuisisi_20260915-1643; do
     src="$MODEL_DIR/artifacts/metrics/$f.png"
     [[ -f "$src" ]] && cp -v "$src" "$DEST/" || echo "    lewat: $f.png belum ada"
   done
+  [[ -f "$ROOT/dashboard/preview.png" ]] && cp -v "$ROOT/dashboard/preview.png" "$DEST/dashboard_preview.png"
 else
   echo "==> figure -> laporan/: DILEWATI (pakai --laporan untuk menyalin)"
 fi

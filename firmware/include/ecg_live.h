@@ -15,7 +15,11 @@ extern "C" {
 #endif
 
 #define ECG_LIVE_RING (4 * ECG_FS)      // 4 detik riwayat sinyal terfilter
+// Kadens deteksi. Knob ablasi lewat build flag (-D ECG_LIVE_TIAP=90), bawaan
+// tidak berubah tanpa flag.
+#ifndef ECG_LIVE_TIAP
 #define ECG_LIVE_TIAP ECG_FS            // jalankan deteksi tiap 1 detik
+#endif
 #define ECG_LIVE_HIST 16                // R-peak terakhir yg disimpan utk fitur RR
 // Timeout asistol. Dengan ECG_RR_RATIO=1 keputusan beat i menunggu R berikutnya
 // (tunda 1 beat). Kalau R itu TIDAK PERNAH datang — elektroda lepas, atau

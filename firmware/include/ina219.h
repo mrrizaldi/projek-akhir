@@ -28,6 +28,14 @@ float ina219_arus_mA(int16_t shunt_reg, float r_shunt_ohm);
 // Bus voltage: nilai di bit 15:3, 1 LSB = 4 mV. Bit 1 (CNVR) & 0 (OVF) dibuang.
 float ina219_bus_V(uint16_t bus_reg);
 
+#ifdef ARDUINO
+// Bagian I2C, cuma di board. Tulis config lalu baca balik: modul yang tidak
+// ada membalas 0x0000/0xFFFF, jadi "tidak terpasang" terdeteksi, bukan 0 mA.
+bool ina219_mulai(int pin_sda, int pin_scl);
+// false = modul tidak menjawab (kabel lepas di tengah jalan).
+bool ina219_baca(float r_shunt_ohm, float *arus_mA, float *bus_V);
+#endif
+
 #ifdef __cplusplus
 }
 #endif
