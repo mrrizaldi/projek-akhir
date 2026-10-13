@@ -1,7 +1,7 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
 > **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/perangkat.cpp`, `firmware/include/perangkat.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/akuisisi.cpp`, `firmware/src/tombol.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/perangkat.cpp`, `firmware/include/perangkat.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
 > **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
 
 Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
@@ -326,20 +326,22 @@ supaya antreannya bisa disizing dengan angka, bukan tebakan.
 ```
 timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
    adc1_get_raw()                             ├─ ecg_live_push + nilai_kualitas
-   (atau sim_counts[] saat replay)            ├─ nilai_fase (gerbang kalibrasi)
+   (atau rp_data[] saat replay)               ├─ nilai_fase (gerbang kalibrasi)
                                               ├─ inferensi tiap beat (fase pemantauan)
                                               ├─ publikasi → ring backlog MQTT
                                               ├─ ecg_mqtt_layani (non-blocking)
                                               ├─ LED kualitas sinyal / rekam
                                               ├─ TFT: HR, gelombang, status, INA219
                                               ├─ buzzer: bip per detak (terjadwal, senyap saat kalibrasi)
-                                              └─ tombol B1/B2/B3: bisu, beku, rekam
+                                              ├─ tombol B1/B2/B3: monitor (bisu, beku, rekam) / menu
+                                              └─ menu di layar (bila terbuka)
 ```
 
 Pin map PCB rev1 dan urutan pemasangan perangkat berada di
 `firmware/include/perangkat.h` dan `firmware/src/perangkat.cpp`, dipakai
-bersama oleh `main.cpp` dan test device `test_hw_*`. Tabel pin dan arti tombol
-ada di [`firmware/README.md`](../../firmware/README.md).
+bersama oleh `main.cpp` dan test device `test_hw_*`. Tabel pin, peta tombol,
+dan pohon menu ada di [`firmware/README.md`](../../firmware/README.md) bagian
+Pemakaian di perangkat.
 
 Arti LED dan prosedur rekam ada di
 [`akuisisi-walkthrough.md`](akuisisi-walkthrough.md) §2–3; gerbang kalibrasi dan
@@ -361,6 +363,47 @@ Antrean 256 sampel (0,7 detik) — jauh di atas 13 yang dibutuhkan, tapi murah
 `n_lewat` menghitung sampel yang hilang saat antrean penuh; angkanya **harus
 tetap 0**, dan ikut disimpan ke berkas rekaman.
 
+### Tombol dan menu: layar berganti, pemrosesan tidak
+
+`tombol.cpp` hanya menghasilkan event per tombol: `TEKAN`, `PENDEK` (dilepas
+sebelum 800 ms), `LAMA` (masih ditahan saat 800 ms tercapai, tanpa menunggu
+dilepas), dan `LEPAS`. Arti event dirangkai pemanggil: `main.cpp` untuk mode
+monitor (B1 pendek bisu, B2 pendek beku, B3 pendek rekam, B2 lama buka menu),
+dan `menu.cpp` selama menu terbuka (B3/B1 pendek naik/turun, B2 lama pilih,
+B2 pendek kembali, B1/B3 lama langsung ke monitor). Aksi pendek terjadi saat
+dilepas karena tekanan yang sama bisa berlanjut menjadi tekan lama.
+
+Menu bukan mode terpisah. `loop()` tetap menguras antrean, menjalankan
+`ecg_live`, inferensi, rekam, dan MQTT di setiap iterasi; yang berubah hanya
+siapa yang memakai layar (`tampilan_set_monitor(false)`) dan siapa yang
+menerima event tombol. Gelombang tidak digambar selama menu terbuka, tetapi
+bip detak tetap dijadwalkan dan NeoPixel tetap mengikuti fase.
+
+Konsekuensinya, setiap penggambaran menu berjalan di `loop()` yang sama dengan
+pengurasan antrean dan memblokirnya selama menggambar. Batasnya adalah
+kedalaman antrean ISR, 256 sampel = **711 ms**. Pohon menu berupa array struct
+statis; `tampilan_menu_baris()` mengingat isi tiap baris dan hanya menggambar
+ulang baris yang berubah, sehingga menggeser sorotan menyentuh dua baris saja.
+
+Terukur di board (13 Okt 2026):
+
+| Operasi | Waktu |
+|---|---|
+| Bingkai menu penuh (judul, enam baris, petunjuk) | ±200 ms |
+| Geser sorotan (dua baris) | ±36 ms |
+| Kedalaman antrean ISR | 711 ms |
+| Sampel hilang selama navigasi | 0 |
+
+Halaman teks (Status, Info) dihitung ulang sekali per detik dengan aturan yang
+sama: baris yang isinya tidak berubah tidak digambar. Pengecualian yang memblok
+lebih lama dari 711 ms adalah menu Tes perangkat (bunyi, pola layar ±2 detik,
+tunggu tombol sampai 10 detik); selama tes, timer akuisisi dihentikan sehingga
+tidak ada sampel yang dihitung hilang, dan antrean tidak meluap.
+
+Navigasi dapat diuji tanpa jari: serial `t1`–`t3` menyuntik tekan pendek dan
+`T1`–`T3` tekan lama, dan setiap gerakan menu mencetak
+`menu: <judul> [i/n] <baris>`.
+
 ### Terukur di board (tanpa elektroda, ADC membaca derau)
 
 Kondisi uji: build inti tanpa modul MQTT dan tanpa tabel replay.
@@ -373,19 +416,33 @@ antrean saat burst: 12 sampel      sampel hilang: 0
 Antrean 12 saat diperiksa di tengah burst — cocok dengan 13 yang dihitung dari
 pengukuran §5b.
 
-### Sumber sinyal replay (toggle serial `y`)
+### Tiga sumber sinyal (menu Sumber sinyal)
 
-Tekan `y` dan ISR berhenti membaca ADC; gantinya `golden_raw` (record 208, 2400
-sampel, 9 beat) diputar berulang sebagai counts ADC:
+Sumber dipilih dari menu **Sumber sinyal** dan disimpan di NVS, sehingga tetap
+berlaku setelah boot:
+
+| Sumber | Isi antrean ISR | Kegunaan |
+|---|---|---|
+| Sensor (ADC) | `adc1_get_raw()` dari AD8232 | operasi dan perekaman sinyal tubuh |
+| Replay acuan (208) | `golden_raw` record 208 (2400 sampel, 9 beat), diputar berulang | beban identik untuk ukur daya, uji MQTT tanpa elektroda |
+| Replay rekaman | berkas `/rekam/NNN.csv` dimuat ke PSRAM (maks. 300 detik), diputar berulang | memutar ulang sinyal tubuh yang pernah direkam lewat jalur produksi |
+
+Serial `y` tetap ada sebagai jalur cadangan: ADC ⇄ replay acuan. Kedua replay
+memakai satu cabang di ISR yang membaca array apa pun yang ditunjuk `rp_data`:
 
 ```cpp
-if (replay) {
-    antre[tulis] = sim_counts[replay_i];   // dikonversi sekali di setup(): 1000 c/mV, +2048
-    replay_i = (replay_i + 1) % GOLDEN_N;
+if (rp_data) {
+    antre[tulis] = rp_data[replay_i];      // integer saja: golden dikonversi sekali di akuisisi_mulai()
+    if (++replay_i >= rp_n) replay_i = 0;
 } else {
     antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);
 }
 ```
+
+Memuat berkas rekaman memblok `loop()` (membaca LittleFS); selama itu timer
+dihentikan agar tidak tercatat sampel hilang. PSRAM aman dibaca di ISR ini
+karena ISR tidak dipasang dengan `ESP_INTR_FLAG_IRAM`, sehingga ia ikut
+ditahan saat flash ditulis.
 
 Satu cabang di ISR, dan **seluruh jalur di hilirnya tidak berubah** — bandpass,
 deteksi, penyelarasan, inferensi, LED, REC, dan MQTT semuanya berjalan seperti
@@ -401,11 +458,12 @@ Dua kegunaan, dan yang kedua justru yang lebih penting:
    Tanpa sinyal, tidak ada beat, dan mode inferensi mengukur nol pekerjaan.
 2. **Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis.** Itu yang
    membuat kehilangan data di jalur MQTT bisa diukur, bukan cuma dirasakan:
-   beat hilang = beat seharusnya − beat yang sampai di broker. `y` juga
-   me-reset `ecg_live` dan pencacah beat supaya hitungannya mulai dari nol.
-   Selama replay menyala, gerbang kalibrasi dilewati karena record 208 memang
-   aritmik; bypass itu diturunkan dari sumber sinyal sehingga berhenti bersama
-   replay ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
+   beat hilang = beat seharusnya − beat yang sampai di broker. Setiap ganti
+   sumber (menu atau `y`) me-reset `ecg_live` dan pencacah beat supaya
+   hitungannya mulai dari nol. Selama replay (acuan maupun rekaman), syarat
+   waktu-stabil dan RR-tenang gerbang kalibrasi dilewati; bypass itu diturunkan
+   dari sumber sinyal sehingga berhenti bersama replay
+   ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
 
 Konsekuensinya: uji resiliensi pipeline tidak perlu menunggu elektroda.
 
@@ -430,7 +488,7 @@ merusak state FPU task yang sedang diinterupsi, dan panic-nya baru muncul saat
 task itu dijadwalkan lagi — jadi **bukan crash seketika**, yang membuatnya lolos
 uji pendek. Terukur: panic di detik 18,49.
 
-Obatnya konversi sekali di `setup()` (`siapkan_replay()`) ke
+Obatnya konversi sekali di `akuisisi_mulai()` (dipanggil `setup()`) ke
 `static uint16_t sim_counts[GOLDEN_N]` (4.800 byte), ISR tinggal menyalin
 integer. Ongkosnya RAM 21,2% → 22,7%.
 
@@ -483,8 +541,11 @@ yang benar-benar mengukur interval jantung.
 
 Rancangan: [`arsip/2026-09-16-daya-design.md`](arsip/2026-09-16-daya-design.md).
 Konsumsi dipisahkan per tahap lewat isolasi mode: tiap anak tangga menambah satu
-beban, dan ongkos satu tahap adalah selisih dua anak tangga. Mode dipilih lewat
-serial `p0`–`p5`; `p` diikuti huruf lain (mis. `px`) kembali ke operasi normal.
+beban, dan ongkos satu tahap adalah selisih dua anak tangga. Satu anak tangga
+dipilih lewat serial `p0`–`p5`; `p` diikuti huruf lain (mis. `px`) kembali ke
+operasi normal. Seluruh tangga dijalankan dengan dua cara: dari laptop
+(`measure_power.py`, di bawah) atau oleh board sendiri (tangga mandiri, menu
+**Ukur daya** atau serial `V`).
 
 | Mode | Yang berjalan | Ongkos yang diisolasi |
 |---|---|---|
@@ -558,7 +619,7 @@ pengukuran arus. Karena arus diukur di sel, hasilnya sudah memuat rugi
 konverter dan langsung dipakai untuk umur baterai (kapasitas mAh dibagi arus
 mA), tanpa konversi efisiensi.
 
-Tangga `p0`–`p5` saat ini diperintah dari laptop lewat serial. Kabel USB biasa
+Prosedur di bawah memerintah tangga dari laptop lewat serial. Kabel USB biasa
 tidak dapat dipakai selama pengukuran, karena VBUS-nya ikut mencatu board dan
 membagi arus dengan baterai. Jalur serial memakai kabel USB data tanpa VBUS:
 kawat merah (VBUS) diputus dan ujungnya diisolasi, sedangkan D+, D−, dan GND
@@ -592,13 +653,38 @@ tetap tersambung.
    arus di sisi baterai naik saat tegangan sel turun, karena konverter
    menjaga daya keluaran.
 
-Ukur daya mandiri tanpa laptop direncanakan sebagai menu perangkat
-**Ukur daya**: tangga `p0`–`p5` dijalankan dari tombol, hasil per mode tampil
-di layar dan disimpan ke `/daya/NNN.csv` di LittleFS, lalu ditarik dengan
-`make pull-daya` (rencana
-[`docs/2026-10-13-firmware-menu-plan.md`](../../docs/2026-10-13-firmware-menu-plan.md)
-fase 5). Setelah menu tersedia, pengukuran tidak lagi memerlukan kabel data
-tanpa VBUS.
+### Tangga mandiri dan `make pull-daya`
+
+Tangga mandiri menghilangkan kebutuhan kabel data tanpa VBUS: board
+menjalankan `p0`–`p5` sendiri dari baterai, menyimpan hasilnya, lalu laptop
+menariknya setelah pengukuran selesai. Prosedur langkah demi langkah:
+[`firmware/README.md`](../../firmware/README.md) bagian Ukur daya tanpa laptop.
+
+Isinya sama dengan `measure_power.py`, dipindah ke `daya.cpp`:
+
+- Tiap langkah: buang 1 jendela transien, ambil 6 jendela 10 detik
+  (`DAYA_BLOK`, `DAYA_JENDELA_MS`), total ±7 menit. Jendela dicatat oleh
+  `daya_layani()` yang sama dengan baris `DAYA`; `daya_tangga_tick()` hanya
+  memindah langkah, sehingga `loop()` tidak tertahan selain saat menulis CSV
+  di akhir.
+- Sumber ADC dipindah ke replay acuan selama tangga dan dikembalikan sesudahnya,
+  agar beban identik antar-ulangan.
+- Menu ditutup selama tangga, sehingga `p4` mengukur layar monitor yang
+  sebenarnya, bukan layar menu yang nyaris diam. Halaman hasil terbuka sendiri
+  di akhir.
+- Kriteria sah per langkah sama dengan skrip: V bus ≥ 1 V, `lewat = 0` (mulai
+  `p1`), `beat > 0` (mulai `p2`), dan arus naik lebih dari 2 × sd dari langkah
+  sebelumnya. Langkah yang gagal tampil `pN!` di layar dan `sah = 0` di CSV.
+  Tangga yang batal di tengah (mode diubah dari luar, INA219 berhenti menjawab)
+  membuat semua langkah tidak sah.
+- Hasil ke `/daya/NNN.csv`, kolom `waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah`;
+  `waktu` UTC ISO bila jam NTP sudah tersinkron, selain itu `+<detik uptime>s`.
+
+`make pull-daya` (`scripts/pull_daya.py`) mengirim `v` untuk daftar berkas,
+lalu `v<n>` (bawaan: berkas terakhir; `N=<n>` untuk yang lain), menyimpan ke
+`model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv`, dan mengulang
+validasi dengan kriteria `measure_power.py` sehingga penilaian board dan laptop
+dapat dibandingkan. Skrip keluar dengan kode 1 bila ada langkah TIDAK SAH.
 
 ## 6. Angka device
 
@@ -649,13 +735,14 @@ pembahasan yang baik di laporan.
 | Perintah | Melihat apa |
 |---|---|
 | `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
-| `pio test -e esp32-s3` | 34 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_buzzer` 4, `test_hw_tft` 3, `test_hw_adc` 3, `test_hw_ina219` 3, `test_hw_integrasi` 5 |
+| `pio test -e esp32-s3` | 29 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_tombol` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
 | `pio test -e esp32-s3 -f test_hw_buzzer` | satu suite saja |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG, bacaan perangkat) |
 | `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |
 | `pio run -t upload` | flash firmware utama |
 | `cd model && make export` | regenerasi `model_int8.h` setelah model berubah |
-| `cd model && .venv/bin/python scripts/measure_power.py` | tangga ukur daya `p0`–`p5` → `artifacts/metrics/daya/<ts>.csv` (§5d) |
+| `cd model && .venv/bin/python scripts/measure_power.py` | tangga ukur daya `p0`–`p5` dari laptop → `artifacts/metrics/daya/<ts>.csv` (§5d) |
+| `cd model && make pull-daya [N=<n>]` | tarik hasil tangga mandiri `/daya/NNN.csv` → `artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv` (§5d) |
 
 ---
 

@@ -1,6 +1,6 @@
 // Menu di perangkat: pohon halaman statis (array struct + pointer fungsi),
 // navigasi tiga tombol, dan halaman teks yang diperbarui 1 Hz. Isi pohon dan
-// peta tombol: docs/2026-10-13-firmware-menu-plan.md.
+// peta tombol: docs/arsip/2026-10-13-firmware-menu-plan.md.
 //
 // Menu hanya mengganti layar dan arti tombol: akuisisi, deteksi, inferensi,
 // rekam, bip, dan MQTT tetap berjalan di latar.

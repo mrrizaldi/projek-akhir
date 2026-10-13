@@ -9,14 +9,16 @@
 | `ecg_mqtt.h` | Kontrak payload dan antrean MQTT | ditulis tangan |
 | `ina219.h` | Konversi register INA219 | ditulis tangan |
 | `perangkat.h` | Pin map PCB rev1 dan pemasangan perangkat (TFT, buzzer, tombol, ADC) untuk `main.cpp` dan test `test_hw_*` | ditulis tangan |
-| `akuisisi.h` | Timer ISR 360 Hz, antrean sampel, sumber ADC/replay | ditulis tangan |
+| `akuisisi.h` | Timer ISR 360 Hz, antrean sampel, sumber ADC / replay acuan / replay rekaman | ditulis tangan |
 | `gerbang.h` | Kualitas sinyal dan fase kalibrasi | ditulis tangan |
 | `klasifikasi.h` | Inferensi TFLM per beat dan publikasi ke antrean MQTT | ditulis tangan |
-| `tampilan.h` | TFT, NeoPixel, buzzer | ditulis tangan |
-| `tombol.h` | Debounce dan event tombol B1–B3 | ditulis tangan |
+| `tampilan.h` | TFT (monitor dan layar menu), NeoPixel, buzzer | ditulis tangan |
+| `tombol.h` | Debounce dan event tombol B1–B3 (tekan lama 800 ms), event suntikan serial | ditulis tangan |
+| `menu.h` | Menu di perangkat: buka, teruskan event tombol, halaman teks 1 Hz | ditulis tangan |
+| `diagnosa.h` | Tes perangkat `diag_*` untuk menu Tes perangkat dan `test_hw_*` | ditulis tangan |
 | `rekam.h` | Rekaman bernomor `/rekam/NNN.csv` di LittleFS | ditulis tangan |
-| `daya.h` | INA219 dan tangga ukur daya `p0`–`p5` | ditulis tangan |
-| `konfig.h` | Daftar WiFi/broker dan pilihan di NVS | ditulis tangan |
+| `daya.h` | INA219, tangga ukur daya `p0`–`p5`, tangga mandiri dengan hasil `/daya/NNN.csv` | ditulis tangan |
+| `konfig.h` | Daftar WiFi/broker; pilihan WiFi, broker, dan sumber sinyal di NVS | ditulis tangan |
 | `serial_cmd.h` | Perintah serial | ditulis tangan |
 | `wifi_secrets.example.h` | Templat kredensial; salin menjadi `wifi_secrets.h` (di-ignore git) | ditulis tangan |
 

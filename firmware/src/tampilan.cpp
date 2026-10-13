@@ -262,7 +262,7 @@ bool tampilan_monitor(void) { return monitor; }
 
 // ---- Layar menu: judul, TAMPILAN_BARIS baris teks ukuran 2, petunjuk tombol.
 // Tiap baris diingat isinya; baris yang sama tidak digambar ulang, sehingga
-// layar tidak berkedip dan biaya per gerakan sorotan = dua baris (~15 ms).
+// layar tidak berkedip dan biaya per gerakan sorotan = dua baris (~36 ms terukur di board).
 constexpr int MY = 26, MH = 20;            // baris pertama, tinggi baris
 constexpr uint16_t BIRU_TUA = 0x0010;
 static char isi_baris[TAMPILAN_BARIS][TAMPILAN_KOLOM + 1];

@@ -34,6 +34,8 @@ make prep      # Fase 2 → per_record/*.npz      make test      # pytest
 make split     # Fase 3 → train/test.npz         make poc       # Fase 8 checklist
 make pull      # tarik rekaman dari board
 make analisis FILE=data/recordings/<nama>.csv   # analisis + grafik rekaman
+make pull-daya [N=<n>]   # tarik hasil tangga daya mandiri /daya/NNN.csv dari board
+make broker-info         # SSID, IP LAN, port 1883/8080, saran entri wifi_secrets.h
 ```
 
 `make help` menampilkan semua target (termasuk `data-semua`, `split-multi`, `clean`).
@@ -64,7 +66,7 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | HW-4 Firmware produksi | selesai | timer ISR 360 Hz → antrean 256 → `ecg_live` → inferensi → LED + serial; sampel hilang 0 |
 | HW-5 Sinyal tubuh | pipeline siap, **pengujian resmi belum** | rantai ADC → `make pull` → `make analisis` siap dipakai per 13 Okt 2026. Rekaman 10 Sep–11 Okt 2026 = uji coba, diarsipkan di `data/arsip/rekaman-uji-coba/` (bukan hasil). Lihat **Pekerjaan terbuka** |
 | HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang ayunan, backlog 27.000 beat di PSRAM. PDSR 100% / 99,2%, latensi median 939 / 1.108 ms (2 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
-| HW-7 Replay | selesai | sumber sinyal replay (toggle serial `y`) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
+| HW-7 Replay | selesai | sumber sinyal replay (menu Sumber sinyal: replay acuan 208 atau replay rekaman `/rekam/NNN.csv`; serial `y` = ADC ⇄ acuan) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
 
 ## Pekerjaan terbuka
 
@@ -96,8 +98,10 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
 - **(13 Okt 2026) Konsumsi daya per mode operasi.** Pengukuran daya per mode
   (idle, inferensi, WiFi/MQTT): rancangan di
   [`docs/arsip/2026-09-16-daya-design.md`](docs/arsip/2026-09-16-daya-design.md).
-  Jalur ukur sudah jadi (serial `p0`-`p5`, `scripts/measure_power.py` ->
-  `artifacts/metrics/daya/<ts>.csv`). **Terhalang rangkaian:** INA219 belum di
+  Jalur ukur sudah jadi: dari laptop (serial `p0`-`p5`, `scripts/measure_power.py`
+  -> `artifacts/metrics/daya/<ts>.csv`) atau mandiri dari baterai (menu Ukur daya
+  / serial `V`, lalu `make pull-daya`; prosedur di `firmware/README.md` bagian
+  Ukur daya tanpa laptop). **Terhalang rangkaian:** INA219 belum di
   jalur catu (board dicatu USB langsung, VIN± mengambang). Rakit sesuai
   [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) §5d, jalankan
   skripnya, lalu isi `PLACEHOLDER-DATA daya` di bab4 buku-pa.

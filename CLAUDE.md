@@ -31,7 +31,7 @@ resmi: `grep -rn PLACEHOLDER-DATA laporan/buku-pa`.
 4. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
    mekanisme yang dibutuhkan sering SUDAH ada, tinggal dikerjakan atau diperluas.
    Contoh: sumber sinyal replay untuk uji tanpa hardware sudah ada di firmware
-   (toggle serial `y`), dan rantai penyelarasan R-peak sudah jadi di
+   (menu Sumber sinyal, atau toggle serial `y`), dan rantai penyelarasan R-peak sudah jadi di
    `model/scripts/eval_detected_segmentation.py`. Merancang
    ulang dari nol di tempat seperti itu = pekerjaan ganda yang sia-sia.
 

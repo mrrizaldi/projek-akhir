@@ -17,9 +17,10 @@ dibekukan 24 detik, deret waktu di dashboard **tidak berlubang** (jeda maksimum
 ## 1. Peta besar
 
 ```
-        ┌─────────────── SUMBER SINYAL (toggle 'y') ───────────────┐
-        │  replay ON  : sim_counts[] dari golden_raw (record 208)  │
-        │  replay OFF : adc1_get_raw() — AD8232, elektroda         │
+        ┌──────────── SUMBER SINYAL (menu Sumber sinyal) ──────────┐
+        │  replay acuan  : sim_counts[] dari golden_raw (rec 208)  │
+        │  replay rekaman: /rekam/NNN.csv dimuat ke PSRAM          │
+        │  sensor (ADC)  : adc1_get_raw() — AD8232, elektroda      │
         └──────────────────────────┬───────────────────────────────┘
                                    │ ISR 360 Hz → antrean 256
                                    v
@@ -55,11 +56,11 @@ kalibrasi (§3.1).
 
 | Bagian | Letak |
 |---|---|
-| Sumber sinyal dummy | `main.cpp` `replay` / `sim_counts[]`, toggle `'y'` ([firmware §5c](firmware-walkthrough.md)) |
+| Sumber sinyal dummy | `akuisisi.cpp` `rp_data` / `sim_counts[]`, menu Sumber sinyal atau toggle `'y'` ([firmware §5c](firmware-walkthrough.md)) |
 | Broker + rule engine + dashboard | `dashboard/` (ThingsBoard CE) |
 | Kontrak payload (7 field, QoS 1, topic) | `dashboard/README.md`, `bab3.tex` |
 | Referensi kawat MQTT yang terbukti | `dashboard/smoke_test.py` |
-| Penilai kualitas sinyal | `main.cpp` `nilai_kualitas()`, `AMBANG_AYUN` |
+| Penilai kualitas sinyal | `gerbang.cpp` `gerbang_nilai_kualitas()`, `AMBANG_AYUN` |
 
 Modul MQTT **tidak menduplikasi satu pun** dari daftar itu. Yang ditambahkan
 hanya klien MQTT, ring backlog, dan gerbangnya.
@@ -125,16 +126,18 @@ if ((lewati_kalibrasi || replay || (stabil && rr_tenang)) && ayun_ok)
     fase = FASE_BAIK;
 ```
 
-Selama `replay` menyala, gerbang waktu dan RR dilewati dan serial mencetak
-`GERBANG DILEWATI (replay)` saat fase berpindah. Mematikan replay (`y` kedua)
-memanggil `mulai_sesi()`, sehingga sinyal tubuh kembali ke `calibrating` dan
+`replay` bernilai benar untuk kedua sumber replay, acuan maupun rekaman
+(`akuisisi_replay()` = sumber bukan ADC). Selama replay, gerbang waktu dan RR
+dilewati dan serial mencetak `GERBANG DILEWATI (replay)` saat fase berpindah.
+Kembali ke Sensor (ADC), lewat menu Sumber sinyal atau `y` kedua, memanggil
+`gerbang_mulai_sesi()`, sehingga sinyal tubuh kembali ke `calibrating` dan
 harus memenuhi gerbang penuh (stabil 10 menit + RR tenang 30 detik + ayunan).
 Tidak ada keadaan tersisa dari replay yang bisa membuka gerbang untuk sinyal
 tubuh.
 
-Toggle `k` adalah override manual untuk bench, terpisah dari replay: `k` ON
-melewati gerbang untuk jalur ADC (`GERBANG DILEWATI (bench)`), dan `k` OFF
-memanggil `mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
+Toggle `k` (menu Kalibrasi → Lewati (bench)) adalah override manual untuk
+bench, terpisah dari replay: `k` ON melewati gerbang untuk jalur ADC
+(`GERBANG DILEWATI (bench)`), dan `k` OFF memanggil `gerbang_mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
 penuh, termasuk bila fase sudah `good`. Status `k` terbaca di baris status
 (`lewati 0/1`, §4.4).
 
@@ -156,7 +159,8 @@ syarat waktu dan RR, bukan syarat ayunan:
 ```
 
 Buzzer mengikuti fase: bip detak senyap selama `calibrating`, dan bunyi panjang
-600 ms menandai kalibrasi mulai (boot, ganti sumber, `k` OFF) dan selesai
+600 ms menandai kalibrasi mulai (boot, ganti sumber, Kalibrasi → Mulai ulang,
+`k` OFF) dan selesai
 (masuk `good`).
 
 **Digerbangi kualitas sinyal, bukan ada-tidaknya beat.** Alasannya terukur dan
@@ -309,7 +313,7 @@ broker.
 
 | Tombol | Arti | Keluaran |
 |---|---|---|
-| **`y`** | **sumber sinyal: replay ⇄ ADC** (setara tombol B1 ditahan 2 detik) | `replay ON (golden_raw)` / `replay OFF (ADC)` |
+| **`y`** | **sumber sinyal: ADC ⇄ replay acuan** (menu Sumber sinyal memilih ketiga sumber, termasuk replay rekaman) | `replay ON (golden_raw)` / `replay OFF (ADC)` |
 | **`m`** | **publikasi MQTT: on ⇄ off** | `mqtt ON` / `mqtt OFF` |
 | **`k`** | **lewati gerbang kalibrasi** (bench saja); OFF memulai sesi baru dengan gerbang penuh | `lewati gerbang kalibrasi ON` / `OFF` |
 | `q` | toggle laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
@@ -335,7 +339,7 @@ Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
 |---|---|---|
 | 1 | boot, tunggu | `mqtt: WiFi "…" -> 192.168.x.x:1883`, lalu `mqtt: jam tersinkron, epoch_ms …` dan `mqtt tersambung, backlog 0 beat` |
 | 2 | tekan `m` (bila belum ON) | `mqtt ON` |
-| 3 | tekan `y` | `replay ON (golden_raw)` |
+| 3 | tekan `y`, atau menu **Sumber sinyal → Replay acuan (208)** | `replay ON (golden_raw)` |
 | 4 | tunggu ~7 detik | `kualitas: calibrating -> good (GERBANG DILEWATI (replay), …)`, lalu baris `beat …` mulai keluar |
 | 5 | tekan `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
 | 6 | buka `http://localhost:8080` | telemetri masuk di dashboard |
@@ -358,7 +362,8 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
         mqtt online | terkirim 41 | backlog 0/27000 | hilang 0 | gagal 0 |
         paket <ack>/<kirim> PDSR <x>% | tunda alat rata <ms> ms maks <ms> ms |
         RTT maks <ms> ms (lambat <n>) | RSSI <dBm> dBm | epoch_ms <epoch>
-        INA219 I=<mA> mA V=<V> V P=<mW> mW | bisu 0 | beku 0 | lewati 0 | daya -1
+        INA219 I=<mA> mA V=<V> V P=<mW> mW | bisu 0 | beku 0 | lewati 0 | daya -1 |
+        sumber acuan 0 | menu 0
 ```
 
 | Kolom | Artinya |
@@ -375,6 +380,8 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
 | `epoch_ms` | jam board; dipakai alat ukur di laptop untuk mengoreksi selisih jam |
 | `lewati` | override `k` aktif (1) atau tidak (0); replay tidak mengubahnya |
 | `daya` | anak tangga ukur daya `p0`–`p5`, atau `-1` = operasi normal ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d) |
+| `sumber` | `adc`, `acuan` (golden 208), atau `rekaman` diikuti nomor berkas (0 bila bukan replay rekaman) |
+| `menu` | menu di layar sedang terbuka (1) atau tidak (0) |
 
 `mqtt` bisa berisi: `mati` (toggle `m` off atau tanpa kredensial), `no-wifi`,
 `no-broker`, `tunggu-jam` (SNTP belum masuk), `online`.

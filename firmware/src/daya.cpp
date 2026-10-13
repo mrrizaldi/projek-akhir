@@ -113,7 +113,7 @@ static int jd_n;
 static int langkah = -1;
 static int jendela_langkah;                // jendela diterima di langkah ini, termasuk yang dibuang
 static uint32_t t_langkah;
-static bool replay_awal;
+static int sumber_awal, rekam_awal;   // dipulihkan setelah tangga
 static daya_baris_t hasil[TANGGA_N];
 static int hasil_n;
 static int berkas_akhir = -1;              // -1 = belum dipindai
@@ -181,9 +181,11 @@ void daya_tangga_mulai(void)
     if (langkah >= 0) { Serial.println("tangga: sudah berjalan"); return; }
     if (!ina_ada) { Serial.println("tangga: INA219 tidak terdeteksi, batal"); return; }
     jd_n = hasil_n = 0;
-    // Beban identik tiap ulangan: replay golden, seperti measure_power.py.
-    replay_awal = akuisisi_replay();
-    if (!replay_awal) akuisisi_ganti_sumber();
+    // Beban identik tiap ulangan: selalu replay acuan (golden 208), seperti
+    // measure_power.py, apa pun sumber yang sedang dipilih. Tidak ditulis ke NVS.
+    sumber_awal = akuisisi_sumber();
+    rekam_awal = akuisisi_sumber_rekam();
+    if (sumber_awal != SUMBER_ACUAN) akuisisi_set_sumber(SUMBER_ACUAN, 0, false);
     Serial.printf("tangga: mulai, perkiraan %lu s\n",
                   (unsigned long)(TANGGA_N * (DAYA_BLOK + 1) * JENDELA_DAYA_MS / 1000));
     mulai_langkah(0);
@@ -196,7 +198,7 @@ static void selesai(const char *batal)
 {
     langkah = -1;
     daya_set_mode(-1);
-    if (!replay_awal && akuisisi_replay()) akuisisi_ganti_sumber();
+    if (akuisisi_sumber() != sumber_awal) akuisisi_set_sumber(sumber_awal, rekam_awal, false);
     if (batal) Serial.printf("tangga: BATAL, %s\n", batal);
 
     bool sah[TANGGA_N] = {};

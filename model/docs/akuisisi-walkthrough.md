@@ -54,7 +54,8 @@ terpasang (lihat §7).
 
 Tabel di atas adalah bagian akuisisi dari peta pin PCB rev1
 (`firmware/include/perangkat.h`). Peta lengkap, termasuk TFT, buzzer, tombol
-B1/B2, dan INA219, ada di [`firmware/README.md`](../../firmware/README.md).
+B1/B2, dan INA219, serta peta tombol dan menu di layar, ada di
+[`firmware/README.md`](../../firmware/README.md).
 Jalur akuisisi dapat diperiksa tanpa elektroda dengan
 `pio test -e esp32-s3 -f test_hw_adc` (ADC terbaca, timer tepat 360 sampel per
 detik, status LO dicetak).
@@ -105,14 +106,16 @@ LED dievaluasi tiap 250 ms dengan urutan prioritas berikut (`perbarui_led()`):
 Empat keadaan, tanpa kedip. Merekam saat oranye = rekaman kosong; perbaiki
 elektrodanya lebih dulu. Pojok kanan atas TFT menampilkan keadaan yang sama
 dengan warna yang sama: `REC <detik>` (merah), `KALIB` (biru muda), `BURUK`
-(oranye), `BAIK` (hijau), ditambah `REPLAY` (kuning) saat sumber sinyal replay.
+(oranye), `BAIK` (hijau), ditambah `REPLAY` (kuning) saat replay acuan dan
+`RP#NNN` (kuning) saat replay rekaman nomor `NNN`.
 
 **Fase kalibrasi (biru).** Setiap sesi dimulai di fase kalibrasi dan baru
 berpindah ke pemantauan bila tiga syarat terpenuhi bersamaan: sesi sudah
 berjalan ≥ 10 menit, RR 300–1500 ms dengan |dRR| ≤ 200 ms tenang selama
 30 detik, dan ayunan bersih ≥ 60 (rincian: [`mqtt-walkthrough.md`](mqtt-walkthrough.md)
 §3.1). Selama biru, LED tidak menunjukkan oranye/hijau, jadi kualitas kontak
-dibaca dari `q`.
+dibaca dari `q` atau dari halaman menu **Kalibrasi → Status** (waktu stabil,
+RR tenang, ayunan, sampel hilang; diperbarui tiap detik).
 
 Siapa yang boleh melewati syarat waktu-stabil dan RR-tenang (syarat ayunan
 ≥ 60 **tidak pernah** dilewati):
@@ -120,8 +123,8 @@ Siapa yang boleh melewati syarat waktu-stabil dan RR-tenang (syarat ayunan
 | Keadaan | Waktu-stabil & RR-tenang | Keterangan |
 |---|---|---|
 | sumber = ADC, `k` OFF | **berlaku penuh** | kondisi perekaman resmi |
-| sumber = replay (`y`) | **dilewati otomatis** selama replay aktif | record 208 aritmik, tidak akan pernah RR-tenang; tanpa elektroda. Serial: `GERBANG DILEWATI (replay)`. Bypass hilang begitu replay dimatikan |
-| `k` ON | dilewati — **override manual untuk bench** | serial: `GERBANG DILEWATI (bench)`. Mematikan `k` memulai **sesi baru**, jadi gerbang penuh (termasuk 10 menit) berlaku lagi dari nol |
+| sumber = replay acuan atau replay rekaman (menu **Sumber sinyal**; `y` untuk replay acuan) | **dilewati otomatis** selama replay aktif | record 208 aritmik, tidak akan pernah RR-tenang; rekaman yang diputar ulang bukan kontak elektroda yang sedang menstabil, sehingga syarat stabilisasi tidak bermakna; keduanya tanpa elektroda. Serial: `GERBANG DILEWATI (replay)`. Bypass hilang begitu sumber kembali ke Sensor (ADC) |
+| lewati ON (`k`, atau menu **Kalibrasi → Lewati (bench)**) | dilewati — **override manual untuk bench** | serial: `GERBANG DILEWATI (bench)`. Mematikannya memulai **sesi baru**, jadi gerbang penuh (termasuk 10 menit) berlaku lagi dari nol |
 
 Jangan merekam data resmi dengan `k` ON: gerbangnya tidak menjamin apa-apa.
 
@@ -143,11 +146,15 @@ cukup.
 ## 3. Merekam
 
 1. Pasang elektroda baru sesuai §1. Board diberi daya dari powerbank; USB laptop
-   **tercabut**.
+   **tercabut**. Pastikan sumber sinyal **Sensor (ADC)**: pojok kanan atas TFT
+   tidak menampilkan `REPLAY` atau `RP#NNN`. Pilihan sumber tersimpan di NVS,
+   sehingga replay yang dipilih sebelumnya tetap aktif setelah boot; ganti lewat
+   menu **Sumber sinyal → Sensor (ADC)** (tahan B2 untuk membuka menu).
 2. Pastikan kualitas sinyal: LED **hijau**, atau selama fase kalibrasi (biru)
    `BERSIH ≥ 60` dan `clipping 0` di laporan `q`.
-3. Tekan **B3 REC** (GPIO 6). LED menjadi merah, TFT menampilkan `REC` beserta
-   detiknya, dan serial mencetak `REKAM mulai`.
+3. Dari layar monitor (menu tertutup), tekan pendek **B3 REC** (GPIO 6). LED
+   menjadi merah, TFT menampilkan `REC` beserta detiknya, dan serial mencetak
+   `REKAM mulai`. Selama menu terbuka B3 adalah tombol navigasi.
 4. Duduk diam, lengan bertumpu, **25 detik**.
 5. Tekan **B3 REC** lagi. Hasil yang diharapkan di serial:
 
@@ -160,9 +167,10 @@ cukup.
 
 Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat B3
 ditekan kedua kali, sehingga bertahan walau board mati. Maksimum 5 menit
-(`DETIK_MAKS` = 300). Tiap rekaman disimpan sebagai berkas bernomor baru
+(`REKAM_SAMPEL_MAKS` = 360 × 300 sampel). Tiap rekaman disimpan sebagai berkas bernomor baru
 (`/rekam/001.csv`, `002`, ...); daftarnya dilihat dengan serial `l` dan berkas
-lama dihapus dengan `h<n>`. Persentase `elektroda
+lama dihapus dengan `h<n>`. Rekaman yang tersimpan dapat diputar ulang di board
+lewat menu **Sumber sinyal → Replay rekaman**. Persentase `elektroda
 lepas` berasal dari pin LO+/LO−; nilai 0% bukan jaminan ada sinyal (LO cukup
 dipuaskan satu jalur impedansi rendah), jadi wasitnya tetap ayunan di §6.
 
@@ -307,8 +315,8 @@ Board menerima satu huruf lewat serial 115200 (`pio device monitor`):
 | `h<n>` | hapus rekaman nomor `<n>` |
 | `s` | status sesaat: rekam, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT, INA219 |
 | `q` | toggle laporan kualitas tiap detik |
-| `k` | toggle override gerbang kalibrasi untuk uji meja; OFF = sesi baru, gerbang penuh dari nol (lihat §2) |
-| `y` | toggle sumber sinyal replay ⇄ ADC |
+| `k` | toggle override gerbang kalibrasi untuk uji meja; OFF = sesi baru, gerbang penuh dari nol (lihat §2); setara menu Kalibrasi → Lewati (bench) |
+| `y` | toggle sumber sinyal ADC ⇄ replay acuan; ketiga sumber (termasuk replay rekaman) dipilih dari menu Sumber sinyal |
 | `m` | toggle publikasi MQTT |
 
 Huruf `y` dan `m` diuraikan di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §4.

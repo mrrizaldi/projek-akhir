@@ -1,7 +1,8 @@
 # Rencana: Menu di Perangkat, Resolver Broker, dan Firmware Modular
 
 **Tanggal:** 2026-10-13
-**Status:** disetujui user, dalam pengerjaan. Pindahkan ke `docs/arsip/` setelah selesai.
+**Status:** selesai 13 Okt 2026 (Fase 0–6), diarsipkan. Kondisi yang berlaku:
+[`firmware/README.md`](../../firmware/README.md) bagian Pemakaian di perangkat.
 **Ruang lingkup:** `firmware/**`, `model/scripts/` (alat bantu laptop), `model/Makefile`,
 dokumentasi firmware & walkthrough terkait.
 
@@ -72,11 +73,21 @@ Tiap fase: `pio run`, `pio test -e native`, `pio test -e esp32-s3` lulus + cek s
 
 0. **Selesai.** Daftar WiFi/broker + NVS, `make broker-info`, dokumentasi jaringan & rakitan baterai/INA219.
 1. **Selesai.** Refactor modular tanpa ubah perilaku (native 23/23, board 34/34). Modul tambahan di luar tabel: `akuisisi` (ISR 360 Hz, sumber ADC/replay), `klasifikasi` (TFLite, publikasi).
-2. Modul tombol + kerangka menu + layar menu; replay pindah dari B1-lama ke menu.
-3. Menu Sumber (termasuk daftar rekaman), Kalibrasi, Jaringan, Info.
-4. Menu Tes perangkat.
-5. Menu Ukur daya mandiri (baterai, tanpa laptop) + `make pull-daya`.
-6. Dokumentasi pemakaian menu. Paragraf tombol/menu di laporan Bab 3 = gate point (tanya user).
+2. **Selesai** (`7476063`). `tombol.*` dengan ambang tekan lama 800 ms (bip saat ambang,
+   pendek saat dilepas), `menu.*` (pohon array struct statis + pointer fungsi, tumpukan 4
+   tingkat), layar menu di `tampilan.*`. Replay pindah dari B1-lama ke menu Sumber sinyal;
+   sumber tersimpan di NVS. Serial `t1`–`t3` / `T1`–`T3` menyuntik tombol untuk uji menu.
+   Terukur: bingkai penuh ±200 ms, geser sorotan ±36 ms, sampel hilang 0.
+3. **Selesai** (`bca5773`). Menu Sumber (termasuk daftar `/rekam/NNN.csv`), Kalibrasi,
+   Jaringan, Info; Tes dan Ukur daya dikaitkan ke stub sementara.
+4. **Selesai** (`ec4caa9`). `diagnosa.*` dipakai bersama menu Tes perangkat dan
+   `test/test_hw_*`; suite baru `test_hw_tombol`. Board 29 test, native 23.
+5. **Selesai** (`b012fa6`, digabung di `07a5a07` menggantikan stub). Tangga mandiri p0–p5
+   dari menu atau serial `V`, hasil ke `/daya/NNN.csv`, daftar/dump `v` / `v<n>`;
+   `make pull-daya` di `model/`. Menu ditutup selama tangga agar p4 mengukur beban UI.
+6. **Selesai.** Dokumentasi: `firmware/README.md` (Pemakaian di perangkat, Ukur daya tanpa
+   laptop), `model/docs/firmware-walkthrough.md` §5c/§5d, akuisisi- dan mqtt-walkthrough.
+   Paragraf tombol/menu di laporan Bab 3 = gate point, belum diubah (keputusan user).
 
 ## Rakitan INA219 dengan baterai
 

@@ -53,7 +53,7 @@ cd dashboard && docker compose up -d      # -> http://localhost:8080
 | `model/` ablasi Fase A-G | Selesai, konfigurasi tidak berubah | 10 usul × 3-6 seed; TEST-B/C 85.812 beat / 39 pasien ([peta](model/docs/README.md)) |
 | `firmware/` env `esp32-s3` | Berjalan di board | Inferensi 26,6 ms/detak, tensor arena 12.948 B, sampel hilang 0; MQTT PDSR 99,2-100%, latensi median 939-1.108 ms |
 | Akuisisi sinyal tubuh | Pipeline siap (13 Okt 2026), **pengujian resmi belum** | Rekaman sebelum 13 Okt 2026 = uji coba, diarsipkan di [`model/data/arsip/rekaman-uji-coba/`](model/data/arsip/rekaman-uji-coba/README.md); rekaman resmi → `model/data/recordings/` |
-| `firmware/` test perangkat | Lulus di board | `pio test -e esp32-s3`: 33 test (buzzer, TFT, ADC, INA219, integrasi replay) |
+| `firmware/` test perangkat | Lulus di board | `pio test -e esp32-s3`: 29 test (preprocessing, inferensi, buzzer, TFT, ADC, INA219, tombol, integrasi replay) |
 | `firmware/` env `native` | Lulus | `pio test -e native`: 23 test |
 | `dashboard/` | Berjalan | ThingsBoard CE self-host, dashboard tujuh widget, uji deduplikasi |
 | `laporan/proposal-pa` | Lengkap | Bab 1-3 dan abstrak |
