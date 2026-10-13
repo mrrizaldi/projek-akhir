@@ -22,7 +22,7 @@ static void tulis(uint8_t reg, uint16_t nilai)
     Wire.endTransmission();
 }
 
-static bool baca(uint8_t reg, uint16_t *out)
+bool ina219_baca_reg(uint8_t reg, uint16_t *out)
 {
     Wire.beginTransmission(INA219_ALAMAT);
     Wire.write(reg);
@@ -41,13 +41,13 @@ bool ina219_mulai(int pin_sda, int pin_scl)
     tulis(INA219_REG_CONFIG, INA219_CONFIG);
     delay(5);
     uint16_t c;
-    return baca(INA219_REG_CONFIG, &c) && c == INA219_CONFIG;
+    return ina219_baca_reg(INA219_REG_CONFIG, &c) && c == INA219_CONFIG;
 }
 
 bool ina219_baca(float r_shunt_ohm, float *arus_mA, float *bus_V)
 {
     uint16_t s, b;
-    if (!baca(INA219_REG_SHUNT, &s) || !baca(INA219_REG_BUS, &b))
+    if (!ina219_baca_reg(INA219_REG_SHUNT, &s) || !ina219_baca_reg(INA219_REG_BUS, &b))
         return false;
     *arus_mA = ina219_arus_mA((int16_t)s, r_shunt_ohm);
     *bus_V = ina219_bus_V(b);

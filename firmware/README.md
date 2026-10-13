@@ -55,7 +55,7 @@ suite memiliki `setup()`/`loop()` sendiri.
 | `test_hw_buzzer` | esp32-s3 | GPIO 13 tersambung ke LEDC setelah SPI dan TFT terpasang, diam = HIGH, bunyi = gelombang kotak; tiga bip untuk didengar |
 | `test_hw_tft` | esp32-s3 | Inisialisasi TFT dan transfer SPI satu layar penuh; pola warna untuk dilihat |
 | `test_hw_adc` | esp32-s3 | ADC GPIO 1 terbaca, timer menghasilkan 360 sampel per detik; nilai mentah dan LO dicetak |
-| `test_hw_ina219` | esp32-s3 | INA219 menjawab di I2C, bacaan dalam rentang fisik chip; nilai dicetak |
+| `test_hw_ina219` | esp32-s3 | INA219 menjawab di I2C, bacaan dalam rentang fisik chip; nilai dan register mentah (shunt, bus, OVF) dicetak |
 | `test_hw_integrasi` | esp32-s3 | Replay `golden_raw` lewat ISR 360 Hz → antrean → `ecg_live` → HR → inferensi, dengan TFT, INA219, dan buzzer aktif: tanpa sampel hilang, HR dan label sama dengan anotasi/PC |
 
 Test perangkat hanya menjadikan syarat lulus hal yang dapat diukur tanpa
@@ -112,6 +112,8 @@ aritmia. Bip dan gelombang ditunda sama rata 1,46 detik dari R (kadens deteksi
 + post-window + margin), sehingga jarak antar-bip sama dengan RR dan R
 tergambar tepat saat bipnya berbunyi. HR dan bip hanya muncul bila ayunan
 sinyal bersih di atas ambang (gerbang yang sama dengan publikasi MQTT).
+Selama fase kalibrasi bip detak senyap; bunyi panjang 600 ms menandai
+kalibrasi mulai (boot, ganti sumber, `k` OFF) dan selesai (masuk fase BAIK).
 
 | Tombol | Tekan | Tahan 2 detik |
 |---|---|---|
@@ -144,7 +146,8 @@ Tanpa berkas ini firmware tetap ter-build dan berjalan dengan MQTT nonaktif.
 | `r` | Mulai rekam / simpan rekaman ke `/rekaman.csv` (LittleFS) |
 | `d` | Dump rekaman ke serial (dipakai `make pull` di `model/`) |
 | `s` | Status: fase kualitas, jumlah beat, antrean, sampel hilang, status MQTT, PDSR, RSSI, INA219, bisu/beku |
-| `y` | Toggle sumber sinyal ADC ↔ replay `golden_raw`; replay melewati gerbang kalibrasi |
-| `k` | Toggle lewati gerbang kalibrasi (hanya untuk bench) |
+| `y` | Toggle sumber sinyal ADC ↔ replay `golden_raw`; selama replay menyala gerbang kalibrasi dilewati |
+| `k` | Toggle lewati gerbang kalibrasi (hanya untuk bench); OFF memulai sesi baru dengan gerbang penuh |
+| `p0`–`p5` | Tangga ukur daya, baris `DAYA` tiap 10 detik; `p` + huruf lain = operasi normal (`model/docs/firmware-walkthrough.md` §5d) |
 | `m` | Toggle publikasi MQTT |
 | `q` | Toggle laporan kualitas sinyal per detik |

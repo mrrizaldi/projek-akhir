@@ -10,6 +10,12 @@ Monorepo Proyek Akhir: **monitoring detak jantung kontinu, klasifikasi
 aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
 `README.md` untuk tabel & alur artefak.
 
+**Pekerjaan terbuka** (bertanggal, jangan sampai lupa): daftar tunggal di
+[`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka) —
+rekaman sinyal tubuh resmi (belum; data sebelum 13 Okt 2026 = uji coba, arsip),
+gerbang kalibrasi opsi C, dan konsumsi daya. Angka laporan yang menunggu data
+resmi: `grep -rn PLACEHOLDER-DATA laporan/buku-pa`.
+
 ## Aturan kerja (non-negotiable)
 
 1. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua

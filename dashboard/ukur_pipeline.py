@@ -26,8 +26,9 @@ DURASI = float(sys.argv[1]) if len(sys.argv) > 1 else 90.0
 
 # Dijalankan dari folder dashboard/ dengan board tersambung dan broker hidup:
 #   python3 ukur_pipeline.py 150
-# Skrip menyalakan replay + melewati gerbang kalibrasi lewat serial, jadi tidak
-# butuh elektroda. Butuh pyserial (ada di model/requirements.txt).
+# Skrip menyalakan replay lewat serial (bila belum menyala), jadi tidak butuh
+# elektroda. Replay sendiri melewati gerbang kalibrasi di firmware; 'k' tidak
+# dikirim. Butuh pyserial (ada di model/requirements.txt).
 
 
 def rest(path, body=None, token=None):
@@ -42,7 +43,7 @@ def rest(path, body=None, token=None):
 jwt = rest("/api/auth/login", {"username": "tenant@thingsboard.org", "password": "tenant"})["token"]
 dev_id = rest(f"/api/tenant/devices?deviceName={DEVICE}", token=jwt)["id"]["id"]
 
-# --- serial: hidupkan replay + lewati stabilisasi, lalu ambil status di akhir ---
+# --- serial: hidupkan replay, lalu ambil status di akhir ---
 s = serial.Serial(); s.port, s.baudrate, s.timeout = "/dev/ttyACM0", 115200, 0.2
 s.dtr = s.rts = False
 s.open()
@@ -60,8 +61,32 @@ def pembaca():
 threading.Thread(target=pembaca, daemon=True).start()
 print("== boot + WiFi ==")
 time.sleep(14)
-for c in ("k", "y"):            # k = lewati stabilisasi, y = replay ON
-    s.write(c.encode()); s.flush(); time.sleep(1.5)
+
+
+def tunggu_baris(isi, detik=3.0, mulai=None):
+    """Baris serial pertama berisi `isi` sejak indeks `mulai`, atau None."""
+    tanda = len(baris) if mulai is None else mulai
+    akhir = time.time() + detik
+    while time.time() < akhir:
+        for b in baris[tanda:]:
+            if isi in b:
+                return b
+        time.sleep(0.05)
+    return None
+
+
+# Idempoten: 'y' adalah toggle, jadi status dibaca dulu dan 'y' hanya dikirim
+# bila replay belum menyala.
+tanda = len(baris); s.write(b"s"); s.flush()
+st = tunggu_baris("replay=", mulai=tanda)
+if st is None:
+    sys.exit("board tidak menjawab 's'")
+if "replay=1" not in st:
+    tanda = len(baris); s.write(b"y"); s.flush()
+    if not tunggu_baris("replay ON", mulai=tanda):
+        sys.exit("replay gagal dinyalakan")
+print("== replay ON ==")
+time.sleep(1.5)
 # --- selisih jam board vs laptop ---
 # Tanpa koreksi ini, selisih jam terbaca sebagai latensi. Diukur dengan meminta
 # status ('s'), mencatat waktu laptop saat barisnya tiba, lalu membandingkan

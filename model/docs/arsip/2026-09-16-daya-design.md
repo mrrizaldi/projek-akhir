@@ -1,7 +1,8 @@
 # Desain Pengukuran Konsumsi Daya & Penentuan Baterai — HW-7
 
 Tanggal: 2026-09-16
-Status: disetujui (hasil brainstorming), belum diimplementasikan
+Status: jalur ukur terimplementasi dan teruji (13 Okt 2026); pengukuran belum
+dijalankan karena INA219 belum berada di jalur arus alat (§9)
 Acuan: `laporan/proposal-pa/bab/bab3.tex` baris 533, 590–593 (rencana pengukuran
 perangkat keras); `bab2.tex` baris 327, 342 (gap penelitian terdahulu)
 
@@ -109,9 +110,9 @@ lain, yang dikoreksi satu konstanta.
   wajib: arus perangkat ini berdenyut mengikuti burst 33 ms yang sudah terukur
   di HW-3, dan pembacaan sesaat akan melompat-lompat tanpa arti.
 - **Saat WiFi menyala, PGA ÷1 tidak cukup.** ±400 mA bisa dilewati burst TX
-  WiFi dan terbaca terpotong. Sebelum mengukur dengan WiFi, ubah
-  `INA219_CONFIG` ke PGA ÷8 (`0x3FFF`, ±320 mV ≈ ±3,2 A). (Dipindah dari
-  rencana implementasi daya yang dihapus 13 Okt 2026.)
+  WiFi dan terbaca terpotong. `INA219_CONFIG` memakai PGA ÷8 (`0x3FFF`,
+  ±320 mV ≈ ±3,2 A) untuk seluruh tangga, sehingga semua mode diukur dengan
+  setelan instrumen yang sama. LSB register shunt tetap 10 µV di semua PGA.
 
 ### 2.3 Siapa yang membaca
 
@@ -135,8 +136,8 @@ Laptop  ─┬─ VBUS (merah) ──► [INA219 VIN+] (shunt) [VIN−] ──�
          ├─ D−  (putih) ─────────────────────────────────► board   JANGAN diputus
          └─ GND (hitam) ─────────────────────────────────► board   JANGAN diputus
 
-INA219 VCC ─ 3V3 board      INA219 SDA ─ GPIO 11
-INA219 GND ─ GND board      INA219 SCL ─ GPIO 12
+INA219 VCC ─ 3V3 board      INA219 SDA ─ GPIO 17
+INA219 GND ─ GND board      INA219 SCL ─ GPIO 18
 ```
 
 Modul yang dipakai varian **header 6 pin** (`VCC GND SCL SDA VIN+ VIN-`), tanpa
@@ -149,8 +150,8 @@ deretan, jadi pemetaannya ditulis tegas:
 | `VIN-` | kawat merah USB sisi **board** (ke pin 5V) | jalur diukur (arus beban) |
 | `VCC` | **3V3** board | logika |
 | `GND` | GND board | logika |
-| `SDA` | GPIO 11 | logika |
-| `SCL` | GPIO 12 | logika |
+| `SDA` | GPIO 17 | logika |
+| `SCL` | GPIO 18 | logika |
 
 **`VCC` wajib 3V3, jangan 5V.** Pull-up I2C modul tersambung ke VCC-nya sendiri;
 VCC 5V menarik SDA/SCL ke 5V dan memberi tegangan berlebih ke GPIO ESP32-S3 yang
@@ -179,7 +180,7 @@ sebenarnya, tanpa peringatan apa pun.
 
 ### 3.1 Pemilihan pin I2C
 
-GPIO 11 & 12 adalah pin **ADC2**, dan ADC2 mati total begitu WiFi menyala
+GPIO 17 & 18 adalah pin **ADC2**, dan ADC2 mati total begitu WiFi menyala
 (`akuisisi-walkthrough.md` §1). Untuk proyek yang pasti menyalakan WiFi di
 HW-6, kapasitas ADC di pin itu sudah pasti hangus — menghabiskannya untuk I2C
 tidak mengorbankan apa pun, sementara memakai GPIO 1–10 akan memakan ADC1 yang
@@ -293,3 +294,34 @@ bisa diambil dari angka, bukan sebelum angka.
   menjembataninya.
 - **Tidak menyentuh HW-6.** Spek terpisah, dikerjakan sesudah baseline daya
   terkunci.
+
+---
+
+## 9. Implementasi dan status pengukuran
+
+Prosedur pakai dan diagnosis lengkap:
+[`../firmware-walkthrough.md`](../firmware-walkthrough.md) §5d.
+
+**Implementasi.**
+
+- `firmware/src/main.cpp`: perintah serial `p0`–`p5` (`p` + huruf lain = operasi
+  normal) dan baris `DAYA` per jendela 10 detik (rata-rata INA219 tiap 100 ms).
+  Tangga mengikuti §1 dengan dua penyesuaian terhadap firmware sekarang: `p4`
+  memuat seluruh antarmuka (gelombang TFT, bip, LED), dan `p5` menambahkan radio
+  WiFi dengan `WiFi.setSleep(false)` beserta publikasi MQTT. Radio mati di
+  `p0`–`p4`.
+- `firmware/include/ina219.h`: `INA219_CONFIG = 0x3FFF` (§2.2).
+- `model/scripts/measure_power.py`: menjalankan tangga, membuang jendela pertama
+  tiap mode, mengambil 6 jendela (60 detik), menulis
+  `model/artifacts/metrics/daya/<ts>.csv`, dan menjalankan cek §4–§5 lapis 1
+  dan 3. Grafik PNG tidak dibuat; CSV menjadi sumber tabel.
+
+**Status.** Pengukuran belum dijalankan. Register mentah INA219 pada board yang
+dicatu USB laptop menunjukkan tegangan bus 0–4 mV dan tegangan shunt yang
+melompat 133–220 mV antar-bacaan: kedua pin VIN mengambang, INA219 belum
+disisipkan di kawat VBUS (§3). Skrip menolak menulis CSV pada kondisi ini
+(tegangan bus < 1 V). Jalur ukur sudah diuji ujung ke ujung dengan `--paksa`:
+keenam mode terkonfirmasi board, `lewat = 0` di semua mode, dan radio kembali
+tersambung di `p5`.
+
+**Hasil.** Belum ada. Tabel per mode diisi dari CSV setelah perakitan §3.

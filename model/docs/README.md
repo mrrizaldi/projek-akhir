@@ -8,6 +8,11 @@ ditolak, angka nyata, dan soal cek pemahaman.
 `PRD_Model_Aritmia_TinyML.pdf`. Keputusan yang mengikat = tabel decision point
 di `../CLAUDE.md`.
 
+**Pekerjaan terbuka** (rekaman sinyal tubuh resmi, gerbang kalibrasi, daya):
+daftar bertanggal di [`../CLAUDE.md` §Pekerjaan terbuka](../CLAUDE.md#pekerjaan-terbuka).
+Rekaman sebelum 13 Okt 2026 = uji coba, diarsipkan di
+[`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md).
+
 ---
 
 ## Alur data, satu layar

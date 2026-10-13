@@ -117,15 +117,47 @@ pernah terpenuhi** — dan memang tidak seharusnya: kriteria itu untuk subjek
 **sehat** yang duduk diam, sementara sinyal uji kita sengaja aritmik.
 
 Dua hal itu tidak bisa dipenuhi bersamaan, jadi yang mengalah gerbangnya, dengan
-pengumuman: toggle `y` otomatis menyalakan `lewati_kalibrasi` dan serial mencetak
-`GERBANG DILEWATI (bench)` saat fase berpindah. Toggle `k` melakukan hal sama
-untuk jalur ADC. **Jalur sinyal tubuh menegakkan gerbang penuh** selama
-`lewati_kalibrasi` mati.
+pengumuman. Bypass itu **diturunkan dari sumber sinyal**, bukan disimpan sebagai
+flag:
 
-Perhatikan: mematikan replay (`y` kedua) **tidak** mematikan
-`lewati_kalibrasi`. Untuk kembali ke gerbang penuh dengan sinyal tubuh setelah
-memakai replay, tekan `k` sampai serial mencetak `lewati gerbang kalibrasi OFF`,
-atau reboot board.
+```c
+if ((lewati_kalibrasi || replay || (stabil && rr_tenang)) && ayun_ok)
+    fase = FASE_BAIK;
+```
+
+Selama `replay` menyala, gerbang waktu dan RR dilewati dan serial mencetak
+`GERBANG DILEWATI (replay)` saat fase berpindah. Mematikan replay (`y` kedua)
+memanggil `mulai_sesi()`, sehingga sinyal tubuh kembali ke `calibrating` dan
+harus memenuhi gerbang penuh (stabil 10 menit + RR tenang 30 detik + ayunan).
+Tidak ada keadaan tersisa dari replay yang bisa membuka gerbang untuk sinyal
+tubuh.
+
+Toggle `k` adalah override manual untuk bench, terpisah dari replay: `k` ON
+melewati gerbang untuk jalur ADC (`GERBANG DILEWATI (bench)`), dan `k` OFF
+memanggil `mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
+penuh, termasuk bila fase sudah `good`. Status `k` terbaca di baris status
+(`lewati 0/1`, §4.4).
+
+Terverifikasi di board tanpa elektroda (13 Okt 2026). Derau tanpa elektroda
+berayun di atas `AMBANG_AYUN` (404–1.787 counts), sehingga yang diuji adalah
+syarat waktu dan RR, bukan syarat ayunan:
+
+```
+>>> y   replay ON (golden_raw)
+        kualitas: calibrating -> good (GERBANG DILEWATI (replay), RR tenang 4 s, ayun 2707)   (+5 s)
+>>> y   replay OFF (ADC)
+        calibrating | ... | tenang 0/30 s | ayun 1787 (ambang 60) | stabil 34/600 s | lewati=0 replay=0
+        status: ... replay=0 | kualitas calibrating ...                                         (+40 s)
+>>> k   lewati gerbang kalibrasi ON
+        kualitas: calibrating -> good (GERBANG DILEWATI (bench), RR tenang 0 s, ayun 62)        (+3 s)
+>>> k   lewati gerbang kalibrasi OFF
+        calibrating | ... | stabil 5/600 s | lewati=0 replay=0
+        status: ... replay=0 | kualitas calibrating ... | lewati 0                              (+20 s)
+```
+
+Buzzer mengikuti fase: bip detak senyap selama `calibrating`, dan bunyi panjang
+600 ms menandai kalibrasi mulai (boot, ganti sumber, `k` OFF) dan selesai
+(masuk `good`).
 
 **Digerbangi kualitas sinyal, bukan ada-tidaknya beat.** Alasannya terukur dan
 sudah masuk daftar jebakan `../CLAUDE.md`:
@@ -269,7 +301,7 @@ jaringan, bukan di dirinya sendiri.
 |---|---|---|
 | **`y`** | **sumber sinyal: replay ⇄ ADC** (setara tombol B1 ditahan 2 detik) | `replay ON (golden_raw)` / `replay OFF (ADC)` |
 | **`m`** | **publikasi MQTT: on ⇄ off** | `mqtt ON` / `mqtt OFF` |
-| **`k`** | **lewati gerbang kalibrasi** (bench saja) | `lewati gerbang kalibrasi ON` |
+| **`k`** | **lewati gerbang kalibrasi** (bench saja); OFF memulai sesi baru dengan gerbang penuh | `lewati gerbang kalibrasi ON` / `OFF` |
 | `q` | toggle laporan kualitas tiap detik | `kualitas \| mentah … ayun … BERSIH …` |
 | `s` | status sesaat (termasuk MQTT) | lihat di bawah |
 | `r` | rekam mentah ke LittleFS (setara tombol B3) | `REKAM mulai` / `SIMPAN …` |
@@ -293,7 +325,7 @@ Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
 | 1 | boot, tunggu | `mqtt: WiFi "…" -> 192.168.x.x:1883`, lalu `mqtt: jam tersinkron, epoch_ms …` dan `mqtt tersambung, backlog 0 beat` |
 | 2 | tekan `m` (bila belum ON) | `mqtt ON` |
 | 3 | tekan `y` | `replay ON (golden_raw)` |
-| 4 | tunggu ~7 detik | `kualitas: calibrating -> good (GERBANG DILEWATI (bench), …)`, lalu baris `beat …` mulai keluar |
+| 4 | tunggu ~7 detik | `kualitas: calibrating -> good (GERBANG DILEWATI (replay), …)`, lalu baris `beat …` mulai keluar |
 | 5 | tekan `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
 | 6 | buka `http://localhost:8080` | telemetri masuk di dashboard |
 
@@ -301,13 +333,13 @@ Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
 ~2700 counts, jauh di atas `AMBANG_AYUN` 60. Jadi dummy dan sinyal tubuh
 melewati **gerbang per detak dan jalur publikasi yang sama persis** — tidak ada
 cabang `if (dummy)` di `publikasi()` maupun `ecg_mqtt.cpp`. Satu-satunya
-perlakuan replay adalah melewati gerbang kalibrasi, dan itu diumumkan di serial
-(§3.1b). Cabang khusus dummy di jalur publikasi berarti yang didemokan bukan yang
+perlakuan replay adalah melewati gerbang kalibrasi selama replay menyala, dan
+itu diumumkan di serial (§3.1b). Cabang khusus dummy di jalur publikasi berarti yang didemokan bukan yang
 dipakai.
 
 ### 4.4 Membaca baris status
 
-Format (dua baris; angka contoh, `<…>` = isian):
+Format (tiga baris; angka contoh, `<…>` = isian):
 
 ```
 status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan) | antrean 2 |
@@ -315,6 +347,7 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
         mqtt online | terkirim 41 | backlog 0/27000 | hilang 0 | gagal 0 |
         paket <ack>/<kirim> PDSR <x>% | tunda alat rata <ms> ms maks <ms> ms |
         RTT maks <ms> ms (lambat <n>) | RSSI <dBm> dBm | epoch_ms <epoch>
+        INA219 I=<mA> mA V=<V> V P=<mW> mW | bisu 0 | beku 0 | lewati 0 | daya -1
 ```
 
 | Kolom | Artinya |
@@ -329,6 +362,8 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
 | `RTT maks (lambat)` | RTT PUBACK terburuk, dan berapa kali > 1 detik |
 | `RSSI` | kuat sinyal WiFi |
 | `epoch_ms` | jam board; dipakai alat ukur di laptop untuk mengoreksi selisih jam |
+| `lewati` | override `k` aktif (1) atau tidak (0); replay tidak mengubahnya |
+| `daya` | anak tangga ukur daya `p0`–`p5`, atau `-1` = operasi normal ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d) |
 
 `mqtt` bisa berisi: `mati` (toggle `m` off atau tanpa kredensial), `no-wifi`,
 `no-broker`, `tunggu-jam` (SNTP belum masuk), `online`.
@@ -698,9 +733,10 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
 
 ## 10. Cakupan dan batas pengujian
 
-- **Daya.** Pengukuran daya per mode (HW-7, tangga `p0`–`p4`) tidak mencakup
-  mode WiFi/MQTT, padahal radio adalah beban terbesar alat. Angka daya mode
-  WiFi harus diambil dengan `WiFi.setSleep(false)` aktif (§7c).
+- **Daya.** Tangga ukur daya `p0`–`p5` mencakup mode WiFi/MQTT (`p5`, dengan
+  `WiFi.setSleep(false)` aktif seperti saat pengujian pipeline). Angkanya belum
+  ada karena INA219 belum berada di jalur arus alat
+  ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d).
 - **Sinyal tubuh.** Seluruh angka di dokumen ini diukur dengan replay. Dua hal
   hanya dapat diuji dengan sinyal tubuh: (a) apakah `AMBANG_AYUN` 60 memisahkan
   elektroda lepas dari sinyal tubuh lemah — replay ~2700 counts terlalu jauh di

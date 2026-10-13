@@ -60,8 +60,9 @@ data). Latensi dilaporkan sebagai batas bawah DAN batas atas, karena baris yang
 baru terlihat bisa sudah tersedia sebelum panggilan REST dikirim; selisih dua
 batas itu = ongkos alat ukurnya sendiri, dan ikut dicetak.
 
-Skrip menyalakan replay (`y`) dan melewati gerbang kalibrasi (`k`) sendiri, jadi
-tidak butuh elektroda. Hasil terukur ada di
+Skrip membaca status (`s`) lalu menyalakan replay (`y`) bila belum aktif; selama
+replay, syarat waktu stabil dan RR tenang gerbang kalibrasi dilewati otomatis,
+jadi tidak butuh elektroda. Hasil terukur ada di
 [`mqtt-walkthrough.md`](../model/docs/mqtt-walkthrough.md) §7c.
 
 `smoke_test.py` menguji

@@ -7,6 +7,14 @@
 Panduan kerja, bukan spesifikasi: merekam dari badan, menarik data, menilai
 kualitas, membuat grafik.
 
+> **Status data (13 Okt 2026).** Pengujian rekaman sinyal tubuh secara resmi
+> **dimulai 13 Oktober 2026**; rekaman resmi masuk `data/recordings/`. Rekaman
+> 10 Sep – 11 Okt 2026 adalah **uji coba** dan diarsipkan di
+> [`data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md)
+> (grafiknya di `artifacts/arsip/akuisisi-uji-coba/`). Semua angka di dokumen ini
+> yang berlabel *contoh dari rekaman uji coba (arsip)* hanya menggambarkan
+> prosedur, **bukan hasil**. Prosedurnya sendiri berlaku.
+
 ---
 
 ## 0. Alur satu layar
@@ -56,11 +64,13 @@ ditaruh di dada kiri atas (seperti diagram 3-lead klinis), yang terukur jadi
 Lead I — morfologi QRS-nya berbeda dari data latih model.
 
 **Daya: powerbank.** Selama USB laptop tertancap saat merekam, dengung 50 Hz
-menang. Terukur: 266% (laptop) vs 46% (powerbank).
+menang. Contoh dari rekaman uji coba (arsip, `20260910-1938` vs `-1948`): 266%
+(laptop) vs 46% (powerbank).
 
 **Elektroda sekali tempel.** Sekali dilepas, gel mengangkat minyak kulit dan
-kontaknya turun. Terukur menurun monoton: 691 → 250 → 195 counts mengikuti
-jumlah pemasangan ulang.
+kontaknya turun. Contoh dari rekaman uji coba (arsip, `20260910-1948`, `-1951`,
+`-2019`): ayunan menurun monoton 691 → 250 → 195 counts mengikuti jumlah
+pemasangan ulang.
 
 ---
 
@@ -71,9 +81,9 @@ LED mengukur **ayunan sinyal setelah bandpass 0,5–40 Hz**, pakai fungsi
 
 Bandpass itu **tidak membunuh 50 Hz**, cuma meredamnya −9,3 dB (gain 0,342;
 diukur dari `ecg_sos` dengan `sosfreqz`). Dengung besar karena USB laptop
-tertancap tetap lolos sepertiganya dan sanggup memalsukan LED hijau — terukur:
-ayunan mentah 990 counts dengan ayunan tersaring 380, padahal isinya jala-jala,
-bukan EKG. Karena itu firmware mengukur amplitudo 50 Hz dengan Goertzel
+tertancap tetap lolos sepertiganya dan sanggup memalsukan LED hijau — contoh
+dari uji coba (arsip): ayunan mentah 990 counts dengan ayunan tersaring 380,
+padahal isinya jala-jala, bukan EKG. Karena itu firmware mengukur amplitudo 50 Hz dengan Goertzel
 (1 detik = 50 siklus bulat, binnya tepat) lalu **mengurangkan** kontribusinya:
 
 ```
@@ -102,7 +112,18 @@ berpindah ke pemantauan bila tiga syarat terpenuhi bersamaan: sesi sudah
 berjalan ≥ 10 menit, RR 300–1500 ms dengan |dRR| ≤ 200 ms tenang selama
 30 detik, dan ayunan bersih ≥ 60 (rincian: [`mqtt-walkthrough.md`](mqtt-walkthrough.md)
 §3.1). Selama biru, LED tidak menunjukkan oranye/hijau, jadi kualitas kontak
-dibaca dari `q`. Untuk uji meja, toggle serial `k` melewati gerbang ini.
+dibaca dari `q`.
+
+Siapa yang boleh melewati syarat waktu-stabil dan RR-tenang (syarat ayunan
+≥ 60 **tidak pernah** dilewati):
+
+| Keadaan | Waktu-stabil & RR-tenang | Keterangan |
+|---|---|---|
+| sumber = ADC, `k` OFF | **berlaku penuh** | kondisi perekaman resmi |
+| sumber = replay (`y`) | **dilewati otomatis** selama replay aktif | record 208 aritmik, tidak akan pernah RR-tenang; tanpa elektroda. Serial: `GERBANG DILEWATI (replay)`. Bypass hilang begitu replay dimatikan |
+| `k` ON | dilewati — **override manual untuk bench** | serial: `GERBANG DILEWATI (bench)`. Mematikan `k` memulai **sesi baru**, jadi gerbang penuh (termasuk 10 menit) berlaku lagi dari nol |
+
+Jangan merekam data resmi dengan `k` ON: gerbangnya tidak menjamin apa-apa.
 
 **Clipping tidak punya warna.** Merah hanya berarti satu hal: sedang merekam.
 Konsekuensinya sinyal yang terpotong di rail tampil **hijau** — LED hanya
@@ -155,7 +176,8 @@ dipuaskan satu jalur impedansi rendah), jadi wasitnya tetap ayunan di §6.
    make pull
    ```
 
-3. Hasil yang diharapkan (contoh):
+3. Hasil yang diharapkan (contoh format dari rekaman uji coba; berkasnya kini
+   di `data/arsip/rekaman-uji-coba/`):
 
    ```
    15877 baris -> data/recordings/20260910-2019.csv
@@ -183,10 +205,11 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
 1. Jalankan dari `model/`:
 
    ```
-   make analisis FILE=data/recordings/20260910-2019.csv
+   make analisis FILE=data/recordings/<nama>.csv
    ```
 
-2. Hasil yang diharapkan berupa angka, bukan kesan (contoh rekaman yang gagal):
+2. Hasil yang diharapkan berupa angka, bukan kesan. Contoh dari rekaman uji
+   coba (arsip) yang gagal, `make analisis FILE=data/arsip/rekaman-uji-coba/20260910-2019.csv`:
 
    ```
    20260910-2019: 15877 sampel = 44.1 detik @ 360 Hz, 0 sampel terlewat
@@ -207,7 +230,8 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
    artifacts/metrics/akuisisi/akuisisi_<nama>.png
    ```
 
-Buka dengan `xdg-open artifacts/metrics/akuisisi/akuisisi_20260910-2019.png`.
+Buka dengan `xdg-open artifacts/metrics/akuisisi/akuisisi_<nama>.png` (grafik
+contoh uji coba di atas: `artifacts/arsip/akuisisi-uji-coba/akuisisi_20260910-2019.png`).
 Tiga panel: ADC mentah, hasil bandpass + garis R-peak, dan spektrum (pita merah
 = 50 Hz, pita hijau = pita EKG).
 
@@ -263,7 +287,7 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 | ayunan tertahan 40–55 counts (lantai derau, ~38 µV input-referred) | sambungan header modul AD8232 tidak tersolder / intermiten | solder header modul, ulangi rekam |
 | `elektroda lepas 0%` tetapi rekaman kosong | LO dipuaskan satu jalur (mis. RL saja) | nilai dari ayunan, bukan dari LO |
 | ADC 0 mutlak | pin/jalur korslet atau modul tak bertenaga | `s` di serial, lihat status |
-| LED biru terus | fase kalibrasi belum lulus (≥ 10 menit + RR tenang 30 detik) | tunggu, atau `k` untuk uji meja |
+| LED biru terus | fase kalibrasi belum lulus (≥ 10 menit + RR tenang 30 detik) | tunggu; `k` hanya untuk uji meja (bukan rekaman resmi) |
 
 Mengukur resistansi rangkaian dengan ohmmeter wajib dalam keadaan daya mati;
 ohmmeter pada rangkaian bertegangan memberi angka salah tanpa tanda apa pun.
@@ -278,7 +302,7 @@ Board menerima satu huruf lewat serial 115200 (`pio device monitor`):
 | `d` | dump rekaman ke serial (dipakai `make pull`; tidak ada tombol fisiknya) |
 | `s` | status sesaat: rekam, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT, INA219 |
 | `q` | toggle laporan kualitas tiap detik |
-| `k` | toggle lewati gerbang kalibrasi (uji meja saja) |
+| `k` | toggle override gerbang kalibrasi untuk uji meja; OFF = sesi baru, gerbang penuh dari nol (lihat §2) |
 | `y` | toggle sumber sinyal replay ⇄ ADC |
 | `m` | toggle publikasi MQTT |
 
@@ -290,11 +314,14 @@ sedang merekam. Skrip Python yang membuka port serial dapat me-reset board
 
 ---
 
-## 8. Data percobaan akuisisi (rujukan)
+## 8. Data uji coba akuisisi (arsip, bukan hasil)
 
-Semua rekaman tersimpan di `data/recordings/`, bernama tanggal-jam tarik.
-Tabel berikut adalah tujuh rekaman percobaan pertama (rangkaian breadboard,
-10 Sep 2026).
+Rekaman resmi (mulai 13 Okt 2026) tersimpan di `data/recordings/`, bernama
+tanggal-jam tarik. Rekaman uji coba 10 Sep – 11 Okt 2026 ada di
+[`data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md)
+beserta kondisi rangkaiannya. Tabel berikut adalah tujuh rekaman uji coba
+pertama (rangkaian breadboard, 10 Sep 2026) — dipertahankan karena
+pelajarannya membentuk prosedur §1 dan §3, bukan sebagai hasil.
 
 | # | Daya | Dengung | Denyut | Pelajaran |
 |---|---|---|---|---|
@@ -308,9 +335,11 @@ Tabel berikut adalah tujuh rekaman percobaan pertama (rangkaian breadboard,
 Satu perubahan per percobaan. Percobaan 3 mengubah daya **dan** menggeser
 elektroda sekaligus, sehingga hasilnya tidak dapat diatribusikan ke salah satu.
 
-**Rekaman acuan sinyal tubuh:** `20260915-1130.csv` — ayunan 3.128 counts,
+**Contoh rekaman uji coba yang bersinyal** (arsip, bukan acuan resmi):
+`data/arsip/rekaman-uji-coba/20260915-1130.csv` — ayunan 3.128 counts,
 dengung 3,3%, autokorelasi 0,27 @ 87 bpm, 64 R-peak dalam 47,2 detik, BPM masuk
-akal 100% (20 sampel clipping di rail atas).
+akal 100% (20 sampel clipping di rail atas). Berguna sebagai pembanding bentuk
+grafik saat menguji `make analisis`.
 
 ---
 

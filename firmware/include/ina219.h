@@ -17,10 +17,12 @@ extern "C" {
 #define INA219_REG_SHUNT  0x01
 #define INA219_REG_BUS    0x02
 
-// BRNG=16V, PGA=/1 (+-40 mV), BADC & SADC = rata-rata 128 sampel (~68 ms),
-// MODE = shunt+bus kontinu. Averaging WAJIB: arus alat ini berdenyut mengikuti
-// burst 33 ms (HW-3), pembacaan sesaat melompat tanpa arti.
-#define INA219_CONFIG     0x07FF
+// BRNG=32V, PGA=/8 (+-320 mV = +-3,2 A pada 0,1 ohm), BADC & SADC = rata-rata
+// 128 sampel (~68 ms), MODE = shunt+bus kontinu. PGA /8 karena burst TX WiFi
+// melewati +-400 mA milik PGA /1; LSB register shunt tetap 10 uV di semua PGA.
+// Averaging WAJIB: arus alat ini berdenyut mengikuti burst 33 ms (HW-3),
+// pembacaan sesaat melompat tanpa arti.
+#define INA219_CONFIG     0x3FFF
 
 // Shunt voltage: 1 LSB = 0,01 mV, signed. mV / ohm = mA.
 float ina219_arus_mA(int16_t shunt_reg, float r_shunt_ohm);
@@ -34,6 +36,8 @@ float ina219_bus_V(uint16_t bus_reg);
 bool ina219_mulai(int pin_sda, int pin_scl);
 // false = modul tidak menjawab (kabel lepas di tengah jalan).
 bool ina219_baca(float r_shunt_ohm, float *arus_mA, float *bus_V);
+// Register mentah, untuk diagnosa (bit 0 register bus = OVF, bit 1 = CNVR).
+bool ina219_baca_reg(uint8_t reg, uint16_t *out);
 #endif
 
 #ifdef __cplusplus

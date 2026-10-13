@@ -44,6 +44,13 @@
     #1: #2\\
     Spesifikasi lengkap ada di komentar sumber.}}}
 
+% Placeholder data hasil yang menunggu pengujian resmi (rekaman sinyal tubuh
+% resmi dimulai 13 Okt 2026; rekaman sebelumnya = uji coba, diarsipkan).
+% Setiap pemakaian disertai komentar "% PLACEHOLDER-DATA <id>: ..." berisi data
+% apa, prosedur, skrip penghasil, dan kolom yang dibutuhkan.
+% Cari: grep -rn PLACEHOLDER-DATA laporan/buku-pa
+\newcommand{\PlaceholderData}[1]{\textbf{[PLACEHOLDER DATA: #1]}}
+
 % Halaman kosong pengisi (agar bab mulai di halaman ganjil) tanpa nomor halaman.
 \makeatletter
 \renewcommand{\cleardoublepage}{\clearpage\if@twoside\ifodd\c@page\else

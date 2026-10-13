@@ -1,7 +1,7 @@
 \chapter{Eksperimen dan Analisis}
 \label{chap:eksperimen}
 
-Bab ini memaparkan eksperimen untuk memvalidasi tiga jalur yang dirancang pada Bab~\ref{chap:deskripsi-sistem}, yaitu preprocessing sinyal ECG secara \textit{real-time} di mikrokontroler, inferensi model CNN INT8 di ESP32-S3, dan \textit{pipeline edge-to-cloud} yang tahan terhadap putusnya koneksi. Eksperimen mencakup evaluasi model pada DS2 dan data lintas basis data, kuantisasi INT8, kesetaraan keluaran kode C terhadap Python, kinerja model di perangkat, akuisisi sinyal tubuh pada dua sesi perekaman, serta pengukuran \textit{pipeline} MQTT dengan sumber sinyal \textit{replay} yang mencakup \textit{streaming} normal dan putusnya koneksi ke \textit{broker}. Pembahasan mencakup parameter eksperimen, karakteristik data, tempat dan waktu ujicoba, spesifikasi peralatan, hasil eksperimen per jalur, dan analisis yang dikaitkan kembali dengan tujuan pada Subbab~\ref{sec:tujuan}.
+Bab ini memaparkan eksperimen untuk memvalidasi tiga jalur yang dirancang pada Bab~\ref{chap:deskripsi-sistem}, yaitu preprocessing sinyal ECG secara \textit{real-time} di mikrokontroler, inferensi model CNN INT8 di ESP32-S3, dan \textit{pipeline edge-to-cloud} yang tahan terhadap putusnya koneksi. Eksperimen mencakup evaluasi model pada DS2 dan data lintas basis data, kuantisasi INT8, kesetaraan keluaran kode C terhadap Python, kinerja model di perangkat, akuisisi sinyal tubuh, serta pengukuran \textit{pipeline} MQTT dengan sumber sinyal \textit{replay} yang mencakup \textit{streaming} normal dan putusnya koneksi ke \textit{broker}. Pembahasan mencakup parameter eksperimen, karakteristik data, tempat dan waktu ujicoba, spesifikasi peralatan, hasil eksperimen per jalur, dan analisis yang dikaitkan kembali dengan tujuan pada Subbab~\ref{sec:tujuan}.
 
 \section{Parameter Eksperimen}
 \label{sec:parameter-eksperimen}
@@ -120,9 +120,9 @@ Berdasarkan Tabel~\ref{tab:dataset}, DS1 secara keseluruhan memuat 22 rekaman de
 
 \subsubsection{Data Primer dari Perangkat}
 
-Data primer berupa rekaman sinyal mentah dari modul AD8232 yang dicuplik ADC ESP32-S3 pada 360 Hz dan disimpan sebagai berkas CSV berisi nilai \textit{count} ADC 12-bit. Menurut nama berkasnya, sebanyak 27 rekaman diambil pada rentang 10 September sampai 11 Oktober 2026 dengan durasi 10,2 sampai 77,1 detik per rekaman, atau total sekitar 1.031,3 detik. Seluruh rekaman berasal dari satu subjek sehat berkode S01 dengan konfigurasi Lead II dan elektroda \textit{wet-gel}. Identitas subjek dianonimkan dan pengambilan data bukan uji klinis, sesuai Batasan Masalah pada Subbab~\ref{sec:batasan-masalah}.
-% sumber: ls model/data/recordings/*.csv | wc -l (27, yaitu 25 rekaman 10-15 September dan 2 rekaman 11 Oktober 2026); durasi = jumlah baris sampel / 360 per berkas (terpendek 20261011-1823.csv 3.672 sampel = 10,2 detik, terpanjang 20260910-1948.csv 27.755 sampel = 77,1 detik, total sekitar 1.031,3 detik); header berkas "# fs=360"; model/docs/akuisisi-walkthrough.md §8; laporan/buku-pa/bab/bab1.tex Batasan Masalah butir 3 dan 4
-% KONFIRMASI PENULIS: kode subjek S01, bahwa seluruh 27 rekaman berasal dari satu subjek, posisi elektroda, dan persetujuan subjek
+Data primer berupa rekaman sinyal mentah dari modul AD8232 yang dicuplik ADC ESP32-S3 pada 360 Hz dan disimpan sebagai berkas CSV berisi nilai \textit{count} ADC 12-bit. Rekaman yang diambil selama pengembangan hanya dipakai untuk menyusun prosedur perekaman dan menguji alat analisis, sehingga tidak dilaporkan sebagai hasil. Data primer yang dilaporkan berasal dari pengujian rekaman resmi, yaitu sebanyak \PlaceholderData{jumlah rekaman} rekaman yang diambil pada \PlaceholderData{tanggal sesi perekaman} dengan durasi \PlaceholderData{durasi terpendek sampai terpanjang} detik per rekaman, atau total sekitar \PlaceholderData{total durasi} detik. Rekaman berasal dari \PlaceholderData{jumlah dan kode subjek} subjek sehat dengan konfigurasi Lead II dan elektroda \textit{wet-gel}. Identitas subjek dianonimkan dan pengambilan data bukan uji klinis, sesuai Batasan Masalah pada Subbab~\ref{sec:batasan-masalah}.
+% PLACEHOLDER-DATA data-primer: jumlah rekaman resmi, tanggal sesi, durasi terpendek-terpanjang dan total (detik), jumlah dan kode subjek, beserta konfirmasi persetujuan subjek. Prosedur: model/docs/akuisisi-walkthrough.md §3-§5 (rekam dengan tombol REC, make pull -> model/data/recordings/<tanggal-jam>.csv). Hitung: ls model/data/recordings/*.csv | wc -l (hanya rekaman resmi, mulai 13 Okt 2026); durasi = n pada header "# fs=360 n=..." dibagi 360
+% sumber: rekaman uji coba 10 Sep - 11 Okt 2026 (27 berkas) diarsipkan di model/data/arsip/rekaman-uji-coba/README.md dan tidak dipakai sebagai hasil; laporan/buku-pa/bab/bab1.tex Batasan Masalah butir 3 dan 4
 
 Penempatan elektroda mengikuti konfigurasi Lead II sebagaimana ditunjukkan pada Gambar~\ref{fig:4-elektroda}.
 
@@ -172,9 +172,9 @@ Data telemetri adalah hasil klasifikasi per detak yang dikirim perangkat ke Thin
 \section{Tempat Ujicoba}
 \label{sec:tempat-ujicoba}
 
-Seluruh uji dilakukan di lingkungan non-klinis sesuai Batasan Masalah. Perekaman sinyal tubuh dilakukan dengan subjek duduk diam dan perangkat dicatu \textit{powerbank}, sehingga tidak ada sambungan listrik ke jala-jala selama perekaman. Uji \textit{pipeline} dilakukan pada jaringan WiFi rumah, yaitu ESP32-S3 terhubung ke titik akses yang sama dengan komputer yang menjalankan ThingsBoard di dalam \textit{container} Docker, sehingga \textit{broker} MQTT berada di jaringan lokal, bukan di server publik. Lingkungan ini dipilih karena seluruh komponen \textit{pipeline} dapat dikendalikan sendiri, termasuk pembekuan \textit{broker} untuk meniru putusnya koneksi. Jaringan WiFi tersebut tidak terisolasi dari perangkat lain sehingga \textit{channel contention} tetap dapat terjadi.
+Seluruh uji dilakukan di lingkungan non-klinis sesuai Batasan Masalah. Perekaman sinyal tubuh dilakukan di \PlaceholderData{tempat perekaman} dengan subjek duduk diam dan perangkat dicatu \textit{powerbank}, sehingga tidak ada sambungan listrik ke jala-jala selama perekaman. Uji \textit{pipeline} dilakukan pada jaringan WiFi rumah, yaitu ESP32-S3 terhubung ke titik akses yang sama dengan komputer yang menjalankan ThingsBoard di dalam \textit{container} Docker, sehingga \textit{broker} MQTT berada di jaringan lokal, bukan di server publik. Lingkungan ini dipilih karena seluruh komponen \textit{pipeline} dapat dikendalikan sendiri, termasuk pembekuan \textit{broker} untuk meniru putusnya koneksi. Jaringan WiFi tersebut tidak terisolasi dari perangkat lain sehingga \textit{channel contention} tetap dapat terjadi.
 % sumber: dashboard/docker-compose.yml (thingsboard/tb-postgres, port 1883 MQTT dan 8080 UI di komputer lokal); model/docs/mqtt-walkthrough.md §7 ("broker ThingsBoard CE di laptop pada jaringan WiFi rumah") dan §7c (kontensi kanal WiFi rumah); model/docs/akuisisi-walkthrough.md §1 dan §3 (powerbank, USB laptop dicabut, subjek duduk diam); laporan/buku-pa/bab/bab1.tex Batasan Masalah butir 4
-% KONFIRMASI PENULIS: tempat perekaman sinyal tubuh (laboratorium atau bukan) dan nama laboratorium bila ada
+% PLACEHOLDER-DATA tempat-perekaman: tempat pengujian rekaman sinyal tubuh resmi (laboratorium atau bukan, nama laboratorium bila ada), dicatat penulis saat sesi perekaman resmi
 
 Pelatihan model, ablasi, kuantisasi, dan uji unit kode C yang tidak memerlukan perangkat keras dijalankan di komputer pribadi. Pemisahan ini dimungkinkan karena tahap tersebut hanya membutuhkan data sekunder dan daya komputasi, sedangkan uji yang melibatkan sinyal tubuh dan jaringan memerlukan perangkat keras. Komputer yang sama juga menjalankan ThingsBoard saat uji \textit{pipeline}.
 
@@ -203,8 +203,8 @@ Kegiatan eksperimen berlangsung sejak Agustus 2026. Rentang setiap kegiatan pada
     \textit{Port} preprocessing ke kode C, inferensi di perangkat, alur hidup, dan \textit{firmware} utama & 10 -- 12 September 2026 \\
     % sumber: git log 8eaf44e (2026-09-10, golden reference) sampai 7698c58 (2026-09-12, firmware produksi)
     \hline
-    Akuisisi sinyal tubuh pada rangkaian \textit{breadboard} & 10 -- 15 September 2026 \\
-    % sumber: nama berkas model/data/recordings/ (20260910-1938.csv sampai 20260915-1643.csv)
+    Perekaman uji coba sinyal tubuh untuk menyusun prosedur akuisisi, pada rangkaian \textit{breadboard} dan rangkaian uji dengan peta pin PCB & 10 September -- 11 Oktober 2026 \\
+    % sumber: model/data/arsip/rekaman-uji-coba/README.md (27 rekaman uji coba 20260910-1938.csv sampai 20261011-1834.csv, bukan hasil)
     \hline
     Biaya segmentasi di perangkat, ketahanan terhadap \textit{jitter}, dan penguncian \textit{window} & 12 -- 18 September 2026 \\
     % sumber: git log fce7cd1 (2026-09-12, Fase 6b) sampai cf5f5d5 (2026-09-18, retrain window 256)
@@ -218,17 +218,17 @@ Kegiatan eksperimen berlangsung sejak Agustus 2026. Rentang setiap kegiatan pada
     Ablasi lintas basis data, fitur, dan regime pelatihan & 19 September 2026 \\
     % sumber: git log 03c77f2 sampai 2acc531 (seluruhnya 2026-09-19)
     \hline
-    Akuisisi sinyal tubuh pada rangkaian uji dengan peta pin PCB & 11 Oktober 2026 \\
-    % sumber: nama berkas model/data/recordings/20261011-1823.csv dan 20261011-1834.csv; model/docs/arsip/riwayat-komentar-kode.md (pengukuran 11 Okt 2026) dan firmware uji hwtest.cpp di tag git pra-bersih (format rekaman sama dengan firmware utama)
-    \hline
     Pengukuran ulang segmentasi di perangkat dengan model akhir & 13 Oktober 2026 \\
     % sumber: model/docs/segmentasi-deteksi-walkthrough.md §3 ("kondisi ukur: skrip yang sama, 13 Okt 2026")
+    \hline
+    Pengujian rekaman sinyal tubuh resmi & \PlaceholderData{tanggal sesi} \\
+    % PLACEHOLDER-DATA waktu-rekaman: tanggal setiap sesi pengujian rekaman resmi (mulai 13 Oktober 2026), dari nama berkas model/data/recordings/<tanggal-jam>.csv hasil make pull
     \hline
   \end{tabular}
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:waktu-ujicoba}, pengembangan model mendahului pekerjaan perangkat keras, dan sebagian kegiatan berjalan beririsan karena hasil satu jalur langsung dipakai jalur lain. Hasil yang dilaporkan pada bab ini dikumpulkan sampai 13 Oktober 2026. Pengujian \textit{pipeline} terverifikasi di perangkat pada 19 September 2026, akuisisi sinyal tubuh dilengkapi pada 11 Oktober 2026, dan segmentasi di perangkat diukur ulang dengan model akhir pada 13 Oktober 2026. Konsumsi daya tidak diukur dalam rentang tersebut, sebagaimana diuraikan pada Subbab~\ref{subsec:hasil-tujuan2}.
-% sumber: git log 6fc426c (2026-09-19, perbaikan jam yang menuntaskan uji pipeline); model/data/recordings/20261011-*.csv; model/docs/segmentasi-deteksi-walkthrough.md §3 (13 Okt 2026)
+Berdasarkan Tabel~\ref{tab:waktu-ujicoba}, pengembangan model mendahului pekerjaan perangkat keras, dan sebagian kegiatan berjalan beririsan karena hasil satu jalur langsung dipakai jalur lain. Hasil yang dilaporkan pada bab ini dikumpulkan sampai 13 Oktober 2026, kecuali hasil pengujian rekaman sinyal tubuh resmi yang dilaksanakan sesudah prosedur perekamannya ditetapkan pada tanggal tersebut. Pengujian \textit{pipeline} terverifikasi di perangkat pada 19 September 2026, dan segmentasi di perangkat diukur ulang dengan model akhir pada 13 Oktober 2026. Konsumsi daya tidak diukur dalam rentang tersebut, sebagaimana diuraikan pada Subbab~\ref{subsec:hasil-tujuan2}.
+% sumber: git log 6fc426c (2026-09-19, perbaikan jam yang menuntaskan uji pipeline); model/data/recordings/README.md (rekaman resmi dimulai 13 Okt 2026); model/docs/segmentasi-deteksi-walkthrough.md §3 (13 Okt 2026)
 
 
 \section{Spesifikasi Peralatan Ujicoba}
@@ -254,13 +254,13 @@ Peralatan yang digunakan terdiri atas perangkat keras dan perangkat lunak. Spesi
     \hline
     Sensor & Modul AD8232, single-lead Lead II, elektroda \textit{wet-gel} & Akuisisi sinyal tubuh \\
     \hline
-    Perakitan & \textit{Breadboard}, keluaran AD8232 ke GPIO 4 pada rekaman 10 September 2026, ke GPIO 8 (ADC1 kanal 7) pada rekaman 14--15 September 2026, dan ke GPIO 1 (ADC1 kanal 0) mengikuti peta pin PCB sejak 11 Oktober 2026, yang juga dipakai \textit{firmware} akhir & Seluruh uji perangkat \\
-    % sumber: firmware/include/perangkat.h (pin map PCB, ADC1_CHANNEL_0 = GPIO 1); model/docs/arsip/riwayat-akuisisi-walkthrough.md (GPIO4 -> GPIO8 pada 14 Sep 2026); nama berkas model/data/recordings/
+    Perakitan & \textit{Breadboard}, keluaran AD8232 ke GPIO 1 (ADC1 kanal 0) mengikuti peta pin PCB yang juga dipakai \textit{firmware} akhir & Seluruh uji perangkat \\
+    % sumber: firmware/include/perangkat.h (pin map PCB, ADC1_CHANNEL_0 = GPIO 1); riwayat pin rangkaian uji coba di model/data/arsip/rekaman-uji-coba/README.md
     \hline
-    Catu daya & \textit{Powerbank} saat perekaman sinyal tubuh, USB komputer saat uji \textit{pipeline} & Menghindari dengung jala-jala 50 Hz, yang terukur 265,7\% pada USB laptop dan 46,1\% pada \textit{powerbank} \\
-    % sumber: model/docs/akuisisi-walkthrough.md §1 (266% laptop vs 46% powerbank) dan §8; perhitungan ulang dengung (energi 49-51 Hz per energi 0,5-40 Hz) atas model/data/recordings/20260910-1938.csv (265,7%) dan 20260910-1948.csv (46,1%) dengan model/scripts/analyze_recording.py pita_energi
+    Catu daya & \textit{Powerbank} saat perekaman sinyal tubuh, USB komputer saat uji \textit{pipeline} & Menghindari dengung jala-jala 50 Hz yang masuk melalui catu USB komputer selama perekaman \\
+    % sumber: model/docs/akuisisi-walkthrough.md §1 (daya powerbank) dan §7 (dengung besar bila USB laptop tertancap)
     \hline
-    Pengukur daya & Modul INA219 & Terbaca dan ditampilkan di layar oleh \textit{firmware} utama, belum dipakai untuk pengukuran daya \\
+    Pengukur daya & Modul INA219 & Terhubung melalui I2C, menunggu perakitan pada jalur catu papan untuk pengukuran daya \\
     % sumber: firmware/include/ina219.h, firmware/src/ina219.cpp; firmware/src/main.cpp (arus/tegangan INA219 ditampilkan di layar); firmware/test/test_hw_ina219 (I2C terdeteksi di board)
     \hline
     Komputer & Intel Core i5-12450H (12 \textit{thread}), memori 15 GiB, Debian GNU/Linux 13 & Pelatihan model, ablasi, uji unit kode C, dan \textit{broker} ThingsBoard \\
@@ -614,13 +614,13 @@ Butir ini menunjukkan bahwa segmentasi di perangkat layak, dan biayanya terletak
 
 \subsubsection{Akuisisi Sinyal Tubuh}
 
-Butir ini bertujuan menilai apakah modul AD8232 menghasilkan sinyal tubuh yang layak menjadi masukan jalur preprocessing. Rekaman diambil dari subjek S01 dengan konfigurasi Lead II, elektroda \textit{wet-gel}, dan daya dari \textit{power bank}, karena USB laptop yang tertancap membuat dengung jala-jala 50 Hz mendominasi. Setiap rekaman dinilai dengan lima ukuran, yaitu ayunan sinyal ADC absolut, persentase dengung 50 Hz terhadap energi pita ECG 0,5--40 Hz, jumlah R-\textit{peak} yang ditemukan Pan-Tompkins, proporsi interval R-R yang setara 30 sampai 200 detak per menit, dan autokorelasi energi pita QRS. Ayunan dalam mV dihitung sebagai ekuivalen masukan AD8232, yaitu jumlah \textit{count} dikalikan 0,757 mV per \textit{count} dari ADC 12-bit dengan atenuasi 11 dB, lalu dibagi \textit{gain} AD8232 sekitar 1.100. Dengan konversi ini, ECG sehat berayun sekitar 2 mV atau sekitar 3.000 \textit{count}, sedangkan ayunan di bawah sekitar 0,1 mV atau 150 \textit{count} berarti tidak ada biopotensial sama sekali. Sebuah rekaman diberi status Berhasil bila dengung kurang dari 15\%, autokorelasi lebih dari 0,25, dan lebih dari 90\% interval R-R berada pada rentang 30 sampai 200 detak per menit. Status Bersinyal diberikan pada rekaman yang berayun sebesar ECG sehat dan memiliki interval R-R yang wajar tetapi tidak memenuhi syarat autokorelasi, sedangkan status Gagal diberikan pada rekaman yang ayunannya di bawah 150 \textit{count}, yang dilaporkan \textit{lead-off} sepanjang rekaman, atau yang dengungnya mendominasi. Jumlah sampel jenuh dilaporkan sebagai keterangan dan bukan sebagai penentu status. Kriteria ini adalah kriteria analisis \textit{offline}, sedangkan gerbang kualitas waktu nyata pada Tabel~\ref{tab:parameter-eksperimen}, yaitu ayunan tersaring 60 \textit{count} dan interval R-R 300--1500 ms, dipakai pada jalur \textit{pipeline}, dan baru syarat ayunannya yang diuji pada Subbab~\ref{subsec:hasil-tujuan3}. Hasil rekaman pada sesi 15 September 2026 dan sesi 11 Oktober 2026 ditunjukkan pada Tabel~\ref{tab:kualitas-rekaman}.
-% sumber: model/CLAUDE.md HW-5 dan jebakan "Telemetri akuisisi bisa berbohong" (konversi 12-bit + atten 11 dB = 0,757 mV/count, gain AD8232 sekitar 1100, EKG sehat sekitar 2 mV sekitar 3000 count, di bawah sekitar 0,1 mV sekitar 150 count tidak ada biopotensial); model/docs/akuisisi-walkthrough.md bagian 1 (USB laptop vs power bank) dan bagian 6 (ukuran dan ambang); firmware/src/main.cpp baris 415-416 (ADC_WIDTH_BIT_12, ADC_ATTEN_DB_11); model/scripts/analyze_recording.py (masuk_akal 30-200 bpm)
+Butir ini bertujuan menilai apakah modul AD8232 menghasilkan sinyal tubuh yang layak menjadi masukan jalur preprocessing. Rekaman diambil dengan konfigurasi Lead II, elektroda \textit{wet-gel}, dan daya dari \textit{powerbank} agar perangkat tidak tersambung ke jala-jala selama perekaman. Setiap rekaman dinilai dengan lima ukuran, yaitu ayunan sinyal ADC absolut, persentase dengung 50 Hz terhadap energi pita ECG 0,5--40 Hz, jumlah R-\textit{peak} yang ditemukan Pan-Tompkins, proporsi interval R-R yang setara 30 sampai 200 detak per menit, dan autokorelasi energi pita QRS. Ayunan dalam mV dihitung sebagai ekuivalen masukan AD8232, yaitu jumlah \textit{count} dikalikan 0,757 mV per \textit{count} dari ADC 12-bit dengan atenuasi 11 dB, lalu dibagi \textit{gain} AD8232 sekitar 1.100. Dengan konversi ini, ECG sehat berayun sekitar 2 mV atau sekitar 3.000 \textit{count}, sedangkan ayunan di bawah sekitar 0,1 mV atau 150 \textit{count} berarti tidak ada biopotensial sama sekali. Sebuah rekaman diberi status Berhasil bila dengung kurang dari 15\%, autokorelasi lebih dari 0,25, dan lebih dari 90\% interval R-R berada pada rentang 30 sampai 200 detak per menit. Status Bersinyal diberikan pada rekaman yang berayun sebesar ECG sehat dan memiliki interval R-R yang wajar tetapi tidak memenuhi syarat autokorelasi, sedangkan status Gagal diberikan pada rekaman yang ayunannya di bawah 150 \textit{count}, yang dilaporkan \textit{lead-off} sepanjang rekaman, atau yang dengungnya mendominasi. Jumlah sampel jenuh dilaporkan sebagai keterangan dan bukan sebagai penentu status. Kriteria ini adalah kriteria analisis \textit{offline}, sedangkan gerbang kualitas waktu nyata pada Tabel~\ref{tab:parameter-eksperimen}, yaitu ayunan tersaring 60 \textit{count} dan interval R-R 300--1500 ms, dipakai pada jalur \textit{pipeline}, dan baru syarat ayunannya yang diuji pada Subbab~\ref{subsec:hasil-tujuan3}. Hasil pengujian rekaman resmi ditunjukkan pada Tabel~\ref{tab:kualitas-rekaman}.
+% sumber: model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (konversi 12-bit + atten 11 dB = 0,757 mV/count, gain AD8232 sekitar 1100, EKG sehat sekitar 2 mV sekitar 3000 count, di bawah sekitar 0,1 mV sekitar 150 count tidak ada biopotensial); model/docs/akuisisi-walkthrough.md bagian 1 (USB laptop vs power bank) dan bagian 6 (ukuran dan ambang); firmware/src/main.cpp baris 415-416 (ADC_WIDTH_BIT_12, ADC_ATTEN_DB_11); model/scripts/analyze_recording.py (masuk_akal 30-200 bpm)
 % sumber: kriteria status: model/scripts/analyze_recording.py main() (dengung < 0,15 dari pita ECG, autokorelasi > 0,25, masuk_akal > 0,9) dan model/docs/akuisisi-walkthrough.md bagian 6; ambang 150 count dari model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong"; gerbang waktu nyata AMBANG_AYUN 60 dan RR 300-1500 ms dari baris sumber tab:parameter-eksperimen baris e (bab3.tex gerbang kualitas)
 
 \begin{table}[!ht]
   \centering
-  \caption{Kualitas rekaman AD8232 pada dua sesi perekaman (nama rekaman memakai jam penarikan berkas)}
+  \caption{Kualitas rekaman AD8232 pada pengujian rekaman resmi (nama rekaman memakai jam penarikan berkas)}
   \label{tab:kualitas-rekaman}
   \setstretch{1.0}
   \setlength{\tabcolsep}{2.5pt}
@@ -631,66 +631,43 @@ Butir ini bertujuan menilai apakah modul AD8232 menghasilkan sinyal tubuh yang l
     \rowcolor{headgray}
     \textbf{Rekaman} & \textbf{Durasi (detik)} & \textbf{Ayunan (\textit{count} / mV)} & \textbf{Dengung (\%)} & \textbf{R-\textit{peak}} & \textbf{Auto-\newline korelasi} & \textbf{BPM Wajar (\%)} & \textbf{Status} \\
     \hline
-    \multicolumn{8}{|l|}{\textit{Sesi 15 September 2026, rangkaian \textit{breadboard} dengan \textit{firmware} utama}} \\
+    \multicolumn{8}{|l|}{\textit{Sesi} \PlaceholderData{tanggal sesi dan rangkaian}} \\
     \hline
-    1026 & 43,1 & 2.388 / 1,64 & 255,9 & 7 & 0,11 & 0 & Gagal, \textit{lead-off} 100\% \\
-    \hline
-    1030 & 36,8 & 3.562 / 2,45 & 3,8 & 51 & 0,20 & 100 & Bersinyal, 113 sampel jenuh \\
-    \hline
-    1059 & 45,8 & 3.002 / 2,07 & 1,6 & 61 & 0,15 & 100 & Bersinyal, 50 sampel jenuh \\
-    \hline
-    1130 & 47,2 & 3.128 / 2,15 & 3,3 & 64 & 0,27 & 100 & Berhasil, 20 sampel jenuh \\
-    \hline
-    1205 & 11,9 & 16 / 0,011 & 5,1 & 2 & $-0{,}01$ & 0 & Gagal, ADC terkunci mendekati 0 \\
-    \hline
-    1520 & 26,5 & 48 / 0,033 & 3,2 & 92 & 0,04 & 27 & Gagal, lantai derau \\
-    \hline
-    1615 & 26,9 & 48 / 0,033 & 3,5 & 90 & 0,09 & 24 & Gagal, lantai derau \\
-    \hline
-    1623 & 33,4 & 40 / 0,028 & 2,8 & 115 & 0,10 & 23 & Gagal, lantai derau \\
-    \hline
-    1627 & 31,6 & 52 / 0,036 & 3,4 & 123 & 0,08 & 16 & Gagal, lantai derau \\
-    \hline
-    1636 & 37,9 & 40 / 0,028 & 3,1 & 146 & 0,07 & 17 & Gagal, lantai derau \\
-    \hline
-    1643 & 49,6 & 55 / 0,038 & 3,3 & 180 & 0,04 & 21 & Gagal, lantai derau \\
-    \hline
-    \multicolumn{8}{|l|}{\textit{Sesi 11 Oktober 2026, rangkaian uji dengan peta pin PCB}} \\
-    \hline
-    1823 & 10,2 & 176 / 0,121 & 73,0 & 10 & 0,58 & 100 & Gagal, \textit{lead-off} 100\% \\
-    \hline
-    1834 & 30,4 & 1.649 / 1,13 & 3,5 & 33 & 0,27 & 100 & Berhasil, tanpa sampel jenuh \\
+    \multicolumn{8}{|>{\RaggedRight\arraybackslash}p{13.3cm}|}{\PlaceholderData{satu baris per rekaman resmi berisi jam penarikan, durasi, ayunan dalam \textit{count} dan mV, dengung 50 Hz, jumlah R-\textit{peak}, autokorelasi, BPM wajar, serta status Berhasil, Bersinyal, atau Gagal beserta jumlah sampel jenuh}} \\
     \hline
   \end{tabular}
 \end{table}
-% sumber: perhitungan ulang dengan model/scripts/analyze_recording.py (fungsi muat, pita_energi, denyut_autokorelasi) dan model/src/preprocessing.py atas model/data/recordings/20260915-*.csv (autokorelasi = kekuatan puncak denyut_autokorelasi: 1026 0,109, 1030 0,203, 1059 0,146, 1130 0,274, 1205 -0,005, 1520 0,039, 1615 0,091, 1623 0,095, 1627 0,080, 1636 0,067, 1643 0,044; ayunan = max - min ADC mentah, dengung = energi 49-51 Hz per energi 0,5-40 Hz, R-peak Pan-Tompkins, BPM wajar 30-200, sampel jenuh = nilai 4095 atau 0); mV = count x 0,757 / 1100; header berkas "lepas" (1026 100%, 1205 37%); model/CLAUDE.md HW-5 (1130: 3128 count, dengung 3,3%, 64 R-peak dalam 47,2 detik, 100% BPM wajar, 20 sampel jenuh, enam rekaman 40-55 count); model/artifacts/metrics/akuisisi/ dan jebakan pull_recording.py "nama berkas = waktu tarik"
-% sumber sesi 11 Oktober: perhitungan ulang dengan fungsi yang sama dari model/scripts/analyze_recording.py (dijalankan dengan keluaran grafik ke direktori sementara) atas model/data/recordings/20261011-1823.csv (3.672 sampel = 10,2 detik, ADC 3.083..3.259 sehingga ayunan 176, dengung 73,0%, autokorelasi 0,58 @ 60 bpm, 10 R-peak, BPM wajar 100%, header lepas=3672 (100%)) dan 20261011-1834.csv (10.947 sampel = 30,4 detik, ADC 1.461..3.110 sehingga ayunan 1.649, clipping 0, dengung 3,5%, derau >60 Hz 6,8%, autokorelasi 0,27 @ 59 bpm, 33 R-peak, BPM rerata 66 min 55 maks 90, wajar 100%, header lepas=0 (0%)); 1.649 x 0,757 / 1.100 = 1,13 mV dan 176 x 0,757 / 1.100 = 0,121 mV; grafik model/artifacts/metrics/akuisisi/akuisisi_20261011-1834.png; rangkaian: firmware uji hwtest.cpp di tag git pra-bersih (pin map PCB, format rekaman sama dengan firmware utama; fungsinya kini digabung ke firmware/src/main.cpp)
+% PLACEHOLDER-DATA tab-kualitas-rekaman: satu baris per rekaman resmi (>= 13 Okt 2026), dikelompokkan per sesi (baris \multicolumn tanggal sesi dan rangkaian). Prosedur: model/docs/akuisisi-walkthrough.md §3-§6. Skrip: make pull lalu make analisis FILE=data/recordings/<nama>.csv (model/scripts/analyze_recording.py). Kolom: Rekaman (jam tarik HHMM) | Durasi = n/360 | Ayunan = max-min ADC mentah, mV = count x 0,757 / 1100 | Dengung = energi 49-51 Hz per energi 0,5-40 Hz | R-peak Pan-Tompkins | Autokorelasi = kekuatan puncak denyut_autokorelasi | BPM wajar = persen RR setara 30-200 bpm | Status menurut kriteria paragraf di atas + jumlah sampel jenuh (0 atau 4095) dan lead-off dari header "lepas=". Hapus kedua baris \multicolumn placeholder setelah diisi
+% sumber: rekaman uji coba 10 Sep - 11 Okt 2026 tidak dimasukkan (arsip model/data/arsip/rekaman-uji-coba/, bukan hasil)
 
-Berdasarkan Tabel~\ref{tab:kualitas-rekaman}, rekaman 1130 pada sesi 15 September dan rekaman 1834 pada sesi 11 Oktober memenuhi seluruh kriteria Berhasil. Ayunan rekaman 1130 3.128 \textit{count} atau sekitar 2,15 mV, sesuai ayunan ECG sehat, dengan 64 R-\textit{peak} dalam 47,2 detik atau rata-rata sekitar 81 detak per menit dari jumlah R-\textit{peak}, dan seluruh interval R-R berada pada rentang 30 sampai 200 detak per menit. Autokorelasinya 0,27 pada periode dominan yang setara 87 detak per menit, di atas ambang 0,25, dan dengungnya 3,3\%, jauh di bawah ambang 15\%. Sebanyak 20 sampel atau 0,12\% jenuh di batas atas ADC, sehingga target nol sampel jenuh pada daftar periksa akuisisi tidak terpenuhi sepenuhnya, tetapi jumlah ini kecil. Rekaman 1030 dan 1059 juga berayun lebar dengan BPM wajar 100\%, tetapi autokorelasinya hanya 0,20 dan 0,15, di bawah ambang 0,25, sehingga hanya berstatus Bersinyal. Keduanya juga memiliki 113 dan 50 sampel jenuh. Rekaman 1026 gagal karena \textit{lead-off} dilaporkan sepanjang rekaman dan dengungnya 255,9\% mendominasi pita ECG, sehingga ayunan 2.388 \textit{count} tidak dapat dianggap biopotensial. Enam rekaman berurutan dari 1520 sampai 1643 berayun hanya 40 sampai 55 \textit{count} atau 0,028 sampai 0,038 mV, yaitu 57 sampai 78 kali lebih kecil daripada rekaman 1130, dengan autokorelasi 0,04 sampai 0,10 dan hanya 16 sampai 27\% interval R-R yang wajar. Empat belas rekaman dari 10 dan 14 September tidak dimasukkan ke tabel karena rangkaian masih berubah pada periode itu. Delapan di antaranya memiliki dengung 39,1 sampai 480,5\% dari pita ECG dan enam lainnya hanya berayun 31 sampai 39 \textit{count}. Pada sesi 11 Oktober, rekaman 1834 berayun 1.649 \textit{count} atau sekitar 1,13 mV dengan dengung 3,5\%, autokorelasi 0,27 pada periode setara 59 detak per menit, 33 R-\textit{peak} dalam 30,4 detik, seluruh interval R-R wajar, dan tanpa sampel jenuh, sehingga rekaman ini memenuhi kriteria tanpa catatan jenuh seperti rekaman 1130. Rekaman 1823 pada sesi yang sama gagal karena \textit{lead-off} dilaporkan sepanjang 10,2 detik rekaman dan dengungnya 73,0\% mendominasi pita ECG, walaupun autokorelasinya tinggi.
-% sumber: perhitungan ulang atas model/data/recordings/*.csv dengan skrip yang sama seperti tabel (autokorelasi 1130 0,27 @ 87 bpm, 1030 0,20, 1059 0,15, enam gagal 0,04-0,10; rekaman 10 dan 14 September: 8 rekaman dengung 39,1-480,5% dan 6 rekaman ayunan 31-39 count); 3128 / 55 = 56,9 dan 3128 / 40 = 78,2; 64 / 47,16 detik x 60 = 81 detak per menit; ambang 0,25 dan 15% dari model/docs/akuisisi-walkthrough.md bagian 6; 20 / 16.977 sampel (header 20260915-1130.csv n=16977) = 0,12%; 1026: header lepas=100%, dengung 255,9%, ayunan 2.388 count; kriteria status: model/scripts/analyze_recording.py main() (dengung 49-51 Hz per pita ECG < 0,15, autokorelasi > 0,25, BPM masuk akal 30-200 > 0,9), model/docs/akuisisi-walkthrough.md bagian 6 (clipping target 0), model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (di bawah sekitar 150 count tidak ada biopotensial)
+Berdasarkan Tabel~\ref{tab:kualitas-rekaman}, \PlaceholderData{jumlah rekaman berstatus Berhasil, Bersinyal, dan Gagal dari seluruh rekaman resmi}. \PlaceholderData{uraian rekaman Berhasil, yaitu ayunan dalam \textit{count} dan mV, jumlah R-\textit{peak} per durasi dan setara detak per menit, autokorelasi beserta BPM periode dominannya, dengung, dan jumlah sampel jenuh dibandingkan terhadap kriteria}. \PlaceholderData{uraian rekaman Bersinyal dan Gagal beserta ukuran yang tidak memenuhi kriteria}.
+% PLACEHOLDER-DATA uraian-kualitas-rekaman: diisi dari keluaran terminal make analisis FILE=data/recordings/<nama>.csv untuk setiap baris tab:kualitas-rekaman (baris ADC/clipping, dengung 50Hz, denyut autokorelasi @ bpm, R-peak, BPM); ambang 0,25 dan 15% dari model/docs/akuisisi-walkthrough.md §6
 
-Rekaman berhasil dan rekaman gagal dibandingkan secara visual pada Gambar~\ref{fig:rekaman-berhasil}, yang menampilkan rekaman 1130 pada bagian atas dan rekaman 1643, yaitu yang terpanjang di antara enam rekaman yang berurutan, pada bagian bawah.
+Rekaman berhasil dan rekaman gagal dibandingkan secara visual pada Gambar~\ref{fig:rekaman-berhasil}, yang menampilkan rekaman \PlaceholderData{nama rekaman Berhasil} pada bagian atas dan rekaman \PlaceholderData{nama rekaman Gagal} pada bagian bawah.
 
+% PLACEHOLDER-DATA fig-rekaman-berhasil: plot data (bukan ilustrasi), dua grafik hasil make analisis FILE=data/recordings/<nama>.csv -> model/artifacts/metrics/akuisisi/akuisisi_<nama>.png, satu rekaman Berhasil (atas) dan satu rekaman Gagal (bawah) dari pengujian resmi. Salin dengan scripts/export_artifacts.sh --laporan setelah daftar figurnya diperbarui. Ganti \fbox dengan dua \includegraphics[height=0.3\textheight,keepaspectratio]{akuisisi_<nama>.png} dipisah \\[2pt]. Bila tidak ada rekaman Gagal, tampilkan satu rekaman Berhasil dan sesuaikan caption serta paragraf
 \begin{figure}[!ht]
   \centering
-  \includegraphics[height=0.3\textheight,keepaspectratio]{akuisisi_20260915-1130.png}\\[2pt]
-  \includegraphics[height=0.3\textheight,keepaspectratio]{akuisisi_20260915-1643.png}
-  \caption{Rekaman AD8232 yang berhasil (atas, 1130) dan yang gagal (bawah, 1643), enam detik pertama}
+  \fbox{\parbox[c][5cm][c]{0.85\linewidth}{\centering\small
+    \PlaceholderData{grafik analisis rekaman Berhasil di atas dan rekaman Gagal di bawah, masing-masing tiga panel}}}
+  \caption{Rekaman AD8232 yang berhasil (atas) dan yang gagal (bawah), enam detik pertama}
   \label{fig:rekaman-berhasil}
 \end{figure}
 
-Gambar~\ref{fig:rekaman-berhasil} terdiri atas dua kelompok yang masing-masing memiliki tiga panel. Pada panel pertama rekaman 1130, ADC mentah memperlihatkan kompleks QRS yang tegas dengan puncak sekitar 3.600 sampai 4.100 \textit{count} di atas garis dasar sekitar 1.800 \textit{count}, serta gerigi halus pada garis dasar yang berasal dari dengung 50 Hz. Panel keduanya memperlihatkan sinyal sesudah \textit{bandpass} dengan satu garis merah Pan-Tompkins sedikit sesudah setiap puncak QRS, yaitu delapan R-\textit{peak} dalam enam detik dengan jarak antarpuncak antara 0,6 dan 0,7 detik. Pada panel ketiga, dengung 50 Hz tampak sebagai puncak sempit di dalam pita merah, sedangkan energi ECG membentuk landaian lebar pada pita hijau, dan gerigi pada garis dasar belum hilang setelah penyaringan karena filter hanya meredam 50 Hz sebesar 9,3 dB, yaitu penguatan 0,342. Pada rekaman 1643, panel pertama memperlihatkan ADC mentah yang berfluktuasi acak antara sekitar 1.893 dan 1.935 \textit{count} tanpa satu pun lonjakan QRS, panel kedua memperlihatkan sinyal sesudah filter yang berayun hanya sekitar $\pm$15 \textit{count} tetapi Pan-Tompkins tetap menandai 13 R-\textit{peak} dengan jarak yang tidak beraturan, dan panel ketiga memperlihatkan spektrum yang datar tanpa puncak 50 Hz yang menonjol dan tanpa landaian khas ECG. Kontras kedua rekaman menunjukkan bahwa penurunan ayunan sebesar 57 kali tidak dapat dijelaskan oleh penempatan elektroda yang kurang baik, karena penempatan buruk hanya memangkas ayunan 3 sampai 5 kali. Penurunan sebesar itu menunjuk pada hilangnya biopotensial atau terputusnya jalur sinyal.
-% sumber: gambar laporan/buku-pa/gambar/akuisisi_20260915-1643.png (dibuka dan dibaca; ADC 1.886-1.941 pada seluruh rekaman, sekitar 1.893-1.935 pada enam detik pertama, sumbu tersaring +-0,015 dalam satuan ribu count dari rumus analyze_recording.py x = (mentah - mean)/1000, 13 garis merah); model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (penempatan buruk memangkas 3-5x, bukan 50x)
-% sumber: gambar laporan/buku-pa/gambar/akuisisi_20260915-1130.png (dibuka dan dibaca); model/docs/akuisisi-walkthrough.md bagian 2 (bandpass meredam 50 Hz -9,3 dB, gain 0,342) dan perhitungan ulang sosfreqz atas model/src/preprocessing.py design_bandpass_sos() pada 50 Hz (gain 0,3422 = -9,31 dB)
+Gambar~\ref{fig:rekaman-berhasil} terdiri atas dua kelompok yang masing-masing memiliki tiga panel, yaitu ADC mentah, sinyal sesudah \textit{bandpass} dengan garis merah pada setiap R-\textit{peak} hasil Pan-Tompkins, dan spektrum dengan pita merah untuk dengung 50 Hz serta pita hijau untuk pita ECG. \PlaceholderData{pengamatan per panel pada rekaman Berhasil, yaitu puncak QRS dan garis dasar dalam \textit{count}, jumlah R-\textit{peak} dalam enam detik beserta jarak antarpuncak, dan puncak 50 Hz pada spektrum}. \PlaceholderData{pengamatan per panel pada rekaman Gagal}. Filter \textit{bandpass} hanya meredam 50 Hz sebesar 9,3 dB, yaitu penguatan 0,342, sehingga dengung yang masuk ke ADC tetap dapat tampak sebagai gerigi pada garis dasar sesudah penyaringan.
+% PLACEHOLDER-DATA pengamatan-grafik-rekaman: dibaca langsung dari grafik akuisisi_<nama>.png rekaman resmi pada Gambar fig:rekaman-berhasil
+% sumber: tiga panel dari model/scripts/analyze_recording.py (ADC mentah, bandpass + garis R-peak, spektrum pita 50 Hz merah dan pita EKG hijau; model/docs/akuisisi-walkthrough.md §5); model/docs/akuisisi-walkthrough.md §2 (bandpass meredam 50 Hz -9,3 dB, gain 0,342) dan perhitungan ulang sosfreqz atas model/src/preprocessing.py design_bandpass_sos() pada 50 Hz (gain 0,3422 = -9,31 dB)
 
-Rantai penyebabnya ditelusuri dengan mengubah satu variabel per percobaan. Pada 10 September, dengung 266\% saat USB laptop tertancap turun menjadi 46\% setelah daya dialihkan ke \textit{power bank}, dan ayunan turun berturut-turut menjadi 691, 250, dan 195 \textit{count} mengikuti jumlah pemasangan ulang elektroda, sehingga elektroda dipakai sekali tempel. Pada 14 September, jalur ADC di GPIO 4 terbukti putus, ditandai dengung 50 Hz sekitar 930 \textit{count} akibat pin yang mengambang dan langsung menjadi 0 setelah keluaran AD8232 dipindah ke GPIO 8 (Tabel~\ref{tab:pin-map}). Rekaman 1130 pada 15 September menunjukkan bahwa rangkaian dapat bekerja, tetapi seluruh rekaman sesudahnya gagal, yaitu rekaman 1205 dengan ADC terkunci mendekati 0 dan enam rekaman berurutan dari 1520 sampai 1643 yang kembali ke lantai derau. Elektroda, \textit{jack}, kabel LO, modul beserta kabelnya, dan penempatan elektroda LA diperiksa satu per satu dan dicoret. Hambatan antara elektroda RA dan LA pada modul beserta kabelnya terbaca ribuan ohm dan lintasan melalui tubuh yang diukur di steker bernilai ratusan kiloohm, sehingga dugaan hubung singkat gugur. Tiga dari enam rekaman gagal, yaitu 1520, 1615, dan 1623, bahkan melaporkan \textit{lead-off} 0\%, sedangkan tiga rekaman lainnya melaporkan 100\%, sehingga \textit{flag} tersebut tidak menjamin adanya sinyal. Variabel yang tersisa adalah sambungan \textit{header} modul AD8232 yang belum disolder, yang sifat intermitennya cocok dengan pola rekaman yang kadang berayun 3.128 \textit{count} dan kadang 48 \textit{count}. Perekaman sesi 11 Oktober 2026 karena itu dilakukan pada rangkaian uji baru yang mengikuti peta pin PCB, dan rekaman 1834 pada sesi tersebut kembali memenuhi kriteria kualitas.
-% sumber: model/docs/akuisisi-walkthrough.md bagian 1 (266% laptop vs 46% powerbank, 691 -> 250 -> 195 count, GPIO4 -> GPIO8 pada 14 September, dengung50 sekitar 930 count) dan bagian 8; perhitungan ulang swing rekaman 1948, 1951, 2019 (691, 250, 195) dan dengung 1938 dan 1948 (265,7% dan 46,1%); model/CLAUDE.md HW-5 (urutan variabel yang dicoret, RA-LA ribuan ohm, lintasan tubuh di steker ratusan kOhm, header belum disolder, pola kadang 3128 kadang 48); header berkas model/data/recordings/20260915-1520.csv, 1615, 1623 ("lepas=0 (0%)")
+Prosedur perekaman pada pengujian ini, yaitu catu daya \textit{powerbank}, elektroda baru yang ditempel sekali, dan penilaian kualitas dari ayunan ADC absolut, disusun dari perekaman uji coba selama pengembangan. Perekaman uji coba tersebut memakai rangkaian yang masih berubah sehingga tidak dilaporkan sebagai hasil. \PlaceholderData{penelusuran penyebab rekaman Gagal pada pengujian resmi dengan mengubah satu variabel per percobaan, bila ada rekaman Gagal}.
+% PLACEHOLDER-DATA penyebab-rekaman-gagal: diisi bila pengujian resmi menghasilkan rekaman Gagal; tabel gejala dan pemeriksaan di model/docs/akuisisi-walkthrough.md §7. Hapus kalimat placeholder bila seluruh rekaman Berhasil
+% sumber: model/docs/akuisisi-walkthrough.md §1 (powerbank, elektroda sekali tempel), §6 (ayunan ADC absolut sebagai wasit) dan §8 (rekaman uji coba, arsip model/data/arsip/rekaman-uji-coba/)
 
-Rekaman gagal juga memperlihatkan jebakan telemetri. Pan-Tompkins tetap melaporkan R-\textit{peak} karena ambangnya adaptif terhadap sinyal yang ada, sehingga keadaan tanpa sinyal bukan kondisi yang dikenalinya. Rekaman 1643 melaporkan 180 R-\textit{peak} dalam 49,6 detik atau setara sekitar 218 detak per menit, jauh di atas rentang fisiologis. Pada \textit{firmware}, tanpa elektroda dan tanpa \textit{replay}, alat mengeluarkan sekitar 2 detak per detik dengan 57\% di antaranya diklasifikasi Aritmia. Keberadaan detak karena itu tidak dapat dijadikan penentu kualitas sinyal, dan ayunan ADC absolut dipakai sebagai gerbang kualitas pada jalur \textit{pipeline} (Subbab~\ref{subsec:hasil-tujuan3}).
-% sumber: model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% ARITMIA" dan "Telemetri akuisisi bisa berbohong"; model/docs/akuisisi-walkthrough.md bagian 6; perhitungan ulang rekaman 1643 (180 R-peak dalam 49,63 detik, 180 / 49,63 x 60 = 217,6 per menit)
+Rekaman gagal juga dapat memperlihatkan jebakan telemetri. Pan-Tompkins tetap melaporkan R-\textit{peak} karena ambangnya adaptif terhadap sinyal yang ada, sehingga keadaan tanpa sinyal bukan kondisi yang dikenalinya. Pada \textit{firmware}, tanpa elektroda dan tanpa \textit{replay}, alat mengeluarkan sekitar 2 detak per detik dengan 57\% di antaranya diklasifikasi Aritmia. \PlaceholderData{contoh rekaman Gagal pada pengujian resmi yang tetap melaporkan R-\textit{peak}, yaitu jumlah R-\textit{peak}, durasi, dan setara detak per menit, bila ada}. Keberadaan detak karena itu tidak dapat dijadikan penentu kualitas sinyal, dan ayunan ADC absolut dipakai sebagai gerbang kualitas pada jalur \textit{pipeline} (Subbab~\ref{subsec:hasil-tujuan3}).
+% PLACEHOLDER-DATA rekaman-gagal-rpeak: dari baris "R-peak N dalam T detik" keluaran make analisis atas rekaman resmi berstatus Gagal; hapus kalimat bila tidak ada
+% sumber: model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% ARITMIA" dan "Telemetri akuisisi bisa berbohong"; model/docs/akuisisi-walkthrough.md bagian 6
 
-Dengan demikian, akuisisi sinyal tubuh tervalidasi pada dua sesi perekaman dengan dua rangkaian yang berbeda, yaitu rekaman 1130 dan 1834 yang keduanya memenuhi kriteria kualitas. Rangkaian diagnosis pada sesi pertama juga menghasilkan prosedur perekaman yang dipakai pada sesi kedua, yaitu catu daya \textit{powerbank}, elektroda sekali tempel, dan penilaian kualitas dari ayunan ADC absolut, bukan dari \textit{flag lead-off}.
-% sumber: tab:kualitas-rekaman (1130 dan 1834 Berhasil); model/docs/akuisisi-walkthrough.md §1 (powerbank, elektroda sekali tempel), §3 (prosedur merekam) dan §6 (ayunan ADC absolut sebagai wasit, bukan flag LO)
+Dengan demikian, \PlaceholderData{kesimpulan kelayakan sinyal tubuh sebagai masukan jalur preprocessing, yaitu jumlah rekaman yang memenuhi kriteria kualitas dari jumlah sesi dan rangkaian yang dipakai}.
+% PLACEHOLDER-DATA kesimpulan-akuisisi: diturunkan dari tab:kualitas-rekaman setelah terisi; status Tujuan 1 pada tab:ketercapaian dan subsec:analisis-tujuan1 ikut dinilai ulang
 
 \subsection{Jalur Model TinyML \textit{On-Device} (Tujuan 2)}
 \label{subsec:hasil-tujuan2}
@@ -927,7 +904,8 @@ Berdasarkan Tabel~\ref{tab:sumber-daya}, latensi 26,6 ms setara paling banyak 13
 
 \subsubsection{Konsumsi Daya}
 
-Konsumsi daya belum diukur, sehingga target daya per mode operasi pada Tabel~\ref{tab:pengujian-model} belum dapat dinilai. Konversi register INA219 menjadi arus telah diimplementasikan dan lulus uji unit, dan pembacaan INA219 melalui I2C telah terintegrasi ke \textit{firmware} utama serta ditampilkan di layar. Pengukuran arus per mode operasi belum dilakukan, sehingga belum ada angka daya pada konfigurasi yang dipakai pada pengujian model dan \textit{pipeline}.
+Konsumsi daya per mode operasi belum terukur, sehingga target daya pada Tabel~\ref{tab:pengujian-model} belum dapat dinilai. Jalur pengukurannya telah tersedia di \textit{firmware} utama, yaitu enam tingkat beban bertahap dari kondisi diam hingga inferensi dengan WiFi dan MQTT aktif, pembacaan INA219 yang dirata-ratakan per jendela 10 detik, dan skrip yang menjalankan seluruh tingkat beban lalu menyimpan hasilnya. Pengukuran menunggu perakitan INA219 pada jalur catu papan, karena pada rangkaian saat ini papan dicatu langsung dari port USB sehingga arusnya tidak melewati resistor \textit{shunt}. \PlaceholderData{arus, tegangan, dan daya rata-rata per tingkat beban beserta simpangan bakunya}
+% PLACEHOLDER-DATA daya: isi dari model/scripts/measure_power.py -> model/artifacts/metrics/daya/<timestamp>.csv (6 tingkat beban p0-p5, 6 jendela x 10 s per tingkat); perakitan INA219 di jalur VBUS lihat model/docs/firmware-walkthrough.md §5d; kolom tabel: mode, I rata-rata (mA), simpangan baku, V, P (mW)
 % sumber: firmware/src/ina219.cpp dan firmware/include/ina219.h (konversi register ke arus); firmware/test/ (uji INA219 lulus, bagian dari 23 kasus uji unit pada model/docs/README.md "Cara menjalankan ulang"); firmware/src/main.cpp (arus/tegangan INA219 ditampilkan di layar); tidak ada berkas hasil pengukuran arus di repo
 
 Pengukuran yang sah memerlukan beban yang identik pada setiap ulangan, yaitu sinyal \textit{replay} dengan LED padam agar inferensi berjalan dengan pola yang sama. Untuk mode dengan WiFi aktif, pengukuran juga harus memakai setelan radio tanpa mode tidur seperti pada pengujian \textit{pipeline}, karena setelan itu diperkirakan menambah arus sekitar 30~mA.
@@ -1084,7 +1062,8 @@ Dengan demikian keenam target terukur dengan sinyal \textit{replay}, tiga di ant
 \section{Analisis Hasil Eksperimen}
 \label{sec:analisis}
 
-Subbab ini menilai hasil pada Subbab~\ref{sec:hasil-eksperimen} terhadap ketiga tujuan pada Subbab~\ref{sec:tujuan}. Status Tercapai diberikan bila seluruh target pada rencana pengujian terukur dan terpenuhi, sedangkan Sebagian Tercapai diberikan bila ada target yang belum terukur. Tujuan 1 dan Tujuan 3 berstatus Tercapai, sedangkan Tujuan 2 berstatus Sebagian Tercapai karena konsumsi daya per mode operasi belum diukur, walaupun seluruh target model dan kinerja di perangkat terpenuhi. Penilaian dirangkum pada Tabel~\ref{tab:ketercapaian} dan alasannya diuraikan per tujuan pada subbab berikutnya.
+Subbab ini menilai hasil pada Subbab~\ref{sec:hasil-eksperimen} terhadap ketiga tujuan pada Subbab~\ref{sec:tujuan}. Status Tercapai diberikan bila seluruh target pada rencana pengujian terukur dan terpenuhi, sedangkan Sebagian Tercapai diberikan bila ada target yang belum terukur. Tujuan 3 berstatus Tercapai. Tujuan 1 berstatus Sebagian Tercapai karena akuisisi sinyal tubuh belum diuji melalui pengujian rekaman resmi, walaupun seluruh target jalur komputasi terpenuhi, sedangkan Tujuan 2 berstatus Sebagian Tercapai karena konsumsi daya per mode operasi belum diukur, walaupun seluruh target model dan kinerja di perangkat terpenuhi. Penilaian dirangkum pada Tabel~\ref{tab:ketercapaian} dan alasannya diuraikan per tujuan pada subbab berikutnya.
+% PLACEHOLDER-DATA status-tujuan1: status Tujuan 1 dinilai ulang setelah tab:kualitas-rekaman terisi dari pengujian rekaman resmi (Tercapai bila kriteria kualitas terpenuhi)
 
 \begin{table}[!ht]
   \centering
@@ -1100,11 +1079,12 @@ Subbab ini menilai hasil pada Subbab~\ref{sec:hasil-eksperimen} terhadap ketiga 
     \textbf{Tujuan} & \textbf{Target} & \textbf{Hasil} & \textbf{Status} & \textbf{Justifikasi} \\
     \hline
     Tujuan 1\newline Preprocessing \textit{real-time} &
-    Setara dengan Python dalam toleransi data acuan, tanpa sampel hilang &
-    Seluruh tahap uji data acuan lulus, beban 3,0\% anggaran, sampel hilang 0, dua rekaman tubuh Berhasil pada dua sesi &
-    Tercapai &
-    Jalur komputasi terbukti setara dan sinyal tubuh tervalidasi \\
-    % sumber: bab4 tab:uji-kesetaraan-tahap, tab:beban-komputasi, tab:kualitas-rekaman (1130 dan 1834 Berhasil); target dari bab3 tab:pengujian-model dan bab4 tab:parameter-eksperimen baris d
+    Setara dengan Python dalam toleransi data acuan, tanpa sampel hilang, dan sinyal tubuh memenuhi kriteria kualitas &
+    Seluruh tahap uji data acuan lulus, beban 3,0\% anggaran, sampel hilang 0, sinyal tubuh \PlaceholderData{jumlah rekaman Berhasil dari jumlah sesi} &
+    Sebagian Tercapai &
+    Jalur komputasi terbukti setara, akuisisi sinyal tubuh menunggu pengujian resmi \\
+    % PLACEHOLDER-DATA ketercapaian-tujuan1: kolom Hasil dan Status diisi ulang dari tab:kualitas-rekaman setelah pengujian rekaman resmi
+    % sumber: bab4 tab:uji-kesetaraan-tahap, tab:beban-komputasi, tab:kualitas-rekaman; target dari bab3 tab:pengujian-model dan bab4 tab:parameter-eksperimen baris d dan e
     \hline
     Tujuan 2\newline Model INT8 \textit{on-device} &
     $|\Delta \textit{recall}| < 0{,}02$, model $<$ 25~KB, latensi di bawah interval antardetak, muat di SRAM, daya per mode &
@@ -1123,7 +1103,7 @@ Subbab ini menilai hasil pada Subbab~\ref{sec:hasil-eksperimen} terhadap ketiga 
   \end{tabular}
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:ketercapaian}, seluruh target yang bergantung pada komputasi, akuisisi, dan pengiriman data terpenuhi. Satu-satunya target yang belum dapat dinilai adalah konsumsi daya per mode operasi pada Tujuan 2.
+Berdasarkan Tabel~\ref{tab:ketercapaian}, seluruh target yang bergantung pada komputasi dan pengiriman data terpenuhi. Target yang belum dapat dinilai adalah kualitas sinyal tubuh pada Tujuan 1, yang menunggu pengujian rekaman resmi, dan konsumsi daya per mode operasi pada Tujuan 2.
 
 \subsection{Ketercapaian Tujuan 1}
 \label{subsec:analisis-tujuan1}
@@ -1131,8 +1111,9 @@ Berdasarkan Tabel~\ref{tab:ketercapaian}, seluruh target yang bergantung pada ko
 Jalur komputasi preprocessing terbukti setara dengan Python dan berjalan secara \textit{real-time}. Seluruh tahap pada Tabel~\ref{tab:uji-kesetaraan-tahap} lulus, termasuk 11 R-\textit{peak} yang sama dengan Python dalam toleransi 1 sampel dan keputusan akhir yang identik pada tujuh detak acuan. Beban rata-rata hanya 82 $\mu$s per sampel atau 3,0\% anggaran, dan sampel hilang tetap 0 walaupun puncak beban sesaat mencapai 33,4~ms (Tabel~\ref{tab:beban-komputasi}). Kesetaraan ini dijamin oleh koefisien filter dan model yang dihasilkan otomatis dari Python lalu diuji tahap demi tahap, sedangkan ADC yang dibaca di ISR dan antrean 256 sampel menyerap \textit{burst} deteksi dan inferensi, sehingga syarat pada Tabel~\ref{tab:pengujian-model} terpenuhi.
 % sumber: bab4 tab:uji-kesetaraan-tahap (11 puncak, toleransi 1 sampel, label identik 7 detak), tab:beban-komputasi (82 us, 3,0%, 33,4 ms, sampel hilang 0, antrean 256), sec:karakteristik-data butir penyelarasan (berkas ecg_preproc.h dan model_int8.h dihasilkan otomatis)
 
-Sinyal tubuh yang menjadi masukan jalur ini juga tervalidasi, karena rekaman 1130 dan 1834 dari dua sesi perekaman memenuhi kriteria kualitas pada Tabel~\ref{tab:kualitas-rekaman}. Segmentasi hasil detektor tidak merusak klasifikasi, dengan F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi (Tabel~\ref{tab:segmentasi-deteksi}). Catatannya, kesetaraan tahap demi tahap dibuktikan pada sinyal \textit{replay} sepanjang 6,67 detik tanpa kelas S, beban rata-rata diukur pada model \textit{window} 250, dan detektor menemukan kelas S dengan \textit{sensitivity} 0,6494 (Tabel~\ref{tab:sensitivity-detektor}). Tujuan 1 karena itu dinilai Tercapai.
-% sumber: bab4 tab:kualitas-rekaman (1130 satu-satunya Berhasil), subsec:hasil-tujuan1 butir port C (rekaman 208, 6,67 detik, tanpa kelas S) dan butir alur hidup (window 250), tab:sensitivity-detektor (S 0,6494)
+Kelayakan sinyal tubuh sebagai masukan jalur ini dinilai melalui pengujian rekaman resmi, yaitu \PlaceholderData{jumlah rekaman yang memenuhi kriteria kualitas pada Tabel~\ref{tab:kualitas-rekaman} dari jumlah sesi perekaman}. Segmentasi hasil detektor tidak merusak klasifikasi, dengan F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi (Tabel~\ref{tab:segmentasi-deteksi}). Catatannya, kesetaraan tahap demi tahap dibuktikan pada sinyal \textit{replay} sepanjang 6,67 detik tanpa kelas S, beban rata-rata diukur pada model \textit{window} 250, dan detektor menemukan kelas S dengan \textit{sensitivity} 0,6494 (Tabel~\ref{tab:sensitivity-detektor}). Tujuan 1 karena itu dinilai Sebagian Tercapai, karena jalur komputasi memenuhi seluruh targetnya sedangkan akuisisi sinyal tubuh belum diuji secara resmi.
+% PLACEHOLDER-DATA analisis-tujuan1: kalimat pertama dan status akhir diisi ulang dari tab:kualitas-rekaman setelah pengujian rekaman resmi
+% sumber: bab4 subsec:hasil-tujuan1 butir port C (rekaman 208, 6,67 detik, tanpa kelas S) dan butir alur hidup (window 250), tab:sensitivity-detektor (S 0,6494), tab:segmentasi-deteksi
 
 \subsection{Ketercapaian Tujuan 2}
 \label{subsec:analisis-tujuan2}
@@ -1205,8 +1186,9 @@ Terhadap penelitian pendahulu yang mendeteksi atrial fibrilasi dengan SVM di sis
 
 Walaupun jalur komputasi, model INT8, dan \textit{pipeline} telah terukur di perangkat, sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis (Subbab~\ref{sec:batasan-masalah}), dengan keterbatasan yang diuraikan pada butir berikut.
 \begin{enumerate}
-  \item Rekaman perangkat berasal dari satu subjek sehat yang dianonimkan, sehingga variasi sinyal antarindividu belum terwakili.
-  \item Rekaman sinyal tubuh yang memenuhi kriteria berjumlah dua rekaman dari dua sesi (Tabel~\ref{tab:kualitas-rekaman}), sehingga variasi antarsesi baru terwakili secara terbatas.
+  \item Rekaman perangkat berasal dari \PlaceholderData{jumlah subjek} subjek sehat yang dianonimkan, sehingga variasi sinyal antarindividu belum terwakili.
+  \item Rekaman sinyal tubuh yang memenuhi kriteria berjumlah \PlaceholderData{jumlah rekaman Berhasil dari jumlah sesi} (Tabel~\ref{tab:kualitas-rekaman}), sehingga variasi antarsesi baru terwakili secara terbatas.
+  % PLACEHOLDER-DATA keterbatasan-rekaman: butir 1 dan 2 diisi dari data primer dan tab:kualitas-rekaman pengujian resmi; sesuaikan kalimatnya bila jumlah subjek atau sesi sudah memadai
   \item Konsumsi daya belum diukur, termasuk biaya daya radio WiFi yang tidak ditidurkan.
   \item Ekor latensi belum stabil, yaitu p95 1.404~ms dan 3.304~ms pada dua ulangan yang diduga akibat kontensi kanal WiFi.
   \item Model hanya biner dan tidak menamai jenis aritmia, sesuai Batasan Masalah.
@@ -1216,6 +1198,6 @@ Walaupun jalur komputasi, model INT8, dan \textit{pipeline} telah terukur di per
   \item Gerbang kualitas baru diuji pada gerbang ayunan, sedangkan stabilisasi elektroda, kriteria R-R, dan batas antara elektroda lepas dan sinyal lemah belum diuji.
   \item Uji putus koneksi dijalankan satu kali pada konfigurasi awal dan hanya mengisi 43 dari 27.000 entri atau sekitar 0,16\% kapasitas akhir.
 \end{enumerate}
-% sumber: bab4 sec:karakteristik-data butir data primer (satu subjek sehat), tab:kualitas-rekaman (dua rekaman Berhasil dari dua sesi), subsec:hasil-tujuan2 butir Konsumsi Daya dan subsec:hasil-tujuan3 butir Latensi (setSleep(false) menambah arus, belum diukur), tab:target-pipeline (p95), bab1 sec:batasan-masalah butir 1, tab:ablasi (0,4473 dan 0,3126) dan butir Ablasi (satu epoch), butir Evaluasi DS2 (DS2 ikut menilai ablasi window dan jitter, berpotensi sedikit optimistis), subsec:hasil-tujuan3 butir Gerbang dan Putus Koneksi (43 dari 27.000, 0,16%), subsec:hasil-tujuan1 butir Segmentasi (0,6661 menjadi 0,5656, window 250)
+% sumber: bab4 sec:karakteristik-data butir data primer, tab:kualitas-rekaman, subsec:hasil-tujuan2 butir Konsumsi Daya dan subsec:hasil-tujuan3 butir Latensi (setSleep(false) menambah arus, belum diukur), tab:target-pipeline (p95), bab1 sec:batasan-masalah butir 1, tab:ablasi (0,4473 dan 0,3126) dan butir Ablasi (satu epoch), butir Evaluasi DS2 (DS2 ikut menilai ablasi window dan jitter, berpotensi sedikit optimistis), subsec:hasil-tujuan3 butir Gerbang dan Putus Koneksi (43 dari 27.000, 0,16%), subsec:hasil-tujuan1 butir Segmentasi (0,6661 menjadi 0,5656, window 250)
 
 Sebagian besar keterbatasan tersebut berkaitan dengan cakupan uji, bukan dengan jalur komputasi, dan arah pengembangannya dirangkum sebagai saran pada Bab~\ref{chap:penutup}.

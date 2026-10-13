@@ -62,9 +62,45 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | HW-2 Deteksi R di C | selesai | Pan-Tompkins (`ecg_detect_r`, `ecg_align_r`) cocok Python 11/11 puncak di golden |
 | HW-3 Alur hidup | selesai | `src/ecg_live.cpp`: beban rata-rata 3,0% anggaran, burst puncak 33,4 ms → ADC wajib lewat ISR + antrean |
 | HW-4 Firmware produksi | selesai | timer ISR 360 Hz → antrean 256 → `ecg_live` → inferensi → LED + serial; sampel hilang 0 |
-| HW-5 Sinyal tubuh | selesai | akuisisi dari tubuh tervalidasi; rekaman acuan `20260915-1130.csv` (ayun 3.128 counts, 87 bpm) |
+| HW-5 Sinyal tubuh | pipeline siap, **pengujian resmi belum** | rantai ADC → `make pull` → `make analisis` siap dipakai per 13 Okt 2026. Rekaman 10 Sep–11 Okt 2026 = uji coba, diarsipkan di `data/arsip/rekaman-uji-coba/` (bukan hasil). Lihat **Pekerjaan terbuka** |
 | HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang ayunan, backlog 27.000 beat di PSRAM. PDSR 100% / 99,2%, latensi median 939 / 1.108 ms (2 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
 | HW-7 Replay | selesai | sumber sinyal replay (toggle serial `y`) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
+
+## Pekerjaan terbuka
+
+Daftar hal yang BELUM selesai dan mudah terlupa. Butir bertanggal; hapus butir
+hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
+
+- **(13 Okt 2026) Pengujian rekaman sinyal tubuh resmi belum dilakukan.**
+  Pipeline akuisisi dinyatakan siap dipakai per 13 Okt 2026. Semua rekaman
+  sebelum tanggal itu = uji coba, diarsipkan di
+  [`data/arsip/rekaman-uji-coba/`](data/arsip/rekaman-uji-coba/README.md)
+  (grafik: `artifacts/arsip/akuisisi-uji-coba/`) — **jangan dipakai sebagai
+  hasil**. Rekaman resmi masuk `data/recordings/` lewat `make pull`, dinilai
+  dengan `make analisis`. Setelah ada rekaman resmi, isi semua penanda
+  `grep -rn PLACEHOLDER-DATA ../laporan/buku-pa` (tabel kualitas rekaman,
+  grafik rekaman, tempat/waktu perekaman, status Tujuan 1, abstrak, Bab 5).
+  Prosedur: [`docs/akuisisi-walkthrough.md`](docs/akuisisi-walkthrough.md) §3–§6.
+- **(13 Okt 2026) Gerbang kalibrasi: ganti timer 10 menit (opsi C).**
+  1. Ukur waktu stabil sinyal sungguhan: log 15 menit dengan serial `q`
+     (laporan kualitas tiap detik), 2–3 ulangan, elektroda baru tiap ulangan,
+     subjek duduk diam, catu powerbank.
+  2. Ganti `STABIL_MS` (timer 10 menit sejak sesi mulai) dengan **pemanasan
+     sejak kontak** (hitung dari saat elektroda terdeteksi menempel, bukan dari
+     boot) + **penilaian kualitas sinyal kontinu** (ayunan/dengung/RR dinilai
+     terus, bukan sekali lulus). Durasi pemanasan diambil dari hasil langkah 1.
+  3. Revisi Bab 3 buku-pa bagian gerbang kualitas (stabilisasi 10–15 menit)
+     dan butir Gerbang Kalibrasi di Bab 4 sesuai rancangan baru.
+  Perilaku gerbang saat ini (bypass otomatis selama replay, `k` = override
+  bench): [`docs/akuisisi-walkthrough.md`](docs/akuisisi-walkthrough.md) §2.
+- **(13 Okt 2026) Konsumsi daya per mode operasi.** Pengukuran daya per mode
+  (idle, inferensi, WiFi/MQTT): rancangan di
+  [`docs/arsip/2026-09-16-daya-design.md`](docs/arsip/2026-09-16-daya-design.md).
+  Jalur ukur sudah jadi (serial `p0`-`p5`, `scripts/measure_power.py` ->
+  `artifacts/metrics/daya/<ts>.csv`). **Terhalang rangkaian:** INA219 belum di
+  jalur catu (board dicatu USB langsung, VIN± mengambang). Rakit sesuai
+  [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) §5d, jalankan
+  skripnya, lalu isi `PLACEHOLDER-DATA daya` di bab4 buku-pa.
 
 ## Walkthrough per fase
 

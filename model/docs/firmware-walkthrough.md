@@ -332,7 +332,7 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
                                               ├─ ecg_mqtt_layani (non-blocking)
                                               ├─ LED kualitas sinyal / rekam
                                               ├─ TFT: HR, gelombang, status, INA219
-                                              ├─ buzzer: bip per detak (terjadwal)
+                                              ├─ buzzer: bip per detak (terjadwal, senyap saat kalibrasi)
                                               └─ tombol B1/B2/B3: bisu, beku, rekam
 ```
 
@@ -402,9 +402,10 @@ Dua kegunaan, dan yang kedua justru yang lebih penting:
 2. **Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis.** Itu yang
    membuat kehilangan data di jalur MQTT bisa diukur, bukan cuma dirasakan:
    beat hilang = beat seharusnya − beat yang sampai di broker. `y` juga
-   me-reset `ecg_live` dan pencacah beat supaya hitungannya mulai dari nol, dan
-   saat menyala sekaligus melewati gerbang kalibrasi (record 208 memang
-   aritmik; lihat [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
+   me-reset `ecg_live` dan pencacah beat supaya hitungannya mulai dari nol.
+   Selama replay menyala, gerbang kalibrasi dilewati karena record 208 memang
+   aritmik; bypass itu diturunkan dari sumber sinyal sehingga berhenti bersama
+   replay ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
 
 Konsekuensinya: uji resiliensi pipeline tidak perlu menunggu elektroda.
 
@@ -478,6 +479,109 @@ yang benar-benar mengukur interval jantung.
 
 ---
 
+## 5d. Tangga ukur daya
+
+Rancangan: [`arsip/2026-09-16-daya-design.md`](arsip/2026-09-16-daya-design.md).
+Konsumsi dipisahkan per tahap lewat isolasi mode: tiap anak tangga menambah satu
+beban, dan ongkos satu tahap adalah selisih dua anak tangga. Mode dipilih lewat
+serial `p0`–`p5`; `p` diikuti huruf lain (mis. `px`) kembali ke operasi normal.
+
+| Mode | Yang berjalan | Ongkos yang diisolasi |
+|---|---|---|
+| `p0` | timer ISR mati, radio WiFi mati, LED padam | dasar: ESP32-S3 + AD8232 + TFT (lampu latar) + regulator |
+| `p1` | + ISR 360 Hz dan pengurasan antrean | akuisisi |
+| `p2` | + `ecg_live_push()` dan penilai kualitas | DSP: bandpass, deteksi R, segmentasi |
+| `p3` | + inferensi CNN per detak | TinyML |
+| `p4` | + gelombang TFT, bip, LED | antarmuka |
+| `p5` | + radio WiFi (`setSleep(false)`) dan publikasi MQTT | radio = operasi normal |
+
+Teks TFT 1 Hz, tombol, dan pembacaan INA219 berjalan di semua mode, sehingga
+ongkosnya hilang pada selisih. Sumber sinyal wajib replay: tanpa sinyal tidak
+ada beat, dan `p3` akan mengukur nol inferensi. Radio dimatikan dengan
+`esp_wifi_stop()`, bukan `WiFi.mode(WIFI_OFF)`; yang terakhir ikut men-deinit
+driver dan berebut dengan task WiFi, gejalanya panic `LoadProhibited` di core 0.
+
+Selama mode ukur aktif, INA219 dibaca tiap 100 ms (lebih lama dari konversi
+rata-rata 128 sampel, ~68 ms) dan dirata-ratakan per jendela 10 detik. Satu
+baris per jendela:
+
+```
+DAYA p3 n=101 I=<mA> sd=<mA> mA V=<V> P=<mW> mW beat=17 lewat=0 replay=1
+```
+
+`sd` adalah simpangan baku bacaan 100 ms di dalam jendela, `beat` jumlah beat
+yang keluar dari `ecg_live` di jendela itu (bukti beban DSP berjalan), dan
+`lewat` sampel yang hilang (wajib 0). INA219 memakai PGA ÷8 (`0x3FFF`,
+±320 mV = ±3,2 A pada 0,1 ohm) karena burst TX WiFi melewati ±400 mA milik
+PGA ÷1; LSB register shunt tetap 10 µV.
+
+`model/scripts/measure_power.py` menjalankan tangga: membaca status `s`,
+menyalakan replay bila belum, mengirim tiap mode, membuang jendela pertama
+(transien ganti mode), mengambil 6 jendela (60 detik) per mode, menulis CSV ke
+`model/artifacts/metrics/daya/<ts>.csv`, lalu mencetak rata-rata ± std per mode
+dan selisih antar-mode. Cek mekanis: arus monoton naik `p0 ≤ … ≤ p5`, tiap
+selisih > 2 × std, `lewat = 0`, dan `beat > 0` mulai `p2`. Skrip berhenti tanpa
+menulis CSV bila tegangan bus < 1 V, yaitu bila INA219 tidak berada di jalur
+arus alat.
+
+Catatan tafsir: `loop()` tidak pernah tidur, jadi CPU 240 MHz aktif penuh di
+semua mode. Selisih `p1`–`p3` adalah ongkos instruksi tambahan pada CPU yang
+sudah aktif, dan dapat tenggelam di bawah 2 × std; cek skrip melaporkannya
+sebagai tahap yang belum terukur, bukan sebagai angka.
+
+### Kondisi jalur ukur saat ini
+
+Register mentah INA219 (`pio test -e esp32-s3 -f test_hw_ina219 -v`, 13 Okt
+2026, board dicatu USB laptop):
+
+```
+mentah: shunt 0x3400 (13312 x 10 uV) | bus 0x000A -> 1 x 4 mV, CNVR 1 OVF 0
+mentah: shunt 0x55FF (22015 x 10 uV) | bus 0x000A -> 1 x 4 mV, CNVR 1 OVF 0
+mentah: shunt 0x4FFF (20479 x 10 uV) | bus 0x0002 -> 0 x 4 mV, CNVR 1 OVF 0
+```
+
+Tegangan bus (VIN− terhadap GND) 0–4 mV, sedangkan tegangan shunt melompat
+133–220 mV antar-bacaan. Arus 1,3–2,2 A pada bus 0 V tidak mungkin berasal dari
+beban; kedua pin VIN mengambang. INA219 belum berada di jalur arus alat, dan
+board menerima daya langsung dari konektor USB. Angka arus di layar dan di baris
+status saat ini bukan konsumsi alat. Jalur ukur (firmware + skrip) sudah diuji
+ujung ke ujung dengan `--paksa`: keenam mode terkonfirmasi, `lewat = 0` di semua
+mode, dan radio kembali tersambung di `p5`.
+
+### Prosedur ukur daya
+
+Shunt disisipkan di kawat VBUS kabel USB, sesuai rancangan §3. D+, D−, dan GND
+tidak diputus, sehingga serial tetap berjalan dan mode tetap bisa diperintah.
+
+1. Cabut USB. Sambungkan pin logika INA219: `VCC` → 3V3 board (bukan 5V),
+   `GND` → GND board, `SDA` → GPIO 17, `SCL` → GPIO 18.
+2. Siapkan kabel USB ukur: kupas selubung di tengah, potong **hanya kawat
+   merah** (VBUS). Ujung sisi laptop → `VIN+`, ujung sisi board → `VIN−`.
+   Solder, jangan dupont: seluruh arus board lewat sambungan ini.
+3. Pastikan tidak ada catu lain ke board (powerbank, pin 5V, port USB kedua).
+   Dua jalur catu membagi arus dan angkanya mengecil tanpa tanda.
+4. Colokkan kabel ukur ke laptop dan ke port USB board yang dipakai serial
+   (`/dev/ttyACM0`). Ketik `s` di `pio device monitor`: baris `INA219` harus
+   menunjukkan `V` sekitar 4,7–5,1 V dan `I` positif dan stabil. `I` negatif
+   berarti `VIN+`/`VIN−` tertukar; `V` ~0 berarti VIN− belum tersambung.
+5. Tutup monitor serial (port tidak boleh dipakai dua program), lalu jalankan
+   dari folder `model/`:
+
+   ```
+   .venv/bin/python scripts/measure_power.py
+   ```
+
+   Durasi sekitar 7,5 menit (6 mode × 70 detik). Untuk `p5` mewakili operasi
+   normal, broker harus terjangkau: `TB_HOST` di `firmware/include/wifi_secrets.h`
+   sama dengan IP laptop saat itu.
+6. Cek silang sekali dengan multimeter mode arus (atau USB power meter) di celah
+   VBUS yang sama pada satu mode; selisih dikoreksi lewat `R_SHUNT` di
+   `perangkat.h` (`R_baru = R_lama × I_ina219 / I_multimeter`).
+
+Alternatif tanpa memotong kabel: USB power meter di antara laptop dan board.
+Alat itu tidak terbaca firmware, jadi angka per mode dicatat manual sambil
+mode diganti lewat serial (`p0`…`p5`, jeda 60 detik per mode).
+
 ## 6. Angka device
 
 Kondisi uji: board N16R8, 18 Sep 2026, window 256, `pio test -e esp32-s3`.
@@ -527,12 +631,13 @@ pembahasan yang baik di laporan.
 | Perintah | Melihat apa |
 |---|---|
 | `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
-| `pio test -e esp32-s3` | 33 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_buzzer` 4, `test_hw_tft` 3, `test_hw_adc` 3, `test_hw_ina219` 2, `test_hw_integrasi` 5 |
+| `pio test -e esp32-s3` | 34 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_buzzer` 4, `test_hw_tft` 3, `test_hw_adc` 3, `test_hw_ina219` 3, `test_hw_integrasi` 5 |
 | `pio test -e esp32-s3 -f test_hw_buzzer` | satu suite saja |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG, bacaan perangkat) |
 | `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |
 | `pio run -t upload` | flash firmware utama |
 | `cd model && make export` | regenerasi `model_int8.h` setelah model berubah |
+| `cd model && .venv/bin/python scripts/measure_power.py` | tangga ukur daya `p0`–`p5` → `artifacts/metrics/daya/<ts>.csv` (§5d) |
 
 ---
 

@@ -12,6 +12,8 @@
 #include <LittleFS.h>
 #include <string.h>
 #include "driver/adc.h"
+#include <WiFi.h>
+#include "esp_wifi.h"
 
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
@@ -58,16 +60,15 @@ constexpr float DRR_MAKS_S = 0.200f;                     // bab3: <= 200 ms
 enum { FASE_KALIBRASI, FASE_BAIK, FASE_BURUK };
 static int fase;
 static uint32_t t_rr_langgar;      // millis() pelanggaran RR terakhir
-// Melewati SELURUH gerbang masuk (waktu stabilisasi DAN kriteria RR). Toggle 'k',
-// dan otomatis saat replay.
+// Override manual gerbang masuk (waktu stabilisasi DAN kriteria RR) untuk bench,
+// toggle 'k'. Mematikannya memulai sesi baru sehingga gerbang penuh berlaku lagi.
 //
-// Kenapa harus melewati KEDUANYA, bukan cuma waktunya: golden_raw adalah record
-// 208 yang penuh beat ventrikular, jadi dRR-nya memang besar (terukur di board:
-// -0,364 / +0,478 s). Kriteria bab3 "dRR <= 200 ms konsisten 30 detik" dirancang
-// untuk SUBJEK SEHAT yang duduk diam, dan sinyal uji kita sengaja aritmik — jadi
-// ia tidak akan pernah lulus, bukan karena rusak melainkan karena memang bukan
-// subjek sehat. Dua hal itu tidak bisa dipenuhi bersamaan, dan yang mengalah
-// adalah gerbangnya, dengan pengumuman.
+// Replay melewati gerbang yang sama, tetapi lewat kondisi `replay` di
+// nilai_fase(), bukan lewat flag ini: bypass-nya melekat pada sumber sinyal dan
+// berhenti bersama replay. golden_raw adalah record 208 yang penuh beat
+// ventrikular (dRR terukur -0,364 / +0,478 s), jadi kriteria "dRR <= 200 ms
+// konsisten 30 detik", yang dirancang untuk subjek sehat yang duduk diam, tidak
+// akan pernah lulus.
 static bool lewati_kalibrasi;
 
 // Bandpass 0,5-40 Hz TIDAK membunuh 50 Hz, cuma meredamnya -9,3 dB (diukur dari
@@ -129,6 +130,18 @@ constexpr float OFFSET_REPLAY = 2048.0f;
 // exception" (EXCCAUSE 4) setelah ~18 detik, bukan crash seketika — cukup
 // lambat untuk lolos uji 20 detik.
 static uint16_t sim_counts[GOLDEN_N];
+
+// Tangga ukur daya (docs/arsip/2026-09-16-daya-design.md §1), perintah serial
+// 'p0'..'p5'; 'p' + huruf lain kembali ke operasi normal (-1). Tiap anak tangga
+// menambah satu beban; ongkos satu tahap = selisih dua anak tangga.
+//   p0 timer ISR mati          p3 + inferensi CNN
+//   p1 + ISR 360 Hz & kuras    p4 + UI: gelombang TFT, bip, LED
+//   p2 + ecg_live (DSP)        p5 + radio WiFi & MQTT (= operasi normal)
+// Radio WiFi mati di p0-p4. Teks TFT 1 Hz, tombol, dan pembacaan INA219 jalan di
+// semua anak tangga, sehingga ongkosnya hilang di selisih.
+static int mode_daya = -1;
+constexpr uint32_t JENDELA_DAYA_MS = 10000;
+static uint32_t beat_dsp;          // beat keluar dari ecg_live, termasuk saat kalibrasi
 
 void IRAM_ATTR on_timer()
 {
@@ -209,8 +222,12 @@ static float klasifikasi(const ecg_beat_t &beat)
 // Replay TIDAK diperlakukan khusus dan memang tidak perlu: ayunannya ~2700
 // counts, jauh di atas AMBANG_AYUN 60, jadi ia lolos gerbang yang sama persis
 // dengan sinyal tubuh. Satu jalur kode untuk dummy dan nyata.
+static void bunyi(uint32_t ms);
+constexpr uint32_t BIP_KALIB_MS = 600;     // tanda kalibrasi mulai & selesai
+
 static void mulai_sesi()
 {
+    bunyi(BIP_KALIB_MS);
     ecg_live_reset();
     t_sesi_ms = millis();
     fase = FASE_KALIBRASI;
@@ -236,10 +253,12 @@ static void nilai_fase(const ecg_beat_t &beat)
     if (fase == FASE_KALIBRASI) {
         const bool stabil = millis() - t_sesi_ms >= STABIL_MS;
         const bool rr_tenang = millis() - t_rr_langgar >= RR_TENANG_MS;
-        if ((lewati_kalibrasi || (stabil && rr_tenang)) && ayun_ok) {
+        if ((lewati_kalibrasi || replay || (stabil && rr_tenang)) && ayun_ok) {
             fase = FASE_BAIK;
+            bunyi(BIP_KALIB_MS);
             Serial.printf("kualitas: calibrating -> good (%s, RR tenang %lu s, ayun %d)\n",
-                          lewati_kalibrasi ? "GERBANG DILEWATI (bench)" : "gerbang penuh",
+                          replay ? "GERBANG DILEWATI (replay)"
+                          : lewati_kalibrasi ? "GERBANG DILEWATI (bench)" : "gerbang penuh",
                           (unsigned long)((millis() - t_rr_langgar) / 1000), ayun_bersih_1s);
         }
         return;                    // masih kalibrasi: tidak ada inferensi
@@ -384,7 +403,8 @@ static void perbarui_led()
     if (millis() - t_led < 250) return;    // neopixelWrite matikan interrupt ~30 us
     t_led = millis();
 
-    if (rekam)                             led(64, 0, 0);
+    if (mode_daya >= 0 && mode_daya < 4)  led(0, 0, 0);      // LED ikut diukur di p4
+    else if (rekam)                        led(64, 0, 0);
     else if (fase == FASE_KALIBRASI)       led(0, 16, 64);   // biru: stabilisasi
     else if (ayun_bersih_1s < AMBANG_AYUN) led(64, 24, 0);
     else                                   led(0, 48, 0);
@@ -400,6 +420,8 @@ static void perbarui_led()
 //   bawah  tiga kotak tombol, kuning selama ditekan
 // Tombol: B1 bisu/bunyi bip detak (tahan 2 detik = ganti sumber seperti 'y'),
 //         B2 bekukan gelombang + bip, B3 mulai/simpan rekaman (seperti 'r').
+// Bip detak senyap selama kalibrasi; bunyi panjang BIP_KALIB_MS menandai
+// kalibrasi mulai (boot, ganti sumber, 'k' OFF) dan selesai (masuk fase BAIK).
 constexpr int GY = 30, GH = 112;           // area gelombang
 constexpr int DESIMASI = 3;                // 120 px/detik -> 320 px = 2,7 detik
 constexpr uint16_t ABU = 0x4208;
@@ -504,13 +526,6 @@ static void ganti_replay()
 {
     replay = !replay;
     replay_i = 0;
-    // Replay tidak punya elektroda untuk distabilkan, DAN golden_raw
-    // adalah record 208 yang penuh beat ventrikular — dRR-nya memang
-    // besar, jadi kriteria "dRR <= 200 ms selama 30 detik" tidak akan
-    // pernah terpenuhi. Kriteria itu dirancang untuk subjek SEHAT yang
-    // duduk diam; dummy kita justru sengaja aritmik. Jadi saat replay,
-    // stabilisasi dilewati dan itu diumumkan.
-    if (replay) lewati_kalibrasi = true;
     mulai_sesi();
     j_isi = 0;                     // jam sampel ecg_live mulai dari nol lagi
     beat_total = beat_aritmia = beat_ditahan = 0;
@@ -539,8 +554,7 @@ static void tombol()
     static bool b1_lama;                   // tahan sudah dieksekusi: lepasnya bukan toggle bisu
     if (tekan[0] && !b1_lama && millis() - t_ubah[0] >= TAHAN_MS) {
         b1_lama = true;
-        ganti_replay();
-        bunyi(300);
+        ganti_replay();                    // berbunyi panjang lewat mulai_sesi()
     }
     for (int i = 0; i < 3; i++) {
         const bool kini = digitalRead(PIN_BTN[i]) == LOW;
@@ -568,7 +582,7 @@ static void saat_beat_ui(const ecg_beat_t &beat, bool aritmia)
     hr_tampil = (beat.rr[0] > 0.05f) ? (int)lroundf(60.0f / beat.rr[0]) : 0;
     hr_aritmia = aritmia;
     t_hr = millis();
-    jadwalkan_bip(beat, aritmia);
+    if (fase != FASE_KALIBRASI) jadwalkan_bip(beat, aritmia);   // kalibrasi: senyap
 }
 
 static void layar_1hz()
@@ -642,6 +656,55 @@ static const char *ina_teks()
     return teks;
 }
 
+static bool daya_mulai_ulang;
+
+static void set_mode_daya(int m)
+{
+    static bool wifi_mati;
+    mode_daya = m;
+    if (m == 0) timerAlarmDisable(timer);
+    else        timerAlarmEnable(timer);
+    // esp_wifi_stop/start, bukan WiFi.mode(WIFI_OFF): yang terakhir ikut
+    // men-deinit driver dan berebut dengan task WiFi (panic LoadProhibited di core 0).
+    if (m >= 0 && m < 5) {
+        if (!wifi_mati) { ecg_mqtt_set_aktif(0); esp_wifi_stop(); }
+        wifi_mati = true;
+    } else if (wifi_mati) {        // p5 / normal: radio kembali dengan setelan ecg_mqtt_mulai()
+        esp_wifi_start();
+        ecg_mqtt_mulai();
+        ecg_mqtt_set_aktif(1);
+        wifi_mati = false;
+    }
+    daya_mulai_ulang = true;
+    if (m < 0) Serial.println("daya: mode normal");
+    else       Serial.printf("daya: mode p%d, jendela %lu s\n", m, (unsigned long)(JENDELA_DAYA_MS / 1000));
+}
+
+// Rata-rata INA219 per jendela tetap, satu baris 'DAYA' per jendela. Dibaca tiap
+// 100 ms (> 68 ms konversi 128 sampel), jadi tiap bacaan adalah rata-rata baru.
+// Baris pertama sesudah ganti mode memuat transien; pencatat membuangnya.
+static void ukur_daya()
+{
+    static uint32_t t_baca, t_jendela, beat0, lewat0;
+    static double jml, jml2, jml_v;
+    static int n;
+    if (mode_daya < 0 || !ina_ada || millis() - t_baca < 100) return;
+    t_baca = millis();
+    if (daya_mulai_ulang) {
+        daya_mulai_ulang = false;
+        jml = jml2 = jml_v = 0; n = 0;
+        t_jendela = millis(); beat0 = beat_dsp; lewat0 = n_lewat;
+    }
+    float mA, V;
+    if (ina219_baca(R_SHUNT, &mA, &V)) { jml += mA; jml2 += (double)mA * mA; jml_v += V; n++; }
+    if (millis() - t_jendela < JENDELA_DAYA_MS || n == 0) return;
+    const double i = jml / n, v = jml_v / n;
+    Serial.printf("DAYA p%d n=%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW beat=%u lewat=%u replay=%d\n",
+                  mode_daya, n, i, sqrt(fmax(jml2 / n - i * i, 0.0)), v, i * v,
+                  (unsigned)(beat_dsp - beat0), (unsigned)(n_lewat - lewat0), (int)replay);
+    daya_mulai_ulang = true;
+}
+
 void setup()
 {
     perangkat_mulai();              // PERTAMA: buzzer diam secepatnya, urutan SPI di dalamnya
@@ -681,7 +744,6 @@ void setup()
     timerAlarmWrite(timer, 1000000 / ECG_FS, true);
     timerAlarmEnable(timer);
 
-    bunyi(100);
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
                   "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam)  |  serial: r/d/s/q/y/m/k\n"
@@ -707,11 +769,15 @@ void loop()
             if (digitalRead(PIN_LOP) || digitalRead(PIN_LON)) rekam_lepas++;
         }
 
-        const int ada_beat = ecg_live_push(sampel, &beat);
-        nilai_kualitas(sampel);            // SETELAH push: baca sampel tersaring terbaru
+        const bool dsp = mode_daya < 0 || mode_daya >= 2;
+        const bool cnn = mode_daya < 0 || mode_daya >= 3;
+        const bool ui = mode_daya < 0 || mode_daya >= 4;
+        const int ada_beat = dsp ? ecg_live_push(sampel, &beat) : 0;
+        if (dsp) nilai_kualitas(sampel);   // SETELAH push: baca sampel tersaring terbaru
 
         bool aritmia = false;
         if (ada_beat) {
+            beat_dsp++;
             nilai_fase(beat);
             if (fase == FASE_KALIBRASI) {
                 // bab3.tex: "inferensi CNN belum dijalankan" selama calibrating.
@@ -721,15 +787,16 @@ void loop()
                 if (millis() - t_lapor > 5000) {
                     t_lapor = millis();
                     Serial.printf("calibrating | RR=%.3fs dRR=%+.3fs | tenang %lu/%lu s | "
-                                  "ayun %d (ambang %d) | stabil %lu/%lu s | lewati=%d\n",
+                                  "ayun %d (ambang %d) | stabil %lu/%lu s | lewati=%d replay=%d\n",
                                   beat.rr[0], beat.rr[2],
                                   (unsigned long)((millis() - t_rr_langgar) / 1000),
                                   (unsigned long)(RR_TENANG_MS / 1000), ayun_bersih_1s,
                                   AMBANG_AYUN,
                                   (unsigned long)((millis() - t_sesi_ms) / 1000),
-                                  (unsigned long)(STABIL_MS / 1000), (int)lewati_kalibrasi);
+                                  (unsigned long)(STABIL_MS / 1000), (int)lewati_kalibrasi,
+                                  (int)replay);
                 }
-            } else {
+            } else if (cnn) {
                 const float p = klasifikasi(beat);
                 aritmia = p >= ECG_THRESHOLD;
                 beat_total++;
@@ -742,24 +809,34 @@ void loop()
                               beat_total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
                 publikasi(beat, p, aritmia);
             }
-            saat_beat_ui(beat, aritmia);
+            if (ui) saat_beat_ui(beat, aritmia);
         }
-        jalankan_jadwal();
-        plot(tertunda(ecg_live_tersaring_terakhir()));
+        if (ui) {
+            jalankan_jadwal();
+            plot(tertunda(ecg_live_tersaring_terakhir()));
+        }
     }
 
     // Di luar cabang "ada sampel": sambung ulang & kuras backlog harus jalan
     // walau antrean ADC sedang kosong.
     ecg_mqtt_layani();
     perbarui_led();
+    ukur_daya();
 
     if (Serial.available()) {
         const char c = Serial.read();
         if (c == 'r') { if (rekam) simpan(); else mulai_rekam(); }
         else if (c == 'd') { if (!rekam) dump(); else Serial.println("Sedang merekam."); }
         else if (c == 'y') ganti_replay();
+        else if (c == 'p') {
+            const uint32_t t0 = millis();
+            while (!Serial.available() && millis() - t0 < 500) {}
+            const char d = Serial.available() ? Serial.read() : 0;
+            set_mode_daya(d >= '0' && d <= '5' ? d - '0' : -1);
+        }
         else if (c == 'k') {
             lewati_kalibrasi = !lewati_kalibrasi;
+            if (!lewati_kalibrasi) { mulai_sesi(); j_isi = 0; }   // gerbang penuh dari nol
             Serial.printf("lewati gerbang kalibrasi %s (bench saja — bab3 menuntut "
                           "stabilisasi 10-15 menit + RR tenang 30 s)\n",
                           lewati_kalibrasi ? "ON" : "OFF");
@@ -779,7 +856,7 @@ void loop()
                           "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
                           "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
                           "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
-                          "        INA219 %s | bisu %d | beku %d\n",
+                          "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d\n",
                           (int)rekam, (unsigned)rekam_n, (int)replay, nama_fase(),
                           beat_total, beat_aritmia, beat_ditahan,
                           (unsigned)((tulis - baca + ANTRE_N) % ANTRE_N), (unsigned)n_lewat,
@@ -794,7 +871,7 @@ void loop()
                           (unsigned)(tunda_n ? tunda_jml / tunda_n : 0), (unsigned)tunda_maks,
                           (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
                           ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
-                          ina_teks(), (int)bisu, (int)beku);
+                          ina_teks(), (int)bisu, (int)beku, (int)lewati_kalibrasi, mode_daya);
     }
 
     tombol();
