@@ -22,7 +22,7 @@ kualitas, membuat grafik.
 ```
 elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           │
-                  tombol B3 (REC) → PSRAM → LittleFS  (/rekam/NNN.csv di board)
+   tombol B3 (pendek: rekam/jeda/lanjut, tahan: simpan) → PSRAM → LittleFS  (/rekam/NNN.csv)
                           │
                      make pull                      ← colok USB ke laptop
                           ▼
@@ -30,7 +30,7 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           │
                      make analisis FILE=...
                           ▼
-     angka kualitas di terminal + grafik di artifacts/metrics/akuisisi/akuisisi_*.png
+     angka kualitas per segmen di terminal + grafik di artifacts/metrics/akuisisi/akuisisi_*.png
 ```
 
 ---
@@ -42,7 +42,7 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
 | `OUTPUT` | **1** (ADC1_CH0) | — |
 | `LO+` | 42 | — |
 | `LO−` | 2 | — |
-| B3 (REC) | 6 | — |
+| B3 (rekam/jeda/simpan) | 6 | — |
 | **RA (merah)** | — | bawah selangka kanan |
 | **LA (kuning)** | — | bawah rusuk kiri ← mengukur bersama merah |
 | **RL (hijau)** | — | bawah rusuk kanan (referensi) |
@@ -77,7 +77,9 @@ pemasangan ulang.
 
 ## 2. Arti LED
 
-LED mengukur **ayunan sinyal setelah bandpass 0,5–40 Hz**, pakai fungsi
+LED (NeoPixel) adalah **satu-satunya indikator kualitas sinyal**; layar tidak
+menuliskan kualitas. Status rekaman tidak ditampilkan lewat LED, melainkan di
+pojok kanan atas layar (§3). LED mengukur **ayunan sinyal setelah bandpass 0,5–40 Hz**, pakai fungsi
 `ecg_bandpass` yang sama dengan pipeline model.
 
 Bandpass itu **tidak membunuh 50 Hz**, cuma meredamnya −9,3 dB (gain 0,342;
@@ -98,16 +100,13 @@ LED dievaluasi tiap 250 ms dengan urutan prioritas berikut (`perbarui_led()`):
 
 | LED | Kondisi | Artinya |
 |---|---|---|
-| **Merah** | sedang merekam | hanya itu, tidak ada arti lain |
 | **Biru** | fase kalibrasi | stabilisasi elektroda; inferensi belum jalan |
 | **Oranye** | ayunan bersih < 60 | kontak kurang atau dengung dominan — **jangan rekam** |
 | **Hijau** | ayunan bersih ≥ 60 | sinyal sehat, boleh rekam |
 
-Empat keadaan, tanpa kedip. Merekam saat oranye = rekaman kosong; perbaiki
-elektrodanya lebih dulu. Pojok kanan atas TFT menampilkan keadaan yang sama
-dengan warna yang sama: `REC <detik>` (merah), `KALIB` (biru muda), `BURUK`
-(oranye), `BAIK` (hijau), ditambah `REPLAY` (kuning) saat replay acuan dan
-`RP#NNN` (kuning) saat replay rekaman nomor `NNN`.
+Tiga keadaan, tanpa kedip, dan tidak berubah saat merekam. Merekam saat
+oranye = rekaman kosong; perbaiki elektrodanya lebih dulu. Merah berkedip
+hanya muncul bila inisialisasi TFLM gagal saat boot (bukan keadaan kualitas).
 
 **Fase kalibrasi (biru).** Setiap sesi dimulai di fase kalibrasi dan baru
 berpindah ke pemantauan bila tiga syarat terpenuhi bersamaan: sesi sudah
@@ -128,8 +127,8 @@ Siapa yang boleh melewati syarat waktu-stabil dan RR-tenang (syarat ayunan
 
 Jangan merekam data resmi dengan `k` ON: gerbangnya tidak menjamin apa-apa.
 
-**Clipping tidak punya warna.** Merah hanya berarti satu hal: sedang merekam.
-Konsekuensinya sinyal yang terpotong di rail tampil **hijau** — LED hanya
+**Clipping tidak punya warna.** Pola LED tambahan akan menumpuk arti di satu
+warna. Konsekuensinya sinyal yang terpotong di rail tampil **hijau** — LED hanya
 mengukur ayunan, dan sinyal terpotong justru berayun lebar. Clipping tetap
 dihitung, cek lewat serial:
 
@@ -138,41 +137,87 @@ q   laporan kualitas tiap detik (toggle), kolom `clipping`
 s   status sesaat, kolom `clipping`
 ```
 
-Sebelum menekan REC, aktifkan `q` dan pastikan `clipping 0`. Hijau saja tidak
+Sebelum mulai merekam, aktifkan `q` dan pastikan `clipping 0`. Hijau saja tidak
 cukup.
 
 ---
 
 ## 3. Merekam
 
+Pojok kanan atas layar monitor menunjukkan status rekaman:
+
+| Tampilan | Warna | Arti |
+|---|---|---|
+| `RECmm:ss` | merah | sedang merekam; waktu = panjang sinyal tersimpan |
+| `JEDAm:ss` | kuning | rekaman dijeda; sampel tidak disimpan |
+| `SIMPAN` + `/rekam/NNN.csv` | hijau | berkas baru tersimpan (tampil 3 detik) |
+| `RP 208` / `RP#NNN` | kuning | sumber sinyal replay (acuan / rekaman `NNN`), bukan sensor |
+| kosong | — | sumber Sensor (ADC), tidak merekam |
+
+Kotak tombol B3 di baris bawah berlabel `B3 REC` saat tidak merekam, `B3 JEDA`
+saat merekam, dan `B3 LANJUT` saat dijeda, dengan petunjuk `tahan=SIMPAN`.
+
 1. Pasang elektroda baru sesuai §1. Board diberi daya dari powerbank; USB laptop
    **tercabut**. Pastikan sumber sinyal **Sensor (ADC)**: pojok kanan atas TFT
-   tidak menampilkan `REPLAY` atau `RP#NNN`. Pilihan sumber tersimpan di NVS,
+   tidak menampilkan `RP 208` atau `RP#NNN`. Pilihan sumber tersimpan di NVS,
    sehingga replay yang dipilih sebelumnya tetap aktif setelah boot; ganti lewat
    menu **Sumber sinyal → Sensor (ADC)** (tahan B2 untuk membuka menu).
 2. Pastikan kualitas sinyal: LED **hijau**, atau selama fase kalibrasi (biru)
    `BERSIH ≥ 60` dan `clipping 0` di laporan `q`.
-3. Dari layar monitor (menu tertutup), tekan pendek **B3 REC** (GPIO 6). LED
-   menjadi merah, TFT menampilkan `REC` beserta detiknya, dan serial mencetak
-   `REKAM mulai`. Selama menu terbuka B3 adalah tombol navigasi.
+3. Dari layar monitor (menu tertutup), tekan pendek **B3** (GPIO 6). Pojok kanan
+   atas menampilkan `REC00:00` merah yang terus berjalan, dan serial mencetak
+   `REKAM mulai`. LED tetap menunjukkan kualitas sinyal. Selama menu terbuka B3
+   adalah tombol navigasi.
 4. Duduk diam, lengan bertumpu, **25 detik**.
-5. Tekan **B3 REC** lagi. Hasil yang diharapkan di serial:
+5. Bila perekaman perlu dihentikan sementara (subjek bergerak, kabel
+   tersenggol), tekan pendek **B3** untuk menjeda. Layar menampilkan `JEDA`
+   kuning dan serial mencetak `REKAM jeda n=<sampel> (<detik> detik)`. Tekan
+   pendek **B3** lagi untuk melanjutkan; serial mencetak `REKAM lanjut ...`.
+   Bagian yang dijeda tidak disimpan, dan berkas mencatat batasnya sebagai baris
+   `# jeda`.
+6. Tahan **B3** sampai bip panjang (800 ms) untuk berhenti dan menyimpan, baik
+   dari keadaan merekam maupun dijeda. Layar menampilkan `SIMPAN` hijau dengan
+   nama berkasnya. Hasil yang diharapkan di serial:
 
    ```
-   SIMPAN <n> sampel (<detik> detik), 0 terlewat, elektroda lepas 0% -> /rekam/001.csv
+   SIMPAN <n> sampel (<detik> detik, <k> segmen), 0 terlewat, elektroda lepas 0% -> /rekam/001.csv
    ```
 
    Bila muncul `PERINGATAN: elektroda lepas >10%`, rekaman kemungkinan besar
    kosong; ulangi dari langkah 1.
 
-Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat B3
-ditekan kedua kali, sehingga bertahan walau board mati. Maksimum 5 menit
-(`REKAM_SAMPEL_MAKS` = 360 × 300 sampel). Tiap rekaman disimpan sebagai berkas bernomor baru
-(`/rekam/001.csv`, `002`, ...); daftarnya dilihat dengan serial `l` dan berkas
-lama dihapus dengan `h<n>`. Rekaman yang tersimpan dapat diputar ulang di board
-lewat menu **Sumber sinyal → Replay rekaman**. Persentase `elektroda
-lepas` berasal dari pin LO+/LO−; nilai 0% bukan jaminan ada sinyal (LO cukup
-dipuaskan satu jalur impedansi rendah), jadi wasitnya tetap ayunan di §6.
+Padanan serial: `r` = mulai, atau berhenti dan simpan (juga saat dijeda);
+`j` = jeda / lanjut. Serial `s` menampilkan `rekam 1` selama sesi rekaman
+terbuka (termasuk saat dijeda) dan `jeda 0/1`.
+
+Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat
+disimpan, sehingga bertahan walau board mati. Maksimum 5 menit sinyal
+tersimpan (`REKAM_SAMPEL_MAKS` = 360 × 300 sampel; waktu jeda tidak dihitung).
+Tiap rekaman disimpan sebagai berkas bernomor baru (`/rekam/001.csv`, `002`,
+...); daftarnya dilihat dengan serial `l` dan berkas lama dihapus dengan `h<n>`.
+Rekaman yang tersimpan dapat diputar ulang di board lewat menu **Sumber sinyal
+→ Replay rekaman**; replay melewati baris `#`, sehingga segmen diputar
+bersambung tanpa jeda. Persentase `elektroda lepas` berasal dari pin LO+/LO−;
+nilai 0% bukan jaminan ada sinyal (LO cukup dipuaskan satu jalur impedansi
+rendah), jadi wasitnya tetap ayunan di §6.
+
+### Format berkas rekaman
+
+```
+# fs=360 n=<total sampel> lewat=<hilang> lepas=<LO aktif> (<persen>%)
+<counts ADC, satu sampel per baris>
+...
+# jeda
+<counts ADC segmen berikutnya>
+...
+```
+
+- `n` = jumlah sampel seluruh segmen.
+- Baris `# jeda` memisahkan dua segmen. Dua segmen yang bersebelahan **tidak
+  kontinu** dalam waktu: sinyal selama jeda tidak ada di berkas.
+- Jeda yang langsung diikuti simpan tidak menghasilkan baris `# jeda` di akhir
+  berkas, dan jeda tanpa sampel baru tidak menghasilkan segmen kosong.
+- Rekaman tanpa jeda tidak memuat baris `# jeda` dan sama dengan format lama.
 
 ---
 
@@ -196,14 +241,15 @@ dipuaskan satu jalur impedansi rendah), jadi wasitnya tetap ayunan di §6.
 
 Baris kedua adalah header berkas: `fs` laju sampel, `n` jumlah sampel, `lewat`
 sampel yang hilang karena antrean penuh. Firmware utama juga menulis
-`lepas=<n> (<persen>%)`, jumlah sampel dengan LO aktif selama merekam.
+`lepas=<n> (<persen>%)`, jumlah sampel dengan LO aktif selama merekam. Baris
+`# jeda` di dalam berkas ikut tertarik apa adanya (format: §3).
 
-Bila board masih merekam, `make pull` menghentikan dan menyimpannya lebih dulu
-secara otomatis.
+Bila board masih merekam atau dijeda, `make pull` menghentikan dan menyimpannya
+lebih dulu secara otomatis.
 
 Nama berkas = **waktu tarik**, bukan waktu rekam (`datetime.now()` di
-`pull_recording.py`). `make pull` menarik rekaman bernomor terakhir; bila B3
-tidak ditekan sejak tarikan sebelumnya, rekaman lama itu tertarik lagi dengan
+`pull_recording.py`). `make pull` menarik rekaman bernomor terakhir; bila tidak
+ada rekaman baru sejak tarikan sebelumnya, rekaman lama itu tertarik lagi dengan
 nama baru. Rekaman bernomor lain ditarik lewat serial `d<n>`.
 
 Semuanya jalan di `.venv` yang sama — `pyserial` sudah masuk `requirements.txt`.
@@ -235,6 +281,24 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
    Baris `BPM` (rerata, min, maks, persen masuk akal) ikut tercetak bila
    terdeteksi lebih dari dua R-peak.
 
+   Untuk berkas berisi `# jeda`, baris pertama menyebut jumlah segmen dan satu
+   baris per segmen mendahului ringkasan gabungan. Contoh dari rekaman uji coba
+   (arsip) `20261011-1834` yang disisipi satu `# jeda` buatan sesudah sampel
+   ke-4000:
+
+   ```
+   20261011-1834-jeda: 10947 sampel = 30.4 detik @ 360 Hz, 0 sampel terlewat, 2 segmen (dipisah jeda)
+     segmen 1      11.1 detik   R-peak   11   RR   10   autokorelasi 0.45 @ 60 bpm, 1 puncak setara
+     segmen 2      19.3 detik   R-peak   22   RR   21   autokorelasi 0.22 @ 69 bpm, 4 puncak setara
+     ADC          1461..3110   clipping 0 sampel OK
+     ...
+     R-peak       33 dalam 30.4 detik
+   ```
+
+   Jumlah RR = R-peak − jumlah segmen (10 + 21 = 33 − 2): interval antara
+   R-peak terakhir segmen 1 dan R-peak pertama segmen 2 tidak dihitung karena
+   melintasi jeda.
+
 3. Grafiknya otomatis tersimpan di:
 
    ```
@@ -244,7 +308,31 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
 Buka dengan `xdg-open artifacts/metrics/akuisisi/akuisisi_<nama>.png` (grafik
 contoh uji coba di atas: `artifacts/arsip/akuisisi-uji-coba/akuisisi_20260910-2019.png`).
 Tiga panel: ADC mentah, hasil bandpass + garis R-peak, dan spektrum (pita merah
-= 50 Hz, pita hijau = pita EKG).
+= 50 Hz, pita hijau = pita EKG). Untuk rekaman berjeda ditambah panel keempat:
+seluruh rekaman setelah bandpass pada sumbu waktu gabungan (waktu jeda tidak
+dihitung), dengan batas segmen sebagai garis vertikal putus-putus. Garis yang
+sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
+
+### Analisis per segmen
+
+`analyze_recording.py` memecah berkas pada setiap `# jeda` dan menghitung tiap
+segmen secara terpisah, lalu menggabungkan hasilnya:
+
+| Hitungan | Per segmen | Penggabungan |
+|---|---|---|
+| Rerata (DC) dan bandpass 0,5–40 Hz | filter mulai dari keadaan nol di awal tiap segmen; transien awal segmen diperlakukan sama dengan transien awal rekaman | sinyal tersaring disambung untuk grafik |
+| R-peak Pan-Tompkins | dideteksi per segmen | indeks digeser ke sumbu waktu gabungan |
+| RR dan BPM | `diff` R-peak di dalam segmen | disambung; **tidak ada RR yang melintasi jeda** |
+| Energi pita (dengung, derau, drift, pita EKG) | per segmen | dijumlahkan, lalu dirasiokan |
+| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
+| ADC min/maks, clipping | seluruh sampel | — |
+
+Alasannya: sinyal sebelum dan sesudah jeda tidak bersambung dalam waktu.
+Menjalankan filter menyambung akan memasukkan lompatan baseline sebagai
+transien palsu, dan RR yang melintasi jeda bukan interval detak sungguhan.
+Berkas tanpa `# jeda` adalah satu segmen dan memberi keluaran yang identik
+dengan versi sebelum dukungan jeda (diverifikasi pada 27 rekaman arsip: teks
+dan PNG sama persis). Uji: `tests/test_analyze_recording.py`.
 
 ---
 
@@ -291,7 +379,7 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 |---|---|---|
 | LED oranye terus | elektroda habis / lead tertukar | ganti elektroda baru; pastikan kuning di rusuk kiri, hijau di rusuk kanan |
 | `make pull` → "Tidak bisa membuka" | serial monitor lain terbuka | `lsof /dev/ttyACM0`, tutup PlatformIO monitor di VS Code |
-| `make pull` → "Tidak ada rekaman" | belum pernah menekan B3 REC | rekam lebih dulu |
+| `make pull` → "Tidak ada rekaman" | belum pernah merekam dan menyimpan | rekam lebih dulu (§3) |
 | dengung > 200% | USB laptop tertancap saat merekam | powerbank |
 | amplitudo kecil, dengung rendah | LA & RL tertukar | tukar kuning dan hijau |
 | `dengung50` ~930 counts di `q` walau elektroda terpasang | jalur OUTPUT putus, pin ADC mengambang | periksa kabel OUTPUT → GPIO1; pastikan pin di ADC1 |
@@ -309,11 +397,12 @@ Board menerima satu huruf lewat serial 115200 (`pio device monitor`):
 
 | Huruf | Efek |
 |---|---|
-| `r` | mulai / berhenti merekam (setara tombol B3) |
+| `r` | mulai merekam / berhenti dan simpan, juga dari keadaan jeda (setara B3 pendek saat tidak merekam, B3 tahan saat merekam) |
+| `j` | jeda / lanjut rekaman (setara B3 pendek saat merekam) |
 | `d` / `d<n>` | dump rekaman terakhir / nomor `<n>` ke serial (`make pull` memakai `d`; tidak ada tombol fisiknya) |
 | `l` | daftar rekaman di LittleFS: nomor, ukuran, header |
 | `h<n>` | hapus rekaman nomor `<n>` |
-| `s` | status sesaat: rekam, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT, INA219 |
+| `s` | status sesaat: rekam, jeda, jumlah sampel, fase, beat, antrean, sampel hilang, LO, ayunan, clipping, MQTT, INA219 |
 | `q` | toggle laporan kualitas tiap detik |
 | `k` | toggle override gerbang kalibrasi untuk uji meja; OFF = sesi baru, gerbang penuh dari nol (lihat §2); setara menu Kalibrasi → Lewati (bench) |
 | `y` | toggle sumber sinyal ADC ⇄ replay acuan; ketiga sumber (termasuk replay rekaman) dipilih dari menu Sumber sinyal |

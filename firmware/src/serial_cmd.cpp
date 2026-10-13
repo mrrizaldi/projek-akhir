@@ -1,6 +1,7 @@
 // Perintah serial. Kontrak: include/serial_cmd.h
 //
-//   r      mulai / simpan rekaman (berkas bernomor baru)
+//   r      mulai / simpan rekaman (berkas bernomor baru); saat jeda juga simpan
+//   j      jeda / lanjut rekaman (setara B3 pendek saat merekam)
 //   d[n]   dump rekaman n; tanpa angka = terakhir (dipakai make pull)
 //   l      daftar rekaman          h<n>  hapus rekaman n
 //   s      status                  q     laporan kualitas tiap detik
@@ -57,7 +58,7 @@ static void status()
                   "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
                   "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
                   "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
-                  "sumber %s %d | menu %d\n",
+                  "sumber %s %d | menu %d | jeda %d\n",
                   (int)rekam_aktif(), (unsigned)rekam_n(), (int)akuisisi_replay(),
                   gerbang_nama_fase(), h.total, h.aritmia, h.ditahan,
                   (unsigned)akuisisi_isi(), (unsigned)akuisisi_lewat(),
@@ -76,7 +77,7 @@ static void status()
                   (int)gerbang_lewati(), daya_mode(),
                   akuisisi_sumber() == SUMBER_ADC ? "adc"
                   : akuisisi_sumber() == SUMBER_ACUAN ? "acuan" : "rekaman",
-                  akuisisi_sumber_rekam(), (int)menu_terbuka());
+                  akuisisi_sumber_rekam(), (int)menu_terbuka(), (int)rekam_dijeda());
 }
 
 static void daftar_wifi()
@@ -97,6 +98,7 @@ void serial_cmd_layani(void)
     if (!Serial.available()) return;
     const char c = Serial.read();
     if (c == 'r') rekam_toggle();
+    else if (c == 'j') rekam_jeda();
     else if (c == 'd') {
         const int n = angka();
         if (!rekam_aktif()) rekam_dump(n);

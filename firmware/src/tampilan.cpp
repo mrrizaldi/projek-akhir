@@ -6,6 +6,7 @@
 #include "tampilan.h"
 
 #include <Arduino.h>
+#include <time.h>
 
 #include "akuisisi.h"
 #include "daya.h"
@@ -139,17 +140,28 @@ void tampilan_beat(const ecg_beat_t &beat, bool aritmia)
 void tampilan_gambar_tombol(int i)
 {
     if (!monitor) return;
-    static const char *const label[3][2] = {
-        {"B1 BUNYI", "B1 BISU"}, {"B2 JALAN", "B2 BEKU"}, {"B3 REC", "B3 STOP"}};
-    const bool aktif = (i == 0) ? bisu : (i == 1) ? beku : rekam_aktif();
+    static const char *const label[2][2] = {{"B1 BUNYI", "B1 BISU"}, {"B2 JALAN", "B2 BEKU"}};
     const bool ditekan = tombol_ditekan(i);
     const int x = i * 107;
     const uint16_t bg = ditekan ? ST77XX_YELLOW : ABU;
     tft.fillRect(x, 148, 105, 24, bg);
-    tft.setTextSize(2);
     tft.setTextColor(ditekan ? ST77XX_BLACK : ST77XX_WHITE, bg);
-    tft.setCursor(x + 6, 153);
-    tft.print(label[i][aktif]);
+    tft.setTextSize(2);
+    if (i < 2) {
+        tft.setCursor(x + 6, 153);
+        tft.print(label[i][i == 0 ? bisu : beku]);
+    } else if (!rekam_aktif()) {
+        tft.setCursor(x + 6, 153);
+        tft.print("B3 REC");
+    } else {
+        // "B3 LANJUT" = 9 huruf x 12 px = 108 px: mulai tepat di tepi kotak,
+        // tinta huruf terakhir berakhir di x 319.
+        tft.setCursor(x, 149);
+        tft.print(rekam_dijeda() ? "B3 LANJUT" : "B3 JEDA");
+        tft.setTextSize(1);
+        tft.setCursor(x + 6, 165);
+        tft.print("tahan=SIMPAN");
+    }
 }
 
 void tampilan_mulai(void)
@@ -158,13 +170,12 @@ void tampilan_mulai(void)
     for (int i = 0; i < 3; i++) tampilan_gambar_tombol(i);
 }
 
-// Arti LED (akuisisi-walkthrough.md §2):
-//   merah  : sedang merekam — HANYA itu, tidak ada arti lain
+// Arti LED = kualitas sinyal SAJA (status rekaman ada di layar, kanan atas):
 //   biru   : kalibrasi (stabilisasi)
 //   oranye : ayunan BERSIH < ambang — kontak kurang / dengung dominan
 //   hijau  : ayunan sehat, siap rekam
 // Tanpa kedip. Clipping sengaja tidak punya pola LED sendiri: pola tambahan
-// menumpuk arti di satu warna dan membuat merah ambigu. Clipping tetap dihitung
+// menumpuk arti di satu warna. Clipping tetap dihitung
 // dan dilaporkan lewat serial ('q' tiap detik, 's' sesaat); sinyal terpotong
 // tampil HIJAU.
 // LO+/LO- SENGAJA tidak dipakai menyetir LED: ia hanya melaporkan elektroda
@@ -178,13 +189,107 @@ static void perbarui_led()
     t_led = millis();
 
     if (!daya_tahap(4))                    tampilan_led(0, 0, 0);    // LED ikut diukur di p4
-    else if (rekam_aktif())                tampilan_led(64, 0, 0);
     else if (gerbang_fase() == FASE_KALIBRASI) tampilan_led(0, 16, 64);
     else if (gerbang_kualitas().ayun_bersih < AMBANG_AYUN) tampilan_led(64, 24, 0);
     else                                   tampilan_led(0, 48, 0);
 }
 
 static uint32_t t_1hz;
+static char kanan_lalu[32];                // isi kanan atas yang tergambar; "" = gambar ulang
+
+// Tengah atas x 116..211, bergantian tiap 3 detik: INA219 (mA besar, V/mW
+// kecil) dan waktu (jam WIB + tanggal bila SNTP sudah masuk, selain itu
+// uptime). Selalu dicetak lebar tetap 8 / 16 huruf berlatar hitam, jadi sisa
+// mode sebelumnya tertimpa tanpa fillRect.
+static void gambar_tengah()
+{
+    static const char *const BULAN[12] = {"Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
+                                          "Jul", "Agu", "Sep", "Okt", "Nov", "Des"};
+    static bool jam_dilog;
+    char besar[16], kecil[24];
+    uint16_t w = ST77XX_WHITE;
+
+    const time_t kini = time(nullptr);
+    struct tm t;
+    localtime_r(&kini, &t);
+    const bool sinkron = t.tm_year + 1900 > 2020;
+    if (sinkron && !jam_dilog) {           // sekali per boot: bukti zona waktu di log
+        jam_dilog = true;
+        Serial.printf("jam: %02d:%02d:%02d WIB %d %s %d\n", t.tm_hour, t.tm_min, t.tm_sec,
+                      t.tm_mday, BULAN[t.tm_mon], t.tm_year + 1900);
+    }
+
+    if ((millis() / 3000) % 2 == 0) {
+        // Chip merata-rata 128 sampel (~68 ms), jadi satu baca per detik tidak
+        // melompat mengikuti burst 33 ms.
+        float mA = 0, V = 0;
+        const bool ok = daya_ina_ada() && ina219_baca(R_SHUNT, &mA, &V);
+        w = ok ? ST77XX_CYAN : ST77XX_RED;
+        if (ok) {
+            snprintf(besar, sizeof besar, "%4.0fmA", mA);
+            snprintf(kecil, sizeof kecil, "%4.2fV %5.0fmW", V, mA * V);
+        } else {
+            snprintf(besar, sizeof besar, "INA --");
+            snprintf(kecil, sizeof kecil, "cek SDA%d SCL%d", I2C_SDA, I2C_SCL);
+        }
+    } else if (sinkron) {
+        snprintf(besar, sizeof besar, "%02d:%02d:%02d", t.tm_hour, t.tm_min, t.tm_sec);
+        snprintf(kecil, sizeof kecil, "%d %s %d", t.tm_mday, BULAN[t.tm_mon], t.tm_year + 1900);
+    } else {
+        // "up hh:mm:ss" tidak muat di ukuran 2 (11 x 12 px); "up" pindah ke baris kecil.
+        const uint32_t d = millis() / 1000;
+        snprintf(besar, sizeof besar, "%02u:%02u:%02u", (unsigned)(d / 3600 % 100),
+                 (unsigned)(d / 60 % 60), (unsigned)(d % 60));
+        snprintf(kecil, sizeof kecil, "up (belum NTP)");
+    }
+    tft.setTextColor(w, ST77XX_BLACK);
+    tft.setTextSize(2);
+    tft.setCursor(116, 2);
+    tft.printf("%-8.8s", besar);
+    tft.setTextSize(1);
+    tft.setCursor(116, 20);
+    tft.printf("%-16.16s", kecil);
+}
+
+// Kanan atas x 220..319 (8 huruf ukuran 2): status rekaman, label sumber
+// replay, atau kosong. Kualitas sinyal TIDAK ditulis di sini; LED yang
+// menunjukkannya. Digambar ulang hanya bila isinya berubah.
+static void gambar_kanan()
+{
+    char t[16] = "", kecil[24] = "";
+    uint16_t w = ST77XX_YELLOW;
+    const unsigned d = (unsigned)(rekam_n() / ECG_FS);
+    const int simpan = rekam_baru_disimpan();
+    if (rekam_aktif() && !rekam_dijeda()) {
+        w = ST77XX_RED;
+        snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);
+    } else if (rekam_aktif()) {
+        snprintf(t, sizeof t, "JEDA%u:%02u", d / 60 % 10, d % 60);   // maks 300 s: menit 1 digit
+    } else if (simpan) {
+        w = ST77XX_GREEN;                  // "SIMPAN#NNN" tidak muat: nomor di baris kecil
+        snprintf(t, sizeof t, "SIMPAN");
+        snprintf(kecil, sizeof kecil, REKAM_POLA, simpan);
+    } else if (akuisisi_sumber() == SUMBER_REKAM) {
+        snprintf(t, sizeof t, "RP#%03d", akuisisi_sumber_rekam());
+    } else if (akuisisi_sumber() == SUMBER_ACUAN) {
+        snprintf(t, sizeof t, "RP 208");
+    }
+
+    char kunci[sizeof kanan_lalu];
+    snprintf(kunci, sizeof kunci, "%s|%s|%u", t, kecil, (unsigned)w);
+    if (strcmp(kunci, kanan_lalu) == 0) return;
+    strcpy(kanan_lalu, kunci);
+    tft.fillRect(220, 0, TFT_W - 220, GY - 3, ST77XX_BLACK);
+    tft.setTextColor(w, ST77XX_BLACK);
+    tft.setTextSize(2);
+    tft.setCursor(220, kecil[0] ? 2 : 8);
+    tft.print(t);
+    if (kecil[0]) {
+        tft.setTextSize(1);
+        tft.setCursor(220, 20);
+        tft.print(kecil);
+    }
+}
 
 static void layar_1hz()
 {
@@ -207,43 +312,8 @@ static void layar_1hz()
     tft.setCursor(90, 17);
     tft.print("bpm");
 
-    // Warna fase sama dengan NeoPixel.
-    const int fase = gerbang_fase();
-    tft.setTextSize(2);
-    tft.setCursor(220, 8);
-    if (rekam_aktif()) {
-        tft.setTextColor(ST77XX_RED, ST77XX_BLACK);
-        tft.printf("REC%4u", (unsigned)(rekam_n() / ECG_FS));
-    } else if (akuisisi_sumber() == SUMBER_REKAM) {
-        tft.setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
-        tft.printf("RP#%03d ", akuisisi_sumber_rekam());
-    } else if (akuisisi_replay()) {
-        tft.setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
-        tft.print("REPLAY ");
-    } else if (fase == FASE_KALIBRASI) {
-        tft.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
-        tft.print("KALIB  ");
-    } else if (fase == FASE_BAIK) {
-        tft.setTextColor(ST77XX_GREEN, ST77XX_BLACK);
-        tft.print("BAIK   ");
-    } else {
-        tft.setTextColor(ST77XX_ORANGE, ST77XX_BLACK);
-        tft.print("BURUK  ");
-    }
-
-    // INA219 di celah x 116..215. Chip merata-rata 128 sampel (~68 ms), jadi
-    // satu baca per detik tidak melompat mengikuti burst 33 ms.
-    float mA = 0, V = 0;
-    const bool ina_ok = daya_ina_ada() && ina219_baca(R_SHUNT, &mA, &V);
-    tft.setTextSize(2);
-    tft.setCursor(116, 2);
-    tft.setTextColor(ina_ok ? ST77XX_CYAN : ST77XX_RED, ST77XX_BLACK);
-    if (ina_ok) tft.printf("%4.0fmA", mA);
-    else        tft.print("INA -- ");
-    tft.setTextSize(1);
-    tft.setCursor(116, 20);
-    if (ina_ok) tft.printf("%4.2fV %5.0fmW", V, mA * V);
-    else        tft.printf("cek SDA%d SCL%d", I2C_SDA, I2C_SCL);
+    gambar_tengah();
+    gambar_kanan();
 
     // Label tombol bisa berubah lewat serial ('r'), jadi digambar ulang di sini.
     for (int i = 0; i < 3; i++) tampilan_gambar_tombol(i);
@@ -256,6 +326,7 @@ void tampilan_set_monitor(bool on)
     tft.fillScreen(ST77XX_BLACK);
     tampilan_mulai();
     t_1hz = millis() - 1000;               // teks atas langsung digambar
+    kanan_lalu[0] = 0;
 }
 
 bool tampilan_monitor(void) { return monitor; }

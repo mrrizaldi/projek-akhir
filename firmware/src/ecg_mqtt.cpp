@@ -334,8 +334,9 @@ void ecg_mqtt_mulai(void)
     WiFi.begin(w_ssid, w_pass);
     // SNTP dipakai supaya ts tiap beat adalah waktu KEJADIAN. Tanpa jam benar,
     // beat hasil flush backlog akan menumpuk di detik yang sama dan grafik
-    // dashboard berbohong.
-    configTime(0, 0, "pool.ntp.org", "time.google.com");
+    // dashboard berbohong. Zona WIB hanya untuk jam di layar; ts tetap epoch
+    // UTC dari gettimeofday(). configTime(0, 0, ...) akan menyetel TZ ke UTC.
+    configTzTime("WIB-7", "pool.ntp.org", "time.google.com");
     Serial.printf("mqtt: WiFi \"%s\" -> %s:%u\n", w_ssid, b_host, (unsigned)b_port);
 }
 

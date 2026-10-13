@@ -330,10 +330,10 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
                                               ├─ inferensi tiap beat (fase pemantauan)
                                               ├─ publikasi → ring backlog MQTT
                                               ├─ ecg_mqtt_layani (non-blocking)
-                                              ├─ LED kualitas sinyal / rekam
-                                              ├─ TFT: HR, gelombang, status, INA219
+                                              ├─ LED kualitas sinyal (biru/oranye/hijau)
+                                              ├─ TFT: HR, INA219 ⇄ jam, REC/JEDA/replay, gelombang
                                               ├─ buzzer: bip per detak (terjadwal, senyap saat kalibrasi)
-                                              ├─ tombol B1/B2/B3: monitor (bisu, beku, rekam) / menu
+                                              ├─ tombol B1/B2/B3: monitor (bisu, beku, rekam/jeda; tahan B3 simpan) / menu
                                               └─ menu di layar (bila terbuka)
 ```
 
@@ -424,10 +424,12 @@ berlaku setelah boot:
 | Sumber | Isi antrean ISR | Kegunaan |
 |---|---|---|
 | Sensor (ADC) | `adc1_get_raw()` dari AD8232 | operasi dan perekaman sinyal tubuh |
-| Replay acuan (208) | `golden_raw` record 208 (2400 sampel, 9 beat), diputar berulang | beban identik untuk ukur daya, uji MQTT tanpa elektroda |
-| Replay rekaman | berkas `/rekam/NNN.csv` dimuat ke PSRAM (maks. 300 detik), diputar berulang | memutar ulang sinyal tubuh yang pernah direkam lewat jalur produksi |
+| REPLAY 208 | `golden_raw` record 208 (2400 sampel, 9 beat), diputar berulang | beban identik untuk ukur daya, uji MQTT tanpa elektroda |
+| Replay rekaman | berkas `/rekam/NNN.csv` dimuat ke PSRAM (maks. 300 detik), diputar berulang | memutar ulang sinyal tubuh yang pernah direkam lewat jalur produksi; baris `#` (header, `# jeda`) dilewati sehingga segmen diputar bersambung |
 
-Serial `y` tetap ada sebagai jalur cadangan: ADC ⇄ replay acuan. Kedua replay
+Selama replay, pojok kanan atas layar monitor menampilkan `RP 208` (acuan) atau
+`RP#NNN` (rekaman) berwarna kuning. Serial `y` tetap ada sebagai jalur
+cadangan: ADC ⇄ replay acuan. Kedua replay
 memakai satu cabang di ISR yang membaca array apa pun yang ditunjuk `rp_data`:
 
 ```cpp

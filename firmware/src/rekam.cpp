@@ -15,10 +15,18 @@ constexpr int DAFTAR_MAKS = 64;            // ponytail: batas daftar tampilan sa
 
 static uint16_t *buf;
 static size_t n;
-static bool aktif;
+static bool aktif, jeda;
 static size_t lepas;                       // sampel dgn LO aktif selama merekam
+// Indeks awal segmen sesudah tiap jeda; saat simpan jadi baris "# jeda".
+constexpr int BATAS_MAKS = 64;             // ponytail: jeda ke-65 dst. tidak dicatat (segmen lebur), cukup untuk 300 s
+static size_t batas[BATAS_MAKS];
+static int n_batas;
+static int no_simpan;
+static uint32_t t_simpan;
 
 bool rekam_aktif(void) { return aktif; }
+bool rekam_dijeda(void) { return aktif && jeda; }
+int rekam_baru_disimpan(void) { return no_simpan && millis() - t_simpan < 3000 ? no_simpan : 0; }
 size_t rekam_n(void) { return n; }
 
 static void nama(int nomor, char *out, size_t len) { snprintf(out, len, REKAM_POLA, nomor); }
@@ -64,7 +72,7 @@ void rekam_siapkan(void)
 
 void rekam_sampel(uint16_t s)
 {
-    if (!aktif || !buf || n >= REKAM_N) return;
+    if (!aktif || jeda || !buf || n >= REKAM_N) return;
     buf[n++] = s;
     if (digitalRead(PIN_LOP) || digitalRead(PIN_LON)) lepas++;
 }
@@ -87,13 +95,19 @@ static void simpan()
     const float persen = n ? 100.0f * lepas / n : 0.0f;
     f.printf("# fs=%u n=%u lewat=%u lepas=%u (%.0f%%)\n", ECG_FS, (unsigned)n, lewat,
              (unsigned)lepas, persen);
+    if (n_batas && batas[n_batas - 1] >= n) n_batas--;   // jeda lalu langsung simpan: bukan segmen
     size_t i = 0;
-    for (; i < n; i++) if (f.printf("%u\n", buf[i]) == 0) break;
+    for (int k = 0; i < n; i++) {
+        if (k < n_batas && batas[k] == i) { f.print("# jeda\n"); k++; }
+        if (f.printf("%u\n", buf[i]) == 0) break;
+    }
     f.close();
     if (i < n) Serial.printf("GAGAL: LittleFS penuh setelah %u sampel, %s terpotong\n",
                              (unsigned)i, p);
-    Serial.printf("SIMPAN %u sampel (%.1f detik), %u terlewat, elektroda lepas %.0f%% -> %s\n",
-                  (unsigned)n, (float)n / ECG_FS, lewat, persen, p);
+    Serial.printf("SIMPAN %u sampel (%.1f detik, %d segmen), %u terlewat, elektroda lepas %.0f%% -> %s\n",
+                  (unsigned)n, (float)n / ECG_FS, n_batas + 1, lewat, persen, p);
+    no_simpan = nomor;
+    t_simpan = millis();
     if (lepas > n / 10)
         Serial.println("PERINGATAN: elektroda lepas >10% — rekaman ini kemungkinan besar kosong.");
 }
@@ -102,9 +116,25 @@ void rekam_toggle(void)
 {
     if (aktif) { simpan(); return; }
     n = lepas = 0;
+    n_batas = 0;
+    jeda = false;
     akuisisi_nol_lewat();
     aktif = true;
     Serial.println("REKAM mulai");
+}
+
+void rekam_jeda(void)
+{
+    if (!aktif) { Serial.println("REKAM: tidak sedang merekam"); return; }
+    jeda = !jeda;
+    // Batas dicatat saat jeda; jeda tanpa sampel baru sejak batas terakhir
+    // tidak membuat segmen kosong.
+    if (jeda && n && (!n_batas || batas[n_batas - 1] < n)) {
+        if (n_batas < BATAS_MAKS) batas[n_batas++] = n;
+        else Serial.println("PERINGATAN: batas jeda penuh, segmen ini lebur dengan berikutnya");
+    }
+    Serial.printf("REKAM %s n=%u (%.1f detik)\n", jeda ? "jeda" : "lanjut", (unsigned)n,
+                  (float)n / ECG_FS);
 }
 
 bool rekam_dump(int nomor)

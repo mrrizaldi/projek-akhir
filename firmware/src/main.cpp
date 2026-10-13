@@ -31,11 +31,11 @@
 #include "tombol.h"
 
 // Monitor: B1 pendek bisu/bunyi bip detak, B2 pendek bekukan gelombang, B3
-// pendek mulai / simpan rekaman ('r'), B2 tahan buka menu. Aksi pendek terjadi
-// saat DILEPAS karena tahan punya arti lain. Tiap tekanan berbunyi klik, dan
-// ambang tahan (800 ms) ditandai bip pendek. Selama menu terbuka, semua event
-// diteruskan ke menu.
-constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60;
+// pendek mulai rekam / jeda / lanjut, B3 tahan stop + simpan (bip panjang),
+// B2 tahan buka menu. Aksi pendek terjadi saat DILEPAS karena tahan punya arti
+// lain. Tiap tekanan berbunyi klik, dan ambang tahan (800 ms) ditandai bip
+// pendek. Selama menu terbuka, semua event diteruskan ke menu.
+constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60, BIP_SIMPAN_MS = 400;
 
 static void layani_tombol()
 {
@@ -49,9 +49,13 @@ static void layani_tombol()
         if (e == TOMBOL_PENDEK) {
             if (i == 0) tampilan_set_bisu(!tampilan_bisu());
             if (i == 1) tampilan_set_beku(!tampilan_beku());
-            if (i == 2) rekam_toggle();
+            if (i == 2) { if (rekam_aktif()) rekam_jeda(); else rekam_toggle(); }
         }
         if (e == TOMBOL_LAMA && i == 1) { menu_buka(); continue; }
+        if (e == TOMBOL_LAMA && i == 2 && rekam_aktif()) {
+            rekam_toggle();                // simpan memblok; bipnya sesudah berkas tertulis
+            if (rekam_baru_disimpan()) tampilan_bunyi(BIP_SIMPAN_MS);
+        }
         tampilan_gambar_tombol(i);
     }
 }
@@ -85,12 +89,16 @@ void setup()
     gerbang_mulai_sesi();
     konfig_mulai();
     ecg_mqtt_mulai();               // non-blocking: sambungan diurus di loop()
+    // Jam layar = WIB. ecg_mqtt memanggil configTzTime() dengan zona yang sama,
+    // jadi sambung ulang WiFi tidak mengembalikannya ke UTC.
+    setenv("TZ", "WIB-7", 1);
+    tzset();
     akuisisi_mulai();               // terakhir: ISR mulai mengisi antrean
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam; tahan B2 = menu)  |  "
-                  "serial: r/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
+                  "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam/jeda/lanjut; tahan B3 = simpan, "
+                  "tahan B2 = menu)  |  serial: r/j/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)klasifikasi_arena(),
                   klasifikasi_ambang(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],

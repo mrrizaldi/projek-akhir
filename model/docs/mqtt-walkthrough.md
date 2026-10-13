@@ -260,7 +260,13 @@ Kawatnya **bukan tebakan**: `dashboard/smoke_test.py` sudah bicara ke broker
 yang sama dengan byte yang sama (`0x10` CONNECT flags `0x80` username-saja,
 `0x32` PUBLISH QoS1, cek `0x40` PUBACK + pid). Port C-nya menyalin itu.
 
-### 3.6 Jam — `configTime()` + `ts_base_ms`
+### 3.6 Jam — `configTzTime()` + `ts_base_ms`
+
+SNTP dimulai dengan `configTzTime("WIB-7", "pool.ntp.org", "time.google.com")`.
+Zona WIB hanya memengaruhi `localtime_r()` untuk jam di layar monitor;
+`gettimeofday()` tetap memberi epoch UTC, jadi `ts` tiap beat tidak berubah.
+`configTime(0, 0, …)` tidak dipakai karena memaksa TZ ke UTC setiap kali WiFi
+tersambung ulang.
 
 ```c
 struct timeval tv;
@@ -339,7 +345,7 @@ Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
 |---|---|---|
 | 1 | boot, tunggu | `mqtt: WiFi "…" -> 192.168.x.x:1883`, lalu `mqtt: jam tersinkron, epoch_ms …` dan `mqtt tersambung, backlog 0 beat` |
 | 2 | tekan `m` (bila belum ON) | `mqtt ON` |
-| 3 | tekan `y`, atau menu **Sumber sinyal → Replay acuan (208)** | `replay ON (golden_raw)` |
+| 3 | tekan `y`, atau menu **Sumber sinyal → REPLAY 208** | `replay ON (golden_raw)`; pojok kanan atas layar `RP 208` kuning |
 | 4 | tunggu ~7 detik | `kualitas: calibrating -> good (GERBANG DILEWATI (replay), …)`, lalu baris `beat …` mulai keluar |
 | 5 | tekan `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
 | 6 | buka `http://localhost:8080` | telemetri masuk di dashboard |
@@ -363,7 +369,7 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
         paket <ack>/<kirim> PDSR <x>% | tunda alat rata <ms> ms maks <ms> ms |
         RTT maks <ms> ms (lambat <n>) | RSSI <dBm> dBm | epoch_ms <epoch>
         INA219 I=<mA> mA V=<V> V P=<mW> mW | bisu 0 | beku 0 | lewati 0 | daya -1 |
-        sumber acuan 0 | menu 0
+        sumber acuan 0 | menu 0 | jeda 0
 ```
 
 | Kolom | Artinya |
@@ -382,6 +388,7 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
 | `daya` | anak tangga ukur daya `p0`–`p5`, atau `-1` = operasi normal ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d) |
 | `sumber` | `adc`, `acuan` (golden 208), atau `rekaman` diikuti nomor berkas (0 bila bukan replay rekaman) |
 | `menu` | menu di layar sedang terbuka (1) atau tidak (0) |
+| `jeda` | rekaman sedang dijeda (1) atau tidak (0); `rekam=1` selama sesi rekaman terbuka, termasuk saat dijeda |
 
 `mqtt` bisa berisi: `mati` (toggle `m` off atau tanpa kredensial), `no-wifi`,
 `no-broker`, `tunggu-jam` (SNTP belum masuk), `online`.

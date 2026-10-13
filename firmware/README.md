@@ -2,7 +2,7 @@
 
 Firmware alat pemantau EKG: akuisisi AD8232 pada 360 Hz, preprocessing dan
 deteksi R-peak on-device, klasifikasi aritmia per detak dengan TFLite Micro
-(model INT8 dari `model/`), tampilan TFT (HR, gelombang, status, daya),
+(model INT8 dari `model/`), tampilan TFT (HR, gelombang, status rekam, daya, jam),
 bip buzzer per detak, lalu publikasi hasil ke ThingsBoard lewat MQTT dengan
 ring buffer PSRAM sebagai penyangga saat koneksi putus. Sumber sinyal,
 kalibrasi, tes perangkat, ukur daya, dan jaringan diatur dari menu di layar
@@ -85,7 +85,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | `src/tombol.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
 | `src/menu.cpp` | Pohon menu (array struct statis + pointer fungsi), navigasi tiga tombol, halaman teks diperbarui 1 Hz |
 | `src/diagnosa.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
-| `src/rekam.cpp` | Rekaman mentah: buffer PSRAM, berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
+| `src/rekam.cpp` | Rekaman mentah: buffer PSRAM, jeda/lanjut (batas segmen jadi baris `# jeda`), berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
 | `src/daya.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
 | `src/konfig.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
 | `src/serial_cmd.cpp` | Perintah serial (bagian Perintah serial) |
@@ -245,13 +245,27 @@ Tangga yang sama dapat dimulai lewat serial `V`; berkas di board didaftar dengan
 
 Layar TFT 320×172 (landscape):
 
-- atas: HR (merah bila detak terakhir diklasifikasi aritmia; `--` bila tidak ada
-  detak selama 3 detik), arus/tegangan/daya INA219, dan status
-  (`REC <detik>`, `REPLAY` untuk replay acuan, `RP#NNN` untuk replay rekaman,
-  `KALIB`, `BAIK`, `BURUK`, warnanya sama dengan NeoPixel);
+- atas, kiri: HR (merah bila detak terakhir diklasifikasi aritmia; `--` bila
+  tidak ada detak selama 3 detik);
+- atas, tengah: bergantian tiap 3 detik antara INA219 (arus mA besar, tegangan
+  V dan daya mW kecil, sian; `INA --` merah bila INA219 tidak menjawab) dan
+  waktu (jam WIB `HH:MM:SS` besar dan tanggal kecil bila jam NTP sudah
+  tersinkron; selain itu uptime `hh:mm:ss` dengan keterangan `up (belum NTP)`);
+- atas, kanan: status rekaman atau sumber, selain itu kosong:
+
+  | Tampilan | Warna | Arti |
+  |---|---|---|
+  | `RECmm:ss` | merah | sedang merekam (panjang sinyal tersimpan) |
+  | `JEDAm:ss` | kuning | rekaman dijeda |
+  | `SIMPAN` + `/rekam/NNN.csv` | hijau | berkas baru tersimpan (3 detik) |
+  | `RP 208` | kuning | sumber replay acuan (REPLAY 208) |
+  | `RP#NNN` | kuning | sumber replay rekaman nomor `NNN` |
+
+  Kualitas sinyal tidak ditulis di layar; NeoPixel satu-satunya indikatornya;
 - tengah: gelombang EKG tersaring 0,5–40 Hz, skala otomatis per sapuan;
 - bawah: tiga kotak tombol berlabel keadaan (`B1 BUNYI`/`BISU`,
-  `B2 JALAN`/`BEKU`, `B3 REC`/`STOP`), kuning selama ditekan.
+  `B2 JALAN`/`BEKU`, `B3 REC` saat tidak merekam, `B3 JEDA`/`B3 LANJUT` dengan
+  petunjuk `tahan=SIMPAN` saat merekam), kuning selama ditekan.
 
 Buzzer berbunyi 50 ms per detak dan 250 ms untuk detak yang diklasifikasi
 aritmia. Bip dan gelombang ditunda sama rata 1,46 detik dari R (kadens deteksi
@@ -262,9 +276,11 @@ Selama fase kalibrasi bip detak senyap; bunyi panjang 600 ms menandai
 kalibrasi mulai (boot, ganti sumber, Kalibrasi → Mulai ulang, lewati
 kalibrasi OFF) dan selesai (masuk fase BAIK).
 
-Indikator NeoPixel: merah = merekam, biru = kalibrasi (stabilisasi), oranye =
-ayunan sinyal di bawah ambang, hijau = sinyal baik, merah berkedip =
-inisialisasi TFLM gagal. Arti tombol dan menu: bagian Pemakaian di perangkat.
+Indikator NeoPixel = kualitas sinyal saja: biru = kalibrasi (stabilisasi),
+oranye = ayunan sinyal di bawah ambang, hijau = sinyal baik. Warnanya tidak
+berubah saat merekam; status rekaman ada di kanan atas layar. Merah berkedip =
+inisialisasi TFLM gagal saat boot. Arti tombol dan menu: bagian Pemakaian di
+perangkat.
 
 ## Pemakaian di perangkat
 
@@ -277,8 +293,8 @@ dan ditandai bip pendek. Setiap tekanan berbunyi klik 20 ms.
 
 | Konteks | B1 | B2 | B3 |
 |---|---|---|---|
-| Monitor, pendek | bisu / bunyikan bip detak | bekukan / jalankan gelombang dan bip | mulai / simpan rekaman (setara `r`) |
-| Monitor, lama | — | buka menu | — |
+| Monitor, pendek | bisu / bunyikan bip detak | bekukan / jalankan gelombang dan bip | tidak merekam: mulai rekam (setara `r`); merekam: jeda, dijeda: lanjut (setara `j`) |
+| Monitor, lama | — | buka menu | merekam atau dijeda: stop dan simpan ke `/rekam/NNN.csv` (setara `r`), ditandai bip panjang 400 ms setelah berkas tertulis; tidak merekam: tidak ada aksi |
 | Menu, pendek | turun (melingkar) | kembali satu tingkat; di akar = tutup menu | naik (melingkar) |
 | Menu, lama | langsung ke monitor | pilih / masuk | langsung ke monitor |
 
@@ -290,14 +306,15 @@ Menu hanya mengganti isi layar dan arti tombol. Akuisisi, deteksi, inferensi,
 rekaman, publikasi MQTT, NeoPixel, dan bip detak tetap berjalan selama menu
 terbuka. Gelombang tidak digambar selama menu terbuka; layar monitor digambar
 ulang saat menu ditutup.
-Rekaman yang sedang berjalan tetap merekam, dan untuk menyimpannya menu
-ditutup lebih dulu lalu B3 ditekan.
+Rekaman yang sedang berjalan tetap merekam (atau tetap dijeda), dan untuk
+menjeda atau menyimpannya menu ditutup lebih dulu lalu B3 ditekan pendek
+(jeda/lanjut) atau ditahan (simpan).
 
 ### Pohon menu
 
 ```
 MENU
-├─ Sumber sinyal ── Sensor (ADC) | Replay acuan (208) | Replay rekaman ─► daftar /rekam/NNN.csv
+├─ Sumber sinyal ── Sensor (ADC) | REPLAY 208 | Replay rekaman ─► daftar /rekam/NNN.csv
 ├─ Kalibrasi ────── Mulai ulang | Lewati (bench) ON/OFF | Status
 ├─ Tes perangkat ── Buzzer | Layar (pola warna) | ADC & lead-off | INA219 | Tombol (10 s)
 ├─ Ukur daya ────── Mulai tangga p0-p5 | Hasil terakhir
@@ -311,7 +328,7 @@ boot.
 
 | Halaman | Isi dan aksi |
 |---|---|
-| Sumber sinyal | **Sensor (ADC)**: AD8232 lewat elektroda. **Replay acuan (208)**: `golden_raw` record 208 diputar berulang (setara `y`). **Replay rekaman**: daftar berkas `/rekam/NNN.csv` beserta durasinya; memilih satu memuat berkas ke PSRAM (maksimal 300 detik pertama) lalu memutarnya berulang dan kembali ke halaman Sumber sinyal. Rekaman yang gagal dimuat (< 1 detik) tidak mengubah sumber. Ganti sumber memulai sesi kalibrasi baru dan mengenolkan hitungan beat. Kedua replay melewati syarat waktu-stabil dan RR-tenang gerbang kalibrasi |
+| Sumber sinyal | **Sensor (ADC)**: AD8232 lewat elektroda. **REPLAY 208**: `golden_raw` record 208 diputar berulang (setara `y`); layar monitor menampilkan `RP 208`. **Replay rekaman**: daftar berkas `/rekam/NNN.csv` beserta durasinya; memilih satu memuat berkas ke PSRAM (maksimal 300 detik pertama) lalu memutarnya berulang dan kembali ke halaman Sumber sinyal; layar monitor menampilkan `RP#NNN`. Baris `#` (header, `# jeda`) dilewati, jadi segmen rekaman berjeda diputar bersambung. Rekaman yang gagal dimuat (< 1 detik) tidak mengubah sumber. Ganti sumber memulai sesi kalibrasi baru dan mengenolkan hitungan beat. Kedua replay melewati syarat waktu-stabil dan RR-tenang gerbang kalibrasi |
 | Kalibrasi | **Mulai ulang**: sesi kalibrasi baru dan hitungan klasifikasi dari nol. **Lewati (bench)**: setara `k`; OFF memulai sesi baru dengan gerbang penuh. **Status**: fase, waktu stabil x/600 s, RR tenang x/30 s, ayunan dan ambangnya, status lewati dan replay, sampel hilang; diperbarui tiap detik |
 | Tes perangkat | Menjalankan satu fungsi `diag_*` (sama dengan `test_hw_*`) lalu membuka halaman hasil `LULUS`/`GAGAL` dengan ringkasan bacaan. Selama tes akuisisi dijeda. **Buzzer**: tiga bip untuk didengar. **Layar**: pola empat pita warna dan `TFT OK` ±2 detik. **ADC & lead-off**: rentang ADC ±1 detik dan status LO±; lulus tidak bergantung elektroda. **INA219**: V/I dan alamat; V bus < 1 V ditandai `bukan jalur catu`. **Tombol (10 s)**: tekan B1, B2, B3 masing-masing sekali dalam 10 detik |
 | Ukur daya | **Mulai tangga p0-p5**: tangga mandiri (prosedur di bagian Ukur daya tanpa laptop). **Hasil terakhir**: tabel mode, arus, dan daya tangga terakhir; `pN!` = langkah tidak sah |
@@ -321,6 +338,37 @@ boot.
 Setiap gerakan di menu dicetak ke serial (`menu: <judul> [i/n] <baris>`), dan
 tombol dapat disuntik lewat serial `t1`–`t3` / `T1`–`T3`, sehingga navigasi
 dapat diuji tanpa menekan tombol fisik.
+
+### Merekam
+
+1. Dari layar monitor (menu tertutup), tekan pendek B3. Kanan atas menampilkan
+   `RECmm:ss` merah; serial mencetak `REKAM mulai`.
+2. Untuk menghentikan sementara, tekan pendek B3: kanan atas menjadi `JEDA`
+   kuning dan sampel tidak disimpan. Tekan pendek B3 lagi untuk melanjutkan.
+   Langkah ini dapat diulang.
+3. Tahan B3 (800 ms) untuk stop dan simpan, dari keadaan merekam maupun
+   dijeda. Bip panjang menandai berkas sudah tertulis, kanan atas menampilkan
+   `SIMPAN` dan nama berkas selama 3 detik, dan serial mencetak
+   `SIMPAN <n> sampel (<detik> detik, <k> segmen), ... -> /rekam/NNN.csv`.
+
+Padanan serial: `r` (mulai / stop dan simpan) dan `j` (jeda / lanjut). Panjang
+maksimum 300 detik sinyal tersimpan; waktu jeda tidak dihitung. Berkas ditarik
+ke laptop dengan `make pull` di `model/` dan dianalisis per segmen dengan
+`make analisis` (prosedur lengkap:
+[`akuisisi-walkthrough`](../model/docs/akuisisi-walkthrough.md) §3–§5).
+
+Format berkas `/rekam/NNN.csv`:
+
+```
+# fs=360 n=<total sampel> lewat=<hilang> lepas=<LO aktif> (<persen>%)
+<counts ADC, satu sampel per baris>
+# jeda
+<counts ADC segmen berikutnya>
+```
+
+Baris `# jeda` memisahkan segmen yang direkam sebelum dan sesudah jeda; dua
+segmen bersebelahan tidak kontinu dalam waktu. `n` adalah jumlah sampel semua
+segmen. Rekaman tanpa jeda tidak memuat baris `# jeda`.
 
 ## Konfigurasi jaringan dan broker
 
@@ -474,11 +522,12 @@ menunggu sinkronisasi jam, `online` = normal, `mati` = MQTT dinonaktifkan.
 
 | Huruf | Fungsi |
 |---|---|
-| `r` | Mulai rekam / simpan rekaman ke berkas bernomor baru `/rekam/NNN.csv` (LittleFS) |
+| `r` | Mulai rekam / stop dan simpan rekaman (juga dari keadaan jeda) ke berkas bernomor baru `/rekam/NNN.csv` (LittleFS) |
+| `j` | Jeda / lanjut rekaman (setara B3 pendek saat merekam); selama jeda sampel tidak disimpan |
 | `l` | Daftar rekaman: nomor, ukuran, header tiap berkas, dan pemakaian LittleFS |
 | `d` / `d<n>` | Dump rekaman terakhir / rekaman nomor `<n>` ke serial (`make pull` di `model/` memakai `d`) |
 | `h<n>` | Hapus rekaman nomor `<n>` |
-| `s` | Status tiga baris: fase kualitas, jumlah beat, antrean, sampel hilang; status MQTT, PDSR, RSSI; INA219, bisu/beku, lewati, mode daya, `sumber adc\|acuan\|rekaman <n>`, `menu 0/1` |
+| `s` | Status tiga baris: fase kualitas, jumlah beat, antrean, sampel hilang; status MQTT, PDSR, RSSI; INA219, bisu/beku, lewati, mode daya, `sumber adc\|acuan\|rekaman <n>`, `menu 0/1`, `jeda 0/1` |
 | `y` | Toggle sumber sinyal ADC ↔ replay acuan `golden_raw` (dari replay rekaman kembali ke ADC); selama replay gerbang kalibrasi dilewati. Pilihan disimpan di NVS seperti dari menu |
 | `k` | Toggle lewati gerbang kalibrasi (hanya untuk bench); OFF memulai sesi baru dengan gerbang penuh |
 | `p0`–`p5` | Satu anak tangga ukur daya, baris `DAYA` tiap 10 detik; `p` + huruf lain = operasi normal (`model/docs/firmware-walkthrough.md` §5d) |

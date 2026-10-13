@@ -78,7 +78,7 @@ static const char *n_rekaman()
 
 static const item_t I_SUMBER[] = {
     {"Sensor (ADC)", nullptr, ke_adc, n_adc},
-    {"Replay acuan (208)", nullptr, ke_acuan, n_acuan},
+    {"REPLAY 208", nullptr, ke_acuan, n_acuan},
     {"Replay rekaman", &H_REKAMAN, nullptr, n_rekaman},
 };
 static const halaman_t H_SUMBER = DAFTAR("Sumber sinyal", I_SUMBER);

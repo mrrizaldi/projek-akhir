@@ -2,8 +2,10 @@
 // detak, bip kalibrasi).
 //
 // Layar landscape 320x172:
-//   atas   HR (merah bila detak terakhir ARITMIA), arus/tegangan INA219,
-//          status (REC detik / REPLAY / fase kualitas)
+//   atas   HR (merah bila detak terakhir ARITMIA); bergantian tiap 3 detik
+//          arus/tegangan INA219 dan jam WIB + tanggal (uptime bila belum
+//          NTP); kanan: REC mm:ss / JEDA / SIMPAN / label replay / kosong
+//   LED    kualitas sinyal saja: biru kalibrasi, hijau bagus, oranye buruk
 //   tengah gelombang EKG tersaring 0,5-40 Hz, skala otomatis per sapuan
 //   bawah  tiga kotak tombol, kuning selama ditekan
 // Selama menu terbuka layar yang sama dipakai menu (tampilan_menu_*).
