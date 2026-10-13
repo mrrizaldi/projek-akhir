@@ -7,11 +7,13 @@
 //   y      sumber ADC <-> replay   k     lewati gerbang kalibrasi (bench)
 //   m      MQTT ON/OFF             p<0-5> tangga daya, p + lainnya = normal
 //   w[n]   daftar / pilih WiFi     b[n]  daftar / pilih broker
+//   v[n] V hasil ukur daya mandiri: daftar / dump n / lihat daya.h (daya_serial)
 //   t<1-3> T<1-3>  suntik tombol B1-B3 pendek / tahan (uji menu tanpa jari)
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "serial_cmd.h"
 
 #include <Arduino.h>
+#include <stdio.h>
 
 #include "akuisisi.h"
 #include "daya.h"
@@ -22,6 +24,7 @@
 #include "menu.h"
 #include "perangkat.h"
 #include "rekam.h"
+#include "stub_fase45.h"
 #include "tampilan.h"
 #include "tombol.h"
 
@@ -138,6 +141,13 @@ void serial_cmd_layani(void)
         const int n = Serial.peek() - '0';
         if (n < 1 || n > 3) Serial.println("t<1-3> / T<1-3>: B1-B3 pendek / tahan");
         else { Serial.read(); tombol_suntik(n - 1, c == 'T' ? TOMBOL_LAMA : TOMBOL_PENDEK); }
+    }
+    else if (c == 'V') daya_serial("V");
+    else if (c == 'v') {
+        char p[8] = "v";
+        const int n = angka();
+        if (n >= 0) snprintf(p, sizeof p, "v%d", n);
+        daya_serial(p);
     }
     else if (c == 'b') {
         const int n = angka();

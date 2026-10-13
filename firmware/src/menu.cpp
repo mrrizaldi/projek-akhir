@@ -3,10 +3,23 @@
 #include "menu.h"
 
 #include <Arduino.h>
+#include <WiFi.h>
 
 #include "akuisisi.h"
+#include "ecg_mqtt.h"
+#include "gerbang.h"
+#include "ina219.h"
+#include "klasifikasi.h"
+#include "konfig.h"
+#include "perangkat.h"
+#include "rekam.h"
+#include "stub_fase45.h"
 #include "tampilan.h"
 #include "tombol.h"
+
+#ifndef VERSI_GIT
+#define VERSI_GIT "?"
+#endif
 
 typedef char baris_t[TAMPILAN_KOLOM + 1];
 
@@ -42,15 +55,221 @@ static void ke_acuan() { akuisisi_set_sumber(SUMBER_ACUAN, 0, true); }
 static const char *n_adc() { return tanda(akuisisi_sumber() == SUMBER_ADC); }
 static const char *n_acuan() { return tanda(akuisisi_sumber() == SUMBER_ACUAN); }
 
+// Daftar rekaman dibaca ulang dari LittleFS tiap kali digambar (<= 6 berkas
+// dibuka per gerakan); daftar yang dipilih tetap sama dengan yang tergambar.
+static int rk_no[64], rk_n;
+static int rekaman_n() { return rk_n = rekam_daftar(rk_no, 64); }
+static void rekaman_teks(int i, char *out, size_t n)
+{
+    const bool aktif = akuisisi_sumber() == SUMBER_REKAM && akuisisi_sumber_rekam() == rk_no[i];
+    snprintf(out, n, "%03d  %6.1f s  %s", rk_no[i], (float)rekam_sampel_n(rk_no[i]) / ECG_FS,
+             aktif ? "*" : "");
+}
+static void rekaman_pilih(int i) { akuisisi_set_sumber(SUMBER_REKAM, rk_no[i], true); }
+static const halaman_t H_REKAMAN = DINAMIS("Replay rekaman", rekaman_n, rekaman_teks, rekaman_pilih);
+static const char *n_rekaman()
+{
+    static char t[8];
+    if (akuisisi_sumber() != SUMBER_REKAM) return ">";
+    snprintf(t, sizeof t, "%03d * >", akuisisi_sumber_rekam());
+    return t;
+}
+
 static const item_t I_SUMBER[] = {
     {"Sensor (ADC)", nullptr, ke_adc, n_adc},
     {"Replay acuan (208)", nullptr, ke_acuan, n_acuan},
+    {"Replay rekaman", &H_REKAMAN, nullptr, n_rekaman},
 };
 static const halaman_t H_SUMBER = DAFTAR("Sumber sinyal", I_SUMBER);
+
+// ---------------------------------------------------------------- Kalibrasi
+static const char *on_off(bool on) { return on ? "ON" : "OFF"; }
+static void kalib_ulang()
+{
+    gerbang_mulai_sesi();
+    klasifikasi_reset();
+    Serial.println("kalibrasi: sesi baru");
+}
+static void kalib_lewati()
+{
+    gerbang_set_lewati(!gerbang_lewati());
+    Serial.printf("lewati gerbang kalibrasi %s\n", on_off(gerbang_lewati()));
+}
+static const char *n_lewati() { return on_off(gerbang_lewati()); }
+static void kalib_status(baris_t *b)
+{
+    const gerbang_kualitas_t &q = gerbang_kualitas();
+    const int f = gerbang_fase();
+    snprintf(b[0], sizeof *b, "Fase %s", f == FASE_KALIBRASI ? "KALIBRASI" : f == FASE_BAIK ? "BAIK" : "BURUK");
+    snprintf(b[1], sizeof *b, "Stabil %lu/%lu s",
+             (unsigned long)min<uint32_t>((millis() - gerbang_t_sesi_ms()) / 1000, 99999),
+             (unsigned long)(STABIL_MS / 1000));
+    snprintf(b[2], sizeof *b, "RR tenang %lu/%lu s",
+             (unsigned long)min<uint32_t>(gerbang_tenang_ms() / 1000, 99999),
+             (unsigned long)(RR_TENANG_MS / 1000));
+    snprintf(b[3], sizeof *b, "Ayun %d (ambang %d)", q.ayun_bersih, AMBANG_AYUN);
+    snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gerbang_lewati()), on_off(akuisisi_replay()));
+    snprintf(b[5], sizeof *b, "Sampel hilang %u", (unsigned)akuisisi_lewat());
+}
+static const halaman_t H_KALIB_STATUS = TEKS("Status kalibrasi", kalib_status);
+static const item_t I_KALIB[] = {
+    {"Mulai ulang", nullptr, kalib_ulang, nullptr},
+    {"Lewati (bench)", nullptr, kalib_lewati, n_lewati},
+    {"Status", &H_KALIB_STATUS, nullptr, nullptr},
+};
+static const halaman_t H_KALIB = DAFTAR("Kalibrasi", I_KALIB);
+
+// ---------------------------------------------------------------- Tes perangkat
+// Logika uji ada di diagnosa.* (dipakai juga test/test_hw_*); di sini hanya
+// dijalankan lalu hasilnya ditampilkan. Tes memblok (bunyi, pola layar, ADC),
+// jadi akuisisi dijeda: ISR tidak membaca ADC bersamaan dengan diag_adc dan
+// antrean tidak meluap. Halaman hasil menggambar ulang layar sesudahnya.
+static const char *tes_nama;
+static diag_hasil_t tes_hasil;
+static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
+{
+    tes_nama = nama;
+    akuisisi_timer(false);
+    tes_hasil = f();
+    akuisisi_timer(daya_mode() != 0);      // p0 = timer memang mati
+    int i;
+    while (tombol_event(&i) != TOMBOL_TIDAK) {}   // tekanan selama tes bukan navigasi
+    Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.lulus ? "LULUS" : "GAGAL", tes_hasil.ringkas);
+}
+static diag_hasil_t tombol_10s()
+{
+    tampilan_menu_bingkai("Tes tombol", "B2 yang masih ditahan: lepas dulu", "");
+    tampilan_menu_baris(1, "Tekan B1, B2, B3", false);
+    tampilan_menu_baris(2, "batas 10 detik", false);
+    return diag_tombol(10000);
+}
+static void tes_buzzer() { tes_jalan("Buzzer", diag_buzzer); }
+static void tes_layar() { tes_jalan("Layar", diag_layar); }
+static void tes_adc() { tes_jalan("ADC & lead-off", diag_adc); }
+static void tes_ina() { tes_jalan("INA219", diag_ina219); }
+static void tes_tombol() { tes_jalan("Tombol", tombol_10s); }
+static void tes_isi(baris_t *b)
+{
+    snprintf(b[0], sizeof *b, "%s", tes_nama ? tes_nama : "-");
+    snprintf(b[1], sizeof *b, "%s", tes_hasil.lulus ? "LULUS" : "GAGAL");
+    const char *r = tes_hasil.ringkas;      // ringkas <= 63 huruf: dipecah per baris
+    for (int k = 2; k < TAMPILAN_BARIS && *r; k++, r += min<size_t>(strlen(r), TAMPILAN_KOLOM))
+        snprintf(b[k], sizeof *b, "%.*s", TAMPILAN_KOLOM, r);
+}
+static const halaman_t H_TES_HASIL = TEKS("Hasil tes", tes_isi);
+static const item_t I_TES[] = {
+    {"Buzzer", &H_TES_HASIL, tes_buzzer, nullptr},
+    {"Layar (pola warna)", &H_TES_HASIL, tes_layar, nullptr},
+    {"ADC & lead-off", &H_TES_HASIL, tes_adc, nullptr},
+    {"INA219", &H_TES_HASIL, tes_ina, nullptr},
+    {"Tombol (10 s)", &H_TES_HASIL, tes_tombol, nullptr},
+};
+static const halaman_t H_TES = DAFTAR("Tes perangkat", I_TES);
+
+// ---------------------------------------------------------------- Ukur daya
+// Selama tangga berjalan halaman ini hanya berubah saat langkah berganti
+// (baris yang sama tidak digambar ulang), jadi beban UI hampir nol.
+static void daya_isi(baris_t *b)
+{
+    if (daya_tangga_aktif()) {
+        snprintf(b[0], sizeof *b, "Mengukur, jangan disentuh");
+        snprintf(b[1], sizeof *b, "Langkah p%d (%d/6)", daya_tangga_langkah(), daya_tangga_langkah() + 1);
+        return;
+    }
+    daya_baris_t h[TAMPILAN_BARIS];
+    const int n = daya_tangga_hasil(h, TAMPILAN_BARIS);
+    if (!n) { snprintf(b[0], sizeof *b, "Belum ada hasil"); return; }
+    for (int k = 0; k < n; k++)
+        snprintf(b[k], sizeof *b, "%-3s%6.1fmA %5.0fmW", h[k].mode, h[k].i_ma, h[k].p_mw);
+    char *e = b[0] + strlen(b[0]);          // nomor berkas di ujung baris pertama
+    snprintf(e, sizeof *b - (e - b[0]), " #%03d", daya_tangga_berkas());
+}
+static const halaman_t H_DAYA = TEKS("Ukur daya", daya_isi);
+static const item_t I_DAYA[] = {
+    {"Mulai tangga p0-p5", &H_DAYA, daya_tangga_mulai, nullptr},
+    {"Hasil terakhir", &H_DAYA, nullptr, nullptr},
+};
+static const halaman_t H_DAYA_MENU = DAFTAR("Ukur daya", I_DAYA);
+
+// ---------------------------------------------------------------- Jaringan
+static int wifi_n() { return konfig_wifi_n(); }
+static void wifi_teks(int i, char *out, size_t n)
+{
+    snprintf(out, n, "%c %s", i == konfig_wifi() ? '*' : ' ', konfig_wifi_nama(i));
+}
+static void wifi_pilih(int i) { konfig_pilih_wifi(i); }
+static int broker_n() { return konfig_broker_n(); }
+static void broker_teks(int i, char *out, size_t n)
+{
+    snprintf(out, n, "%c %s %s", i == konfig_broker() ? '*' : ' ', konfig_broker_nama(i),
+             konfig_broker_host(i));
+}
+static void broker_pilih(int i) { konfig_pilih_broker(i); }
+static const halaman_t H_WIFI = DINAMIS("WiFi", wifi_n, wifi_teks, wifi_pilih);
+static const halaman_t H_BROKER = DINAMIS("Broker", broker_n, broker_teks, broker_pilih);
+
+static void mqtt_ganti()
+{
+    ecg_mqtt_set_aktif(!ecg_mqtt_aktif());
+    Serial.printf("mqtt %s\n", on_off(ecg_mqtt_aktif()));
+}
+static const char *n_mqtt() { return on_off(ecg_mqtt_aktif()); }
+static const char *n_wifi() { return konfig_wifi_nama(konfig_wifi()); }
+static const char *n_broker() { return konfig_broker_nama(konfig_broker()); }
+static const char *ip_teks()
+{
+    static char t[16];
+    if (WiFi.status() != WL_CONNECTED) return "-";
+    snprintf(t, sizeof t, "%s", WiFi.localIP().toString().c_str());
+    return t;
+}
+static void net_status(baris_t *b)
+{
+    const int k = konfig_broker();
+    snprintf(b[0], sizeof *b, "MQTT %s (%s)", on_off(ecg_mqtt_aktif()), ecg_mqtt_status());
+    snprintf(b[1], sizeof *b, "WiFi %s", konfig_wifi_nama(konfig_wifi()));
+    snprintf(b[2], sizeof *b, "IP %s", ip_teks());
+    snprintf(b[3], sizeof *b, "RSSI %d dBm", ecg_mqtt_rssi());
+    snprintf(b[4], sizeof *b, "%s:%d", konfig_broker_host(k), konfig_broker_port(k));
+    snprintf(b[5], sizeof *b, "Kirim %u backlog %u", (unsigned)ecg_mqtt_terkirim(),
+             (unsigned)ecg_mqtt_antre_n());
+}
+static const halaman_t H_NET_STATUS = TEKS("Status jaringan", net_status);
+static const item_t I_JARINGAN[] = {
+    {"WiFi", &H_WIFI, nullptr, n_wifi},
+    {"Broker", &H_BROKER, nullptr, n_broker},
+    {"MQTT", nullptr, mqtt_ganti, n_mqtt},
+    {"Status", &H_NET_STATUS, nullptr, nullptr},
+};
+static const halaman_t H_JARINGAN = DAFTAR("Jaringan", I_JARINGAN);
+
+// ---------------------------------------------------------------- Info
+static void info_isi(baris_t *b)
+{
+    const int k = konfig_broker();
+    snprintf(b[0], sizeof *b, "IP %s  %d dBm", ip_teks(), ecg_mqtt_rssi());
+    snprintf(b[1], sizeof *b, "Broker %s %s", konfig_broker_nama(k), konfig_broker_host(k));
+    float mA, V;
+    if (daya_ina_ada() && ina219_baca(R_SHUNT, &mA, &V))
+        snprintf(b[2], sizeof *b, "INA %.2f V %.1f mA", V, mA);
+    else
+        snprintf(b[2], sizeof *b, "INA219 tidak menjawab");
+    const uint32_t d = millis() / 1000;
+    snprintf(b[3], sizeof *b, "Uptime %lu:%02lu:%02lu", (unsigned long)(d / 3600),
+             (unsigned long)(d / 60 % 60), (unsigned long)(d % 60));
+    snprintf(b[4], sizeof *b, "Versi %s", VERSI_GIT);
+    snprintf(b[5], sizeof *b, "Build %s %.5s", __DATE__, __TIME__);
+}
+static const halaman_t H_INFO = TEKS("Info", info_isi);
 
 // ---------------------------------------------------------------- akar
 static const item_t I_AKAR[] = {
     {"Sumber sinyal", &H_SUMBER, nullptr, nullptr},
+    {"Kalibrasi", &H_KALIB, nullptr, nullptr},
+    {"Tes perangkat", &H_TES, nullptr, nullptr},
+    {"Ukur daya", &H_DAYA_MENU, nullptr, nullptr},
+    {"Jaringan", &H_JARINGAN, nullptr, nullptr},
+    {"Info", &H_INFO, nullptr, nullptr},
 };
 static const halaman_t H_AKAR = DAFTAR("MENU", I_AKAR);
 
@@ -186,6 +405,14 @@ void menu_tombol(int i, int e)
 
 void menu_layani(void)
 {
+    // Tangga daya selesai saat menu sudah ditutup: hasilnya tetap ditampilkan.
+    static bool daya_lalu;
+    const bool d = daya_tangga_aktif();
+    if (daya_lalu && !d && (dalam < 0 || tumpuk[dalam].h != &H_DAYA)) {
+        if (dalam < 0) tampilan_set_monitor(false);
+        masuk(&H_DAYA);
+    }
+    daya_lalu = d;
     if (dalam < 0 || !tumpuk[dalam].h->isi || millis() - t_isi < 1000) return;
     t_isi = millis();
     gambar(false);

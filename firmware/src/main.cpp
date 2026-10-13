@@ -25,6 +25,7 @@
 #include "perangkat.h"
 #include "rekam.h"
 #include "serial_cmd.h"
+#include "stub_fase45.h"
 #include "tampilan.h"
 #include "tombol.h"
 
@@ -88,7 +89,7 @@ void setup()
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
                   "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam; tahan B2 = menu)  |  "
-                  "serial: r/d/l/h/s/q/y/m/k/p/w/b/t/T\n"
+                  "serial: r/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)klasifikasi_arena(),
                   klasifikasi_ambang(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
@@ -128,6 +129,7 @@ void loop()
     // walau antrean ADC sedang kosong.
     ecg_mqtt_layani();
     daya_layani();
+    daya_tangga_tick();
     serial_cmd_layani();
     layani_tombol();
     menu_layani();
