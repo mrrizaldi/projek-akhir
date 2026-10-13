@@ -32,17 +32,12 @@ def test_bentuk_dan_kekekalan_jumlah():
         assert d["records"].shape == (n,)
         assert not np.isnan(d["X_rr"]).any()
         assert set(np.unique(d["y"])) <= {0, 1}
-    # Window 128/128: DS1 bersih 50.968 beat, DS2 49.656. DS1 ditumpuk
-    # (JITTER_SALINAN + 1) salinan; jitter bisa menggeser R ke luar sinyal
-    # sehingga salinan ber-jitter boleh membuang beat tepi sedikit berbeda,
-    # jadi DS1 dicek dengan toleransi 1%. DS2 TIDAK PERNAH dijitter → keras.
-    assert len(test["y"]) == 49656                      # == DS2 Fase 3, utuh
+    assert len(test["y"]) == 49656
     lipat = JITTER_SALINAN + 1
     assert abs(len(train["y"]) - lipat * 50968) < 0.01 * lipat * 50968
 
 
 def test_val_diambil_per_pasien_bukan_per_beat():
-    """Tidak boleh ada satu pasien pun muncul di train sekaligus val."""
     train_full, _ = build_split()
     tr, va = split_train_val(train_full)
     assert set(np.unique(va["records"])) == set(VAL_RECORDS)

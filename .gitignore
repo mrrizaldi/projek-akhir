@@ -43,5 +43,6 @@ Thumbs.db
 # Kredensial WiFi/broker — jangan pernah masuk git.
 firmware/include/wifi_secrets.h
 
-# Konfigurasi & worktree lokal Claude Code — bukan bagian proyek
-.claude/
+# Konfigurasi & worktree lokal Claude Code; skill proyek tetap di-commit
+.claude/*
+!.claude/skills/

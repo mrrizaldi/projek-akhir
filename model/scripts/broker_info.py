@@ -1,19 +1,9 @@
-"""Info broker di laptop ini: SSID WiFi, IPv4 LAN, status port, saran entri.
-
-Dipakai saat mengisi WIFI_DAFTAR/BROKER_DAFTAR di firmware/include/wifi_secrets.h
-dan saat board tidak tersambung ke broker (SSID berbeda, IP laptop berubah,
-ThingsBoard belum jalan). Firmware tidak me-resolve nama host: host broker
-adalah alamat IP, dan board harus terhubung ke SSID yang sama dengan laptop.
-Prosedur lengkap: firmware/README.md bagian "Konfigurasi jaringan dan broker".
-
-    make broker-info          (dari folder model/)
-"""
 import json
 import shutil
 import socket
 import subprocess
 
-ABAIKAN = ("lo", "docker", "br-", "veth", "virbr")   # bukan jaringan yang dilihat board
+ABAIKAN = ("lo", "docker", "br-", "veth", "virbr")
 PORT = {1883: "MQTT ThingsBoard", 8080: "UI/REST ThingsBoard"}
 
 
@@ -25,7 +15,6 @@ def jalankan(cmd, batas=3):
 
 
 def ipv4_lan():
-    # ponytail: iproute2 `ip -j`, Linux saja; stdlib tidak punya getifaddrs
     data = json.loads(jalankan(["ip", "-j", "-4", "addr", "show"]) or "[]")
     return [(i["ifname"], a["local"]) for i in data
             if not i["ifname"].startswith(ABAIKAN)
@@ -33,12 +22,11 @@ def ipv4_lan():
 
 
 def ssid_aktif():
-    """SSID yang sedang dipakai laptop; "" bila kabel/tidak terdeteksi."""
     if shutil.which("nmcli"):
         for baris in jalankan(["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]).splitlines():
             aktif, _, ssid = baris.partition(":")
             if aktif in ("yes", "ya") and ssid:
-                return ssid.replace("\\:", ":")      # nmcli -t meng-escape ':'
+                return ssid.replace("\\:", ":")
     if shutil.which("iwgetid"):
         return jalankan(["iwgetid", "-r"]).strip()
     return ""

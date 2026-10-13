@@ -1,16 +1,3 @@
-"""Analisis kualitas rekaman EKG dari device.
-
-    python scripts/analyze_recording.py <berkas>.csv [nama]
-
-Masukan: keluaran `dump` firmware (baris '# fs=.. n=.. lewat=..' lalu satu
-nilai ADC per baris). Baris '# jeda' memisahkan segmen rekaman yang dijeda.
-Menilai dengan ANGKA, bukan dengan melihat grafik: dengung PLN, derau HF,
-drift baseline, dan apakah Pan-Tompkins menemukan detak yang konsisten.
-
-Semua hitungan berjalan PER SEGMEN lalu digabung: filter mulai dari nol di
-awal tiap segmen (transiennya sama seperti awal rekaman) dan interval RR tidak
-pernah melintasi jeda. Berkas tanpa '# jeda' = satu segmen.
-"""
 import os
 import sys
 
@@ -18,28 +5,19 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import matplotlib  # noqa: E402
+import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
-from config import FS, METRICS_DIR  # noqa: E402
-from scipy.signal import butter, sosfilt  # noqa: E402
+from config import FS, METRICS_DIR
+from scipy.signal import butter, sosfilt
 
-from src.preprocessing import (  # noqa: E402
+from src.preprocessing import (
     apply_bandpass, design_bandpass_sos, pan_tompkins_detect,
 )
 
 
 def denyut_autokorelasi(x, fs):
-    """Ada denyut periodik atau tidak — tanpa mendeteksi puncak sama sekali.
-
-    Pan-Tompkins mudah tertipu dengung 50 Hz: energinya bocor lewat tahap
-    kuadrat + integrasi dan terhitung sebagai QRS. Autokorelasi energi pita
-    QRS (5-15 Hz) menanyakan hal yang berbeda dan jauh lebih tahan derau:
-    'apakah pola ini berulang dengan periode 0,4-1,5 detik?'
-
-    Returns: (kekuatan 0-1, bpm)
-    """
     q = sosfilt(butter(2, [5, 15], btype="bandpass", fs=fs, output="sos"), x - x.mean())
     e = q ** 2
     e = e - e.mean()
@@ -48,9 +26,6 @@ def denyut_autokorelasi(x, fs):
     lo, hi = int(0.4 * fs), int(1.5 * fs)
     lag = lo + int(np.argmax(ac[lo:hi]))
 
-    # Penjaga anti-positif-palsu: denyut memberi SATU puncak dominan; gangguan
-    # periodik (dengung 50 Hz & harmoniknya) memberi DERETAN puncak setara
-    # berjarak seragam. Hitung puncak lain yang tingginya >= 80% puncak utama.
     puncak = [ac[i] for i in range(lo + 1, hi - 1)
               if ac[i] > ac[i - 1] and ac[i] >= ac[i + 1]]
     saingan = sum(1 for v in puncak if v >= 0.8 * ac[lag])
@@ -58,7 +33,6 @@ def denyut_autokorelasi(x, fs):
 
 
 def muat(path: str):
-    """Returns: (daftar segmen float32 tanpa segmen kosong, fs, lewat)."""
     fs, lewat = FS, None
     segmen = [[]]
     for baris in open(path):
@@ -88,7 +62,6 @@ def pita_energi(x, fs, a, b):
 
 
 def analisis_segmen(mentah, fs):
-    """Satu segmen kontinu: filter, energi pita, autokorelasi, R-peak, RR."""
     x = (mentah - mentah.mean()) / 1000.0
     filtered = apply_bandpass(x, design_bandpass_sos())
     r = pan_tompkins_detect(filtered, fs)
@@ -97,14 +70,11 @@ def analisis_segmen(mentah, fs):
         "rr": np.diff(r) / fs if len(r) > 2 else np.array([]),
         "pita": [pita_energi(x, fs, a, b) for a, b in
                  ((0.5, 40), (49, 51), (60, fs / 2), (0.01, 0.5))],
-        # Lag autokorelasi butuh > 1,5 detik sinyal; segmen lebih pendek dilewati.
         "ac": denyut_autokorelasi(x, fs) if len(x) > int(1.5 * fs) + 1 else None,
     }
 
 
 def gabung(hasil, fs):
-    """Gabungkan hasil per segmen. R jadi indeks pada sumbu waktu gabungan;
-    RR disambung per segmen sehingga tidak ada RR yang melintasi jeda."""
     awal = np.cumsum([0] + [h["n"] for h in hasil])
     r = np.concatenate([h["r"] + a for h, a in zip(hasil, awal)]).astype(int)
     rr = np.concatenate([h["rr"] for h in hasil])
@@ -135,7 +105,6 @@ def main() -> None:
     filtered = np.concatenate([h["filtered"] for h in hasil])
     r, rr, (ekg, hum, hf, drift), (kuat, bpm_ac, saingan), awal = gabung(hasil, fs)
     bpm = 60 / rr if len(rr) else np.array([])
-    # Detak fisiologis 30-200 bpm; di luar itu hampir pasti deteksi palsu.
     masuk_akal = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 
     print(f"{nama}: {n} sampel = {n / fs:.1f} detik @ {fs} Hz"
@@ -173,7 +142,7 @@ def main() -> None:
     out = os.path.join(akuisisi_dir, f"akuisisi_{nama}.png")
     t = np.arange(n) / fs
     tampil = slice(0, min(n, int(6 * fs)))
-    batas = awal[1:-1] / fs  # awal segmen ke-2 dst. pada sumbu waktu gabungan
+    batas = awal[1:-1] / fs
     fig, ax = plt.subplots(3 + (len(segmen) > 1), 1,
                            figsize=(13, 8 + 2.7 * (len(segmen) > 1)))
     ax[0].plot(t[tampil], mentah[tampil], lw=0.7)

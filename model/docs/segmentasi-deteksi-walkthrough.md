@@ -113,6 +113,14 @@ Detektor di DS2: 47.074 terdeteksi, 2.638 terlewat (sensitivity 0,9469),
                  2.194 deteksi palsu
 ```
 
+Deteksi dipasangkan ke anotasi oleh `src/evaluate.pair_detected` (greedy
+1-ke-1, toleransi ±150 ms) dari sisi DETEKSI, kebalikan `bench_pantompkins`
+yang memasangkan dari sisi anotasi: alat bekerja dari deteksi, jadi tiap R-peak
+yang ia temukan diklasifikasi, ada beat aslinya atau tidak. Deteksi tanpa
+pasangan mendapat indeks −1 (deteksi palsu) dan tetap diklasifikasi. Recall
+tingkat sistem memakai penyebut semua aritmia asli, termasuk yang tak pernah
+sampai ke model karena detektor melewatkannya.
+
 ### A. Klasifikasi pada beat yang berhasil terdeteksi
 
 | | baseline: anotasi | baseline: deteksi | berlaku: anotasi | berlaku: deteksi |

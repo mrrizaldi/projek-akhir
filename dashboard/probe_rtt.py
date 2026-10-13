@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""Ukur RTT PUBACK dari LAPTOP ke broker yang sama, ~1 pesan/detik.
-
-Kalau laptop juga melihat RTT ~1,25 detik, penyebabnya ThingsBoard/beban host —
-bukan WiFi, bukan ESP32, bukan klien MQTT kita. Device terpisah supaya telemetri
-esp32s3-ekg-01 tidak terkotori.
-"""
 import json, socket, statistics, struct, sys, time, urllib.request
 
 HOST, DEVICE = "http://localhost:8080", "probe-rtt"

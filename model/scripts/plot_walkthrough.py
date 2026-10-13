@@ -1,11 +1,3 @@
-"""Gambar pendamping docs/preprocessing-walkthrough.md — 5 detik record 100.
-
-    python scripts/plot_walkthrough.py 100
-
-Keluar 2 file di artifacts/metrics/:
-    walkthrough_pipeline_<rec>.png  — raw -> bandpass -> segmentasi -> z-score
-    walkthrough_pt_<rec>.png        — 5 tahap kaskade Pan-Tompkins + threshold
-"""
 import os
 import sys
 
@@ -16,12 +8,12 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import (  # noqa: E402
+from config import (
     BANDPASS_LOW, BANDPASS_HIGH, PT_BAND_LOW, PT_BAND_HIGH,
     PT_MWI_WINDOW_MS, PT_REFRACTORY_MS, WIN_PRE, WIN_LEN,
 )
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import (  # noqa: E402
+from src.io_mitdb import load_record
+from src.preprocessing import (
     design_bandpass_sos, apply_bandpass, segment_beats, zscore_per_window,
     _pt_bandpass, _pt_derivative, _pt_square, _pt_moving_window_integration,
     _pt_adaptive_threshold_detect,
@@ -39,7 +31,6 @@ def main(record_id: str) -> None:
 
     filtered = apply_bandpass(signal, design_bandpass_sos())
 
-    # --- Gambar 1: jalur training (raw -> filter -> segmen -> z-score) ---
     windows = segment_beats(filtered, r_locations)
     z = zscore_per_window(windows)
     tw = (np.arange(WIN_LEN) - WIN_PRE) / fs
@@ -86,7 +77,6 @@ def main(record_id: str) -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
     fig.savefig(p1, dpi=120)
 
-    # --- Gambar 2: kaskade Pan-Tompkins ---
     qrs = _pt_bandpass(filtered, fs)
     deriv = _pt_derivative(qrs, fs)
     sq = _pt_square(deriv)

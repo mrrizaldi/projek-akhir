@@ -1,26 +1,3 @@
-"""Gate A2 — apakah lead dataset baru sebanding dengan MLII mitdb?
-
-    python scripts/cek_lead.py
-
-Yang diukur: nilai window ter-z-score DI POSISI R (indeks WIN_PRE + group delay
-= 132), dirata-rata atas beat NORMAL saja. Itu persis angka yang dilihat model.
-
-DUA pertanyaan dijawab di sini, dan HARUS dibaca dari kolom yang berbeda:
-
-  POLARITAS  -> baca kolom "mentah" (tanpa selaraskan). Kalau mitdb positif kuat
-                dan dataset lain negatif / %pos kacau, lead-nya terbalik:
-                morfologi QRS kebalik dan model belajar invariansi yang tak kita
-                mau. Gejalanya di Fase B bukan error, cuma "dataset baru tidak
-                menolong".
-  ALIGNMENT  -> baca kolom "selaras". Puncak harus mendarat di 132.
-
-Kolom "selaras" TIDAK BOLEH dipakai memvonis polaritas: selaraskan_r memakai
-signed argmax, jadi dia memaksa nilai di R jadi positif — lead terbalik pun akan
-tampak sebanding sesudahnya.
-
-Beat V/F sengaja dibuang dari statistik: morfologinya memang aneh dan bisa
-negatif di lead yang benar, jadi mencampurnya mengaburkan sinyal yang dicari.
-"""
 import os
 import sys
 
@@ -28,20 +5,19 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import AAMI_MAP, DATASETS, WIN_PRE  # noqa: E402
-from src.dataset import records_tersedia  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import (  # noqa: E402
+from config import AAMI_MAP, DATASETS, WIN_PRE
+from src.dataset import records_tersedia
+from src.io_mitdb import load_record
+from src.preprocessing import (
     apply_bandpass, design_bandpass_sos, segment_beats, selaraskan_r,
     zscore_per_window,
 )
 
-R_IDX = WIN_PRE + 4  # group delay bandpass kausal = +4 sampel (= 132)
-N_REC = int(os.environ.get("PA_CEK_REC", 8))   # gate, bukan ablasi
+R_IDX = WIN_PRE + 4
+N_REC = int(os.environ.get("PA_CEK_REC", 8))
 
 
 def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
-    """Satu record, dua pengukuran: mentah (apa adanya) & selaras (lewat selaraskan_r)."""
     if lead_paksa:
         DATASETS[db]["leads"] = (lead_paksa,)
     signal, r0, sym, _ = load_record(rec, db=db)
@@ -59,8 +35,6 @@ def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
             "n": len(w),
             "mean": float(di_r.mean()),
             "%positif": float((di_r > 0).mean() * 100),
-            # argmax |mean window|: mengukur amplitudo ABSOLUT, jadi bisa
-            # menunjuk gelombang S yang dalam alih-alih R. Baca bareng "mean".
             "puncak_di": int(np.argmax(np.abs(w).mean(axis=0))),
         }
     return out
@@ -87,7 +61,7 @@ def main() -> None:
         for rec in recs[:N_REC]:
             try:
                 m = ukur(db, rec, sos, lead)
-            except ValueError as e:      # lead tidak ada di record ini
+            except ValueError as e:
                 print(f"{db:10} {lead or asli[0]:6} {rec:6} {str(e)[:40]}")
                 continue
             if not m:

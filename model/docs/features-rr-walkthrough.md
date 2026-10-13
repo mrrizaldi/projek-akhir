@@ -272,6 +272,37 @@ hanya bila knob `PA_RR_RATIO`, `PA_QRSW`, atau `PA_HOS` dinyalakan, dan dipakai
 untuk ablasi. Konfigurasi terkunci memakai tiga kolom di atas saja: di mitdb,
 fitur tambahan tidak memberi selisih F1 yang melampaui variasi antar-run.
 
+`rakit_fitur_ritme` adalah satu-satunya tempat yang menyusun `X_rr` untuk tiga
+pemanggil (`prep_beats`, `ablasi`, `sweep_jitter`), ditambah `export_golden`
+supaya golden menguji fitur yang benar-benar dipakai. Bila logika knob
+diduplikasi, ketiganya akan menyimpang diam-diam dan ablasi membandingkan hal
+yang berbeda.
+
+- **HOS** (`PA_HOS=1`, Dias 2021 Pers. 12-13, `[K,2]`). Window masuk sudah
+  ter-z-score (mean 0, std 1), jadi penyebut kedua rumus tinggal 1 dan yang
+  tersisa momen mentah ke-4 dan ke-3; fitur ini nyaris gratis di MCU. Kurtosis
+  dilaporkan mentah (bukan excess) mengikuti Pers. 12, dan momen memakai pembagi
+  N, bukan N−1: panjang window tetap, jadi selisihnya konstan (~0,4%) dan
+  diserap bobot lapisan pertama. Menempel di cabang ritme karena berupa dua
+  skalar, bukan deret waktu.
+- **Lebar QRS** (`PA_QRSW=1`, `[K,2]`). P3 (Algorithms 13:75) memberi QRSw2 dan
+  QRSw4 peringkat 1-2 dari 85 fitur menurut mutual information: satu skalar yang
+  memisahkan V (QRS lebar > 120 ms) dari S (sempit, datang kepagian) dan N.
+  Lebar diukur dengan berjalan kiri-kanan dari puncak di `R_IN_WINDOW` (132)
+  sampai amplitudo turun di bawah `frac` × puncak; bila tak pernah turun, tepi
+  window dipakai. Pencarian puncak bertoleransi ±4 sampel (`ECG_QRSW_CARI`)
+  karena residu mitdb ±2. Normalisasi ke rerata kausal `RR_LOCAL_WINDOW_BEATS`
+  (10) beat terakhir, bukan 32 seperti P3, supaya satu konstanta jendela berlaku
+  untuk semua fitur dan konsisten dengan decision point "kausal, menyusut di
+  tepi"; 32 tersisa sebagai ablasi lanjutan (K5). Nol buffer tambahan di MCU.
+- **Rasio RR** (`PA_RR_RATIO=1`, `[m,4]`: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0;
+  peringkat P3 #3, #4, #10). Nilai absolut (detik) berbeda antar-orang, jadi
+  model bisa belajar identitas pasien; window sudah ternormalisasi tetapi fitur
+  RR bawaan masih detik absolut. `RR+1` butuh beat ke depan, jadi kolom terakhir
+  NaN dan `valid_beat_indices` membuang beat terakhir tiap record. Di firmware
+  ini berarti tunda 1 beat (gate G2); `export_golden` menandai beat terakhir
+  tidak teruji lewat `GOLDEN_RR_LAST`.
+
 ---
 
 ## 3. Alignment — jebakan paling mahal di fase ini

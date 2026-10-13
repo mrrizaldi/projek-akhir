@@ -1,6 +1,3 @@
-// GENERATED oleh model/scripts/export_model_h.py — JANGAN EDIT TANGAN.
-// Sumber: model/artifacts/model_int8.tflite (23,488 byte = 22.94 KB)
-// Regenerasi: cd model && make quantize && make export
 #ifndef MODEL_INT8_H
 #define MODEL_INT8_H
 
@@ -10,7 +7,6 @@
 #endif
 #define ECG_THRESHOLD 0.8f
 
-// Kuantisasi affine: q = round(x / scale) + zero_point ; x = (q - zero_point) * scale
 #define ECG_IN_MORPH_SCALE 0.0429079793f
 #define ECG_IN_MORPH_ZERO  -25
 #define ECG_IN_RR_SCALE    0.0129329814f
@@ -1980,4 +1976,4 @@ alignas(16) const unsigned char model_int8_tflite[] = {
   0x00, 0x00, 0x00, 0x46
 };
 
-#endif  // MODEL_INT8_H
+#endif

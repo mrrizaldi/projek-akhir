@@ -1,17 +1,3 @@
-"""Fase 7 — PTQ INT8 + evaluasi ulang di DS2 identik + tabel delta.
-
-    make quantize    (atau: python scripts/quantize_int8.py)
-
-Threshold & prosedur evaluasi SAMA PERSIS dengan Fase 6 — kalau tidak, delta
-yang terukur bukan efek kuantisasi melainkan efek beda cara ukur.
-
-Keluaran:
-    artifacts/model_int8.tflite
-    artifacts/metrics/fase7_delta.csv
-    artifacts/metrics/fase7_confusion_int8.png
-
-Penjelasan alur & alasan: docs/quantize-walkthrough.md
-"""
 import os
 import sys
 
@@ -19,18 +5,18 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import (  # noqa: E402
+from config import (
     ARTIFACT_DIR, INT8_IO, MAX_MODEL_KB, METRICS_DIR, PROCESSED_DIR,
     REP_SAMPLES, THRESHOLD,
 )
-from src.evaluate import evaluate_probabilities, roc_auc  # noqa: E402
-import tensorflow as tf  # noqa: E402
+from src.evaluate import evaluate_probabilities, roc_auc
+import tensorflow as tf
 
-from src.model import build_deploy_model  # noqa: E402
-from src.quantize import (  # noqa: E402
+from src.model import build_deploy_model
+from src.quantize import (
     predict_tflite, quantize_int8, representative_dataset_gen, stratified_indices,
 )
-from scripts.eval_fp32 import plot_confusion  # noqa: E402
+from scripts.eval_fp32 import plot_confusion
 
 METRIK = ("accuracy", "precision", "recall", "f1", "specificity")
 
@@ -53,8 +39,6 @@ def main() -> None:
           f"(Normal {int((ds1['y'][idx] == 0).sum())}, "
           f"Aritmia {int((ds1['y'][idx] == 1).sum())})   int8_io={INT8_IO}")
 
-    # Model latih (GlobalAveragePooling + Dense) → varian deploy dengan bobot
-    # sama tapi op yang dihitung benar oleh TFLite Micro. Lihat walkthrough §3.
     deploy = build_deploy_model(tf.keras.models.load_model(keras_path))
     blob = quantize_int8(deploy, representative_dataset_gen(
         ds1["X_morph"], ds1["X_rr"], ds1["y"], REP_SAMPLES, rr_shape=(1, 3)))

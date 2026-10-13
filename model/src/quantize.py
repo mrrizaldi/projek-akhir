@@ -1,4 +1,3 @@
-"""quantize — Fase 7: PTQ INT8 + inferensi tflite. Walkthrough: docs/quantize-walkthrough.md"""
 import numpy as np
 import tensorflow as tf
 
@@ -20,11 +19,6 @@ def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
 
 def representative_dataset_gen(X_morph, X_rr, y, n: int = REP_SAMPLES,
                                seed: int = SEED, rr_shape=None):
-    """Generator kalibrasi. Yield DICT bernama — list posisional bikin converter
-    salah memasangkan tensor pada model dua-input (JEBAKAN #3).
-
-    rr_shape: bentuk per-sampel input ritme; model deploy memakai (1, 3).
-    """
     idx = stratified_indices(y, n, seed)
     bentuk = (1,) + tuple(rr_shape) if rr_shape else None
 
@@ -40,7 +34,6 @@ def representative_dataset_gen(X_morph, X_rr, y, n: int = REP_SAMPLES,
 
 
 def quantize_int8(model, rep_gen, int8_io: bool = INT8_IO) -> bytes:
-    """model: keras Model (pakai build_deploy_model, bukan model latih langsung)."""
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
     converter.optimizations = [tf.lite.Optimize.DEFAULT]
     converter.representative_dataset = rep_gen
@@ -54,12 +47,6 @@ def quantize_int8(model, rep_gen, int8_io: bool = INT8_IO) -> bytes:
 
 
 def assert_skala_ritme_wajar(blob: bytes, ambang: float = MAX_RHYTHM_SCALE) -> float:
-    """Tolak blob yang skala input ritmenya melebar gara-gara outlier kalibrasi.
-
-    Kegagalan senyap yang dijaga di sini: satu beat ber-RR ekstrem di kolam
-    kalibrasi melebarkan skala ~40x, cabang ritme mati, dan yang terlihat cuma
-    recall S yang buruk. Lihat catatan MAX_RHYTHM_SCALE di config.py.
-    """
     it = tf.lite.Interpreter(model_content=blob)
     for d in it.get_input_details():
         if "rhythm" not in d["name"]:
@@ -92,8 +79,6 @@ def _dequantize(q, detail):
 def predict_tflite(tflite_path: str, X_morph, X_rr) -> np.ndarray:
     interp = tf.lite.Interpreter(model_path=tflite_path)
     interp.allocate_tensors()
-    # Bedakan lewat JUMLAH ELEMEN, bukan jumlah dimensi: di model deploy
-    # ritme berbentuk (1,1,3) — sama-sama 3 dimensi dengan morfologi.
     inputs = sorted(interp.get_input_details(), key=lambda d: int(np.prod(d["shape"])))
     rr_in, morph_in = inputs[0], inputs[1]
     out = interp.get_output_details()[0]

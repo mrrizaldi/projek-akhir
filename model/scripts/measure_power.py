@@ -1,19 +1,3 @@
-"""Tangga ukur daya p0..p5 lewat serial, hasil ke artifacts/metrics/daya/<ts>.csv.
-
-    .venv/bin/python scripts/measure_power.py            (dari folder model/)
-
-Rancangan: docs/arsip/2026-09-16-daya-design.md. Firmware mencetak satu baris
-`DAYA pN ...` per jendela 10 detik (rata-rata INA219 tiap 100 ms). Skrip ini
-menyalakan replay bila belum (beban identik tiap ulangan), menjalankan tiap
-mode, membuang jendela pertama (transien ganti mode), lalu merangkum.
-
-Berhenti tanpa menulis CSV bila tegangan bus < 1 V: INA219 tidak berada di
-jalur arus alat, dan angka arusnya bukan konsumsi siapa pun.
-
-Opsi: --port /dev/ttyACM0  --blok 6 (jendela 10 s per mode)  --mode 012345
-      --paksa (lewati cek catu; hanya untuk menguji jalur, angka tidak sah)
-      --keluar DIR
-"""
 import argparse
 import csv
 import datetime
@@ -55,10 +39,8 @@ def main():
 
     s = serial.Serial()
     s.port, s.baudrate, s.timeout = a.port, 115200, 0.2
-    s.dtr = s.rts = False            # membuka port tanpa ini me-reset board
+    s.dtr = s.rts = False
     s.open()
-    # USB JTAG/serial ESP32-S3 tetap bisa reboot saat port dibuka: tunggu boot
-    # selesai bila itu terjadi (tanpa reboot, ini cuma jeda 6 detik).
     tunggu(s, "MONITOR ARITMIA SIAP", 6)
     time.sleep(1.0)
 
@@ -93,13 +75,13 @@ def main():
                              "yang ditulis. Rakit jalur ukur sesuai docs/firmware-walkthrough.md "
                              "§5d Prosedur ukur daya, lalu ulangi.")
                 if dapat == 1:
-                    continue         # jendela pertama: transien ganti mode
+                    continue
                 baris.append([datetime.datetime.now().isoformat(timespec="seconds"), m,
                               *g.groups()[1:]])
             if dapat <= a.blok:
                 sys.exit(f"Mode p{m}: hanya {dapat} jendela diterima.")
     finally:
-        s.write(b"px")               # kembali ke operasi normal
+        s.write(b"px")
         if not replay_awal:
             time.sleep(0.6)
             s.write(b"y")

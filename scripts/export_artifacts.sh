@@ -1,23 +1,13 @@
 #!/usr/bin/env bash
-# Sinkronisasi artefak produsen -> konsumen. Jangan copy manual (monorepo CLAUDE.md).
-#
-#   bash scripts/export_artifacts.sh            # model -> firmware saja (default)
-#   bash scripts/export_artifacts.sh --laporan  # + figure -> laporan/*/gambar/
-#   AKUISISI="akuisisi/akuisisi_<tgl-jam> ..."   # grafik rekaman RESMI (>= 13 Okt 2026) yang ikut disalin
-#
-# Langkah figure DIMATIKAN secara default: laporan/ read-only tanpa konfirmasi.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MODEL_DIR="$ROOT/model"
 PY="$([ -x "$MODEL_DIR/.venv/bin/python" ] && echo "$MODEL_DIR/.venv/bin/python" || echo python)"
 
-# 1) model_int8.tflite -> firmware/include/model_int8.h (+ scale & zero_point)
 echo "==> model -> firmware/include/model_int8.h"
 (cd "$MODEL_DIR" && "$PY" scripts/export_model_h.py)
 
-# 2) figure final -> laporan/<projek>/gambar/   (opt-in)
-#    LAPORAN_PROJ memilih projek tujuan (default buku-pa; proposal-pa = arsip).
 if [[ "${1:-}" == "--laporan" ]]; then
   DEST="$ROOT/laporan/${LAPORAN_PROJ:-buku-pa}/gambar"
   echo "==> figure -> $DEST"

@@ -28,7 +28,6 @@ def test_metrik_dari_hitungan_tangan():
 
 
 def test_pembagian_nol_jadi_nol_bukan_nan():
-    """Model yang tak pernah menebak positif: precision 0, bukan NaN."""
     m = binary_metrics({"tp": 0, "fn": 5, "fp": 0, "tn": 5})
     assert m["precision"] == 0.0 and m["recall"] == 0.0 and m["f1"] == 0.0
 
@@ -45,13 +44,12 @@ def test_threshold_menggeser_recall_dan_precision():
 def test_auc_sempurna_acak_dan_seri():
     assert roc_auc([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9]) == 1.0
     assert roc_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1]) == 0.0
-    assert roc_auc([0, 1], [0.5, 0.5]) == 0.5          # seri → 0,5, bukan 1,0
+    assert roc_auc([0, 1], [0.5, 0.5]) == 0.5
     with pytest.raises(ValueError):
         roc_auc([0, 0, 0], [0.1, 0.2, 0.3])
 
 
 def test_auc_bebas_threshold():
-    """Skala probabilitas berubah monoton → AUC tidak berubah."""
     y = np.array([0, 0, 1, 1])
     p = np.array([0.1, 0.3, 0.6, 0.7])
     assert np.isclose(roc_auc(y, p), roc_auc(y, p / 10))

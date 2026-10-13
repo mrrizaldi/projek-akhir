@@ -1,10 +1,3 @@
-"""Fase 5/6 — kalibrasi threshold di VALIDATION (DS1). DS2 HARAM di sini.
-
-    python scripts/calibrate_threshold.py
-
-Kriteria terkunci: F1 maksimum, tie-break ke recall bila selisih F1 < 0,005.
-Hasilnya jadi config.THRESHOLD. Penjelasan: docs/evaluate-walkthrough.md §2.
-"""
 import os
 import sys
 
@@ -12,11 +5,11 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tensorflow as tf  # noqa: E402
+import tensorflow as tf
 
-from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR  # noqa: E402
-from src.dataset import split_train_val  # noqa: E402
-from src.evaluate import sweep_thresholds  # noqa: E402
+from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR
+from src.dataset import split_train_val
+from src.evaluate import sweep_thresholds
 
 F1_TIE_MARGIN = 0.005
 

@@ -1,15 +1,3 @@
-"""Bandingkan recall per kelas pada RECALL TOTAL yang disamakan (T12).
-
-    python scripts/cek_titik_operasi.py
-
-Menjawab: apakah defisit recall S model ber-LR rendah NYATA, atau cuma akibat
-thresholdnya jatuh di tempat lain? Aturan §A5 changelog 18 Sep melarang
-membandingkan recall di dua titik operasi berbeda — jadi threshold tiap model
-digeser sampai recall TOTAL-nya sama, baru recall per kelas diadu.
-
-Model tersimpan = seed 42 saja (ablasi.py cuma menyimpan seed utama), jadi SATU
-seed. Yang menguatkan bukan jumlah seed melainkan konsistensi arah di 6 titik.
-"""
 import sys, os, numpy as np
 sys.path.insert(0, os.getcwd()); os.environ.setdefault("TF_CPP_MIN_LOG_LEVEL","3")
 from tensorflow import keras
@@ -27,7 +15,6 @@ for tag in ("t8_lr1e3", "t8_lr3e4", "t8_lr1e4"):
     prob[tag] = m.predict([d["X_morph"], d["X_rr"]], batch_size=4096, verbose=0).ravel()
 
 def pada_recall(p, target):
-    """Threshold terendah yang memberi recall total >= target; -> (recall, recS, prec)."""
     for t in np.arange(0.999, 0.0, -0.001):
         pred = (p >= t).astype(int)
         rec = pred[y == 1].mean()

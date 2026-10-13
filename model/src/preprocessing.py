@@ -26,8 +26,6 @@ def _pt_bandpass(signal: np.ndarray, fs: int) -> np.ndarray:
 
 
 def _pt_derivative(signal: np.ndarray, fs: int) -> np.ndarray:
-    # Kernel turunan klasik Pan-Tompkins [-1,-2,0,2,1]/(8T), digeser 2 sampel
-    # (b = [1,2,0,-2,-1]) supaya causal — lfilter cuma pakai x[n], x[n-1], ...
     T = 1.0 / fs
     b = np.array([1, 2, 0, -2, -1], dtype=np.float64) / (8 * T)
     return lfilter(b, [1.0], signal)
@@ -104,38 +102,11 @@ def zscore_per_window(windows: np.ndarray, eps: float = 1e-8) -> np.ndarray:
     return ((windows - mean) / (std + eps)).astype(np.float32)
 
 
-# ── Jitter posisi R (adaptasi Dias 2021, protokol §4.2) ──────────────────────
-# Paper menambahkan jitter SERAGAM +-delta (delta<=18 sampel) ke posisi R karena
-# mereka tidak punya detektor — angka itu pinjaman dari literatur QRS detection.
-# Kita punya detektornya, dan scripts/ukur_jitter.py sudah mengukur residunya di
-# DS1: 80% beat meleset <=1 sampel, 90% <=2, lalu ekor berat sampai 54 sampel
-# (record berisik 108/203/207). Inti tajam + ekor berat — bukan seragam, bukan
-# normal. Maka "empiris" jadi default: ambil ulang dari kolam residu asli, tanpa
-# asumsi bentuk sama sekali.
-#
-# Seragam tetap disediakan supaya sweep delta=0..18 bisa dibandingkan lurus
-# dengan Tabel 3 paper.
-#
-# Jitter per beat INDEPENDEN. Detektor nyata errornya berkorelasi (satu record
-# berisik menggeser banyak beat sekaligus), dan korelasi itu sebagian SALING
-# MENIADAKAN di fitur RR karena RR itu selisih dua posisi. Independen berarti
-# ragam RR dilebihkan — arah yang pesimistis, jadi aman sebagai asumsi.
 RESIDU_DS1 = os.path.join(METRICS_DIR, "jitter", "residu_ds1.npy")
 
 
 def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
              model: str = "empiris") -> np.ndarray:
-    """Geser posisi R meniru error detektor. Label TIDAK ikut bergeser.
-
-    model:
-        "empiris" — ambil ulang dari residu terukur DS1 (delta diabaikan)
-        "seragam" — U{-delta..+delta}, protokol Dias 2021
-        "normal"  — N(0, delta) dibulatkan
-
-    Urutan dijaga menaik: r yang sudah dijitter dilewatkan maximum.accumulate,
-    karena satu pasang beat yang bertukar tempat membuat RR negatif dan itu
-    bukan mode kegagalan detektor mana pun (refraktori 200 ms mencegahnya).
-    """
     r = np.asarray(r_locations, dtype=np.int64)
     if model != "empiris" and delta == 0:
         return r
@@ -154,33 +125,8 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
     return np.maximum.accumulate(r + geser)
 
 
-# ── Fase A — penyeragaman laju cuplik antar-database ─────────────────────────
-# svdb 128 Hz dan incartdb 257 Hz harus jadi 360 Hz sebelum masuk pipeline, dan
-# alasannya BUKAN kerapian: WIN_PRE terdefinisi dalam SAMPEL, bukan waktu.
-#
-#     128 sampel @ 360 Hz =  355 ms   <- yang diablasi & dikunci
-#     128 sampel @ 128 Hz = 1000 ms   <- fisiologi lain sama sekali
-#
-# Decision point ukuran window: yang membayar itu "konteks 128 sampel SEBELUM R",
-# dan mekanismenya gelombang P & interval PR yang hidup ~150-200 ms sebelum R.
-# Itu durasi FISIOLOGIS. Memakai 128 sampel di 128 Hz bukan menyalin keputusan
-# itu — itu melanggarnya sambil terlihat konsisten.
-#
-# Dengan target 360 Hz: WIN_PRE/WIN_POST, koefisien bandpass (didesain di FS),
-# ECG_FS di firmware, dan golden_ref.h SEMUANYA tidak berubah. Itu sebabnya
-# arahnya ke 360, bukan menurunkan mitdb ke 128.
-
-
 def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
                    fs_asal: int, fs_target: int = FS):
-    """Samakan laju cuplik ke fs_target. Returns (signal float32, r int64).
-
-    resample_poly (polyphase, linear-phase) bukan resample (FFT). Posisi R
-    dibulatkan saja. TIDAK menyaring r yang keluar batas — `symbols` sejajar
-    lewat indeks, dan batas window urusan prep_beats.valid_beat_indices().
-
-    Alasan ketiganya: docs/arsip/2026-09-19-multidataset-plan.md §2.
-    """
     r = np.asarray(r_locations, dtype=np.int64)
     if fs_asal == fs_target:
         return np.asarray(signal, dtype=np.float32), r
@@ -191,10 +137,6 @@ def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
     baru = resample_poly(np.asarray(signal, dtype=np.float64), up, down)
     r_baru = np.rint(r * (up / down)).astype(np.int64)
 
-    # ponytail: pembulatan naif cukup selama kita UPSAMPLE (indeks makin
-    # menyebar, tak mungkin bertabrakan). Kalau suatu hari fs_target < fs_asal,
-    # dua R bisa jatuh ke indeks sama -> RR = 0 dan itu bukan mode kegagalan
-    # detektor mana pun. Berisik di sini, jangan diam-diam.
     if len(r_baru) > 1 and np.any(np.diff(r_baru) <= 0):
         raise ValueError(
             f"resample {fs_asal}->{fs_target} Hz membuat R-peak bertabrakan "
@@ -206,14 +148,6 @@ def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
 
 def selaraskan_r(r_locations: np.ndarray, filtered: np.ndarray,
                  win: int = ALIGN_WIN) -> np.ndarray:
-    """Geser anotasi R ke puncak sebenarnya, lalu kembalikan group delay.
-
-    Untuk database yang konvensi anotasinya beda dari mitdb (DATASETS[db]
-    ["selaraskan"]). Sepadan dengan haluskan() di scripts/eval_detected_
-    segmentation.py dan ecg_align_r() di firmware, jendela lebih sempit.
-
-    Alasan & angka: docs/arsip/2026-09-19-multidataset-plan.md §3.
-    """
     r = np.asarray(r_locations, dtype=np.int64)
     n = len(filtered)
     hasil = np.empty_like(r)

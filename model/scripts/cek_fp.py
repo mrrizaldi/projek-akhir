@@ -1,21 +1,3 @@
-"""Dari mana 2.302 false positive DS2 datang, dan apakah aturan temporal menolong?
-
-    python scripts/cek_fp.py [--threshold 0.80]
-
-Menjawab tiga pertanyaan yang harus dijawab SEBELUM menulis post-processing
-(T5, docs/arsip/2026-09-19-fitur-design.md §5):
-
-  1. Sebaran  — FP tersebar rata atau menumpuk di segelintir pasien?
-  2. Run      — FP bergerombol atau tunggal, DIBANDING true positive?
-  3. Simbol   — simbol MIT-BIH apa yang jadi FP, relatif jumlah negatifnya?
-
-Pertanyaan 2 yang menentukan nasib aturan "k dari n beat berturut-turut":
-aturan itu hanya menolong kalau FP lebih tunggal daripada TP. Kalau terbalik,
-aturan tsb membuang TP dan menyimpan FP — dan itu yang terjadi di sini.
-
-DS2 dipakai untuk MENDIAGNOSIS, bukan MEMILIH (§7 aturan 4). Tidak ada satu
-parameter pun yang diambil dari skrip ini.
-"""
 import argparse
 import os
 import sys
@@ -25,15 +7,10 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import ARTIFACT_DIR, DS2, PER_RECORD_DIR, PROCESSED_DIR, THRESHOLD  # noqa: E402
+from config import ARTIFACT_DIR, DS2, PER_RECORD_DIR, PROCESSED_DIR, THRESHOLD
 
 
 def panjang_run(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
-    """Panjang tiap deret True yang bersambung, dihitung PER RECORD.
-
-    Per record, bukan global: beat terakhir pasien A dan beat pertama pasien B
-    bersebelahan di array tapi terpisah berjam-jam di dunia nyata.
-    """
     hasil = []
     for r in np.unique(records):
         s = mask[records == r]
@@ -68,12 +45,12 @@ def muat_simbol(records_ds2) -> np.ndarray:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
+    ap = argparse.ArgumentParser(description="Asal false positive DS2: sebaran per record, panjang run TP vs FP, FP per simbol. DS2 hanya mendiagnosis, tidak memilih parameter.",
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--threshold", type=float, default=THRESHOLD)
     args = ap.parse_args()
 
-    import tensorflow as tf  # noqa: F401  (impor mahal, tunda sampai butuh)
+    import tensorflow as tf
     from tensorflow import keras
 
     d = np.load(os.path.join(PROCESSED_DIR, "test.npz"))

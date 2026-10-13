@@ -1,10 +1,3 @@
-"""Fase 8 — checklist PoC yang DIJALANKAN, bukan dicentang manual.
-
-    make poc         (atau: python scripts/check_poc.py)
-
-Tiap item PRD hal. 17 diverifikasi mekanis. Exit code != 0 kalau ada yang gagal,
-jadi bisa dipakai di CI atau sebelum menulis Bab 4.
-"""
 import os
 import re
 import sys
@@ -13,7 +6,7 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import (  # noqa: E402
+from config import (
     ARTIFACT_DIR, MAX_MODEL_KB, METRICS_DIR, PACED_EXCLUDED, DS1, DS2,
     PER_RECORD_DIR, PROCESSED_DIR, SEED, THRESHOLD,
 )
@@ -25,7 +18,7 @@ hasil = []
 def cek(nama: str, fn) -> None:
     try:
         ok, detail = fn()
-    except Exception as e:                                   # noqa: BLE001
+    except Exception as e:
         ok, detail = False, f"{type(e).__name__}: {e}"
     hasil.append((ok, nama, detail))
 
@@ -130,7 +123,6 @@ def tabel_delta():
 
 def decision_tercatat():
     md = open(os.path.join(ROOT, "CLAUDE.md")).read()
-    # HANYA seksi decision point — tabel lain (mis. indeks walkthrough) boleh kosong.
     seksi = re.search(r"## Decision point yang sudah di-lock(.*?)(?=\n## )", md, flags=re.S)
     if seksi is None:
         return False, "seksi 'Decision point yang sudah di-lock' tidak ditemukan"

@@ -227,6 +227,43 @@ literatur), tapi tabel per-record disimpan di
 `artifacts/metrics/fase6_per_record_fp32.csv` supaya cerita di baliknya bisa
 diceritakan.
 
+### Tahap 2: menamai aritmia (dieksperimenkan, tidak dikirim)
+
+`scripts/tahap2.py` menguji aturan penamaan di atas keputusan biner. Tahap 2
+tidak dilatih dan tidak masuk `model_int8.h`; dia aturan skalar atas beat yang
+sudah ditandai tahap 1, jadi tidak bisa mengubah F1, hanya mengganti nama TP/FP
+yang sudah ada. Plafonnya recall tahap 1. Dua sumbu saja:
+
+```
+                  QRS sempit            QRS lebar
+prematur+jeda     S                     V (PVC prematur)
+tepat waktu       N / tak dinamai       V atau F
+```
+
+- **F tidak punya cabang.** Fusion beat adalah tabrakan depolarisasi normal dan
+  ventrikular, jadi morfologinya di antara N dan V; tidak ada fitur yang
+  memisahkan sesuatu dari komponennya sendiri. P3 mengukurnya: 65 F → VEB,
+  0 F → SVEB.
+- **Q tidak punya cabang.** 100 beat di tiga database, dan keranjang sisa akan
+  didominasi FP (~2.300 : 1 di DS2): menamainya "Q" berarti melabeli alarm palsu
+  dengan nama kelas klinis.
+- **S belum dinamai.** Cabang S menunggu gate G2: tanpa RR+1/RR0 tidak ada sumbu
+  jeda kompensasi, dan S tidak terpisah dari beat normal yang kebetulan cepat.
+  Menamai S dari rasio RR saja memberi +P 42% (P5).
+- **Lebar QRS mentah, bukan ternormalisasi.** Fitur model ternormalisasi relatif
+  baseline pasien (bagus untuk N vs abnormal), tetapi "V = QRS lebar" adalah
+  ambang fisiologis absolut. Keduanya dari window yang sama, nol buffer tambahan.
+- **Kriteria ambang = presisi minimum (`MIN_PRESISI_NAMA = 0,90`), bukan F1.**
+  Memaksimalkan F1 kelas V di antara beat yang ditandai memberi hadiah untuk
+  "namai semuanya V" (V ~50% dari yang ditandai): percobaan pertama mendarat di
+  dasar grid, 4.387 dinamai V, hanya 1.664 benar (presisi 37,9%). Ambang terkecil
+  yang presisinya ≥ 0,90 dipilih (cakupan terbesar pada presisi yang dijanjikan);
+  bila tak ada, nama V tidak ditampilkan. Alat boleh diam ("tipe tak pasti"),
+  tidak boleh bilang "V" kalau salah 6 dari 10. Di DS2 ambang 40 ms memberi
+  presisi 91,7% dengan cakupan 40,4% (30 ms: 51,7%), tetapi ambang dikalibrasi
+  di VAL, dan VAL maksimum hanya 43,9%; DS2 tidak boleh mensertifikasi, jadi
+  tahap 2 tidak dikirim (`model/CLAUDE.md`, baris Tahap 2).
+
 ---
 
 ## 6. Yang sengaja TIDAK dilakukan

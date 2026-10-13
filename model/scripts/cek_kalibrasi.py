@@ -1,20 +1,3 @@
-"""Diagnosis titik operasi: seberapa jauh kalibrasi VAL dari optimum DS2?
-
-    python scripts/cek_kalibrasi.py [--tag w128b fb_svdb ...]
-
-DS2 dipakai untuk MENDIAGNOSIS, bukan MEMILIH. Threshold produksi tetap datang
-dari VAL (§7 aturan 4). Kolom "DS2-opt" ada untuk mengukur berapa yang hilang,
-bukan untuk dipakai.
-
-Membandingkan tiga set kalibrasi yang semuanya SAH (bukan train, bukan DS2):
-    VAL (bawaan)        5 pasien mitdb
-    + svdb held-out    25 pasien
-    + incartdb held-out 44 pasien
-
-Keterbatasan: skrip ini memuat model yang tersimpan, dan ablasi.py cuma
-menyimpan seed utama. Jadi hasilnya SATU seed — dan masalah sebenarnya
-(variansi threshold antar-seed) butuh tiga seed untuk dibuktikan.
-"""
 import argparse
 import os
 import sys
@@ -23,12 +6,12 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tensorflow as tf  # noqa: E402
+import tensorflow as tf
 
-from config import ARTIFACT_DIR, PROCESSED_DIR, SEED  # noqa: E402
-from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1  # noqa: E402
-from scripts.sweep_jitter import muat_ds2, rakit  # noqa: E402
-from src.preprocessing import design_bandpass_sos  # noqa: E402
+from config import ARTIFACT_DIR, PROCESSED_DIR, SEED
+from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1
+from scripts.sweep_jitter import muat_ds2, rakit
+from src.preprocessing import design_bandpass_sos
 
 
 def gabung(*ds) -> dict:

@@ -1,12 +1,3 @@
-"""Fase 5 — latih model hybrid di DS1, simpan model_fp32.keras + kurva.
-
-    make train       (atau: python scripts/train_model.py)
-
-DS2 HARAM di sini — validation diambil dari DS1 (config.VAL_RECORDS).
-Pantau recall Aritmia + AUC, bukan accuracy (data timpang).
-
-Penjelasan alur & alasan: docs/train-walkthrough.md
-"""
 import os
 import sys
 
@@ -14,15 +5,15 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import matplotlib  # noqa: E402
+import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import tensorflow as tf  # noqa: E402
+import matplotlib.pyplot as plt
+import tensorflow as tf
 
-from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR, SEED, THRESHOLD  # noqa: E402
-from src.dataset import split_train_val  # noqa: E402
-from src.model import build_hybrid_model  # noqa: E402
-from src.train import make_class_weights, train  # noqa: E402
+from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR, SEED, THRESHOLD
+from src.dataset import split_train_val
+from src.model import build_hybrid_model
+from src.train import make_class_weights, train
 
 
 def load_ds1() -> dict:

@@ -1,4 +1,3 @@
-"""evaluate — Fase 6: metrik biner dari probabilitas. Walkthrough: docs/evaluate-walkthrough.md"""
 import numpy as np
 
 from config import THRESHOLD
@@ -73,17 +72,6 @@ def roc_auc(y_true, y_prob) -> float:
 
 
 def pair_detected(detected, annotation, tolerance_samples: int):
-    """Pasangkan tiap DETEKSI ke anotasi terdekat dalam toleransi (greedy 1-ke-1).
-
-    Kebalikan arah dari bench_pantompkins.match_peaks, yang memasangkan dari sisi
-    anotasi. Di sini sisi deteksi yang jadi acuan karena alat memang bekerja dari
-    deteksi: tiap R-peak yang ia temukan akan diklasifikasi, ada beat aslinya
-    atau tidak.
-
-    Returns:
-        idx_anotasi: np.ndarray[int] sepanjang `detected`; -1 = deteksi palsu
-        (tidak ada beat asli dalam toleransi).
-    """
     detected = np.asarray(detected)
     annotation = np.asarray(annotation)
     hasil = np.full(len(detected), -1, dtype=np.int64)

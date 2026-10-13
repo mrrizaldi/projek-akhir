@@ -21,7 +21,6 @@ def _jalankan(cb, riwayat):
 
 
 def test_bobot_inversely_proportional():
-    """w_c = N / (2 * n_c). Kelas minoritas dapat bobot lebih besar."""
     y = np.array([0] * 90 + [1] * 10)
     w = make_class_weights(y)
     assert np.isclose(w[0], 100 / (2 * 90))
@@ -30,7 +29,6 @@ def test_bobot_inversely_proportional():
 
 
 def test_kontribusi_dua_kelas_jadi_setara():
-    """Inti class_weight: n_c * w_c sama untuk kedua kelas."""
     y = np.array([0] * 90 + [1] * 10)
     w = make_class_weights(y)
     assert np.isclose(90 * w[0], 10 * w[1])
@@ -47,11 +45,6 @@ def test_kelas_kosong_error_bukan_pembagian_nol():
 
 
 def test_rata_bobot_merata_ratakan_n_terbaik_bukan_memungut_argmax():
-    """Inti T7: epoch yang nyaris seri dirata-rata, bukan dipilih satu.
-
-    top-3 val_auc = 0,92/0,91/0,90 -> bobot 3, 5, 4 -> rerata 4,0.
-    Kalau yang jalan cuma argmax, hasilnya 3,0 (bobot epoch ber-auc tertinggi).
-    """
     hasil = _jalankan(RataBobotTerbaik("val_auc", 3),
                       [(0.90, 4.0), (0.80, 50.0), (0.92, 3.0),
                        (0.50, 99.0), (0.91, 5.0)])
@@ -59,7 +52,6 @@ def test_rata_bobot_merata_ratakan_n_terbaik_bukan_memungut_argmax():
 
 
 def test_epoch_buruk_tidak_ikut_rata_rata():
-    """Epoch ber-val_auc rendah harus terbuang, bukan menyeret rerata."""
     hasil = _jalankan(RataBobotTerbaik("val_auc", 2),
                       [(0.9, 1.0), (0.1, 1000.0), (0.8, 3.0)])
     assert np.isclose(hasil, 2.0)

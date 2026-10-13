@@ -1,11 +1,3 @@
-"""Fase 1 (segmentasi + z-score) — verifikasi segment_beats() & zscore_per_window().
-
-    python scripts/plot_fase1_segment.py 100
-
-DoD: tiap window WIN_LEN sampel persis, R-peak di posisi WIN_PRE (garis tengah
-merah). Sebelum z-score amplitudo antar-beat beda-beda; sesudah, semua window
-berada di skala sebanding (mean~0, std~1) — itu yang mau dicek mata.
-"""
 import os
 import sys
 
@@ -16,9 +8,9 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import WIN_PRE, WIN_LEN  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import (  # noqa: E402
+from config import WIN_PRE, WIN_LEN
+from src.io_mitdb import load_record
+from src.preprocessing import (
     design_bandpass_sos, apply_bandpass, segment_beats, zscore_per_window,
 )
 

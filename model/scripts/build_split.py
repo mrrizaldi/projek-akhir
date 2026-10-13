@@ -1,20 +1,3 @@
-"""Fase 3 — rakit split inter-patient DS1/DS2 dari per_record/*.npz.
-
-    make split       (atau: python scripts/build_split.py)
-
-    python scripts/build_split.py --gabungan   # Fase A: + svdb & incartdb
-
-Keluaran default: data/processed/train.npz (DS1) & test.npz (DS2), key
-    X_morph float32 [N,256,1]   (channel dim untuk Conv1D; 256 = WIN_LEN)
-    X_rr    float32 [N,3]
-    y       int8    [N]
-    records int32   [N]         asal record tiap beat (untuk metrik per-record)
-
-DoD (PRD Fase 3): set(DS1), set(DS2), set(PACED_EXCLUDED) disjoint, total 48.
-JANGAN shuffle lalu split ulang — split sudah ditentukan per record.
-
-Penjelasan alur & alasan: docs/dataset-walkthrough.md
-"""
 import os
 import sys
 
@@ -22,8 +5,8 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import PROCESSED_DIR  # noqa: E402
-from src.dataset import build_split, build_split_multi  # noqa: E402
+from config import PROCESSED_DIR
+from src.dataset import build_split, build_split_multi
 
 
 def _ringkas(nama: str, d: dict) -> None:
@@ -35,11 +18,6 @@ def _ringkas(nama: str, d: dict) -> None:
 
 
 def main_multi() -> None:
-    """Fase A — train gabungan + test per database, NAMA FILE terpisah dari jalur mitdb-only.
-
-    train_multi.npz / test_ds2.npz / test_<db>.npz. train.npz & test.npz (jalur
-    mitdb-only) TIDAK ditimpa: keduanya masih dipakai mereproduksi ablasi terkunci.
-    """
     hasil = build_split_multi()
     os.makedirs(PROCESSED_DIR, exist_ok=True)
     nama_file = {"train": "train_multi.npz", "ds2": "test_ds2.npz"}

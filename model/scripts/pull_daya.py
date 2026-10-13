@@ -1,14 +1,3 @@
-"""Tarik hasil tangga daya mandiri (/daya/NNN.csv di board) ke
-artifacts/metrics/daya/<tanggal-jam>-board-NNN.csv, lalu ringkas & validasi.
-
-    make pull-daya            (berkas terakhir)    make pull-daya N=3
-    .venv/bin/python scripts/pull_daya.py [N]
-
-Tangga dijalankan di board tanpa laptop (menu Ukur daya atau serial 'V').
-Kolom = CSV measure_power.py + 'sah' (penilaian board per mode). Validasi di
-sini diulang dengan kriteria measure_power.py, jadi dua penilaian bisa dibandingkan.
-Port lain: ECG_PORT=/dev/ttyACM1 make pull-daya
-"""
 import csv
 import datetime
 import io
@@ -26,7 +15,6 @@ NAMA = {0: "timer ISR mati", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ infer
 
 
 def baca_sampai(s, akhir, detik):
-    """Baris serial sampai baris yang memuat `akhir` (inklusif) atau batas waktu."""
     isi, batas = [], time.time() + detik
     while time.time() < batas:
         b = s.readline().decode(errors="replace").rstrip()
@@ -38,7 +26,6 @@ def baca_sampai(s, akhir, detik):
 
 
 def validasi(baris):
-    """Kriteria measure_power.py atas baris CSV board. Return (ringkasan, gagal)."""
     ring, gagal, lalu = {}, [], None
     for m in sorted({int(r["mode"]) for r in baris}):
         r = [x for x in baris if int(x["mode"]) == m]
@@ -76,14 +63,12 @@ def main() -> None:
 
     s = serial.Serial()
     s.port, s.baudrate, s.timeout = PORT, 115200, 0.5
-    s.dtr = s.rts = False            # membuka port tanpa ini me-reset board
+    s.dtr = s.rts = False
     try:
         s.open()
-    except Exception as e:                                   # noqa: BLE001
+    except Exception as e:
         sys.exit(f"Tidak bisa membuka {PORT}: {e}\nSerial monitor lain masih terbuka?")
 
-    # USB JTAG/serial S3 kadang tetap me-reboot board saat port dibuka: ulangi
-    # 'v' sampai board menjawab (boot sampai loop() +-3 s).
     daftar = None
     for _ in range(5):
         time.sleep(1.0)

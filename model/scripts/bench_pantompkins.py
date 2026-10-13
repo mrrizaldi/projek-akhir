@@ -1,11 +1,3 @@
-"""Benchmark Pan-Tompkins: overlay R-peak anotasi vs hasil detektor + sensitivity/precision.
-
-    python scripts/bench_pantompkins.py 100
-
-Fungsi ini TIDAK dipakai buat segmentasi training (lihat catatan di
-src/preprocessing.py) — murni ukur seberapa akurat detektor on-device sendiri,
-toleransi ±150ms (PRD hal 7-9).
-"""
 import os
 import sys
 
@@ -16,9 +8,9 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import FS  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import design_bandpass_sos, apply_bandpass, pan_tompkins_detect  # noqa: E402
+from config import FS
+from src.io_mitdb import load_record
+from src.preprocessing import design_bandpass_sos, apply_bandpass, pan_tompkins_detect
 
 TOLERANCE_MS = 150
 PLOT_SECONDS = 10
@@ -27,11 +19,6 @@ OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 
 def match_peaks(detected: np.ndarray, reference: np.ndarray, tolerance_samples: int):
-    """Pasangkan tiap anotasi ke detected terdekat dalam toleransi (greedy, 1-ke-1).
-
-    Returns:
-        tp (int), fn (int), fp (int)
-    """
     used = np.zeros(len(detected), dtype=bool)
     tp = 0
     for r in reference:

@@ -1,10 +1,3 @@
-"""Tarik rekaman dari board ke data/recordings/<tanggal-jam>.csv.
-
-    make pull        (atau: .venv/bin/python scripts/pull_recording.py)
-
-Kalau board masih merekam, skrip menghentikan & menyimpannya dulu.
-Port lain: ECG_PORT=/dev/ttyACM1 make pull
-"""
 import datetime
 import os
 import sys
@@ -25,7 +18,7 @@ def main() -> None:
 
     try:
         s = serial.Serial(PORT, BAUD, timeout=2)
-    except Exception as e:                                   # noqa: BLE001
+    except Exception as e:
         sys.exit(f"Tidak bisa membuka {PORT}: {e}\n"
                  "Board tercolok? Serial monitor lain masih terbuka? "
                  "Cek dengan: lsof /dev/ttyACM0")

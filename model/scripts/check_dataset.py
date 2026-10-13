@@ -1,9 +1,3 @@
-"""
-Script verifikasi dataset MIT-BIH Arrhythmia.
-Jalankan dari folder model/:
-    python scripts/check_dataset.py
-"""
-
 import os
 import sys
 import wfdb
@@ -11,11 +5,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 from collections import Counter
 
-# ── Konfigurasi ──────────────────────────────────────────────────────────────
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "mitdb")
-SAMPLE_RECORD = "100"  # rekaman pertama yang dicek
+SAMPLE_RECORD = "100"
 
-# ── 1. Cek keberadaan file ────────────────────────────────────────────────────
 print("=" * 55)
 print("  CEK DATASET MIT-BIH ARRHYTHMIA")
 print("=" * 55)
@@ -45,7 +37,6 @@ if len(records_found) < 48:
 else:
     print("✅ Jumlah rekaman sesuai (48 rekaman).")
 
-# ── 2. Baca satu rekaman sampel ───────────────────────────────────────────────
 print(f"\n── Membaca rekaman sampel: {SAMPLE_RECORD} ──")
 record_path = os.path.join(DATA_DIR, SAMPLE_RECORD)
 
@@ -60,21 +51,18 @@ print(f"   Durasi         : {record.sig_len / record.fs:.1f} detik "
 print(f"   Shape sinyal   : {record.p_signal.shape}")
 print(f"   Jumlah anotasi : {len(annotation.symbol)}")
 
-# ── 3. Ringkasan label aritmia ────────────────────────────────────────────────
 label_counts = Counter(annotation.symbol)
 print(f"\n── Distribusi label di rekaman {SAMPLE_RECORD} ──")
 for label, count in sorted(label_counts.items(), key=lambda x: -x[1]):
     print(f"   '{label}' : {count}")
 
-# ── 4. Plot sinyal + anotasi (30 detik pertama) ───────────────────────────────
 fs = record.fs
-durasi_plot = 30  # detik
+durasi_plot = 30
 n_sampel = durasi_plot * fs
 
-signal = record.p_signal[:n_sampel, 0]  # kanal MLII
+signal = record.p_signal[:n_sampel, 0]
 time = np.arange(n_sampel) / fs
 
-# Ambil anotasi dalam window 30 detik
 ann_mask = annotation.sample < n_sampel
 ann_samples = annotation.sample[ann_mask]
 ann_symbols = np.array(annotation.symbol)[ann_mask]
@@ -82,7 +70,6 @@ ann_symbols = np.array(annotation.symbol)[ann_mask]
 plt.figure(figsize=(14, 4))
 plt.plot(time, signal, color="#2563eb", linewidth=0.8, label="ECG (MLII)")
 
-# Tandai setiap R-peak dengan simbol anotasinya
 for s, sym in zip(ann_samples, ann_symbols):
     color = "#ef4444" if sym != "N" else "#22c55e"
     plt.axvline(x=s / fs, color=color, alpha=0.4, linewidth=0.8)

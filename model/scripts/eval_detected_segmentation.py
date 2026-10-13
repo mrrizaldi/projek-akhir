@@ -1,18 +1,3 @@
-"""Eksperimen: berapa biaya segmentasi on-device (Pan-Tompkins) vs anotasi?
-
-    python scripts/eval_detected_segmentation.py
-
-Semua metrik Fase 6 diukur dengan window yang dipotong dari R-peak ANOTASI
-kardiolog. Di alat, window dipotong dari R-peak hasil DETEKSI — setiap deteksi
-yang meleset menggeser window, dan setiap beat yang tak terdeteksi tidak pernah
-sampai ke model. Skrip ini mengukur selisih dua angka itu.
-
-DISIPLIN:
-- Offset detektor dikalibrasi di DS1. DS2 tidak menyetel apa pun.
-- Model float32 (bukan INT8) supaya yang berubah cuma segmentasi.
-- DS2 dilihat kedua kalinya di sini, MURNI untuk mengukur; tidak ada parameter
-  yang diambil darinya. Dicatat di ../CLAUDE.md.
-"""
 import csv
 import os
 import sys
@@ -21,16 +6,16 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tensorflow as tf  # noqa: E402
+import tensorflow as tf
 
-from config import (  # noqa: E402
+from config import (
     ARTIFACT_DIR, DS1, DS2, FS, GROUP_DELAY_SAMPLES, METRICS_DIR,
     PT_REFINE_WIN, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,
 )
-from src.evaluate import binary_metrics, confusion_counts, pair_detected  # noqa: E402
-from src.features_rr import compute_rr_features, to_aami_class, to_binary_label  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import (  # noqa: E402
+from src.evaluate import binary_metrics, confusion_counts, pair_detected
+from src.features_rr import compute_rr_features, to_aami_class, to_binary_label
+from src.io_mitdb import load_record
+from src.preprocessing import (
     apply_bandpass, design_bandpass_sos, pan_tompkins_detect, segment_beats,
     zscore_per_window,
 )
@@ -39,13 +24,6 @@ TOLERANSI_MS = 150
 
 
 def haluskan(r_kasar, filtered):
-    """Geser tiap deteksi ke puncak R sebenarnya, lalu kembalikan group delay.
-
-    Tanpa ini R mendarat di indeks acak sekitar WIN_PRE+4 = 132 (std delay
-    detektor 13 sampel). Tanpa `- GROUP_DELAY` R mendarat di WIN_PRE, bukan
-    WIN_PRE+4 — dan geseran 4 sampel saja
-    (11 ms) menjatuhkan precision dari 0,48 ke 0,12. Lihat docs.
-    """
     hasil = []
     for lo in r_kasar:
         a = max(0, lo - PT_REFINE_WIN)
@@ -61,7 +39,6 @@ def deteksi(record_id: str, sos):
 
 
 def kalibrasi_offset(sos, toleransi: int) -> int:
-    """Median (deteksi - anotasi) atas DS1. Inilah yang firmware harus kompensasi."""
     selisih = []
     for rec in DS1:
         try:
@@ -95,7 +72,7 @@ def main() -> None:
         label_anot = np.array([to_binary_label(to_aami_class(s)) for s in simbol])
         n_aritmia_total += int(label_anot.sum())
 
-        r_pakai = haluskan(r_det - offset, filtered)  # kompensasi + penyelarasan
+        r_pakai = haluskan(r_det - offset, filtered)
         pasangan = pair_detected(r_det, r_anot, toleransi)
 
         det_tp += int((pasangan >= 0).sum())
@@ -108,7 +85,6 @@ def main() -> None:
             tot[kelas] = tot.get(kelas, 0) + 1
             kena[kelas] = kena.get(kelas, 0) + int(ok)
 
-        # Syarat sama dengan prep_beats, tapi atas deret DETEKSI.
         i = np.arange(len(r_pakai))
         muat = (r_pakai - WIN_PRE >= 0) & (r_pakai + WIN_POST <= len(signal))
         idx = i[muat & (i >= 2)]
@@ -116,7 +92,7 @@ def main() -> None:
             continue
 
         windows = zscore_per_window(segment_beats(filtered, r_pakai[idx]))
-        rr = compute_rr_features(r_pakai)[idx]       # dari deret deteksi UTUH
+        rr = compute_rr_features(r_pakai)[idx]
         pas = pasangan[idx]
 
         cocok = pas >= 0
@@ -126,7 +102,7 @@ def main() -> None:
         W.append(windows[cocok])
         R.append(rr[cocok])
         Y.append(label_anot[pas[cocok]])
-        if (~cocok).any():                            # deteksi palsu: tetap diklasifikasi
+        if (~cocok).any():
             palsu_prob.append(model.predict(
                 [windows[~cocok].reshape(-1, WIN_LEN, 1), rr[~cocok]], verbose=0).ravel())
 
@@ -152,8 +128,6 @@ def main() -> None:
     print(f"   n={len(y):,}  TP={c['tp']} FN={c['fn']} FP={c['fp']} TN={c['tn']}")
     print(f"   recall {m['recall']:.4f}  precision {m['precision']:.4f}  F1 {m['f1']:.4f}")
 
-    # Recall tingkat SISTEM: penyebutnya semua aritmia asli, termasuk yang
-    # tak pernah sampai ke model karena detektor melewatkannya.
     sistem_tp = int(((pred == 1) & (y == 1)).sum())
     print("\nB. Tingkat SISTEM (penyebut = semua aritmia asli di DS2)")
     print(f"   aritmia asli {n_aritmia_total:,}  tertangkap {sistem_tp:,}"
@@ -165,8 +139,6 @@ def main() -> None:
               f"{int((pp >= THRESHOLD).sum()):,} diklasifikasi Aritmia "
               f"({100 * (pp >= THRESHOLD).mean():.1f}%) → alarm palsu tambahan")
 
-    # Pembanding dibaca dari keluaran eval_fp32.py, bukan dihafal: angka
-    # hafalan basi diam-diam setiap kali model atau config berganti.
     with open(os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")) as f:
         a = next(csv.DictReader(f))
     print("\nD. Pembanding Fase 6 (segmentasi anotasi, float32, threshold "

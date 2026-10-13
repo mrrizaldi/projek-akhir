@@ -1,4 +1,3 @@
-"""analyze_recording: '# jeda' memecah rekaman; RR tidak melintasi jeda."""
 import numpy as np
 
 from scripts.analyze_recording import analisis_segmen, gabung, muat
@@ -7,7 +6,6 @@ FS = 360
 
 
 def _ekg(detik, fase, dasar):
-    """Denyut sintetis 60 bpm: puncak Gaussian sempit tiap 1 detik."""
     t = np.arange(int(detik * FS)) / FS
     x = np.full_like(t, dasar)
     for tb in np.arange(fase, detik, 1.0):
@@ -16,8 +14,6 @@ def _ekg(detik, fase, dasar):
 
 
 def test_rr_tidak_melintasi_jeda(tmp_path):
-    # Detak terakhir segmen 1 di 19,5 s, detak pertama segmen 2 di 0,3 s:
-    # RR yang melintasi jeda akan bernilai ~0,8 s, bukan ~1 s.
     s1, s2 = _ekg(20, 0.5, 2000), _ekg(20, 0.3, 2600)
     berkas = tmp_path / "rekam.csv"
     berkas.write_text(f"# fs={FS} n={len(s1) + len(s2)}\n"
@@ -30,5 +26,5 @@ def test_rr_tidak_melintasi_jeda(tmp_path):
     hasil = [analisis_segmen(s, fs) for s in segmen]
     r, rr, *_ = gabung(hasil, fs)
     assert all(len(h["r"]) > 10 for h in hasil)
-    assert len(rr) == len(r) - 2            # satu RR "hilang" per batas jeda
-    assert np.all(np.abs(rr - 1.0) < 0.05)  # tidak ada RR ~0,8 s lintas jeda
+    assert len(rr) == len(r) - 2
+    assert np.all(np.abs(rr - 1.0) < 0.05)

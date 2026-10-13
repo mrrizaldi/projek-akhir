@@ -1,26 +1,3 @@
-"""Fase E — tahap 2: menamai aritmia yang sudah ditandai tahap 1.
-
-    python scripts/tahap2.py --tag fd_both
-
-Tahap 1 (model INT8) memutuskan Normal vs Aritmia. Tahap 2 TIDAK dilatih dan
-TIDAK masuk model_int8.h — dia aturan skalar atas beat yang tahap 1 sudah
-tandai. Karena itu dia TIDAK BISA mengubah F1: dia cuma mengganti nama TP/FP
-yang sudah ada. Plafonnya = recall tahap 1.
-
-Dua sumbu, dan cuma dua:
-                  QRS sempit            QRS lebar
-  prematur+jeda   S                     V (PVC prematur)
-  tepat waktu     N / tak dinamai       V atau F  <- keduanya di sel ini
-
-F sengaja TIDAK punya cabang: fusion beat = tabrakan depolarisasi normal dan
-ventrikular, jadi morfologinya DI ANTARA N dan V. Tidak ada fitur yang memisahkan
-sesuatu dari komponennya sendiri. P3 mengukurnya: 65 F -> VEB, 0 F -> SVEB.
-Q juga tidak: 100 beat di tiga database, dan keranjang sisa akan didominasi FP
-(~2.300 : 1 di DS2), jadi menamainya "Q" berarti melabeli alarm palsu dengan
-nama kelas klinis.
-
-Ambang aturan DIKALIBRASI DI VAL, bukan DS2 (§7 aturan 4).
-"""
 import argparse
 import os
 import sys
@@ -29,25 +6,18 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tensorflow as tf  # noqa: E402
+import tensorflow as tf
 
-from config import (  # noqa: E402
+from config import (
     ARTIFACT_DIR, FS, MIN_PRESISI_NAMA, R_IN_WINDOW, SEED,
 )
-from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1  # noqa: E402
-from scripts.sweep_jitter import muat_ds2, rakit  # noqa: E402
-from src.features_rr import _lebar_pada_fraksi  # noqa: E402
-from src.preprocessing import design_bandpass_sos  # noqa: E402
+from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1
+from scripts.sweep_jitter import muat_ds2, rakit
+from src.features_rr import _lebar_pada_fraksi
+from src.preprocessing import design_bandpass_sos
 
 
 def fitur_aturan(windows: np.ndarray, rr: np.ndarray) -> dict:
-    """Skalar yang dipakai tahap 2. Lebar MENTAH, bukan ternormalisasi.
-
-    Ternormalisasi (fitur model) relatif ke baseline pasien — bagus untuk
-    N-vs-abnormal. Tapi "V = QRS lebar" itu ambang FISIOLOGIS absolut, jadi
-    tahap 2 butuh lebar mentahnya. Keduanya dari window yang sama, nol buffer
-    tambahan di MCU.
-    """
     return {
         "qrsw2_ms": _lebar_pada_fraksi(windows, 0.5, R_IN_WINDOW) / FS * 1000,
         "qrsw4_ms": _lebar_pada_fraksi(windows, 0.25, R_IN_WINDOW) / FS * 1000,
@@ -57,17 +27,6 @@ def fitur_aturan(windows: np.ndarray, rr: np.ndarray) -> dict:
 
 def kalibrasi_ambang(f: dict, aami: np.ndarray, ditandai: np.ndarray,
                      min_presisi: float = MIN_PRESISI_NAMA) -> dict:
-    """Ambang lebar QRS TERKECIL yang presisi nama "V"-nya masih >= min_presisi.
-
-    BUKAN F1. Memaksimalkan F1 kelas V di antara beat yang ditandai memberi
-    hadiah untuk "namai semuanya V" — V sekitar separuh dari yang ditandai, jadi
-    aturan malas itu skor F1-nya bagus. Terukur dengan kriteria F1: ambang
-    mendarat di dasar grid, 4.387 dinamai V, cuma 1.664 benar.
-
-    Ambang TERKECIL yang lolos = cakupan terbesar pada presisi yang dijanjikan.
-    Kalau tak ada yang lolos, nama V tidak ditampilkan sama sekali (None) —
-    diam lebih baik daripada salah.
-    """
     v = (aami == "V") & ditandai
     kandidat = []
     for amb in np.arange(10, 121, 2.0):
@@ -85,12 +44,6 @@ def kalibrasi_ambang(f: dict, aami: np.ndarray, ditandai: np.ndarray,
 
 
 def namai(f: dict, ditandai: np.ndarray, amb: dict) -> np.ndarray:
-    """-> array label: "Normal" / "V" / "tak dinamai". S TIDAK dinamai di sini.
-
-    Cabang S menunggu GATE G2: tanpa RR+1/RR0 tidak ada sumbu jeda kompensasi,
-    dan tanpa itu S tak terpisah dari beat normal yang kebetulan cepat. Menamai S
-    dari rasio RR saja memberi +P 42% (P5) — itu melabeli alarm palsu.
-    """
     out = np.full(len(ditandai), "Normal", dtype="<U12")
     out[ditandai] = "tak dinamai"
     if amb["qrsw2_ms"] is not None:
@@ -112,10 +65,6 @@ def main() -> None:
     thr = kalibrasi(model, va)
     print(f"[{args.tag}] threshold tahap 1 dari VAL = {thr:.2f}")
 
-    # Kalibrasi ambang aturan di VAL. AAMI per beat belum ada di va -> pakai DS1
-    # lewat rakit(); di sini cukup pakai label biner + lebar, jadi V dicari dari
-    # symbols yang rakit_ds1 tidak simpan. Solusi: kalibrasi di DS1 record VAL
-    # lewat jalur rakit() yang memang mengembalikan aami.
     from src.io_mitdb import load_record
     from src.preprocessing import apply_bandpass, segment_beats, zscore_per_window
     from src.features_rr import rakit_fitur_ritme, to_aami_class
@@ -141,7 +90,6 @@ def main() -> None:
         print(f"[{args.tag}] ambang QRSw2 dari VAL = {amb['qrsw2_ms']:.0f} ms "
               f"(presisi V di VAL {amb['presisi_val']:.1%}, cakupan {amb['cakupan_val']:.1%})")
 
-    # Terapkan di DS2
     Xm, Xr, y, aami = rakit(muat_ds2(sos), None, 0, 0)
     prob = model.predict([Xm, Xr], verbose=0, batch_size=8192).ravel()
     ditandai = prob >= thr

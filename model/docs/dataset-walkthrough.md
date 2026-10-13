@@ -197,6 +197,126 @@ memberi split yang berbeda tanpa tanda. Cek kebocoran yang sama berlaku antara
 `train` dan setiap set uji. Model produksi tetap dilatih dari `train.npz`
 (mitdb saja).
 
+### Konstanta multi-database di `config.py`
+
+Tujuan Fase A (permintaan pembimbing): memperluas data latih. Sebaran berikut
+terukur 19 Sep 2026 dari anotasi asli PhysioNet yang dipetakan lewat `AAMI_MAP`,
+bukan disalin dari paper (angka yang sama dibekukan di
+`tests/test_multidataset.py`):
+
+```
+svdb      78 rec, 128 Hz | S 12.198/73rec  V  9.943/67rec  F  23/6rec   Q 79/20rec
+incartdb  75 rec, 257 Hz | S  1.960/36rec  V 20.013/70rec  F 219/22rec  Q  6/5rec
+```
+
+**Kenapa dua database ini.** Keduanya punya anotasi beat-level (`.atr`, satu
+simbol per R-peak) dengan alfabet WFDB yang sama, jadi `AAMI_MAP` menanganinya
+tanpa mapping baru. PTB-XL, CPSC, dan Chapman ditolak bukan karena frekuensi
+cuplik, tetapi karena diagnosisnya per-rekaman: label per-beat tidak bisa
+diturunkan dari sana. Syarat yang sama berlaku untuk database berikutnya yang
+ditambahkan ke `download_data.py`.
+
+**Peran yang diharapkan.** svdb untuk recall S (0,422 ± 0,156; dari 634 beat S
+di ~20 pasien ke ~11.250 di ~102). incartdb untuk konsentrasi F: 372 dari 394
+beat F mitdb ada di record 208 saja (satu pasien efektif), sedangkan incartdb
+menyebar 219 beat di 22 record; yang diperbaiki cakupan pasien, bukan jumlah
+beat. Q tidak tertolong: 100 beat di tiga database (mitdb 8 + 7, svdb 79,
+incartdb 6), sehingga Q tetap bukan kelas yang bisa dilaporkan.
+
+**DS2 mitdb tidak berubah satu byte.** Dia satu-satunya set yang sebanding
+literatur, dan aturan "DS2 tidak memilih apa pun" hanya bisa ditegakkan kalau
+komposisinya bukan variabel. Data baru masuk train; sisanya menjadi test
+terpisah untuk generalisasi antar-database. `load_record(db="mitdb")` dijaga
+44/44 record byte-identik dengan sebelum Fase A.
+
+**`leads`.** Dipilih lead pertama yang tersedia. mitdb MLII = acuan alat
+(AD8232 lead II). incartdb `II` paling dekat dengannya. svdb (Holter) tidak
+menamai lead, jadi `ECG1` dipakai; polaritasnya diverifikasi `scripts/cek_lead.py`
+(gate A2: 8/8 record svdb positif di R).
+
+**`selaraskan` dan `ALIGN_WIN = 16`.** Konvensi anotasi antar-database berbeda.
+Terukur atas beat normal, posisi puncak relatif anotasi di sinyal ter-bandpass:
+
+```
+mitdb  median  +3   p5..p95  +1..+5     anotasi DI puncak; +3/+4 = group delay
+svdb   median +10   p5..p95  -2..+15    ~6 sampel lebih awal, sebaran 3x lebih lebar
+```
+
+Bias +6 sampel itu di atas ambang bahaya repo ini (meleset 4 sampel menjatuhkan
+precision 0,48 → 0,12) dan sistematis, bukan jitter berpusat nol: tanpa koreksi
+tiap beat svdb tergeser searah dan model membacanya sebagai morfologi lain, alias
+belajar identitas dataset. Maka svdb dan incartdb diselaraskan
+(`selaraskan_r`: geser anotasi ke puncak, lalu kembalikan group delay; sepadan
+dengan penyelarasan Pan-Tompkins di firmware, jendela lebih sempit). mitdb wajib
+`False`: dia acuan `golden_ref.h` dan semua ablasi terkunci, dan median +3 vs +4
+berarti menyelaraskannya menggeser R ~1 sampel dan membatalkan semuanya.
+Setengah-lebar jendela cari-puncak 16 sampel (±44 ms) menutup p1..p99 svdb
+(−9..+15) tanpa menjangkau gelombang T (~200-300 ms = 72-108 sampel); 25
+(`PT_REFINE_WIN`, ±70 ms) dibuat untuk sebaran detektor (std 13 sampel) dan di
+sini terlalu lebar. `cek_lead.py` membaca polaritas dari kolom "mentah" dan
+alignment dari kolom "selaras"; kolom "selaras" tidak boleh memvonis polaritas
+karena `selaraskan_r` memakai argmax bertanda yang memaksa nilai di R positif.
+
+**Laju cuplik diseragamkan ke 360 Hz.** `WIN_PRE` terdefinisi dalam sampel,
+bukan waktu: 128 sampel @ 360 Hz = 355 ms (yang diablasi dan dikunci), sedangkan
+128 sampel @ 128 Hz = 1.000 ms, fisiologi lain sama sekali. Yang membayar di
+ablasi window adalah konteks gelombang P dan interval PR ~150-200 ms sebelum R,
+jadi durasinya yang harus dijaga. Dengan target 360 Hz, `WIN_PRE/WIN_POST`,
+koefisien bandpass, `ECG_FS` firmware, dan `golden_ref.h` tidak berubah.
+`resample_to_fs` memakai `resample_poly` (polyphase, linear-phase), dan posisi R
+cukup dibulatkan selama arahnya upsample (indeks makin menyebar, tak mungkin
+bertabrakan); bila suatu hari `fs_target < fs_asal`, dua R bisa jatuh ke indeks
+yang sama (RR = 0), dan itu harus berisik. `fs` setiap record dicek terhadap
+janji `DATASETS[db]["fs"]` sebelum resample, supaya tabel config yang salah tidak
+tertutupi resample.
+
+**`id_offset`.** Lihat `record_int_id` di §3. Tanpa peta itu `int("I18")`
+melempar `ValueError` di `stack_records`, bukan gagal dengan pesan berguna.
+
+**`SPLIT_SETIAP_KE = 4`.** Held-out tiap database tambahan = setiap record ke-4
+dalam urutan tersortir (~25%). Aturan, bukan seed: tidak ada yang bisa
+dipancing, dan siapa pun dapat memverifikasinya dengan `sorted(records)[::4]`.
+Konsekuensi yang sudah diperiksa: held-out incartdb hanya mendapat ~13-20 beat F
+(I05 = 9, I65 = 4, plus sisa kecil) karena record F terbesar (I18 = 56,
+I74 = 48) jatuh ke train. Itu disengaja; F di test dilaporkan sebagai hitungan
+TP/FN mentah, bukan recall berkoma.
+
+**`n_record`.** Jumlah record lengkap yang diharapkan (mitdb 48 − 4
+`PACED_EXCLUDED` = 44). Aturan held-out dihitung dari daftar yang ADA, jadi
+database yang baru separuh terunduh menghasilkan held-out yang berbeda tanpa
+tanda. Terukur 19 Sep pada 65/75 record incartdb: I68 masuk held-out padahal
+seharusnya tidak, dan I65/I69/I73 hilang (I65 memegang 4 beat F). Karena itu
+`build_split_multi` menolak database yang jumlah recordnya tidak pas; split yang
+salah lebih buruk daripada error. `available_records` juga menuntut `.hea`,
+`.dat`, dan `.atr` sekaligus, karena unduhan yang masih berjalan meninggalkan
+`.hea` tanpa `.atr`.
+
+**`DB_LATIH = ("mitdb", "svdb")`, incartdb hanya test.** Held-out selalu menjadi
+test, tetapi porsi train sebuah database hanya ikut bila dia ada di `DB_LATIH`.
+Fase B mengukur incartdb merugikan di latih walau menyumbang 256.454 beat latih
+(4 varian × 3 seed):
+
+```
+                mitdb      +svdb    +incartdb   +keduanya
+AUC            0,9373     0,9314     0,8881      0,9092
+recall S       0,4221     0,4980     0,3312      0,4050
+```
+
+Rentang recall S +svdb [0,423; 0,573] dan +incartdb [0,307; 0,355] terpisah:
+efeknya berlawanan, dan di "+keduanya" hampir saling meniadakan (−0,017).
+Penyebabnya bukan lead (II ≈ MLII, gate A2) atau resolusi (257 > 128 Hz),
+melainkan komposisi: 15.592 beat V dari populasi lain menumpulkan pemisahan
+N-vs-S. incartdb tetap dipakai sebagai test antar-database (41.108 beat,
+19 pasien). Model produksi tetap mitdb saja (`model/CLAUDE.md`, baris Database
+LATIH); `DB_LATIH` hanya dipakai jalur ablasi.
+
+**Angka beku di `tests/test_multidataset.py`.** Semuanya diukur 19 Sep 2026 dan
+dibekukan supaya perubahan senyap ketahuan. Bila salah satu gagal, urutan
+tersangkanya: (1) daftar record berubah, (2) `AAMI_MAP`/`BEAT_SYMBOLS` diedit,
+(3) `DATASETS` salah isi, bukan "angkanya kebetulan beda". VAL dijaga mirip DS2
+(threshold dikalibrasi di VAL lalu dipakai di DS2), sedangkan train boleh
+bergeser karena svdb kaya S.
+
 ---
 
 ## 5. Yang sengaja TIDAK dilakukan

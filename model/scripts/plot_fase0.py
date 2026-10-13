@@ -1,10 +1,3 @@
-"""Fase 0 — verifikasi loader: overlay R-peak anotasi di atas sinyal.
-
-    python scripts/plot_fase0.py 100
-
-DoD Fase 0 (PRD): garis R-peak mendarat PAS di puncak R. Kalau meleset →
-loader/anotasi salah baca (cek kanal MLII bukan selalu index 0).
-"""
 import os
 import sys
 
@@ -13,13 +6,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
-# ponytail: shim 1 baris supaya `import config` jalan saat dipanggil sebagai
-# script (sys.path[0] = scripts/, bukan model/). Kalau sudah 3 script butuh ini,
-# baru ekstrak ke modul bootstrap bersama.
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import FS, NORMAL_SYMBOLS  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
+from config import FS, NORMAL_SYMBOLS
+from src.io_mitdb import load_record
 
 PLOT_SECONDS = 10
 OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

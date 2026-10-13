@@ -1,10 +1,3 @@
-"""Assert DoD yang berupa angka — bagian config & split (PRD Fase 0-3).
-
-    make test        (atau: pytest tests/ -q)
-
-Test yang butuh konstanta belum ada otomatis di-skip, jadi file ini tetap hijau
-selama pengisian config.py bertahap.
-"""
 import pytest
 
 import config
@@ -13,9 +6,6 @@ import config
 def test_sampling_dan_window():
     assert config.FS == 360
     assert config.WIN_LEN == config.WIN_PRE + config.WIN_POST
-    # 256 = TOTAL, bukan +-256 (=512). Jebakan PRD yang dijaga di sini adalah
-    # salah baca "window 256" jadi setengah-lebar. Nilai 256 berasal dari ablasi
-    # Fase 6c (docs/jitter-walkthrough.md).
     assert config.WIN_LEN == 256, "jebakan PRD: 256 total, bukan +-256 (=512)"
     assert config.WIN_PRE == 128 and config.WIN_POST == 128
 

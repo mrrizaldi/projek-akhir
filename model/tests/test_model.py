@@ -5,7 +5,6 @@ from src.model import build_hybrid_model
 
 
 def test_param_budget():
-    """~6.000 param (PRD). Jauh lebih besar = tak sengaja pakai Flatten."""
     n = build_hybrid_model().count_params()
     assert 5000 <= n <= 7000, f"count_params()={n}, cek Flatten/Dense kegedean"
 
@@ -26,7 +25,6 @@ def test_predict_dummy_di_rentang_probabilitas():
 
 
 def test_cabang_ritme_benar_benar_terpakai():
-    """Ubah HANYA fitur RR → output harus berubah. Kalau tidak, concat salah sambung."""
     m = build_hybrid_model()
     morph = np.zeros((1, WIN_LEN, 1))
     a = m.predict([morph, np.zeros((1, N_RR_FEATURES))], verbose=0)

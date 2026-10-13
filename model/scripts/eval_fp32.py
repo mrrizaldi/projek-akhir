@@ -1,17 +1,3 @@
-"""Fase 6 — evaluasi float32 di DS2 (inter-patient, belum pernah dilihat).
-
-    make eval        (atau: python scripts/eval_fp32.py)
-
-Threshold TIDAK dituning di sini — dipakai apa adanya dari config.THRESHOLD
-yang sudah dikalibrasi di DS1/val (JEBAKAN PRD Fase 6).
-
-Keluaran:
-    artifacts/metrics/fase6_confusion_fp32.png
-    artifacts/metrics/fase6_metrics_fp32.csv        (baris "float32" tabel delta Fase 7)
-    artifacts/metrics/fase6_per_record_fp32.csv
-
-Penjelasan alur & alasan: docs/evaluate-walkthrough.md
-"""
 import os
 import sys
 
@@ -19,13 +5,13 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import matplotlib  # noqa: E402
+import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import tensorflow as tf  # noqa: E402
+import matplotlib.pyplot as plt
+import tensorflow as tf
 
-from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR, THRESHOLD  # noqa: E402
-from src.evaluate import evaluate_probabilities, per_record_metrics, roc_auc  # noqa: E402
+from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR, THRESHOLD
+from src.evaluate import evaluate_probabilities, per_record_metrics, roc_auc
 
 
 def plot_confusion(counts: dict, out_path: str, judul: str) -> None:

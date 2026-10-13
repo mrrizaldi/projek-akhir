@@ -1,6 +1,3 @@
-// GENERATED oleh model/scripts/export_golden.py — JANGAN EDIT TANGAN.
-// Koefisien golden reference dari model/src/preprocessing.py.
-// Regenerasi: cd model && python scripts/export_golden.py
 #ifndef ECG_PREPROC_H
 #define ECG_PREPROC_H
 
@@ -9,20 +6,16 @@
 #define ECG_WIN_POST 128
 #define ECG_WIN_LEN_ 256
 #define ECG_ZSCORE_EPS 1e-8f
-// Juga didefinisikan di model_int8.h — dijaga supaya tidak bentrok.
 #ifndef ECG_N_RR
 #define ECG_N_RR 3
 #endif
 #define ECG_RR_LOCAL_WINDOW 10
-// Fase D — bentuk fitur ritme. ECG_N_RR_DASAR = kolom RR saja (tanpa QRSw/HOS).
 #define ECG_N_RR_DASAR 3
 #define ECG_RR_RATIO 0
 #define ECG_QRSW 0
-// Posisi R di dalam window = WIN_PRE + group delay. Dipakai ecg_qrs_lebar().
 #define ECG_R_IN_WINDOW 132
 #define ECG_QRSW_CARI 4
 
-// Pan-Tompkins (deteksi R-peak on-device).
 #define ECG_PT_MWI_LEN 54
 #define ECG_PT_REFRACTORY 72
 #define ECG_PT_N_SOS 2
@@ -31,16 +24,10 @@ const float ecg_pt_sos[12] = {
   1.00000000e+00f, -2.00000000e+00f, 1.00000000e+00f, 1.00000000e+00f, -1.91937262e+00f, 9.28744645e-01f
 };
 
-// Penyelarasan R-peak. Urutan WAJIB, salah satu terlewat -> precision jatuh 4x:
-//   r - ECG_PT_OFFSET  ->  puncak dlm +-ECG_PT_REFINE  ->  - ECG_GROUP_DELAY
 #define ECG_PT_OFFSET 38
 #define ECG_PT_REFINE 25
 #define ECG_GROUP_DELAY 4
 
-// Butterworth bandpass 0.5-40.0 Hz orde 4,
-// 4 second-order section: {b0, b1, b2, a0, a1, a2} per baris.
-// KAUSAL — jalankan maju saja, jangan pernah maju-mundur (filtfilt).
-// Group delay menggeser R-peak +4 sampel; BIARKAN, model dilatih dengan geseran itu.
 #define ECG_N_SOS 4
 const float ecg_sos[24] = {
   6.60487567e-03f, 1.32097513e-02f, 6.60487567e-03f, 1.00000000e+00f, -9.78949069e-01f, 2.64010653e-01f,
@@ -49,4 +36,4 @@ const float ecg_sos[24] = {
   1.00000000e+00f, -2.00000000e+00f, 1.00000000e+00f, 1.00000000e+00f, -1.99338058e+00f, 9.93457003e-01f
 };
 
-#endif  // ECG_PREPROC_H
+#endif

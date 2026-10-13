@@ -1,4 +1,3 @@
-"""train — Fase 5: class weight + loop training. Walkthrough: docs/train-walkthrough.md"""
 import numpy as np
 from tensorflow.keras import callbacks, metrics, optimizers
 
@@ -14,7 +13,6 @@ def make_class_weights(y) -> dict:
 
 
 def compile_model(model, lr: float = 0.0):
-    """lr > 0 untuk ablasi T12. 0 = bawaan Adam (1e-3) = jalur terkunci."""
     model.compile(
         optimizer=optimizers.Adam(learning_rate=lr) if lr else "adam",
         loss="binary_crossentropy",
@@ -28,12 +26,6 @@ def compile_model(model, lr: float = 0.0):
 
 
 class RataBobotTerbaik(callbacks.Callback):
-    """Rata-rata bobot N epoch ber-`monitor` tertinggi (ablasi T7).
-
-    Dipasang SESUDAH EarlyStopping supaya menimpa hasil restore_best_weights.
-    Aman tanpa penghitungan ulang statistik: model ini tidak punya BatchNorm.
-    """
-
     def __init__(self, monitor: str, n: int):
         super().__init__()
         self.monitor, self.n = monitor, n
@@ -55,14 +47,6 @@ class RataBobotTerbaik(callbacks.Callback):
 def train(model, train_data: dict, val_data: dict,
           epochs: int = EPOCHS, batch_size: int = BATCH_SIZE,
           pakai_class_weight: bool = True, swa_n: int = 0, lr: float = 0.0):
-    """pakai_class_weight=False untuk ablasi K1/T1 (docs/arsip/2026-09-19-fitur-design.md).
-
-    Bawaan True = nilai terkunci, tidak berubah. P1 Tabel 4 mengukur trade-off-nya
-    di varian yang HANYA beda ini: recall -7 poin, precision +31 poin.
-
-    swa_n > 0 untuk ablasi T7: alih-alih memungut argmax `val_auc` (lotere epoch
-    oneDNN), rata-ratakan bobot swa_n epoch terbaik. 0 = jalur terkunci.
-    """
     compile_model(model, lr)
     cb = [callbacks.EarlyStopping(
         monitor=EARLY_STOP_MONITOR, mode="max",

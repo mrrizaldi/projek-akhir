@@ -1,15 +1,3 @@
-"""Assert DoD Fase A — penggabungan mitdb + svdb + incartdb.
-
-    make test        (atau: pytest tests/test_multidataset.py -q)
-
-Angka di file ini BUKAN dari paper. Semuanya diukur pada 19 Sep 2026 dari
-anotasi asli PhysioNet yang dipetakan lewat config.AAMI_MAP, dan dibekukan di
-sini supaya perubahan senyap ketahuan. Kalau salah satu gagal, urutan
-tersangkanya: (1) daftar record berubah, (2) AAMI_MAP/BEAT_SYMBOLS diedit,
-(3) DATASETS salah isi — BUKAN "angkanya kebetulan beda".
-
-Test yang butuh database di data/raw/<db>/ otomatis di-skip.
-"""
 import collections
 import os
 
@@ -19,21 +7,16 @@ import pytest
 import config
 from src.dataset import bagi_train_test, record_int_id, records_tersedia
 
-# ── Sebaran terukur 19 Sep 2026 (anotasi mentah, sebelum prep_beats buang tepi) ──
 SEBARAN = {
     "svdb":     {"N": 162339, "S": 12198, "V":  9943, "F":  23, "Q": 79},
     "incartdb": {"N": 153676, "S":  1960, "V": 20013, "F": 219, "Q":  6},
 }
-# Di berapa record tiap kelas muncul. Ini yang sebenarnya jadi alasan Fase A:
-# F kita 372 dari 394 beat ada di record 208 SAJA (1 pasien efektif), sedangkan
-# incartdb menyebar 219 beat di 22 record. Yang diobati cakupan, bukan jumlah.
 N_RECORD_BERKELAS = {
     "svdb":     {"N": 78, "S": 73, "V": 67, "F":  6, "Q": 20},
     "incartdb": {"N": 75, "S": 36, "V": 70, "F": 22, "Q":  5},
 }
 JUMLAH_RECORD = {"svdb": 78, "incartdb": 75}
 
-# Daftar lengkap, dibekukan supaya aturan split bisa diuji tanpa download.
 SVDB_SEMUA = (
     [str(x) for x in range(800, 813)] + [str(x) for x in range(820, 830)]
     + [str(x) for x in range(840, 895)])
@@ -52,8 +35,6 @@ def _ada(db: str) -> bool:
 
 
 def _lewati_kalau_separuh_jadi():
-    """build_split_multi() menolak database yang separuh ter-prep — itu benar,
-    tapi test komposisi tidak bisa jalan di keadaan itu."""
     if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
         pytest.skip("per_record belum dibangun (make prep)")
     for db, spec in config.DATASETS.items():
@@ -62,8 +43,6 @@ def _lewati_kalau_separuh_jadi():
         if ter_prep and len(ter_prep) != spec["n_record"]:
             pytest.skip(f"{db} baru {len(ter_prep)}/{spec['n_record']} ter-prep")
 
-
-# ── 1. Tabel DATASETS ────────────────────────────────────────────────────────
 
 def test_datasets_lengkap_dan_konsisten():
     assert set(config.DATASETS) == {"mitdb", "svdb", "incartdb"}
@@ -76,7 +55,6 @@ def test_datasets_lengkap_dan_konsisten():
 
 
 def test_rentang_id_tidak_bertumpuk():
-    """records bertipe int32; tiga rentang harus disjoint atau metrik per-record bohong."""
     rentang = {
         "mitdb": {record_int_id(r) for r in config.DS1 + config.DS2 + config.PACED_EXCLUDED},
         "svdb": {record_int_id(r, "svdb") for r in SVDB_SEMUA},
@@ -97,8 +75,6 @@ def test_record_int_id_memetakan_nama_alfanumerik():
         record_int_id("bukan-record", "mitdb")
 
 
-# ── 2. Aturan split (tanpa perlu download) ───────────────────────────────────
-
 def test_split_setiap_ke_4_deterministik():
     for semua, heldout in [(SVDB_SEMUA, HELDOUT_SVDB), (INCART_SEMUA, HELDOUT_INCART)]:
         train, test = bagi_train_test(semua)
@@ -109,20 +85,16 @@ def test_split_setiap_ke_4_deterministik():
 
 
 def test_split_dua_kali_hasil_sama():
-    """Tak ada RNG di dalamnya — dipanggil dua kali harus identik."""
     assert bagi_train_test(INCART_SEMUA) == bagi_train_test(INCART_SEMUA)
 
 
 def test_ds2_mitdb_tidak_tersentuh_fase_a():
-    """Satu-satunya angka yang sebanding literatur. Fase A TIDAK boleh mengubahnya."""
     assert config.DS2 == [100, 103, 105, 111, 113, 117, 121, 123, 200, 202, 210,
                           212, 213, 214, 219, 221, 222, 228, 231, 232, 233, 234]
     assert len(config.DS1) == 22 and len(config.DS2) == 22
     assert config.VAL_RECORDS == [101, 114, 201, 220, 223]
     assert set(config.VAL_RECORDS) <= set(config.DS1)
 
-
-# ── 3. Sebaran kelas (butuh database di data/raw/) ───────────────────────────
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_sebaran_kelas_sesuai_yang_diukur(db):
@@ -151,19 +123,13 @@ def test_sebaran_kelas_sesuai_yang_diukur(db):
 
 
 def test_q_tetap_bukan_kelas_yang_bisa_dilaporkan():
-    """Tiga database digabung memberi 100 beat Q: mitdb 8 (DS1) + 7 (DS2),
-    svdb 79, incartdb 6. Dijaga supaya tak ada yang tergoda menambah cabang Q
-    di tahap 2 berdasarkan angka yang tidak ada."""
     Q_MITDB = 8 + 7
     total = Q_MITDB + SEBARAN["svdb"]["Q"] + SEBARAN["incartdb"]["Q"]
     assert total == 100
     assert total < 200, "kalau ini gagal, Q mungkin sudah layak — cek ulang"
 
 
-# ── 4. Kontrak resample ──────────────────────────────────────────────────────
-
 def test_resample_mitdb_dilewati():
-    """fs == FS harus lewat tanpa menyentuh resample — jalur mitdb wajib utuh."""
     if not os.path.isdir(config.RAW_DIR):
         pytest.skip("mitdb belum di-download")
     from src.io_mitdb import load_record
@@ -174,7 +140,6 @@ def test_resample_mitdb_dilewati():
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_resample_kontrak(db):
-    """Hasil resample: fs & posisi R harus benar, durasi kekal."""
     if not _ada(db):
         pytest.skip(f"{db} belum di-download")
     from src.io_mitdb import load_record
@@ -186,42 +151,34 @@ def test_resample_kontrak(db):
     assert len(r) == len(sym), "R-peak & simbol harus tetap sejajar"
     assert np.all(np.diff(r) > 0), "R-peak harus urut menaik (RR > 0)"
     assert r.max() < len(signal), "indeks R keluar dari sinyal hasil resample"
-    # Durasi harus kekal: meleset >1% berarti rasio resample-nya salah.
     durasi_asal = wfdb_sig_len(db, rec) / fs_asal
     assert abs(len(signal) / config.FS - durasi_asal) / durasi_asal < 0.01, \
         f"durasi berubah: {len(signal)/config.FS:.1f}s vs {durasi_asal:.1f}s"
 
 
-# ── 5. Penyelarasan anotasi antar-database (gate A2) ─────────────────────────
-
 def test_selaraskan_menaruh_puncak_di_win_pre():
-    """Puncak buatan digeser 9 sampel dari anotasi -> harus balik ke WIN_PRE+delay."""
     from src.preprocessing import selaraskan_r
     n = 4000
     x = np.zeros(n, dtype=np.float32)
     anot = np.arange(400, n - 400, 400)
-    puncak = anot + 9                      # persis pola svdb: anotasi lebih awal
+    puncak = anot + 9
     x[puncak] = 1.0
     r = selaraskan_r(anot, x)
     assert np.all(r == puncak - config.GROUP_DELAY_SAMPLES)
-    # window dipotong di r -> puncak mendarat di WIN_PRE + GROUP_DELAY = 132
     assert np.all(puncak - (r - config.WIN_PRE)
                   == config.WIN_PRE + config.GROUP_DELAY_SAMPLES)
 
 
 def test_selaraskan_tidak_melompat_ke_gelombang_t():
-    """T lebih tinggi tapi 250 ms dari R: di luar ALIGN_WIN, jangan diambil."""
     from src.preprocessing import selaraskan_r
     x = np.zeros(2000, dtype=np.float32)
     anot = np.array([500])
-    x[504] = 1.0                            # R (group delay +4)
-    x[504 + 90] = 3.0                       # T, 250 ms = 90 sampel, lebih tinggi
+    x[504] = 1.0
+    x[504 + 90] = 3.0
     assert selaraskan_r(anot, x)[0] == 504 - config.GROUP_DELAY_SAMPLES
 
 
 def test_mitdb_tidak_pernah_diselaraskan():
-    """mitdb acuan golden_ref.h & semua ablasi terkunci. Median +3 vs +4 berarti
-    menyelaraskannya menggeser r ~1 sampel dan membatalkan semuanya."""
     assert config.DATASETS["mitdb"]["selaraskan"] is False
     assert config.DATASETS["svdb"]["selaraskan"] is True
     assert config.DATASETS["incartdb"]["selaraskan"] is True
@@ -230,12 +187,6 @@ def test_mitdb_tidak_pernah_diselaraskan():
 
 @pytest.mark.parametrize("rec", ["100", "232"])
 def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
-    """Fase A tidak boleh mengubah SATU angka pun di mitdb.
-
-    Dipilih record DS2 (tak pernah dijitter) supaya deterministik tanpa harus
-    memutar ulang urutan rng. Cek penuh 44/44 record (manual, 19 Sep 2026):
-    44 identik, 0 berubah (plan §3).
-    """
     npz = os.path.join(config.PER_RECORD_DIR, f"{rec}.npz")
     if not os.path.exists(npz):
         pytest.skip("per_record belum dibangun (make prep)")
@@ -248,8 +199,6 @@ def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
             assert np.array_equal(lama[k], baru[k]), f"rec {rec}: {k} berubah"
 
 
-# ── 6. Split gabungan Fase A ─────────────────────────────────────────────────
-
 def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
     _lewati_kalau_separuh_jadi()
     from src.dataset import build_split_multi, build_split
@@ -257,7 +206,6 @@ def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
     h = build_split_multi()
     assert "train" in h and "ds2" in h
 
-    # DS2 di split gabungan HARUS identik dengan test.npz jalur mitdb-only.
     _, test_lama = build_split()
     for k in ("X_morph", "X_rr", "y", "records"):
         assert np.array_equal(h["ds2"][k], test_lama[k]), f"ds2 {k} bergeser"
@@ -273,8 +221,6 @@ def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
 
 
 def test_val_tetap_cermin_ds2_bukan_cermin_train():
-    """Threshold dikalibrasi di VAL lalu dipakai di DS2, jadi VAL harus mirip DS2.
-    Train boleh bergeser (svdb kaya S) — itu justru yang diinginkan."""
     _lewati_kalau_separuh_jadi()
     from src.dataset import build_split_multi, split_train_val
 
@@ -288,10 +234,6 @@ def test_val_tetap_cermin_ds2_bukan_cermin_train():
 
 
 def test_incartdb_hanya_test_bukan_latih():
-    """Fase B mengukur incartdb merugikan di LATIH (AUC 0,8881 vs 0,9373;
-    recall S 0,331 vs 0,498 untuk svdb, rentangnya TERPISAH). Dia tetap dipakai
-    sebagai test antar-database. Dijaga di sini supaya tidak diam-diam kembali
-    ke latih saat seseorang menambah database lagi."""
     assert config.DB_LATIH == ("mitdb", "svdb")
     assert "incartdb" in config.DATASETS, "tetap terdaftar — dia masih jadi TEST-C"
     _lewati_kalau_separuh_jadi()
@@ -306,7 +248,6 @@ def test_incartdb_hanya_test_bukan_latih():
 
 
 def test_train_bisa_tanpa_class_weight():
-    """Flag ablasi K1/T1. Bawaan HARUS tetap memakai class_weight balanced."""
     import inspect
     from src.train import train
     sig = inspect.signature(train)
@@ -315,10 +256,6 @@ def test_train_bisa_tanpa_class_weight():
 
 
 def test_split_multi_menolak_database_separuh_jadi(monkeypatch):
-    """Aturan held-out `sorted()[::4]` dihitung dari daftar yang ADA, jadi
-    database tak lengkap memberi split BEDA tanpa bersuara. Terukur 19 Sep pada
-    65/75 record incartdb: I68 masuk held-out padahal tidak seharusnya, dan
-    I65/I69/I73 hilang (I65 memegang 4 beat F). Split salah > error."""
     _lewati_kalau_separuh_jadi()
     from src.dataset import build_split_multi
 

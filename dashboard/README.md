@@ -66,9 +66,46 @@ replay, syarat waktu stabil dan RR tenang gerbang kalibrasi dilewati otomatis,
 jadi tidak butuh elektroda. Hasil terukur ada di
 [`mqtt-walkthrough.md`](../model/docs/mqtt-walkthrough.md) §7c.
 
-`smoke_test.py` menguji
-klaim yang paling rapuh: publikasi ulang dengan `ts` identik harus meng-UPSERT
-baris, bukan menambah. Bila assert itu gagal, klaim dedup di Bab 3 tidak berlaku.
+Rincian cara ukur `ukur_pipeline.py` (butuh `pyserial`, ada di
+`model/requirements.txt`):
+
+- **Idempoten terhadap replay.** `y` adalah toggle, jadi status dibaca dulu dan
+  `y` hanya dikirim bila replay belum menyala. `k` (override gerbang) tidak
+  dikirim; replay sudah melewati gerbang kalibrasi di firmware.
+- **Selisih jam board vs laptop dikoreksi.** Skrip meminta status (`s`),
+  mencatat waktu laptop saat barisnya tiba, lalu membandingkannya dengan
+  `epoch_ms` yang dicetak board: `ts_laptop = ts_board - offset`. Tanpa koreksi
+  ini selisih jam terbaca sebagai latensi. Sisa galatnya ongkos serial (~ms).
+- **Dua batas latensi.** Sebuah baris terlihat di antara waktu `sebelum` dan
+  `sesudah` panggilan REST. `sesudah` membebankan lambatnya REST ke sistem
+  (batas atas, termasuk bias periode polling ~100 ms); `sebelum` memberi batas
+  bawah yang bebas dari itu. Latensi minimum juga dicetak sebagai batas bawah.
+- **PDSR dari baris status TERAKHIR saja.** Baris dari fase ukur-selisih-jam
+  masih 0 paket; mengambilnya membuat PDSR terbaca 0%.
+
+`probe_rtt.py` memakai device terpisah supaya telemetri `esp32s3-ekg-01` tidak
+terkotori; tujuannya dan hasilnya di
+[`mqtt-walkthrough.md`](../model/docs/mqtt-walkthrough.md).
+
+`smoke_test.py` menguji jalur ESP32 → broker → `ts_kv` tanpa hardware dan tanpa
+dependency, berurutan:
+
+1. Device dibuat lewat REST dan token-nya diambil (provisioning).
+2. MQTT CONNECT dengan username = access token, password kosong, diterima.
+3. Payload single record sampai di `ts_kv` dengan `ts` milik perangkat, bukan
+   waktu kedatangan di server.
+4. Payload batch (array multiple timestamped key-value) diterima node Save
+   Timeseries bawaan tanpa rule chain tambahan.
+5. Publikasi ulang dengan `ts` identik (nilai beda) meng-UPSERT baris, bukan
+   menambah. Ini yang terjadi saat PUBACK hilang dan batch QoS-1 dikirim ulang,
+   dan ini klaim paling rapuh: bila assert ini gagal, klaim dedup di Bab 3 tidak
+   berlaku. Skrip menunggu 2 detik sebelum membaca karena rule engine asinkron.
+
+MQTT 3.1.1 ditulis langsung di atas socket (CONNECT, PUBLISH QoS 1, PUBACK,
+DISCONNECT), bukan memakai `paho-mqtt`: 60 baris socket lebih murah daripada
+dependency baru untuk satu skrip uji, dan sekaligus menjadi referensi ringkas
+urutan paket yang ditiru firmware, terutama menunggu PUBACK sebelum menggeser
+read pointer ring buffer.
 
 ## Dashboard
 
@@ -97,6 +134,10 @@ BPM dan interval R-R sengaja dipisah jadi dua chart. Digabung dalam satu chart,
 BPM (60-100) gepeng menempel di dasar karena RR (600-1000) mendominasi sumbu,
 dan konfigurasi sumbu-kanan (`yAxisId`) tidak menempel lewat REST. Dua chart
 melakukan auto-scale sendiri tanpa konfigurasi sumbu tambahan.
+
+Widget kartu (nilai terkini) memakai timewindow sendiri, tidak ikut timewindow
+dashboard; widget timeseries ikut. `defaultConfig` tiap widget disalin per
+widget (bukan dibagi), dan sumbu `yAxes` bawaan (`default`) tidak dibuang.
 
 ## Rule chain
 

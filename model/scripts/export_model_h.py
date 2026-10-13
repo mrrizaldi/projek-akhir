@@ -1,18 +1,11 @@
-"""Fase 8 / Lampiran C — model_int8.tflite → firmware/include/model_int8.h.
-
-    python scripts/export_model_h.py     (dipanggil oleh ../scripts/export_artifacts.sh)
-
-Beda dari `xxd -i` biasa: header ini ikut membawa scale & zero_point tiap tensor,
-supaya firmware tidak perlu meng-hardcode angka yang berubah tiap latih ulang.
-"""
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tensorflow as tf  # noqa: E402
+import tensorflow as tf
 
-from config import ARTIFACT_DIR, N_RR_FEATURES, THRESHOLD, WIN_LEN  # noqa: E402
+from config import ARTIFACT_DIR, N_RR_FEATURES, THRESHOLD, WIN_LEN
 
 TFLITE = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
 HEADER = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
@@ -45,10 +38,7 @@ def main() -> None:
              for i in range(0, len(blob), 12)]
     isi_array = ",\n  ".join(baris)
     with open(HEADER, "w") as f:
-        f.write(f"""// GENERATED oleh model/scripts/export_model_h.py — JANGAN EDIT TANGAN.
-// Sumber: model/artifacts/model_int8.tflite ({len(blob):,} byte = {len(blob) / 1024:.2f} KB)
-// Regenerasi: cd model && make quantize && make export
-#ifndef MODEL_INT8_H
+        f.write(f"""#ifndef MODEL_INT8_H
 #define MODEL_INT8_H
 
 #define ECG_WIN_LEN {WIN_LEN}
@@ -57,7 +47,6 @@ def main() -> None:
 #endif
 #define ECG_THRESHOLD {THRESHOLD}f
 
-// Kuantisasi affine: q = round(x / scale) + zero_point ; x = (q - zero_point) * scale
 #define ECG_IN_MORPH_SCALE {q['morph'][0]:.10f}f
 #define ECG_IN_MORPH_ZERO  {q['morph'][1]}
 #define ECG_IN_RR_SCALE    {q['rr'][0]:.10f}f
@@ -70,7 +59,7 @@ alignas(16) const unsigned char model_int8_tflite[] = {{
   {isi_array}
 }};
 
-#endif  // MODEL_INT8_H
+#endif
 """)
     print(f"{HEADER}  {os.path.getsize(HEADER) / 1024:.1f} KB")
     print(f"  morph scale={q['morph'][0]:.8f} zero={q['morph'][1]}")

@@ -12,7 +12,6 @@ butuh_artefak = pytest.mark.skipif(not os.path.exists(TFLITE), reason="jalankan 
 
 
 def test_kalibrasi_wajib_memuat_kedua_kelas():
-    """JEBAKAN #4: kalibrasi cuma kelas Normal → rentang aktivasi Aritmia ngawur."""
     y = np.array([0] * 900 + [1] * 100)
     idx = stratified_indices(y, n=300)
     assert (y[idx] == 0).sum() > 0 and (y[idx] == 1).sum() > 0
@@ -36,7 +35,6 @@ def test_kelas_hilang_error_bukan_diam():
 
 
 def test_generator_yield_dua_input_bernama():
-    """JEBAKAN #3: model dua-input; list posisional bikin converter salah pasang."""
     n = 40
     y = np.array([0] * 36 + [1] * 4)
     gen = representative_dataset_gen(
@@ -56,7 +54,6 @@ def test_ukuran_model_di_bawah_batas():
 
 @butuh_artefak
 def test_benar_benar_full_int8():
-    """Tidak boleh ada tensor float32 tersisa — kalau ada, bukan full-INT8."""
     import tensorflow as tf
     interp = tf.lite.Interpreter(model_path=TFLITE)
     interp.allocate_tensors()
@@ -68,12 +65,6 @@ def test_benar_benar_full_int8():
 
 @butuh_artefak
 def test_skala_ritme_artefak_wajar():
-    """Ranjau senyap: skala INT8 input ritme diturunkan dari min/max REP_SAMPLES
-    sampel kalibrasi. Satu beat ber-RR ekstrem di sana (record 207: RR_prev =
-    100 s) melebarkan skala ~30x, cabang ritme mati, dan yang TERLIHAT cuma
-    recall S buruk — bukan error. Terukur 19 Sep: sehat 0,0129; outlier disuntik
-    0,3952. Peluang kena per seed 1,8% (tiga database).
-    """
     from config import MAX_RHYTHM_SCALE
     with open(TFLITE, "rb") as f:
         skala = assert_skala_ritme_wajar(f.read())
@@ -83,7 +74,6 @@ def test_skala_ritme_artefak_wajar():
 
 @butuh_artefak
 def test_assert_skala_ritme_benar_benar_menyalak():
-    """Ambang diperketat di bawah nilai sehat -> harus raise, bukan lolos diam."""
     with open(TFLITE, "rb") as f:
         blob = f.read()
     with pytest.raises(ValueError, match="skala kuantisasi input ritme"):

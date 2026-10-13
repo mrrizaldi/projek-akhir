@@ -171,7 +171,10 @@ beat ber-RR ekstrem di kolam kalibrasi (record 207 punya `RR_prev` = 100 s)
 melebarkan skala puluhan kali, RR normal tinggal beberapa level int8, dan
 cabang ritme praktis mati. Gejalanya recall S yang buruk, bukan error. Blob
 dengan skala di atas `MAX_RHYTHM_SCALE` (0,05) ditolak dengan `ValueError`;
-nilai pada model yang berlaku 0,0129.
+nilai pada model yang berlaku 0,0129. Skala sehat secara teori ~0,0197
+(p99,99 |X_rr| = 2,51), yang rusak ~0,78 (disuntik outlier: 0,3952), jadi 0,05
+memberi ~2,5× ruang dari sehat dan ~15× di bawah rusak. Peluang terkena per seed
+terukur 19 Sep: 4,6% (mitdb saja), 1,8% (tiga database).
 
 ### Konsekuensi untuk firmware
 

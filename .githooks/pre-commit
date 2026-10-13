@@ -1,0 +1,4 @@
+#!/bin/sh
+berkas=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$berkas" ] && exit 0
+exec python3 scripts/cek_komentar.py $berkas

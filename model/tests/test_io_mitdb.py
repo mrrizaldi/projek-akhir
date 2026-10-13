@@ -1,9 +1,3 @@
-"""Assert DoD Fase 0 (PRD hal. 7) — loader MIT-BIH.
-
-    make test        (atau: pytest tests/ -q)
-
-Butuh dataset di data/raw/mitdb/ (gitignored) — kalau tidak ada, semua di-skip.
-"""
 import os
 
 import numpy as np
@@ -20,7 +14,6 @@ pytestmark = pytest.mark.skipif(
 
 @pytest.fixture(scope="module")
 def rec100():
-    """Record 30 menit; dimuat sekali dipakai beberapa test."""
     return load_record("100")
 
 
@@ -48,7 +41,6 @@ def test_simbol_non_beat_terbuang(rec100):
 
 
 def test_kanal_mlii_dipilih_eksplisit():
-    """Rec 114 kanalnya ['V5', 'MLII'] — index 0 BUKAN MLII."""
     signal, _, _, _ = load_record("114")
     record = wfdb.rdrecord(os.path.join(config.RAW_DIR, "114"))
     assert record.sig_name.index(config.CHANNEL) == 1, "asumsi test: MLII di index 1"
@@ -58,6 +50,5 @@ def test_kanal_mlii_dipilih_eksplisit():
 
 @pytest.mark.parametrize("record_id", ["102", "104"])
 def test_record_tanpa_mlii_ditolak(record_id):
-    """Menolak lebih aman daripada fallback diam-diam ke kanal lain."""
     with pytest.raises(ValueError, match=config.CHANNEL):
         load_record(record_id)

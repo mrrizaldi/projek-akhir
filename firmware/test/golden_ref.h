@@ -1,6 +1,3 @@
-// GENERATED oleh model/scripts/export_golden.py — JANGAN EDIT TANGAN.
-// Golden reference: record 208 (DS1), 2400 sampel pertama (7 detik).
-// Kode C harus menghasilkan angka ini dari GOLDEN_RAW, dalam toleransi.
 #ifndef GOLDEN_REF_H
 #define GOLDEN_REF_H
 
@@ -9,21 +6,13 @@
 #define GOLDEN_WIN_LEN 256
 #define GOLDEN_N_RR 3
 #define GOLDEN_THRESHOLD 0.8f
-// Beat 0 & 1 tak punya RR_prev/dRR — baris rr & prob-nya 0, jangan diuji.
 #define GOLDEN_RR_FIRST 2
 #define GOLDEN_RR_LAST 0
 
-// Toleransi: golden ini float64 (scipy), device float32 (ESP32-S3 punya FPU
-// single-precision; double di-emulasi software = lambat). Di filter IIR yang
-// rekursif, selisih presisi itu MENUMPUK — terukur ~2e-4 pada amplitudo ~0,4.
-// Bukan bug: yang haram adalah beda SISTEMATIS (geseran indeks, koefisien
-// tertukar, a0 ikut terbaca). test_pipeline_utuh membuktikan selisih ini tidak
-// merambat ke window ter-z-score, yang justru yang dimakan model.
 #define GOLDEN_TOL_FILTER 1e-3f
 #define GOLDEN_TOL_ZSCORE 1e-3f
 #define GOLDEN_TOL_PROB   2e-2f
 
-// Tahap 0 — sinyal mentah kanal MLII (mV), langsung dari .dat
 const float golden_raw[2400] = {
   -1.04999997e-01f, -1.04999997e-01f, -1.04999997e-01f, -1.04999997e-01f, -1.04999997e-01f, -1.04999997e-01f,
   -1.04999997e-01f, -1.04999997e-01f, -1.25000000e-01f, -1.44999996e-01f, -1.50000006e-01f, -1.74999997e-01f,
@@ -427,7 +416,6 @@ const float golden_raw[2400] = {
   -1.59999996e-01f, -1.44999996e-01f, -1.44999996e-01f, -1.50000006e-01f, -1.70000002e-01f, -1.65000007e-01f
 };
 
-// Tahap 1 — setelah bandpass kausal (bandingkan dengan keluaran sosfilt-mu)
 const float golden_filtered[2400] = {
   -6.93511924e-04f, -4.98875058e-03f, -1.71424545e-02f, -3.83544854e-02f, -6.43176844e-02f, -8.78885899e-02f,
   -1.03359943e-01f, -1.08813247e-01f, -1.06124194e-01f, -9.97175215e-02f, -9.47828362e-02f, -9.51866008e-02f,
@@ -831,12 +819,10 @@ const float golden_filtered[2400] = {
   2.77401829e-01f, 2.75944015e-01f, 2.73881080e-01f, 2.73203672e-01f, 2.74546389e-01f, 2.76260498e-01f
 };
 
-// Beat yang diuji: indeks R-peak, simbol asli, label
 const int golden_r[GOLDEN_N_BEAT] = {483, 697, 853, 1181, 1378, 1579, 1860, 2058, 2242};
 const char *golden_sym[GOLDEN_N_BEAT] = {"N", "F", "V", "N", "V", "V", "N", "V", "V"};
 const int golden_label[GOLDEN_N_BEAT] = {0, 1, 1, 0, 1, 1, 0, 1, 1};
 
-// Tahap 2 — window ter-z-score, 9 beat x 256 sampel (baris demi baris)
 const float golden_window[2304] = {
   8.64876688e-01f, 8.54009151e-01f, 8.40234578e-01f, 8.27815294e-01f, 8.21313560e-01f, 8.20935428e-01f,
   8.21355522e-01f, 8.16633821e-01f, 8.07208896e-01f, 7.99939573e-01f, 8.01037788e-01f, 8.09656620e-01f,
@@ -1224,7 +1210,6 @@ const float golden_window[2304] = {
   4.58649695e-01f, 4.53893781e-01f, 4.45889682e-01f, 4.38749105e-01f, 4.34932500e-01f, 4.33276474e-01f
 };
 
-// Tahap 3 — fitur RR per beat: RR_prev, RR_ratio, dRR
 const float golden_rr[27] = {
   0.00000000e+00f, 0.00000000e+00f, 0.00000000e+00f,
   5.94444454e-01f, 1.00000000e+00f, 0.00000000e+00f,
@@ -1237,12 +1222,9 @@ const float golden_rr[27] = {
   5.11111140e-01f, 8.36839139e-01f, -3.88888903e-02f
 };
 
-// Tahap 3b — R-peak hasil Pan-Tompkins atas golden_filtered (indeks MENTAH,
-// belum dikompensasi/diselaraskan). Kode C harus menghasilkan deret yang sama.
 #define GOLDEN_N_DETEKSI 11
 const int golden_r_deteksi[GOLDEN_N_DETEKSI] = {100, 260, 505, 718, 907, 1203, 1432, 1635, 1882, 2115, 2301};
 
-// Tahap 4 — probabilitas keluaran model
 const float golden_prob_fp32[9] = {
   0.00000000e+00f, 0.00000000e+00f, 9.97680843e-01f, 1.88888833e-02f,
   9.98068273e-01f, 9.87074614e-01f, 7.98355117e-02f, 9.94974852e-01f,
@@ -1255,4 +1237,4 @@ const float golden_prob_int8[9] = {
   9.96093750e-01f
 };
 
-#endif  // GOLDEN_REF_H
+#endif

@@ -16,6 +16,57 @@ rekaman sinyal tubuh resmi (belum; data sebelum 13 Okt 2026 = uji coba, arsip),
 gerbang kalibrasi opsi C, dan konsumsi daya. Angka laporan yang menunggu data
 resmi: `grep -rn PLACEHOLDER-DATA laporan/buku-pa`.
 
+## Aturan keras (STRICT, ditetapkan user 13 Okt 2026)
+
+Berlaku untuk semua kode di repo. Tidak ada pengecualian tanpa izin user.
+
+### Verifikasi pekerjaan sendiri
+A. **Jalankan sendiri sebelum bilang selesai.** Build, flash, jalankan di board
+   (board tercolok = Claude yang menjalankan), tekan/suntik tombolnya, baca log
+   serial, jalankan skrip. User bukan verifikator.
+B. **Setiap commit membawa bukti:** keluaran test yang lulus, potongan log serial,
+   keluaran skrip, atau tangkapan layar/foto. Bukti ditulis di pesan commit atau
+   laporan akhir. Tanpa bukti, tidak di-commit.
+C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
+   yang belum terbukti (mis. tampilan layar, bunyi buzzer, angka daya dengan
+   baterai) dan cara user mengeceknya. Tebakan yang tampak selesai adalah hal
+   terburuk yang bisa diserahkan.
+
+### Kenali kode dulu
+1. **Baca peta fitur sebelum menyentuh modul.** Peta yang sudah tertulis:
+   `README.md` (komponen), `firmware/README.md` (modul, tombol, menu, perintah
+   serial), `model/docs/README.md` (pipeline model), `model/CLAUDE.md`
+   (decision point). Jangan menebak struktur yang sudah didokumentasikan.
+2. **Buka berkas sebelum mengeditnya.** Jangan pernah menulis kode dari ingatan
+   tentang isi berkas.
+3. **Satu fitur per commit.** Fitur tidak meng-include fitur lain; kode bersama
+   lewat lapisan bersama. Firmware: lapisan bersama = `perangkat`, `konfig`,
+   `ecg_*`, `ina219`; perangkai = `main.cpp` dan `menu.cpp`; fitur lain tidak
+   saling meng-include.
+
+### Aturan keras, ditegakkan pemeriksa
+4. **Tanpa `useEffect`** (berlaku bila ada kode React/frontend): turunkan
+   nilainya atau tangani di event.
+5. **TANPA KOMENTAR KODE.** C/C++, Python (termasuk docstring), shell, dan
+   `platformio.ini`. Kalau kode butuh komentar, ganti namanya atau pecah sampai
+   tidak butuh. Penjelasan, rasional, jebakan, dan cara pakai ditulis di
+   DOKUMEN tersendiri (`firmware/README.md`, walkthrough, `model/docs/`), bukan
+   di kode. Berkas GENERATED juga tanpa komentar (generatornya tidak menulis
+   komentar). Pengecualian fungsional saja: deskripsi target `##` di Makefile
+   (dipakai `make help`) dan teks bantuan CLI yang dicetak program.
+6. **Aturan hidup di CI.** Pemeriksa: `python3 scripts/cek_komentar.py` dan
+   `.github/workflows/cek.yml`. Aturan yang tidak bisa diperiksa mesin diubah
+   jadi pemeriksaan, atau dihapus dari berkas ini.
+
+### Tutup lingkarannya
+7. **Setiap kegagalan yang ditangkap user menjadi skill hari itu juga**
+   (`.claude/skills/<nama>/SKILL.md`). Kegagalan yang sama tidak boleh terulang.
+8. **Setiap skill punya eval** yang dinilai model berbeda, diulang sampai
+   skor 10/10.
+9. **Pemeriksaan hijau → commit langsung**, tanpa menunggu persetujuan; user
+   meninjau setelahnya. Satu revert lebih murah daripada agen yang tertahan.
+   Push ke remote tetap hanya atas permintaan eksplisit.
+
 ## Aturan kerja (non-negotiable)
 
 1. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua
@@ -85,12 +136,13 @@ terbukti tidak membeku jadi dogma.
   over-engineering.
 - **Laporan hanya kalau diminta.** Saat mengerjakan program, jangan menyisipkan
   atau menyarankan pekerjaan `laporan/` sebagai langkah berikutnya.
-- **Git:** commit hanya kalau diminta; push hanya kalau diminta eksplisit (user
-  sering push sendiri).
+- **Git:** commit otomatis setelah pemeriksaan hijau (Aturan keras 9); push hanya
+  kalau diminta eksplisit (user sering push sendiri).
 - **Akhiri tugas dengan laporan ringkas:** apa yang dikerjakan, angka hasil
   verifikasi, dan sisa pekerjaan terhadap rencana.
 - **Yang dipelajari dicatat di repo**, bukan cuma di chat: keputusan & jebakan
-  ke `CLAUDE.md` yang relevan, penjelasan ke walkthrough.
+  ke `CLAUDE.md` yang relevan, penjelasan ke walkthrough/README — tidak pernah
+  ke komentar kode.
 
 ## Dokumentasi
 
@@ -191,9 +243,10 @@ Pola bab → paragraf → kalimat dari 6 laporan PA PENS (2 buku full, 4 progres
 beda sistemik progres vs buku, anti-pola, dan kerangka progres untuk PA ini ada
 di `docs/pola-laporan-pa/` (mulai dari `README.md`). Pakai sebagai acuan
 struktur; aturan gaya tulis tetap `laporan/CLAUDE.md`. Keputusan lingkup yang
-sudah diambil user (PA individu, subjek uji anonim, TLS tidak dibahas, progres
-dan buku satu projek `laporan/buku-pa`) ada di
-`docs/pola-laporan-pa/07-penerapan-ke-pa-kita.md` §6.
+sudah diambil user (PA individu, subjek uji anonim, TLS tidak dibahas) ada di
+`docs/pola-laporan-pa/07-penerapan-ke-pa-kita.md` §6. Buku full =
+`laporan/buku-pa` (dikerjakan), varian progres = `laporan/progres-pa-1`
+(dibekukan, dibahas ulang bersama user).
 
 - **Label kerja internal repo TIDAK boleh muncul di teks laporan resmi**
   (`laporan/**/*.tex` yang dicetak): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,

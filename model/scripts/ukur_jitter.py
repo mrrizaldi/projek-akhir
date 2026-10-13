@@ -1,26 +1,3 @@
-"""Fase 6c — ukur jitter segmentasi yang SEBENARNYA, bukan yang dipinjam paper.
-
-    python scripts/ukur_jitter.py
-
-Dias 2021 memakai jitter seragam +-18 sampel karena mereka tidak punya detektor:
-angka itu pinjaman dari literatur QRS detection. Kita punya Pan-Tompkins yang
-jalan, jadi errornya tidak perlu dikarang — bisa diukur.
-
-Yang diukur: residu (R_setelah_penyelarasan - R_anotasi) atas DS1, memakai
-rantai penuh yang dipakai firmware:
-    pan_tompkins -> - PT_DETECTOR_OFFSET -> puncak +-PT_REFINE_WIN -> - GROUP_DELAY
-
-DS1 saja. DS2 tidak boleh menyetel parameter apa pun, dan delta hasil skrip ini
-dipakai melatih model.
-
-Keluaran:
-    artifacts/metrics/jitter/jitter_residu.csv     ringkasan per record + total
-    artifacts/metrics/jitter/jitter_residu.png     histogram + ECDF |residu|
-    artifacts/metrics/jitter/residu_ds1.npy        kolam residu mentah — INI yang
-        dipakai model jitter "empiris" di src/preprocessing.py. Sebaran aslinya
-        bukan seragam dan bukan normal (inti tajam +-2 dengan ekor berat), jadi
-        menyalin bentuk seragam paper justru melatih error yang bukan milik kita.
-"""
 import os
 import sys
 
@@ -28,25 +5,24 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import matplotlib  # noqa: E402
+import matplotlib
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.pyplot as plt
 
-from config import DS1, FS, METRICS_DIR, PT_DETECTOR_OFFSET  # noqa: E402
-from src.evaluate import pair_detected  # noqa: E402
-from src.features_rr import to_aami_class  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import (  # noqa: E402
+from config import DS1, FS, METRICS_DIR, PT_DETECTOR_OFFSET
+from src.evaluate import pair_detected
+from src.features_rr import to_aami_class
+from src.io_mitdb import load_record
+from src.preprocessing import (
     apply_bandpass, design_bandpass_sos, pan_tompkins_detect,
 )
-from scripts.eval_detected_segmentation import haluskan  # noqa: E402
+from scripts.eval_detected_segmentation import haluskan
 
 TOLERANSI_MS = 150
 OUT_DIR = os.path.join(METRICS_DIR, "jitter")
 
 
 def residu_record(rec: str, sos, toleransi: int):
-    """Residu penyelarasan + hitung beat terlewat & deteksi palsu untuk satu record."""
     signal, r_anot, simbol, _ = load_record(rec)
     filtered = apply_bandpass(signal, sos)
 

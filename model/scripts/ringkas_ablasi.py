@@ -1,18 +1,3 @@
-"""Ringkas ablasi.csv jadi rerata +- setengah-rentang, dan tegakkan ambang sinyal.
-
-    python scripts/ringkas_ablasi.py                      # semua tag
-    python scripts/ringkas_ablasi.py --tag w128b g_swa3
-    python scripts/ringkas_ablasi.py --tag g_swa3 --vs w128b
-
-Aturan §7 (docs/arsip/2026-09-19-fitur-design.md) dipakai apa adanya:
-  * minimal 3 seed — tag ber-seed < 3 ditandai, bukan diam-diam dipercaya
-  * dilaporkan rerata DAN setengah-rentang, bukan angka tunggal
-  * |delta| < AMBANG F1 BUKAN sinyal
-
-Dipakai supaya vonis ablasi tidak dihitung tangan tiap kali — kesalahan
-paling mahal di repo ini bukan yang crash, tapi yang menghasilkan angka yang
-kelihatan bagus.
-"""
 import argparse
 import csv
 import os
@@ -20,12 +5,10 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import METRICS_DIR  # noqa: E402
+from config import METRICS_DIR
 
-AMBANG = 0.04          # selisih F1 di bawah ini bukan sinyal (oneDNN, changelog 18 Sep)
+AMBANG = 0.04
 SEED_MINIMAL = 3
-# ablasi.csv memberi awalan `anot_`; lintas_db.csv (T8) tidak. Satu alat, dua
-# berkas: awalan dideteksi dari header, bukan ditebak dari nama file.
 KOLOM_ABLASI = [("anot_f1", "F1"), ("anot_recall_S", "recall S"),
                 ("anot_auc", "AUC"), ("threshold", "thr")]
 KOLOM_LINTAS = [("f1", "F1"), ("recall_S", "recall S"),
@@ -33,15 +16,10 @@ KOLOM_LINTAS = [("f1", "F1"), ("recall_S", "recall S"),
 
 
 def rerata_rentang(nilai: list) -> tuple:
-    """(rerata, setengah-rentang). Setengah-rentang, bukan stdev: n=3 terlalu
-    kecil untuk stdev bermakna, dan yang ingin dijawab 'seberapa lebar hasilnya'."""
     return sum(nilai) / len(nilai), (max(nilai) - min(nilai)) / 2
 
 
 def baca(path: str) -> tuple:
-    """-> (per_kunci, KOLOM). Kunci = tag, atau "tag|db" kalau berkasnya punya
-    kolom `db` (lintas_db.csv): satu tag di dua database itu dua hasil, bukan
-    satu yang boleh dirata-rata."""
     per_kunci = {}
     with open(path, newline="") as f:
         r = csv.DictReader(f)
@@ -62,7 +40,7 @@ def ringkas(baris: list, KOLOM) -> dict:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__,
+    ap = argparse.ArgumentParser(description="Ringkas ablasi.csv jadi rerata +- setengah-rentang per tag, dengan vonis ambang sinyal F1 (minimal 3 seed).",
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--tag", nargs="+",
                     help="bawaan: semua. Untuk lintas_db.csv pakai 'tag|db'")
@@ -99,7 +77,7 @@ def main() -> None:
     for t in tags:
         if t == args.vs:
             continue
-        k_f1 = KOLOM[0][0]          # `anot_f1` atau `f1`, tergantung berkasnya
+        k_f1 = KOLOM[0][0]
         d_f1 = hasil[t][k_f1][0] - dasar[k_f1][0]
         d_ren = hasil[t][k_f1][1] - dasar[k_f1][1]
         vonis = "SINYAL" if abs(d_f1) >= AMBANG else "bukan sinyal"

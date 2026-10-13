@@ -1,11 +1,3 @@
-"""Fase 1 — verifikasi filter: overlay sinyal mentah vs hasil bandpass kausal.
-
-    python scripts/plot_fase1.py 100
-
-DoD Fase 1: bandingkan mata (drift baseline hilang, noise tinggi teredam) dan
-angka (mean/std sebelum vs sesudah) untuk paham efek `sosfilt` + koefisien
-Butterworth dari config.py.
-"""
 import os
 import sys
 
@@ -17,9 +9,9 @@ from scipy.signal import welch, spectrogram
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER  # noqa: E402
-from src.io_mitdb import load_record  # noqa: E402
-from src.preprocessing import design_bandpass_sos, apply_bandpass  # noqa: E402
+from config import BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER
+from src.io_mitdb import load_record
+from src.preprocessing import design_bandpass_sos, apply_bandpass
 
 PLOT_SECONDS = 3
 OUT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
@@ -44,13 +36,9 @@ def main(record_id: str) -> None:
     n = PLOT_SECONDS * fs
     time = np.arange(n) / fs
 
-    # PSD pakai jendela sama (PLOT_SECONDS) dengan panel waktu & spectrogram —
-    # supaya ketiga panel merujuk rentang waktu yang sama persis.
     freq_raw, psd_raw = welch(signal[:n], fs=fs, nperseg=min(256, n))
     freq_filt, psd_filt = welch(filtered[:n], fs=fs, nperseg=min(256, n))
 
-    # Spectrogram (STFT) raw, jendela sama (3 detik) & sharex sama panel waktu —
-    # supaya "ledakan" energi tinggi di bawah bisa dicocokkan langsung ke QRS di atas.
     freq_spec, t_spec, sxx = spectrogram(signal[:n], fs=fs, nperseg=64, noverlap=48)
 
     fig, (ax_time, ax_spec, ax_freq) = plt.subplots(

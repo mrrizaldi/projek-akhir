@@ -1,27 +1,4 @@
 #!/usr/bin/env python3
-"""Uji jalur ESP32 -> broker -> ts_kv tanpa hardware dan tanpa dependency.
-
-Dijalankan dari folder dashboard/ setelah `docker compose up -d`:
-
-    python3 smoke_test.py
-
-Yang dibuktikan, berurutan:
-  1. Device bisa dibuat lewat REST dan token-nya bisa diambil (provisioning).
-  2. MQTT CONNECT dengan username = access token, password kosong, diterima.
-  3. Payload single record sampai di ts_kv dengan ts milik perangkat, bukan
-     waktu kedatangan di server.
-  4. Payload batch (array multiple timestamped key-value) diterima node Save
-     Timeseries bawaan, tanpa rule chain tambahan.
-  5. Publikasi ulang rekaman dengan ts identik meng-UPSERT, bukan menambah
-     baris -- ini klaim "deduplikasi implisit" di bab3.tex, dan satu-satunya
-     yang tidak bisa dibuktikan dengan membaca dokumentasi.
-
-MQTT-nya ditulis langsung di atas socket (CONNECT/PUBLISH/PUBACK, MQTT 3.1.1).
-ponytail: 60 baris socket lebih murah daripada menambah paho-mqtt ke
-requirements.txt untuk satu skrip uji. Sekalian jadi referensi paling ringkas
-soal urutan paket yang harus ditiru firmware -- terutama menunggu PUBACK
-sebelum menggeser read pointer ring buffer.
-"""
 import json
 import socket
 import struct
@@ -36,8 +13,6 @@ MQTT_PORT = 1883
 DEVICE = "esp32s3-ekg-01"
 TOPIC = "v1/devices/me/telemetry"
 
-
-# ---------- REST (stdlib urllib) ----------
 
 def rest(path, body=None, token=None, method=None):
     req = urllib.request.Request(
@@ -54,7 +29,6 @@ def rest(path, body=None, token=None, method=None):
 
 
 def provision():
-    """Login sebagai tenant, buat device kalau belum ada, kembalikan (jwt, id, token)."""
     jwt = rest("/api/auth/login",
                {"username": "tenant@thingsboard.org", "password": "tenant"})["token"]
     try:
@@ -74,8 +48,6 @@ def timeseries(jwt, dev_id, key, start_ts, end_ts):
     return rest(path, token=jwt).get(key, [])
 
 
-# ---------- MQTT 3.1.1 seperlunya ----------
-
 def _varlen(n):
     out = b""
     while True:
@@ -86,14 +58,11 @@ def _varlen(n):
 
 
 class Mqtt:
-    """CONNECT + PUBLISH QoS-1 + tunggu PUBACK. Tidak ada yang lain."""
-
     def __init__(self, host, port, username):
         self.pid = 0
         self.sock = socket.create_connection((host, port), timeout=10)
         cid = b"smoke-test"
         user = username.encode()
-        # protocol name+level, connect flags (0x80 = username saja), keepalive 60
         payload = struct.pack("!H", len(cid)) + cid + struct.pack("!H", len(user)) + user
         var = b"\x00\x04MQTT\x04\x80" + struct.pack("!H", 60)
         self.sock.sendall(b"\x10" + _varlen(len(var + payload)) + var + payload)
@@ -106,17 +75,15 @@ class Mqtt:
         t = topic.encode()
         var = struct.pack("!H", len(t)) + t + struct.pack("!H", self.pid)
         body = var + payload.encode()
-        self.sock.sendall(b"\x32" + _varlen(len(body)) + body)   # 0x32 = PUBLISH QoS1
+        self.sock.sendall(b"\x32" + _varlen(len(body)) + body)
         ack = self.sock.recv(4)
         if len(ack) < 4 or ack[0] != 0x40 or struct.unpack("!H", ack[2:4])[0] != self.pid:
             raise RuntimeError(f"PUBACK tidak cocok: {ack!r}")
 
     def close(self):
-        self.sock.sendall(b"\xe0\x00")   # DISCONNECT
+        self.sock.sendall(b"\xe0\x00")
         self.sock.close()
 
-
-# ---------- payload (field-nya dari bab3.tex Tabel 3.x) ----------
 
 def record(ts, bpm, label):
     return {
@@ -140,19 +107,15 @@ def main():
     base = int(time.time() * 1000) - 60_000
     m = Mqtt(HOST, MQTT_PORT, token)
 
-    # 1) single record, mode real-time
     m.publish(TOPIC, json.dumps(record(base, 72.0, 0)))
 
-    # 2) batch, mode flush backlog setelah reconnect
     batch = [record(base + 1000 * i, 70.0 + i, i % 2) for i in range(1, 6)]
     m.publish(TOPIC, json.dumps(batch))
 
-    # 3) kirim ULANG record pertama dengan ts identik tapi nilai beda.
-    #    Ini yang ditiru QoS-1 saat PUBACK hilang dan batch dikirim ulang.
     m.publish(TOPIC, json.dumps(record(base, 999.0, 1)))
     m.close()
 
-    time.sleep(2)   # ponytail: rule engine async; 2 detik cukup untuk in-memory queue
+    time.sleep(2)
     rows = timeseries(jwt, dev_id, "bpm", base - 5000, base + 30_000)
     by_ts = {r["ts"]: r["value"] for r in rows}
 

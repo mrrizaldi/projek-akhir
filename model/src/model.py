@@ -1,4 +1,3 @@
-"""model — Fase 4: arsitektur hybrid dua-cabang. Walkthrough: docs/model-walkthrough.md"""
 import numpy as np
 from tensorflow.keras import Input, Model, layers
 
@@ -28,24 +27,6 @@ def build_hybrid_model(dropout_rate: float = DROPOUT_RATE) -> Model:
 
 
 def build_deploy_model(trained: Model) -> Model:
-    """Varian DEPLOY dengan bobot identik — untuk TFLite Micro, bukan untuk latih.
-
-    Dua op diganti karena TFLM menghitungnya berbeda dari TFLite biasa:
-      GlobalAveragePooling1D (MEAN) → DepthwiseConv1D(L) berbobot 1/L,
-                                     L = panjang tensor (32 pada window 256)
-      Dense                          → Conv1D kernel 1 (tetap 3-D, tanpa Flatten)
-
-    Kenapa DepthwiseConv1D, bukan AveragePooling1D yang lebih jelas maksudnya:
-    op pooling MEWARISI skala kuantisasi input-nya (0,332 di sini), sedangkan
-    rata-rata L nilai jauh lebih kecil dari rentang itu → resolusi terbuang dan
-    recall INT8 di DS2 jatuh ke 0,53. Op konvolusi mendapat skala output SENDIRI
-    (0,0429, persis yang dipilih MEAN), jadi presisinya kembali utuh.
-
-    Flatten/Reshape sengaja dihindari: keduanya memunculkan SHAPE/PACK/
-    STRIDED_SLICE yang juga salah hitung di TFLM.
-
-    Keluaran berbentuk (batch, 1, 1) dan input ritme (batch, 1, 3).
-    """
     morph_in = Input(shape=(WIN_LEN, 1), name="morphology")
     x = morph_in
     for layer in trained.layers:

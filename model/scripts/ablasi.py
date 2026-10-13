@@ -1,20 +1,3 @@
-"""Ablasi ketahanan: satu varian, ujung ke ujung. docs/arsip/2026-09-18-robustness-changelog.md
-
-    python scripts/ablasi.py --tag bersih
-    python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2
-    PA_WIN_PRE=128 PA_WIN_POST=127 python scripts/ablasi.py --tag w128 --jitter empiris --salinan 2
-    PA_HOS=1 python scripts/ablasi.py --tag hos --jitter empiris --salinan 2
-
-Satu varian = satu proses. Ukuran window dan HOS dibaca config saat import, jadi
-tidak bisa diganti di tengah jalan — makanya lewat environment, bukan argumen.
-
-Tiap varian menjalani rantai yang SAMA supaya bisa dibandingkan:
-    rakit DS1 → split per pasien → latih → kalibrasi threshold di VAL →
-    ukur di DS2 (segmentasi anotasi DAN segmentasi ber-jitter empiris)
-
-DS2 tidak menyetel apa pun: threshold datang dari VAL (DS1).
-Hasil menumpuk di artifacts/metrics/ablasi/ablasi.csv — satu baris per varian.
-"""
 import argparse
 import os
 import sys
@@ -24,38 +7,33 @@ import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import tensorflow as tf  # noqa: E402
+import tensorflow as tf
 
-from config import (  # noqa: E402
+from config import (
     ARTIFACT_DIR, DATASETS, DS1, METRICS_DIR, SEED, USE_HOS, VAL_RECORDS,
     N_RR_FEATURES, WIN_LEN, WIN_PRE, WIN_POST,
 )
-from src.dataset import bagi_train_test, record_int_id, records_tersedia  # noqa: E402
-from src.evaluate import binary_metrics, confusion_counts, roc_auc, sweep_thresholds  # noqa: E402
-from src.features_rr import (  # noqa: E402
+from src.dataset import bagi_train_test, record_int_id, records_tersedia
+from src.evaluate import binary_metrics, confusion_counts, roc_auc, sweep_thresholds
+from src.features_rr import (
     rakit_fitur_ritme, to_aami_class, to_binary_label,
 )
-from src.io_mitdb import load_record  # noqa: E402
-from src.model import build_hybrid_model  # noqa: E402
-from src.preprocessing import (  # noqa: E402
+from src.io_mitdb import load_record
+from src.model import build_hybrid_model
+from src.preprocessing import (
     apply_bandpass, design_bandpass_sos, jitter_r, segment_beats, selaraskan_r,
     zscore_per_window,
 )
-from src.train import train  # noqa: E402
-from scripts.prep_beats import valid_beat_indices  # noqa: E402
-from scripts.sweep_jitter import muat_ds2, rakit  # noqa: E402
+from src.train import train
+from scripts.prep_beats import valid_beat_indices
+from scripts.sweep_jitter import muat_ds2, rakit
 
 OUT_DIR = os.path.join(METRICS_DIR, "ablasi")
 F1_TIE_MARGIN = 0.005
-SEED_DS2 = (11, 12, 13)          # seed jitter DS2 saat mengukur, bukan melatih
+SEED_DS2 = (11, 12, 13)
 
 
 def catatan_latih(db_list) -> list:
-    """(db, record) yang masuk LATIH. mitdb = DS1 de Chazal (VAL dipisah nanti);
-    database lain = porsi train dari aturan `sorted()[::4]`.
-
-    DS2 tidak pernah muncul di sini, dan held-out database baru juga tidak.
-    """
     pasangan = [("mitdb", str(r)) for r in DS1]
     for db in db_list:
         if db == "mitdb":
@@ -73,19 +51,6 @@ def catatan_latih(db_list) -> list:
 
 def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
               db_list=("mitdb",)) -> dict:
-    """Data LATIH jadi array. salinan = berapa TIRUAN ber-jitter ditumpuk di atas
-    yang bersih — dan HANYA untuk mitdb.
-
-    Salinan bersih selalu ikut: model tetap harus pandai saat segmentasi kebetulan
-    tepat, dan itu mayoritas kasus (80% beat meleset <=1 sampel).
-
-    Jitter tidak diterapkan ke database lain: kolam residu (residu_ds1.npy) diukur
-    dari detektor di mitdb 360 Hz, jadi memakainya untuk beat 128/257 Hz yang sudah
-    di-resample = menumpuk dua sumber error posisi, yang kedua belum pernah diukur.
-
-    `selaraskan` per database (DATASETS[db]) — konvensi anotasi svdb bergeser ~6
-    sampel dari mitdb, di atas ambang bahaya 4 sampel. Lihat plan §3b.
-    """
     W, R, Y, REC = [], [], [], []
     for db, rec in catatan_latih(db_list):
         signal, r0, sym, _ = load_record(rec, db=db)
@@ -112,11 +77,6 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
 
 
 def rakit_heldout(sos, db: str) -> dict:
-    """Beat held-out satu database — TEST-B (svdb) / TEST-C (incartdb), T8.
-
-    Record held-out = sisa `bagi_train_test`, yang TIDAK pernah masuk latih.
-    Tanpa jitter dan tanpa salinan: ini set UJI, bukan set latih.
-    """
     W, R, Y, A = [], [], [], []
     for rec in bagi_train_test(records_tersedia(db))[1]:
         signal, r0, sym, _ = load_record(rec, db=db)
@@ -136,8 +96,6 @@ def rakit_heldout(sos, db: str) -> dict:
 
 
 def ukur_array(model, d: dict, thr: float) -> dict:
-    """Metrik atas array siap pakai. Threshold datang dari VAL — TIDAK disetel ulang
-    di sini, karena menyetelnya di set uji persis kesalahan yang §7 larang."""
     prob = model.predict([d["X_morph"], d["X_rr"]], verbose=0, batch_size=4096).ravel()
     pred = (prob >= thr).astype(int)
     m = binary_metrics(confusion_counts(d["y"], pred))
@@ -155,7 +113,6 @@ def pisah_val(d: dict):
 
 
 def kalibrasi(model, va: dict) -> float:
-    """F1 maksimum di VAL, tie-break ke recall — kriteria terkunci, sama dgn Fase 5."""
     prob = model.predict([va["X_morph"], va["X_rr"]], verbose=0, batch_size=4096).ravel()
     rows = sweep_thresholds(va["y"], prob, np.arange(0.05, 0.96, 0.05))
     f1_max = max(r["f1"] for r in rows)
@@ -234,12 +191,9 @@ def main() -> None:
     kotor = [ukur(model, cache, thr, "empiris", s) for s in SEED_DS2]
     rerata = {k: float(np.mean([m[k] for m in kotor])) for k in bersih}
 
-    if args.seed == SEED:                 # simpan cuma seed utama, bukan ulangan
+    if args.seed == SEED:
         model.save(os.path.join(ARTIFACT_DIR, f"model_fp32_{args.tag}.keras"))
 
-    # CATATAN: tidak ada kolom "db". Header ablasi.csv cuma ditulis saat file
-    # belum ada, jadi menambah kolom akan menggeser seluruh baris lama. Database
-    # dikodekan di `tag` (penanda varian) — nol migrasi, nol risiko ke hasil lama.
     baris = {"tag": args.tag, "seed": args.seed,
              "win_pre": WIN_PRE, "win_post": WIN_POST,
              "hos": int(USE_HOS), "jitter": args.jitter, "salinan": args.salinan,

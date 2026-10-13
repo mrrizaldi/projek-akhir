@@ -1,34 +1,9 @@
 #!/usr/bin/env python3
-"""Ukur dua target bab3.tex Tabel 'Rencana pengukuran pada pengujian pipeline':
-
-  1. Latensi end-to-end <= 2 detik  (akuisisi -> tampil di dashboard)
-  2. PDSR >= 95%                    (paket ber-PUBACK / total paket)
-
-Latensi diukur dengan MENJEJALI REST ThingsBoard: begitu sebuah ts baru terlihat,
-latensi = (waktu laptop melihatnya) - (ts perangkat). ts perangkat adalah waktu
-KEJADIAN beat (dihitung dari indeks sampel), jadi angka ini mencakup seluruh
-rantai: deteksi -> inferensi -> antre -> MQTT -> rule engine -> tersedia di API.
-
-Batas ketelitian yang jujur:
-  - periode polling (~100 ms) masuk sebagai bias KE ATAS; latensi sebenarnya
-    lebih kecil atau sama. Dilaporkan juga latensi minimum sebagai batas bawah.
-  - jam board (SNTP pool.ntp.org) vs jam laptop: selisihnya diukur dari
-    epoch_ms di baris status board lalu dikoreksi (lihat "selisih jam" di
-    bawah). Sisa galatnya ongkos serial (~ms).
-
-PDSR diambil dari pencacah firmware lewat serial ('s'), bukan ditebak dari data.
-"""
 import json, re, statistics, sys, threading, time, urllib.request
 import serial
 
 HOST, DEVICE = "http://localhost:8080", "esp32s3-ekg-01"
 DURASI = float(sys.argv[1]) if len(sys.argv) > 1 else 90.0
-
-# Dijalankan dari folder dashboard/ dengan board tersambung dan broker hidup:
-#   python3 ukur_pipeline.py 150
-# Skrip menyalakan replay lewat serial (bila belum menyala), jadi tidak butuh
-# elektroda. Replay sendiri melewati gerbang kalibrasi di firmware; 'k' tidak
-# dikirim. Butuh pyserial (ada di model/requirements.txt).
 
 
 def rest(path, body=None, token=None):
@@ -43,7 +18,6 @@ def rest(path, body=None, token=None):
 jwt = rest("/api/auth/login", {"username": "tenant@thingsboard.org", "password": "tenant"})["token"]
 dev_id = rest(f"/api/tenant/devices?deviceName={DEVICE}", token=jwt)["id"]["id"]
 
-# --- serial: hidupkan replay, lalu ambil status di akhir ---
 s = serial.Serial(); s.port, s.baudrate, s.timeout = "/dev/ttyACM0", 115200, 0.2
 s.dtr = s.rts = False
 s.open()
@@ -64,7 +38,6 @@ time.sleep(14)
 
 
 def tunggu_baris(isi, detik=3.0, mulai=None):
-    """Baris serial pertama berisi `isi` sejak indeks `mulai`, atau None."""
     tanda = len(baris) if mulai is None else mulai
     akhir = time.time() + detik
     while time.time() < akhir:
@@ -75,8 +48,6 @@ def tunggu_baris(isi, detik=3.0, mulai=None):
     return None
 
 
-# Idempoten: 'y' adalah toggle, jadi status dibaca dulu dan 'y' hanya dikirim
-# bila replay belum menyala.
 tanda = len(baris); s.write(b"s"); s.flush()
 st = tunggu_baris("replay=", mulai=tanda)
 if st is None:
@@ -87,10 +58,6 @@ if "replay=1" not in st:
         sys.exit("replay gagal dinyalakan")
 print("== replay ON ==")
 time.sleep(1.5)
-# --- selisih jam board vs laptop ---
-# Tanpa koreksi ini, selisih jam terbaca sebagai latensi. Diukur dengan meminta
-# status ('s'), mencatat waktu laptop saat barisnya tiba, lalu membandingkan
-# epoch_ms yang dicetak board. Ongkos serial (~ms) masuk sebagai galat kecil.
 def ukur_offset(n=5):
     beda = []
     for _ in range(n):
@@ -117,7 +84,6 @@ print(f"== selisih jam board - laptop: {offset} ms "
       f"({'board di depan' if (offset or 0) > 0 else 'board di belakang'}) ==")
 print(f"== mengukur {DURASI:g} detik ==")
 
-# --- polling latensi ---
 terlihat, lat_bawah, lat_atas, rest_ms = set(), [], [], []
 t0 = time.time()
 while time.time() - t0 < DURASI:
@@ -131,13 +97,9 @@ while time.time() - t0 < DURASI:
         print("  REST gagal:", e); time.sleep(0.5); continue
     sesudah = int(time.time() * 1000)
     rest_ms.append(sesudah - sebelum)
-    # Baris ini terlihat di suatu titik antara `sebelum` dan `sesudah`. Memakai
-    # `sesudah` membebankan lambatnya REST ke sistem; memakai `sebelum` memberi
-    # batas BAWAH yang bebas dari itu. Dilaporkan dua-duanya.
     for r in rows:
         if r["ts"] not in terlihat:
             terlihat.add(r["ts"])
-            # ts perangkat dikoreksi ke jam laptop: ts_laptop = ts_board - offset
             ts_koreksi = r["ts"] - (offset or 0)
             lat_bawah.append(sebelum - ts_koreksi)
             lat_atas.append(sesudah - ts_koreksi)
@@ -146,7 +108,6 @@ while time.time() - t0 < DURASI:
 s.write(b"s"); s.flush(); time.sleep(2.5)
 henti.set(); time.sleep(0.3); s.close()
 
-# --- hasil ---
 print(f"\n{'='*66}\nLATENSI END-TO-END (akuisisi -> tersedia di API ThingsBoard)")
 def p95(v):
     v = sorted(v)
@@ -169,8 +130,6 @@ else:
     print("  TIDAK ADA DATA")
 
 print(f"\nPDSR (dari pencacah firmware)")
-# Baris status TERAKHIR saja. Baris dari fase ukur-offset masih 0 paket, dan
-# mengambilnya membuat PDSR terbaca 0%.
 st = [b for b in baris if "paket" in b and "PDSR" in b]
 if st:
     print("  " + st[-1].strip())
