@@ -13,7 +13,8 @@
 #include "konfig.h"
 #include "perangkat.h"
 #include "rekam.h"
-#include "stub_fase45.h"
+#include "diagnosa.h"
+#include "daya.h"
 #include "tampilan.h"
 #include "tombol.h"
 
@@ -185,8 +186,16 @@ static void daya_isi(baris_t *b)
     snprintf(e, sizeof *b - (e - b[0]), " #%03d", daya_tangga_berkas());
 }
 static const halaman_t H_DAYA = TEKS("Ukur daya", daya_isi);
+// Menu ditutup selama tangga: layar monitor tetap tergambar sehingga langkah p4
+// mengukur beban UI yang sebenarnya. Halaman hasil terbuka sendiri di akhir.
+static void tutup();
+static void mulai_tangga()
+{
+    daya_tangga_mulai();
+    if (daya_tangga_aktif()) tutup();
+}
 static const item_t I_DAYA[] = {
-    {"Mulai tangga p0-p5", &H_DAYA, daya_tangga_mulai, nullptr},
+    {"Mulai tangga p0-p5", nullptr, mulai_tangga, nullptr},
     {"Hasil terakhir", &H_DAYA, nullptr, nullptr},
 };
 static const halaman_t H_DAYA_MENU = DAFTAR("Ukur daya", I_DAYA);
@@ -380,6 +389,7 @@ static void pilih()
     }
     const item_t &it = t.h->item[t.sel];
     if (it.aksi) it.aksi();
+    if (dalam < 0) return;                  // aksi menutup menu (mis. tangga daya)
     if (it.anak) { masuk(it.anak); return; }
     gambar(false);
     lapor();

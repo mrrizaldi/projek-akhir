@@ -25,7 +25,8 @@
 #include "perangkat.h"
 #include "rekam.h"
 #include "serial_cmd.h"
-#include "stub_fase45.h"
+#include "diagnosa.h"
+#include "daya.h"
 #include "tampilan.h"
 #include "tombol.h"
 
