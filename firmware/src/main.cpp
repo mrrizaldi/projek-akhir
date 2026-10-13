@@ -9,6 +9,7 @@
 //   tampilan    TFT, NeoPixel, buzzer        tombol  debounce + event
 //   rekam       rekaman bernomor LittleFS    daya    INA219 + tangga p0-p5
 //   konfig      daftar WiFi/broker + NVS     serial_cmd  perintah serial
+//   menu        pohon menu di layar, dibuka B2 tahan
 #ifndef PIO_UNIT_TESTING
 #include <Arduino.h>
 
@@ -20,28 +21,36 @@
 #include "ina219.h"
 #include "klasifikasi.h"
 #include "konfig.h"
+#include "menu.h"
 #include "perangkat.h"
 #include "rekam.h"
 #include "serial_cmd.h"
 #include "tampilan.h"
 #include "tombol.h"
 
-// B1 bisu/bunyi bip detak (aksi saat DILEPAS, karena tahan punya arti lain),
-// B1 tahan = ganti sumber seperti 'y', B2 bekukan gelombang + bip, B3 mulai /
-// simpan rekaman seperti 'r'. Tiap tekanan berbunyi klik.
+// Monitor: B1 pendek bisu/bunyi bip detak, B2 pendek bekukan gelombang, B3
+// pendek mulai / simpan rekaman ('r'), B2 tahan buka menu. Aksi pendek terjadi
+// saat DILEPAS karena tahan punya arti lain. Tiap tekanan berbunyi klik, dan
+// ambang tahan (800 ms) ditandai bip pendek. Selama menu terbuka, semua event
+// diteruskan ke menu.
+constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60;
+
 static void layani_tombol()
 {
     int i, e;
     while ((e = tombol_event(&i)) != TOMBOL_TIDAK) {
-        if (e == TOMBOL_TEKAN) {
-            tampilan_bunyi(20);
+        if (e == TOMBOL_TEKAN) tampilan_bunyi(KLIK_MS);
+        if (e == TOMBOL_LAMA) tampilan_bunyi(BIP_LAMA_MS);
+        if (e == TOMBOL_PENDEK || e == TOMBOL_LAMA)
+            Serial.printf("tombol B%d %s\n", i + 1, e == TOMBOL_LAMA ? "tahan" : "pendek");
+        if (menu_terbuka()) { menu_tombol(i, e); continue; }
+        if (e == TOMBOL_PENDEK) {
+            if (i == 0) tampilan_set_bisu(!tampilan_bisu());
             if (i == 1) tampilan_set_beku(!tampilan_beku());
             if (i == 2) rekam_toggle();
-            Serial.printf("tombol B%d (GPIO%d)\n", i + 1, PIN_BTN[i]);
         }
-        if (e == TOMBOL_PENDEK && i == 0) tampilan_set_bisu(!tampilan_bisu());
-        if (e == TOMBOL_LAMA) { if (i == 0) akuisisi_ganti_sumber(); }
-        else tampilan_gambar_tombol(i);
+        if (e == TOMBOL_LAMA && i == 1) { menu_buka(); continue; }
+        tampilan_gambar_tombol(i);
     }
 }
 
@@ -78,8 +87,8 @@ void setup()
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam)  |  "
-                  "serial: r/d/l/h/s/q/y/m/k/p/w/b\n"
+                  "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam; tahan B2 = menu)  |  "
+                  "serial: r/d/l/h/s/q/y/m/k/p/w/b/t/T\n"
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)klasifikasi_arena(),
                   klasifikasi_ambang(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
@@ -121,6 +130,7 @@ void loop()
     daya_layani();
     serial_cmd_layani();
     layani_tombol();
+    menu_layani();
     tampilan_layani();
 }
 #endif

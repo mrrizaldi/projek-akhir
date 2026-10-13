@@ -32,7 +32,7 @@ constexpr int N_WIFI = sizeof WIFI / sizeof WIFI[0];
 constexpr int N_BROKER = sizeof BROKER / sizeof BROKER[0];
 
 constexpr const char *NS = "konfig";
-static int i_wifi, i_broker, sumber;
+static int i_wifi, i_broker, sumber, sumber_rekam;
 
 static int baca(const char *kunci, int n)
 {
@@ -64,7 +64,11 @@ void konfig_mulai(void)
 {
     i_wifi = baca("wifi", N_WIFI);
     i_broker = baca("broker", N_BROKER);
-    sumber = baca("sumber", 256);
+    sumber = baca("sumber", 3);
+    Preferences p;                         // nomor rekaman bisa > 255: kunci terpisah, uint16
+    p.begin(NS, false);
+    sumber_rekam = p.getUShort("rekam", 0);
+    p.end();
     terapkan();
 }
 
@@ -102,5 +106,18 @@ bool konfig_pilih_broker(int i)
 }
 
 int konfig_sumber(void) { return sumber; }
-void konfig_set_sumber(int s) { sumber = s; tulis("sumber", s); }
+int konfig_sumber_rekam(void) { return sumber_rekam; }
+
+void konfig_set_sumber(int s, int nomor)
+{
+    if (s != sumber) tulis("sumber", s);   // NVS hanya ditulis bila berubah
+    if (nomor != sumber_rekam) {
+        Preferences p;
+        p.begin(NS, false);
+        p.putUShort("rekam", (uint16_t)nomor);
+        p.end();
+    }
+    sumber = s;
+    sumber_rekam = nomor;
+}
 #endif

@@ -23,6 +23,7 @@ constexpr uint32_t BIP_MS = 50, BIP_ARITMIA_MS = 250;
 constexpr uint32_t HR_BASI_MS = 3000;
 
 static bool bisu, beku;
+static bool monitor = true;                // false = layar dipakai menu
 static int hr_tampil;                      // bpm, 0 = belum ada
 static bool hr_aritmia;
 static uint32_t t_hr;
@@ -102,8 +103,10 @@ static void plot(float f)
 
     int y = GY + GH - 1 - (int)((f - lo) * (GH - 1) / (hi - lo));
     y = constrain(y, GY, GY + GH - 1);
-    tft.fillRect(x, GY, min(4, TFT_W - x), GH, ST77XX_BLACK); // hapus di depan kursor
-    tft.drawFastVLine(x, min(y, y_lalu), abs(y - y_lalu) + 1, ST77XX_GREEN);
+    if (monitor) {                         // menu terbuka: sapuan tetap maju, tidak digambar
+        tft.fillRect(x, GY, min(4, TFT_W - x), GH, ST77XX_BLACK); // hapus di depan kursor
+        tft.drawFastVLine(x, min(y, y_lalu), abs(y - y_lalu) + 1, ST77XX_GREEN);
+    }
     y_lalu = y;
 
     if (++x < TFT_W) return;
@@ -135,6 +138,7 @@ void tampilan_beat(const ecg_beat_t &beat, bool aritmia)
 
 void tampilan_gambar_tombol(int i)
 {
+    if (!monitor) return;
     static const char *const label[3][2] = {
         {"B1 BUNYI", "B1 BISU"}, {"B2 JALAN", "B2 BEKU"}, {"B3 REC", "B3 STOP"}};
     const bool aktif = (i == 0) ? bisu : (i == 1) ? beku : rekam_aktif();
@@ -180,10 +184,12 @@ static void perbarui_led()
     else                                   tampilan_led(0, 48, 0);
 }
 
+static uint32_t t_1hz;
+
 static void layar_1hz()
 {
-    static uint32_t t = 0;
-    if (millis() - t < 1000) return;
+    uint32_t &t = t_1hz;
+    if (!monitor || millis() - t < 1000) return;
     t = millis();
 
     const bool hr_ada = hr_tampil > 0 && millis() - t_hr < HR_BASI_MS;
@@ -208,6 +214,9 @@ static void layar_1hz()
     if (rekam_aktif()) {
         tft.setTextColor(ST77XX_RED, ST77XX_BLACK);
         tft.printf("REC%4u", (unsigned)(rekam_n() / ECG_FS));
+    } else if (akuisisi_sumber() == SUMBER_REKAM) {
+        tft.setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
+        tft.printf("RP#%03d ", akuisisi_sumber_rekam());
     } else if (akuisisi_replay()) {
         tft.setTextColor(ST77XX_YELLOW, ST77XX_BLACK);
         tft.print("REPLAY ");
@@ -238,6 +247,61 @@ static void layar_1hz()
 
     // Label tombol bisa berubah lewat serial ('r'), jadi digambar ulang di sini.
     for (int i = 0; i < 3; i++) tampilan_gambar_tombol(i);
+}
+
+void tampilan_set_monitor(bool on)
+{
+    monitor = on;
+    if (!on) return;
+    tft.fillScreen(ST77XX_BLACK);
+    tampilan_mulai();
+    t_1hz = millis() - 1000;               // teks atas langsung digambar
+}
+
+bool tampilan_monitor(void) { return monitor; }
+
+// ---- Layar menu: judul, TAMPILAN_BARIS baris teks ukuran 2, petunjuk tombol.
+// Tiap baris diingat isinya; baris yang sama tidak digambar ulang, sehingga
+// layar tidak berkedip dan biaya per gerakan sorotan = dua baris (~15 ms).
+constexpr int MY = 26, MH = 20;            // baris pertama, tinggi baris
+constexpr uint16_t BIRU_TUA = 0x0010;
+static char isi_baris[TAMPILAN_BARIS][TAMPILAN_KOLOM + 1];
+static int8_t sorot_baris[TAMPILAN_BARIS];
+
+void tampilan_menu_bingkai(const char *judul, const char *petunjuk1, const char *petunjuk2)
+{
+    tft.fillScreen(ST77XX_BLACK);
+    tft.fillRect(0, 0, TFT_W, 22, BIRU_TUA);
+    tft.setTextSize(2);
+    tft.setTextColor(ST77XX_WHITE, BIRU_TUA);
+    tft.setCursor(4, 3);
+    tft.print(judul);
+    tft.drawFastHLine(0, 148, TFT_W, ABU);
+    tft.setTextSize(1);
+    tft.setTextColor(ST77XX_CYAN, ST77XX_BLACK);
+    tft.setCursor(4, 152);
+    tft.print(petunjuk1);
+    tft.setCursor(4, 162);
+    tft.print(petunjuk2);
+    for (int r = 0; r < TAMPILAN_BARIS; r++) { isi_baris[r][0] = 0; sorot_baris[r] = 0; }
+}
+
+void tampilan_menu_baris(int r, const char *teks, bool sorot, uint16_t warna)
+{
+    if (r < 0 || r >= TAMPILAN_BARIS) return;
+    char t[TAMPILAN_KOLOM + 1];
+    snprintf(t, sizeof t, "%-*.*s", TAMPILAN_KOLOM, TAMPILAN_KOLOM, teks);
+    if (sorot_baris[r] == sorot && strcmp(isi_baris[r], t) == 0) return;
+    strcpy(isi_baris[r], t);
+    sorot_baris[r] = sorot;
+    const uint16_t bg = sorot ? ST77XX_YELLOW : ST77XX_BLACK;
+    const int y = MY + r * MH;
+    tft.fillRect(0, y, 4, 16, bg);                     // tepi kiri-kanan di luar teks
+    tft.fillRect(4 + TAMPILAN_KOLOM * 12, y, TFT_W - 4 - TAMPILAN_KOLOM * 12, 16, bg);
+    tft.setTextSize(2);
+    tft.setTextColor(sorot ? ST77XX_BLACK : warna, bg);
+    tft.setCursor(4, y + 1);
+    tft.print(t);
 }
 
 void tampilan_layani(void)

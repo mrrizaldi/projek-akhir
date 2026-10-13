@@ -19,8 +19,8 @@ constexpr int ADC_ATAS = 4090, ADC_BAWAH = 5;
 // memang datang dengan dRR besar, jadi menegakkan dRR <= 200 ms terus-menerus
 // akan membungkam justru aritmia yang ingin dideteksi. bab3.tex juga
 // menuliskannya sebagai syarat "layak untuk fase pemantauan", sekali saja.
-constexpr uint32_t STABIL_MS = 10UL * 60 * 1000;   // bab3: 10-15 menit; ambil 10
-constexpr uint32_t RR_TENANG_MS = 30UL * 1000;     // bab3: >= 30 detik
+// STABIL_MS (bab3: 10-15 menit; ambil 10) dan RR_TENANG_MS (bab3: >= 30 detik)
+// ada di gerbang.h untuk halaman status kalibrasi.
 constexpr float RR_MIN_S = 0.300f, RR_MAKS_S = 1.500f;   // bab3: 300-1500 ms
 constexpr float DRR_MAKS_S = 0.200f;                     // bab3: <= 200 ms
 constexpr uint32_t BIP_KALIB_MS = 600;     // tanda kalibrasi mulai & selesai
@@ -51,6 +51,7 @@ constexpr float GAIN_50HZ = 0.342f;
 
 const gerbang_kualitas_t &gerbang_kualitas(void) { return q; }
 uint32_t gerbang_t_sesi_ms(void) { return t_sesi_ms; }
+uint32_t gerbang_tenang_ms(void) { return millis() - t_rr_langgar; }
 int gerbang_fase(void) { return fase; }
 bool gerbang_lewati(void) { return lewati_kalibrasi; }
 bool gerbang_lapor(void) { return lapor_kualitas; }

@@ -7,6 +7,7 @@
 //   y      sumber ADC <-> replay   k     lewati gerbang kalibrasi (bench)
 //   m      MQTT ON/OFF             p<0-5> tangga daya, p + lainnya = normal
 //   w[n]   daftar / pilih WiFi     b[n]  daftar / pilih broker
+//   t<1-3> T<1-3>  suntik tombol B1-B3 pendek / tahan (uji menu tanpa jari)
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "serial_cmd.h"
 
@@ -18,9 +19,11 @@
 #include "gerbang.h"
 #include "klasifikasi.h"
 #include "konfig.h"
+#include "menu.h"
 #include "perangkat.h"
 #include "rekam.h"
 #include "tampilan.h"
+#include "tombol.h"
 
 // Angka sesudah huruf perintah; -1 = tidak ada. Monitor serial mengirim per
 // ketukan, jadi tiap digit ditunggu sampai 500 ms (preseden 'p'). Bukan digit =
@@ -50,7 +53,8 @@ static void status()
                   "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
                   "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
                   "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
-                  "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d\n",
+                  "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
+                  "sumber %s %d | menu %d\n",
                   (int)rekam_aktif(), (unsigned)rekam_n(), (int)akuisisi_replay(),
                   gerbang_nama_fase(), h.total, h.aritmia, h.ditahan,
                   (unsigned)akuisisi_isi(), (unsigned)akuisisi_lewat(),
@@ -66,7 +70,10 @@ static void status()
                   (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
                   ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
                   daya_ina_teks(), (int)tampilan_bisu(), (int)tampilan_beku(),
-                  (int)gerbang_lewati(), daya_mode());
+                  (int)gerbang_lewati(), daya_mode(),
+                  akuisisi_sumber() == SUMBER_ADC ? "adc"
+                  : akuisisi_sumber() == SUMBER_ACUAN ? "acuan" : "rekaman",
+                  akuisisi_sumber_rekam(), (int)menu_terbuka());
 }
 
 static void daftar_wifi()
@@ -124,6 +131,13 @@ void serial_cmd_layani(void)
         const int n = angka();
         if (n < 0) daftar_wifi();
         else if (!konfig_pilih_wifi(n)) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
+    }
+    else if (c == 't' || c == 'T') {      // satu digit saja: angka() menunggu digit kedua 500 ms
+        const uint32_t t0 = millis();
+        while (!Serial.available() && millis() - t0 < 500) {}
+        const int n = Serial.peek() - '0';
+        if (n < 1 || n > 3) Serial.println("t<1-3> / T<1-3>: B1-B3 pendek / tahan");
+        else { Serial.read(); tombol_suntik(n - 1, c == 'T' ? TOMBOL_LAMA : TOMBOL_PENDEK); }
     }
     else if (c == 'b') {
         const int n = angka();

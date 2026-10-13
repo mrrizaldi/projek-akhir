@@ -10,8 +10,7 @@
 #include "ecg_pipeline.h"
 #include "perangkat.h"
 
-constexpr uint32_t DETIK_MAKS = 300;
-constexpr size_t REKAM_N = (size_t)ECG_FS * DETIK_MAKS;
+constexpr size_t REKAM_N = REKAM_SAMPEL_MAKS;
 constexpr int DAFTAR_MAKS = 64;            // ponytail: batas daftar tampilan saja; nomor baru tetap dari pindai penuh
 
 static uint16_t *buf;
@@ -144,5 +143,44 @@ void rekam_cetak_daftar(void)
         Serial.printf("  %3d  %6u B  %s\n", no[i], (unsigned)f.size(), f.readStringUntil('\n').c_str());
         f.close();
     }
+}
+// Header "# fs=360 n=<sampel> ..." -> n. 0 = berkas tidak ada / header rusak.
+size_t rekam_sampel_n(int nomor)
+{
+    char p[24];
+    nama(nomor, p, sizeof p);
+    File f = LittleFS.open(p, "r");
+    if (!f) return 0;
+    const String h = f.readStringUntil('\n');
+    f.close();
+    const int k = h.indexOf(" n=");
+    return k < 0 ? 0 : (size_t)atol(h.c_str() + k + 3);
+}
+
+// Dibaca per blok 512 B dan diurai sendiri: readStringUntil per baris terlalu
+// lambat untuk 108.000 baris. Baris berawalan '#' dilewati.
+size_t rekam_muat(int nomor, uint16_t *buf, size_t maks)
+{
+    char p[24];
+    nama(nomor, p, sizeof p);
+    File f = nomor > 0 ? LittleFS.open(p, "r") : File();
+    if (!f) return 0;
+    uint8_t blok[512];
+    size_t k = 0;
+    uint32_t v = 0;
+    bool ada = false, komentar = false;
+    for (int m; k < maks && (m = f.read(blok, sizeof blok)) > 0;) {
+        for (int j = 0; j < m && k < maks; j++) {
+            const char c = blok[j];
+            if (c == '\n') {
+                if (ada && !komentar) buf[k++] = (uint16_t)min<uint32_t>(v, 4095);
+                v = 0; ada = komentar = false;
+            } else if (c == '#' && !ada) komentar = true;
+            else if (c >= '0' && c <= '9' && !komentar) { v = v * 10 + (c - '0'); ada = true; }
+        }
+    }
+    if (ada && !komentar && k < maks) buf[k++] = (uint16_t)min<uint32_t>(v, 4095);
+    f.close();
+    return k;
 }
 #endif

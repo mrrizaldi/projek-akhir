@@ -9,10 +9,12 @@
 
 #include <stddef.h>
 #include <stdint.h>
+#include "ecg_preproc.h"   // ECG_FS
 
 #define REKAM_DIR  "/rekam"
 #define REKAM_POLA "/rekam/%03d.csv"       // snprintf(buf, n, REKAM_POLA, nomor)
 constexpr int REKAM_NOMOR_MAKS = 999;
+constexpr size_t REKAM_SAMPEL_MAKS = (size_t)ECG_FS * 300;  // 300 detik, PSRAM 216 KB
 
 // Buffer PSRAM + mount LittleFS. Rekaman lama /rekaman.csv dipindah ke nomor 1.
 void rekam_siapkan(void);
@@ -28,5 +30,9 @@ void rekam_cetak_daftar(void);             // daftar + ukuran + sisa LittleFS ke
 // Dump ke serial di antara ---MULAI--- / ---SELESAI---. nomor <= 0 = terakhir.
 bool rekam_dump(int nomor);
 bool rekam_hapus(int nomor);
+
+size_t rekam_sampel_n(int nomor);          // n dari header berkas; 0 = tidak ada
+// Isi berkas (counts ADC) ke buf, untuk replay rekaman. Return jumlah sampel.
+size_t rekam_muat(int nomor, uint16_t *buf, size_t maks);
 
 #endif

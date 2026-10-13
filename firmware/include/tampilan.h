@@ -6,6 +6,7 @@
 //          status (REC detik / REPLAY / fase kualitas)
 //   tengah gelombang EKG tersaring 0,5-40 Hz, skala otomatis per sapuan
 //   bawah  tiga kotak tombol, kuning selama ditekan
+// Selama menu terbuka layar yang sama dipakai menu (tampilan_menu_*).
 #ifndef TAMPILAN_H
 #define TAMPILAN_H
 
@@ -25,6 +26,18 @@ void tampilan_beat(const ecg_beat_t &beat, bool aritmia);
 void tampilan_sampel(void);
 
 void tampilan_gambar_tombol(int i);        // kotak tombol i, kuning selama ditekan
+
+// false = layar diserahkan ke menu: gelombang & teks monitor berhenti digambar
+// (pipeline, bip, LED tetap jalan). true = layar monitor digambar ulang penuh.
+void tampilan_set_monitor(bool on);
+bool tampilan_monitor(void);
+
+// Layar menu/halaman teks: judul di atas, TAMPILAN_BARIS baris x TAMPILAN_KOLOM
+// huruf, dua baris petunjuk tombol di bawah. Baris yang isinya tidak berubah
+// tidak digambar ulang. bingkai() mengosongkan layar dan ingatan baris.
+constexpr int TAMPILAN_BARIS = 6, TAMPILAN_KOLOM = 26;
+void tampilan_menu_bingkai(const char *judul, const char *petunjuk1, const char *petunjuk2);
+void tampilan_menu_baris(int r, const char *teks, bool sorot, uint16_t warna = 0xFFFF);
 
 bool tampilan_bisu(void);
 void tampilan_set_bisu(bool on);

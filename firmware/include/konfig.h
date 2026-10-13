@@ -20,8 +20,10 @@ int konfig_broker_port(int i);
 int konfig_broker(void);
 bool konfig_pilih_broker(int i);
 
-// Sumber sinyal tersimpan, untuk menu. Belum dipakai saat boot.
+// Sumber sinyal tersimpan (SUMBER_* di akuisisi.h) + nomor rekaman bila replay
+// rekaman. Dibaca akuisisi_mulai() saat boot, ditulis akuisisi_set_sumber().
 int konfig_sumber(void);
-void konfig_set_sumber(int s);
+int konfig_sumber_rekam(void);
+void konfig_set_sumber(int s, int nomor);
 
 #endif
