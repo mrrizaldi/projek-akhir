@@ -148,9 +148,12 @@ def daftar_berkas(argumen):
     os.chdir(akar)
     hasil = []
     for arg in argumen:
-        if os.path.isdir(arg):
+        if os.path.isdir(arg) and os.path.commonpath([arg, akar]) == akar:
             keluaran = subprocess.run(["git", "ls-files", "--", arg], capture_output=True, text=True, check=True).stdout
             hasil.extend(keluaran.splitlines())
+        elif os.path.isdir(arg):
+            for folder, _, nama_berkas in os.walk(arg):
+                hasil.extend(os.path.join(folder, n) for n in nama_berkas)
         elif os.path.isfile(arg):
             hasil.append(os.path.relpath(arg))
     return hasil

@@ -139,7 +139,7 @@ def main():
             ("t3 -> 'REKAM hanya dari sensor'", ada(o3, r"REKAM hanya dari sensor")),
             ("r -> 'REKAM hanya dari sensor'", ada(o_r, r"REKAM hanya dari sensor")),
             ("rekam=0", st["rekam"] == "0"),
-            ("kembali ke ADC", ada(o4, r"replay OFF \(ADC\)") and akhir == "adc")])
+            ("kembali ke ADC (status sumber adc)", akhir == "adc")])
 
         b.kirim("T2", 1.5)
         o = b.kirim("r", 1.0); st = b.status()

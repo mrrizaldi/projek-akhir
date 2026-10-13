@@ -63,7 +63,27 @@ pembenaran, bukan verifikasi.
 
 `golden_ref.h` berisi record 208 (DS1), 2.400 sampel pertama:
 `golden_raw` → `golden_filtered` → `golden_window` → `golden_rr` →
-`golden_prob_int8`. Delapan beat: N, F, V, N, V, V, N, V.
+`golden_prob_int8`. Sembilan beat: N, F, V, N, V, V, N, V, V.
+
+Header GENERATED tidak memuat komentar; isinya dibaca dari sini:
+
+| Simbol | Arti |
+|---|---|
+| `ECG_N_RR` | Didefinisikan di `model_int8.h` dan `ecg_preproc.h`, keduanya di balik `#ifndef` supaya tidak bentrok |
+| `ECG_N_RR_DASAR`, `ECG_RR_RATIO`, `ECG_QRSW` | Bentuk fitur ritme (Fase D): jumlah kolom RR saja (tanpa QRSw/HOS) dan knob `PA_RR_RATIO`/`PA_QRSW` |
+| `ECG_R_IN_WINDOW`, `ECG_QRSW_CARI` | Posisi R di window (`WIN_PRE` + group delay) dan toleransi cari puncak ±4 untuk `ecg_qrs_lebar()` |
+| `ECG_PT_OFFSET`, `ECG_PT_REFINE`, `ECG_GROUP_DELAY` | Penyelarasan R-peak, urutan wajib `r - ECG_PT_OFFSET` → puncak dalam ±`ECG_PT_REFINE` → `- ECG_GROUP_DELAY` (§2 `ecg_align_r`) |
+| `ecg_sos`, `ECG_N_SOS` | Butterworth 0,5-40 Hz orde 4, `{b0, b1, b2, a0, a1, a2}` per baris; kausal, group delay +4 sampel dibiarkan |
+| `ECG_IN_*_SCALE/ZERO`, `ECG_OUT_*` | Kuantisasi affine: `q = round(x / scale) + zero_point`, `x = (q - zero_point) * scale` |
+| `GOLDEN_RR_FIRST` | Beat 0 & 1 tak punya RR_prev/dRR: baris `golden_rr` dan probabilitasnya 0, jangan diuji. RR dihitung dari R-peak potongan ini saja, bukan record utuh, karena C hanya punya beat yang ada di potongan |
+| `GOLDEN_RR_LAST` | 1 bila `PA_RR_RATIO` aktif: beat terakhir butuh beat ke depan yang tidak ada di potongan |
+| `GOLDEN_TOL_*` | Toleransi float32 vs float64 (§3) |
+| `golden_rr` | Per beat: RR_prev, RR_ratio, dRR |
+| `golden_r_deteksi` | R-peak Pan-Tompkins atas `golden_filtered`, indeks MENTAH (belum dikompensasi/diselaraskan) |
+
+`export_golden.py` meng-assert bahwa memfilter potongan 2.400 sampel identik
+dengan memfilter sinyal utuh lalu memotongnya (filter kausal), jadi vektor uji
+berdiri sendiri.
 
 ---
 

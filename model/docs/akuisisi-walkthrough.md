@@ -151,6 +151,8 @@ Pojok kanan atas layar monitor menunjukkan status rekaman:
 | `RECmm:ss` | merah | sedang merekam; waktu = panjang sinyal tersimpan |
 | `JEDAm:ss` | kuning | rekaman dijeda; sampel tidak disimpan |
 | `SIMPAN` + `/rekam/NNN.csv` | hijau | berkas baru tersimpan (tampil 3 detik) |
+| `TERKUNCI` + `tahan B3=simpan` | oranye | menu ditolak karena sesi rekam terbuka (tampil 2 detik, bip tolak) |
+| `TOLAK` + `hanya sensor ADC` | oranye | mulai rekam ditolak karena sumber bukan Sensor (ADC) (tampil 2 detik, bip tolak) |
 | `RP 208` / `RP#NNN` | kuning | sumber sinyal replay (acuan / rekaman `NNN`), bukan sensor |
 | kosong | — | sumber Sensor (ADC), tidak merekam |
 
@@ -162,12 +164,16 @@ saat merekam, dan `B3 LANJUT` saat dijeda, dengan petunjuk `tahan=SIMPAN`.
    tidak menampilkan `RP 208` atau `RP#NNN`. Pilihan sumber tersimpan di NVS,
    sehingga replay yang dipilih sebelumnya tetap aktif setelah boot; ganti lewat
    menu **Sumber sinyal → Sensor (ADC)** (tahan B2 untuk membuka menu).
+   Rekam hanya dapat dimulai dari sensor: bila sumber masih replay, B3 dan
+   serial `r` ditolak dengan `TOLAK` di layar dan `REKAM hanya dari sensor` di
+   serial.
 2. Pastikan kualitas sinyal: LED **hijau**, atau selama fase kalibrasi (biru)
    `BERSIH ≥ 60` dan `clipping 0` di laporan `q`.
 3. Dari layar monitor (menu tertutup), tekan pendek **B3** (GPIO 6). Pojok kanan
    atas menampilkan `REC00:00` merah yang terus berjalan, dan serial mencetak
    `REKAM mulai`. LED tetap menunjukkan kualitas sinyal. Selama menu terbuka B3
-   adalah tombol navigasi.
+   adalah tombol navigasi dan serial `r` ditolak (`REKAM ditolak: tutup menu
+   dulu`), sehingga rekaman selalu dimulai dari layar monitor.
 4. Duduk diam, lengan bertumpu, **25 detik**.
 5. Bila perekaman perlu dihentikan sementara (subjek bergerak, kabel
    tersenggol), tekan pendek **B3** untuk menjeda. Layar menampilkan `JEDA`
@@ -185,6 +191,18 @@ saat merekam, dan `B3 LANJUT` saat dijeda, dengan petunjuk `tahan=SIMPAN`.
 
    Bila muncul `PERINGATAN: elektroda lepas >10%`, rekaman kemungkinan besar
    kosong; ulangi dari langkah 1.
+
+**Menu dan jalur sinyal terkunci selama sesi rekam.** Sejak `REKAM mulai`
+sampai berkas tersimpan, termasuk selama dijeda, menahan B2 tidak membuka menu:
+layar menampilkan `TERKUNCI` / `tahan B3=simpan` selama 2 detik dengan bip
+tolak, dan serial mencetak `DITOLAK: menu selama sesi rekam, simpan dulu (tahan
+B3 / r)`. Perintah serial yang mengubah jalur sinyal (`y`, `V`, `p0`–`p5`, `k`,
+`w<n>`, `b<n>`) ditolak dengan pesan `DITOLAK: ...` yang sama. Dengan kunci ini
+satu berkas tidak pernah bercampur sensor dan replay, dan tidak berlubang tanpa
+baris `# jeda` (tes perangkat menjeda akuisisi, tangga daya memaksa replay 208).
+Untuk mengganti sumber, menjalankan tes, mengukur daya, atau mengganti jaringan,
+**simpan rekaman lebih dulu** (tahan B3), baru buka menu. B1 pendek (bisu), B2
+pendek (beku), serta perintah baca `s`, `l`, `q`, `v` tetap berlaku selama sesi.
 
 Padanan serial: `r` = mulai, atau berhenti dan simpan (juga saat dijeda);
 `j` = jeda / lanjut. Serial `s` menampilkan `rekam 1` selama sesi rekaman
