@@ -1,4 +1,3 @@
-// Menu. Kontrak: include/menu.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "menu.h"
 
@@ -25,17 +24,12 @@
 typedef char baris_t[TAMPILAN_KOLOM + 1];
 
 struct halaman_t;
-// Satu baris daftar statis. aksi dijalankan lebih dulu, lalu masuk ke anak
-// (bila ada). nilai = teks rata kanan (ON/OFF, tanda *); tanpa nilai, baris
-// yang punya anak bertanda ">".
 struct item_t {
     const char *teks;
     const halaman_t *anak;
     void (*aksi)(void);
     const char *(*nilai)(void);
 };
-// Tiga jenis halaman: daftar statis (item), daftar dinamis (n/teks/pilih;
-// memilih = kembali satu tingkat), atau halaman teks (isi, diperbarui 1 Hz).
 struct halaman_t {
     const char *judul;
     const item_t *item;
@@ -49,15 +43,12 @@ struct halaman_t {
 #define DINAMIS(j, n, t, p) {j, nullptr, 0, n, t, p, nullptr}
 #define TEKS(j, f) {j, nullptr, 0, nullptr, nullptr, nullptr, f}
 
-// ---------------------------------------------------------------- Sumber sinyal
 static const char *tanda(bool aktif) { return aktif ? "*" : ""; }
 static void ke_adc() { akuisisi_set_sumber(SUMBER_ADC, 0, true); }
 static void ke_acuan() { akuisisi_set_sumber(SUMBER_ACUAN, 0, true); }
 static const char *n_adc() { return tanda(akuisisi_sumber() == SUMBER_ADC); }
 static const char *n_acuan() { return tanda(akuisisi_sumber() == SUMBER_ACUAN); }
 
-// Daftar rekaman dibaca ulang dari LittleFS tiap kali digambar (<= 6 berkas
-// dibuka per gerakan); daftar yang dipilih tetap sama dengan yang tergambar.
 static int rk_no[64], rk_n;
 static int rekaman_n() { return rk_n = rekam_daftar(rk_no, 64); }
 static void rekaman_teks(int i, char *out, size_t n)
@@ -83,7 +74,6 @@ static const item_t I_SUMBER[] = {
 };
 static const halaman_t H_SUMBER = DAFTAR("Sumber sinyal", I_SUMBER);
 
-// ---------------------------------------------------------------- Kalibrasi
 static const char *on_off(bool on) { return on ? "ON" : "OFF"; }
 static void kalib_ulang()
 {
@@ -120,11 +110,6 @@ static const item_t I_KALIB[] = {
 };
 static const halaman_t H_KALIB = DAFTAR("Kalibrasi", I_KALIB);
 
-// ---------------------------------------------------------------- Tes perangkat
-// Logika uji ada di diagnosa.* (dipakai juga test/test_hw_*); di sini hanya
-// dijalankan lalu hasilnya ditampilkan. Tes memblok (bunyi, pola layar, ADC),
-// jadi akuisisi dijeda: ISR tidak membaca ADC bersamaan dengan diag_adc dan
-// antrean tidak meluap. Halaman hasil menggambar ulang layar sesudahnya.
 static const char *tes_nama;
 static diag_hasil_t tes_hasil;
 static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
@@ -132,9 +117,9 @@ static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
     tes_nama = nama;
     akuisisi_timer(false);
     tes_hasil = f();
-    akuisisi_timer(daya_mode() != 0);      // p0 = timer memang mati
+    akuisisi_timer(daya_mode() != 0);
     int i;
-    while (tombol_event(&i) != TOMBOL_TIDAK) {}   // tekanan selama tes bukan navigasi
+    while (tombol_event(&i) != TOMBOL_TIDAK) {}
     Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.lulus ? "LULUS" : "GAGAL", tes_hasil.ringkas);
 }
 static diag_hasil_t tombol_10s()
@@ -153,7 +138,7 @@ static void tes_isi(baris_t *b)
 {
     snprintf(b[0], sizeof *b, "%s", tes_nama ? tes_nama : "-");
     snprintf(b[1], sizeof *b, "%s", tes_hasil.lulus ? "LULUS" : "GAGAL");
-    const char *r = tes_hasil.ringkas;      // ringkas <= 63 huruf: dipecah per baris
+    const char *r = tes_hasil.ringkas;
     for (int k = 2; k < TAMPILAN_BARIS && *r; k++, r += min<size_t>(strlen(r), TAMPILAN_KOLOM))
         snprintf(b[k], sizeof *b, "%.*s", TAMPILAN_KOLOM, r);
 }
@@ -167,9 +152,6 @@ static const item_t I_TES[] = {
 };
 static const halaman_t H_TES = DAFTAR("Tes perangkat", I_TES);
 
-// ---------------------------------------------------------------- Ukur daya
-// Selama tangga berjalan halaman ini hanya berubah saat langkah berganti
-// (baris yang sama tidak digambar ulang), jadi beban UI hampir nol.
 static void daya_isi(baris_t *b)
 {
     if (daya_tangga_aktif()) {
@@ -182,12 +164,10 @@ static void daya_isi(baris_t *b)
     if (!n) { snprintf(b[0], sizeof *b, "Belum ada hasil"); return; }
     for (int k = 0; k < n; k++)
         snprintf(b[k], sizeof *b, "%-3s%6.1fmA %5.0fmW", h[k].mode, h[k].i_ma, h[k].p_mw);
-    char *e = b[0] + strlen(b[0]);          // nomor berkas di ujung baris pertama
+    char *e = b[0] + strlen(b[0]);
     snprintf(e, sizeof *b - (e - b[0]), " #%03d", daya_tangga_berkas());
 }
 static const halaman_t H_DAYA = TEKS("Ukur daya", daya_isi);
-// Menu ditutup selama tangga: layar monitor tetap tergambar sehingga langkah p4
-// mengukur beban UI yang sebenarnya. Halaman hasil terbuka sendiri di akhir.
 static void tutup();
 static void mulai_tangga()
 {
@@ -200,7 +180,6 @@ static const item_t I_DAYA[] = {
 };
 static const halaman_t H_DAYA_MENU = DAFTAR("Ukur daya", I_DAYA);
 
-// ---------------------------------------------------------------- Jaringan
 static int wifi_n() { return konfig_wifi_n(); }
 static void wifi_teks(int i, char *out, size_t n)
 {
@@ -252,7 +231,6 @@ static const item_t I_JARINGAN[] = {
 };
 static const halaman_t H_JARINGAN = DAFTAR("Jaringan", I_JARINGAN);
 
-// ---------------------------------------------------------------- Info
 static void info_isi(baris_t *b)
 {
     const int k = konfig_broker();
@@ -271,7 +249,6 @@ static void info_isi(baris_t *b)
 }
 static const halaman_t H_INFO = TEKS("Info", info_isi);
 
-// ---------------------------------------------------------------- akar
 static const item_t I_AKAR[] = {
     {"Sumber sinyal", &H_SUMBER, nullptr, nullptr},
     {"Kalibrasi", &H_KALIB, nullptr, nullptr},
@@ -282,10 +259,9 @@ static const item_t I_AKAR[] = {
 };
 static const halaman_t H_AKAR = DAFTAR("MENU", I_AKAR);
 
-// ---------------------------------------------------------------- navigasi
 constexpr int DALAM_MAKS = 4;
 static struct { const halaman_t *h; int sel, atas; } tumpuk[DALAM_MAKS];
-static int dalam = -1;                     // -1 = tertutup
+static int dalam = -1;
 static uint32_t t_isi;
 
 bool menu_terbuka(void) { return dalam >= 0; }
@@ -301,9 +277,6 @@ static void label(const halaman_t *h, int i, char *out, size_t n)
     snprintf(out, n, "%s%*s", it.teks, pad > 0 ? pad : 1, v);
 }
 
-// Semua baris dihitung ulang; tampilan_menu_baris() hanya menggambar yang berubah.
-// Diukur di board: bingkai penuh ~200 ms, geser sorotan (dua baris) ~36 ms;
-// antrean ISR menampung 711 ms, jadi tidak ada sampel hilang.
 static void gambar(bool bingkai)
 {
     auto &t = tumpuk[dalam];
@@ -390,7 +363,7 @@ static void pilih()
     }
     const item_t &it = t.h->item[t.sel];
     if (it.aksi) it.aksi();
-    if (dalam < 0) return;                  // aksi menutup menu (mis. tangga daya)
+    if (dalam < 0) return;
     if (it.anak) { masuk(it.anak); return; }
     gambar(false);
     lapor();
@@ -407,7 +380,7 @@ void menu_tombol(int i, int e)
         const int n = t.h->isi ? 0 : jumlah(t.h);
         if (i == 1) kembali();
         else if (n) {
-            t.sel = (t.sel + (i == 2 ? n - 1 : 1)) % n;    // B3 naik, B1 turun, berputar
+            t.sel = (t.sel + (i == 2 ? n - 1 : 1)) % n;
             gambar(false);
             lapor();
         }
@@ -416,7 +389,6 @@ void menu_tombol(int i, int e)
 
 void menu_layani(void)
 {
-    // Tangga daya selesai saat menu sudah ditutup: hasilnya tetap ditampilkan.
     static bool daya_lalu;
     const bool d = daya_tangga_aktif();
     if (daya_lalu && !d && (dalam < 0 || tumpuk[dalam].h != &H_DAYA)) {

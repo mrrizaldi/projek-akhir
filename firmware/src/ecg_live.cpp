@@ -1,30 +1,24 @@
-// Implementasi alur hidup. Kontrak & alasan: include/ecg_live.h
 #include "ecg_live.h"
 
 #include <string.h>
 
-static float ring[ECG_LIVE_RING];       // sinyal TERFILTER, melingkar
-static float scratch[ECG_LIVE_RING];    // buffer kerja detektor
+static float ring[ECG_LIVE_RING];
+static float scratch[ECG_LIVE_RING];
 static int r_det[64];
 
 static float sos_state[ECG_N_SOS * 2];
-static size_t n_total;                  // sampel yang sudah masuk sejak reset
+static size_t n_total;
 static size_t sejak_deteksi;
-static int r_hist[ECG_LIVE_HIST];       // indeks absolut R, terurut
+static int r_hist[ECG_LIVE_HIST];
 static int n_hist;
-static int r_terakhir;                  // R terakhir yang sudah dikeluarkan
+static int r_terakhir;
 static int n_beat;
 
-// Antrean beat siap: deteksi berkala bisa menemukan >1 beat sekaligus,
-// sementara push() mengembalikan satu per panggilan.
 static int antre[8];
 static int n_antre, i_antre;
 #if ECG_RR_RATIO
 static float qrsw_riwayat[2 * ECG_RR_LOCAL_WINDOW];
 static size_t n_qrsw;
-// Indeks sampel ABSOLUT dari beat terakhir yang dikeluarkan lewat timeout.
-// Absolut, BUKAN posisi di r_hist: r_hist bergeser (memmove) saat penuh, jadi
-// posisi tersimpan akan basi dan beat bisa keluar dua kali.
 static int r_timeout;
 #endif
 
@@ -47,8 +41,6 @@ static float dari_ring(size_t abs_idx)
     return ring[abs_idx % ECG_LIVE_RING];
 }
 
-// Salin potongan ring [awal, awal+n) ke buffer lurus supaya fungsi pipeline
-// (yang menganggap array kontigu) bisa dipakai apa adanya.
 static void ambil(size_t awal, size_t n, float *keluar)
 {
     for (size_t i = 0; i < n; i++) {
@@ -65,9 +57,6 @@ static void tambah_hist(int r_abs)
     r_hist[n_hist++] = r_abs;
 }
 
-// Susun satu beat siap-klasifikasi dari r[idx]. Return 0 kalau window tak muat
-// di ring (bisa terjadi kalau denyut sangat lambat) — gagal aman, bukan diam
-// merusak: beat dilewati, bukan diisi angka sampah.
 static int keluarkan(int idx, const int *r, size_t n_r, int sentinel,
                      ecg_beat_t *beat)
 {
@@ -96,10 +85,10 @@ static int keluarkan(int idx, const int *r, size_t n_r, int sentinel,
 static void jalankan_deteksi(void)
 {
     const size_t n = (n_total < ECG_LIVE_RING) ? n_total : ECG_LIVE_RING;
-    if (n < (size_t)(2 * ECG_FS)) {
-        return;                          // ambang adaptif butuh 2 detik pertama
+    if (n < (size_t)ECG_PT_INIT_N) {
+        return;
     }
-    const size_t awal = n_total - n;     // indeks absolut sampel tertua di ring
+    const size_t awal = n_total - n;
 
     static float lurus[ECG_LIVE_RING];
     ambil(awal, n, lurus);
@@ -110,9 +99,8 @@ static void jalankan_deteksi(void)
         const int r_abs = (int)awal + r_sel;
 
         if (r_abs - r_terakhir < ECG_PT_REFRACTORY) {
-            continue;                    // sudah pernah dikeluarkan / terlalu rapat
+            continue;
         }
-        // Window harus utuh DAN masih ada di ring.
         if (r_abs - ECG_WIN_PRE < (int)awal) continue;
         if (r_abs + ECG_WIN_POST > (int)n_total) continue;
 
@@ -140,8 +128,6 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
     while (i_antre < n_antre) {
         const int r_abs = antre[i_antre++];
 
-        // Butuh 3 R-peak (i >= 2) agar fitur RR ada — aturan yang sama dengan
-        // valid_beat_indices di prep_beats.py.
         if (n_hist < 3) {
             continue;
         }
@@ -153,12 +139,9 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
             continue;
         }
 #if ECG_RR_RATIO
-        // TUNDA 1 BEAT (GATE G2): yang dinilai bukan R yang baru datang, tapi
-        // yang SEBELUMNYA — karena RR+1/RR0 butuh r[i+1], dan r_abs itulah
-        // "i+1"-nya. Buffer tidak berubah: r_hist sudah memuat keduanya.
         const int idx_nilai = idx_hist - 1;
         if (idx_nilai < 2 || r_hist[idx_nilai] <= r_timeout) {
-            continue;                    // sudah dikeluarkan lewat timeout
+            continue;
         }
 #else
         const int idx_nilai = idx_hist;
@@ -170,9 +153,6 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
     }
 
 #if ECG_RR_RATIO
-    // Timeout: R berikutnya tidak datang. Keluarkan beat yang menggantung dengan
-    // R SEMU (asumsi RR berikutnya = RR sekarang) -> RR+1/RR0 = 1,0 tepat, yaitu
-    // sentinel netral. Tidak perlu mengubah ecg_rr_features sama sekali.
     if (n_hist >= 3 && r_hist[n_hist - 1] > r_timeout) {
         const int r_akhir = r_hist[n_hist - 1];
         if (n_total > (size_t)r_akhir && n_total - (size_t)r_akhir > ECG_LIVE_TIMEOUT) {

@@ -1,15 +1,3 @@
-// Integrasi di board: seluruh perangkat terpasang seperti firmware utama, lalu
-// golden_raw diputar lewat jalur akuisisi sungguhan:
-//   timer ISR 360 Hz -> antrean -> ecg_live (bandpass, deteksi R, window, RR)
-//   -> HR -> inferensi TFLM,
-// sementara TFT menggambar gelombang + HR, INA219 dibaca tiap detik, dan
-// buzzer berbunyi per detak. Beban tampilan ikut dihitung, jadi test ini
-// menangkap sampel yang hilang karena loop terblokir, bukan hanya salah hitung.
-//
-//   pio test -e esp32-s3 -f test_hw_integrasi
-//
-// Bedanya dengan test_inference/test_alur_hidup: di sana sampel float
-// disuapkan langsung tanpa ISR, tanpa konversi counts, dan tanpa perangkat.
 #include <Arduino.h>
 #include <unity.h>
 
@@ -27,14 +15,12 @@
 #include "perangkat.h"
 #include "../golden_ref.h"
 
-constexpr int PUTARAN = 3;                 // 3 x 6,7 detik golden_raw
+constexpr int PUTARAN = 3;
 constexpr int ARENA_N = 24 * 1024;
 alignas(16) static uint8_t arena[ARENA_N];
 static tflite::MicroInterpreter *interp;
 static TfLiteTensor *in_morph, *in_rr, *keluar;
 
-// Antrean dan konversi counts sama dengan main.cpp: float hanya di setup(),
-// ISR menyalin integer.
 constexpr size_t ANTRE_N = 256;
 static volatile uint16_t antre[ANTRE_N];
 static volatile size_t tulis, baca, replay_i;
@@ -50,7 +36,6 @@ static void IRAM_ATTR on_timer()
     tulis = berikut;
 }
 
-// Hasil satu kali jalan, dinilai oleh test-test di bawah.
 static int beat_keluar, cocok, prediksi_benar, hr_meleset;
 static uint32_t n_diproses, loop_maks_us;
 
@@ -142,8 +127,6 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
                 hr = (int)lroundf(60.0f / beat.rr[0]);
                 buzzer(true);
                 buzz_sampai = millis() + (aritmia ? 250 : 50);
-                // Putaran pertama dibandingkan ke jawaban PC. Putaran berikutnya
-                // tidak: RR di sambungan ujung-awal golden_raw tidak ada di PC.
                 for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT && beat.r_abs < GOLDEN_N; b++) {
                     if (abs(beat.r_abs - golden_r[b]) > 20) continue;
                     cocok++;
@@ -174,7 +157,6 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
 
 void test_beat_terdeteksi_tiap_putaran(void)
 {
-    // 9 beat per putaran; dua beat pertama sesi tidak pernah keluar.
     TEST_ASSERT_GREATER_OR_EQUAL(PUTARAN * GOLDEN_N_BEAT - 4, beat_keluar);
 }
 
@@ -197,7 +179,7 @@ void setup()
     perangkat_mulai();
     Serial.begin(115200);
     delay(2000);
-    ina219_mulai(I2C_SDA, I2C_SCL);     // boleh absen; diuji test_hw_ina219
+    ina219_mulai(I2C_SDA, I2C_SCL);
     for (size_t i = 0; i < GOLDEN_N; i++)
         sim_counts[i] = (uint16_t)constrain(golden_raw[i] * 1000.0f + 2048.0f, 0.0f, 4095.0f);
     ecg_live_reset();

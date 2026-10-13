@@ -1,4 +1,3 @@
-// Konfigurasi jaringan + NVS. Kontrak: include/konfig.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "konfig.h"
 
@@ -21,7 +20,7 @@ struct broker_t { const char *nama, *host; uint16_t port; const char *token; };
 #define BROKER_DAFTAR {{"utama", TB_HOST, TB_PORT, TB_TOKEN}}
 #endif
 #ifndef WIFI_DAFTAR
-#define WIFI_DAFTAR {{"", ""}}                 // SSID kosong = MQTT nonaktif
+#define WIFI_DAFTAR {{"", ""}}
 #endif
 #ifndef BROKER_DAFTAR
 #define BROKER_DAFTAR {{"-", "", 1883, ""}}
@@ -33,21 +32,22 @@ constexpr int N_WIFI = sizeof WIFI / sizeof WIFI[0];
 constexpr int N_BROKER = sizeof BROKER / sizeof BROKER[0];
 
 constexpr const char *NS = "konfig";
+constexpr bool BUKAN_READ_ONLY = false;
 static int i_wifi, i_broker, sumber, sumber_rekam;
 
 static int baca(const char *kunci, int n)
 {
     Preferences p;
-    p.begin(NS, false);                    // bukan read-only: namespace dibuat bila belum ada
+    p.begin(NS, BUKAN_READ_ONLY);
     const int v = p.getUChar(kunci, 0);
     p.end();
-    return v < n ? v : 0;                  // daftar di wifi_secrets.h bisa memendek
+    return v < n ? v : 0;
 }
 
 static void tulis(const char *kunci, int v)
 {
     Preferences p;
-    p.begin(NS, false);
+    p.begin(NS, BUKAN_READ_ONLY);
     p.putUChar(kunci, (uint8_t)v);
     p.end();
 }
@@ -66,8 +66,8 @@ void konfig_mulai(void)
     i_wifi = baca("wifi", N_WIFI);
     i_broker = baca("broker", N_BROKER);
     sumber = baca("sumber", 3);
-    Preferences p;                         // nomor rekaman bisa > 255: kunci terpisah, uint16
-    p.begin(NS, false);
+    Preferences p;
+    p.begin(NS, BUKAN_READ_ONLY);
     sumber_rekam = p.getUShort("rekam", 0);
     p.end();
     terapkan();
@@ -83,10 +83,6 @@ const char *konfig_broker_host(int i) { return i >= 0 && i < N_BROKER ? BROKER[i
 int konfig_broker_port(int i) { return i >= 0 && i < N_BROKER ? BROKER[i].port : 0; }
 int konfig_broker(void) { return i_broker; }
 
-// ecg_mqtt_mulai() ulang: WiFi.begin() dengan SSID yang sama tidak memutus
-// sambungan, dengan SSID lain memutus lalu menyambung ke yang baru.
-// ponytail: dipanggil saat radio dimatikan tangga daya (p0-p4) ikut
-// menyalakan WiFi; pilih jaringan di mode normal.
 bool konfig_pilih_wifi(int i)
 {
     if (i < 0 || i >= N_WIFI || rekam_tolak("ganti WiFi")) return false;
@@ -111,10 +107,10 @@ int konfig_sumber_rekam(void) { return sumber_rekam; }
 
 void konfig_set_sumber(int s, int nomor)
 {
-    if (s != sumber) tulis("sumber", s);   // NVS hanya ditulis bila berubah
+    if (s != sumber) tulis("sumber", s);
     if (nomor != sumber_rekam) {
         Preferences p;
-        p.begin(NS, false);
+        p.begin(NS, BUKAN_READ_ONLY);
         p.putUShort("rekam", (uint16_t)nomor);
         p.end();
     }

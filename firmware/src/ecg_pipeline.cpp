@@ -1,15 +1,15 @@
-// Port golden reference preprocessing ke C. Kontrak & aturan: include/ecg_pipeline.h
-// Diverifikasi terhadap Python oleh test/test_preproc/ (pio test -e native).
 #include "ecg_pipeline.h"
 
 #include <math.h>
+
+constexpr int KOEF_PER_SOS = 6;
 
 void ecg_bandpass(const float *in, float *out, size_t n, float *state)
 {
     for (size_t i = 0; i < n; i++) {
         float x = in[i];
         for (int k = 0; k < ECG_N_SOS; k++) {
-            const float *c = &ecg_sos[k * 6];   // b0 b1 b2 a0 a1 a2, a0 == 1
+            const float *c = &ecg_sos[k * KOEF_PER_SOS];
             float *s = &state[k * 2];
             float y = c[0] * x + s[0];
             s[0] = c[1] * x - c[4] * y + s[1];
@@ -39,7 +39,7 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out)
         const double d = w[i] - mean;
         kuadrat += d * d;
     }
-    const double std_pop = sqrt(kuadrat / ECG_WIN_LEN_);   // pembagi N, bukan N-1
+    const double std_pop = sqrt(kuadrat / ECG_WIN_LEN_);
 
     for (int i = 0; i < ECG_WIN_LEN_; i++) {
         out[i] = (float)((w[i] - mean) / (std_pop + ECG_ZSCORE_EPS));
@@ -50,20 +50,14 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out)
 int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_DASAR])
 {
 #if ECG_RR_RATIO
-    // Bentuk RASIO semua (P3): RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0.
-    // Butuh r[i+1] -> keputusan beat i keluar setelah R berikutnya terdeteksi
-    // (tunda 1 beat, GATE G2). Nilai absolut dalam detik dibuang karena berbeda
-    // antar-orang: model belajar identitas pasien, lawan semangat inter-patient.
     if (i < 2 || i + 1 >= n_r) {
         return 0;
     }
     const double dt = 1.0 / (double)fs;
-    const double rr0 = (r[i] - r[i - 1]) * dt;        // d[i-1]
-    const double rr_plus1 = (r[i + 1] - r[i]) * dt;   // d[i]
-    const double rr_minus1 = (r[i - 1] - r[i - 2]) * dt;  // d[i-2]
+    const double rr0 = (r[i] - r[i - 1]) * dt;
+    const double rr_plus1 = (r[i + 1] - r[i]) * dt;
+    const double rr_minus1 = (r[i - 1] - r[i - 2]) * dt;
 
-    // Rata-rata & std KAUSAL atas <= ECG_RR_LOCAL_WINDOW interval terakhir,
-    // termasuk interval ini. Jendela MENYUSUT di awal — jangan di-pad.
     const size_t j = i - 1;
     const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
     double jumlah = 0.0, jumlah2 = 0.0;
@@ -75,7 +69,7 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_
     const double n = (double)(j - start + 1);
     const double avg = jumlah / n;
     double var = jumlah2 / n - avg * avg;
-    if (var < 0.0) var = 0.0;                          // galat pembulatan
+    if (var < 0.0) var = 0.0;
     const double sd = sqrt(var);
 
     out[0] = (float)(rr0 / avg);
@@ -109,9 +103,6 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_
 #if ECG_QRSW
 float ecg_qrs_lebar(const float *window, float frac)
 {
-    // Lebar QRS pada `frac` x puncak, dalam SAMPEL. Window sudah z-score dan
-    // puncak R sudah didudukkan di ECG_R_IN_WINDOW oleh segmentasi.
-    // Toleransi +-ECG_QRSW_CARI karena residu posisi memang +-2 sampel.
     int lo = ECG_R_IN_WINDOW - ECG_QRSW_CARI;
     int hi = ECG_R_IN_WINDOW + ECG_QRSW_CARI;
     if (lo < 0) lo = 0;
@@ -137,10 +128,6 @@ float ecg_qrs_lebar(const float *window, float frac)
 int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat,
                            float out[2])
 {
-    // riwayat: milik pemanggil, 2 x ECG_RR_LOCAL_WINDOW float (QRSw2 lalu QRSw4),
-    // ring sederhana. n_riwayat = berapa beat yang sudah masuk (jenuh di jendela).
-    // Normalisasi = rerata KAUSAL lebar w beat terakhir, TERMASUK beat ini —
-    // sama bentuknya dengan rata_lokal di ecg_rr_features.
     const float frac[2] = {0.5f, 0.25f};
     for (int c = 0; c < 2; c++) {
         const float lebar = ecg_qrs_lebar(window, frac[c]);
@@ -158,18 +145,13 @@ int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat
 }
 #endif
 
-
-// ── Pan-Tompkins ────────────────────────────────────────────────────────────
-// Port dari model/src/preprocessing.py. Tiap tahap kausal, jadi bisa dijalankan
-// per potongan; implementasi ini memproses blok penuh supaya mudah diadu ke golden.
-
 static void pt_bandpass(const float *in, float *out, size_t n)
 {
     float state[ECG_PT_N_SOS * 2] = {0.0f};
     for (size_t i = 0; i < n; i++) {
         float x = in[i];
         for (int k = 0; k < ECG_PT_N_SOS; k++) {
-            const float *c = &ecg_pt_sos[k * 6];
+            const float *c = &ecg_pt_sos[k * KOEF_PER_SOS];
             float *s = &state[k * 2];
             const float y = c[0] * x + s[0];
             s[0] = c[1] * x - c[4] * y + s[1];
@@ -180,8 +162,6 @@ static void pt_bandpass(const float *in, float *out, size_t n)
     }
 }
 
-// y[i] = (x[i] + 2x[i-1] - 2x[i-3] - x[i-4]) * fs/8  — kernel klasik yang
-// digeser 2 sampel agar kausal (lihat docs/preprocessing-walkthrough §3.2).
 static void pt_derivative(float *x, size_t n)
 {
     const float skala = (float)ECG_FS / 8.0f;
@@ -199,7 +179,7 @@ static void pt_derivative(float *x, size_t n)
 static void pt_mwi(float *x, size_t n)
 {
     float buf[ECG_PT_MWI_LEN] = {0.0f};
-    double jumlah = 0.0;                 // double: 100k penjumlahan float meleleh
+    double jumlah = 0.0;
     int pos = 0;
     for (size_t i = 0; i < n; i++) {
         jumlah += x[i] - buf[pos];
@@ -222,8 +202,7 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
     }
     pt_mwi(scratch, n);
 
-    // Inisialisasi ambang dari 2 detik pertama: asumsinya ada minimal 1 QRS.
-    const size_t n_awal = (n < (size_t)(2 * ECG_FS)) ? n : (size_t)(2 * ECG_FS);
+    const size_t n_awal = (n < (size_t)ECG_PT_INIT_N) ? n : (size_t)ECG_PT_INIT_N;
     double spki = scratch[0], jumlah = 0.0;
     for (size_t i = 0; i < n_awal; i++) {
         if (scratch[i] > spki) spki = scratch[i];
@@ -234,8 +213,6 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
     int jml = 0;
     long terakhir = -(long)ECG_PT_REFRACTORY;
     for (size_t i = 1; i + 1 < n; i++) {
-        // Puncak lokal, asimetris (> kiri, >= kanan) supaya plateau datar tidak
-        // menghasilkan nol puncak maupun puncak ganda.
         if (!(scratch[i] > scratch[i - 1] && scratch[i] >= scratch[i + 1])) {
             continue;
         }

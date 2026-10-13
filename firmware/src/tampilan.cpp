@@ -1,7 +1,3 @@
-// Keluaran antarmuka. Kontrak: include/tampilan.h
-//
-// Bip detak senyap selama kalibrasi; bunyi panjang menandai kalibrasi mulai
-// (boot, ganti sumber, 'k' OFF) dan selesai (masuk fase BAIK), lihat gerbang.cpp.
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "tampilan.h"
 
@@ -16,16 +12,17 @@
 #include "rekam.h"
 #include "tombol.h"
 
-constexpr int GY = 30, GH = 112;           // area gelombang
-constexpr int DESIMASI = 3;                // 120 px/detik -> 320 px = 2,7 detik
+constexpr int GY = 30, GH = 112;
+constexpr int DESIMASI = 3;
 constexpr uint16_t ABU = 0x4208;
 constexpr uint32_t BIP_MS = 50, BIP_ARITMIA_MS = 250;
-// Tanpa detak selama ini, HR di layar menjadi "--".
 constexpr uint32_t HR_BASI_MS = 3000;
+constexpr uint32_t PERIODE_LED_MS = 250;
+constexpr int X_TENGAH = 116, X_KANAN = 220;
 
 static bool bisu, beku;
-static bool monitor = true;                // false = layar dipakai menu
-static int hr_tampil;                      // bpm, 0 = belum ada
+static bool monitor = true;
+static int hr_tampil;
 static bool hr_aritmia;
 static uint32_t t_hr;
 static uint32_t buzz_sampai;
@@ -43,14 +40,8 @@ void tampilan_bunyi(uint32_t ms)
     buzz_sampai = millis() + ms;
 }
 
-// Bip per detak, SINKRON dengan ritme. Beat keluar dari ecg_live bergerombol
-// tiap ECG_LIVE_TIAP sampel; membunyikannya saat keluar membuat dua detak lebur
-// jadi satu bip. Karena itu bip dijadwalkan di r_abs + TUNDA_BIP pada jam
-// sampel yang sama dengan ecg_live: semua bip telat sama rata (1,46 detik),
-// jarak antar-bip = RR persis. TUNDA = kadens deteksi + post-window (telat
-// terburuk sebuah beat keluar) + 0,1 detik margin.
 constexpr uint32_t TUNDA_BIP = ECG_LIVE_TIAP + ECG_WIN_POST + ECG_FS / 10;
-constexpr int JADWAL_N = 8;                // 250 bpm x 1,46 detik = 6 bip menunggu
+constexpr int JADWAL_N = 8;
 static struct { uint32_t sampel; uint16_t ms; } jadwal[JADWAL_N];
 static int j_kepala, j_isi;
 
@@ -64,8 +55,6 @@ static void jadwalkan_bip(const ecg_beat_t &b, bool aritmia)
     j.ms = aritmia ? BIP_ARITMIA_MS : BIP_MS;
 }
 
-// ponytail: jam = sampel yang sudah diproses ecg_live, bukan yang masuk antrean;
-// saat burst deteksi bip telat paling lama sepanjang burst (~33 ms).
 static void jalankan_jadwal()
 {
     const uint32_t kini = (uint32_t)ecg_live_total_sampel();
@@ -73,14 +62,10 @@ static void jalankan_jadwal()
         const uint16_t ms = jadwal[j_kepala].ms;
         j_kepala = (j_kepala + 1) % JADWAL_N;
         j_isi--;
-        // Beku dicek saat berbunyi: layar juga ditunda TUNDA_BIP, jadi bip
-        // berhenti tepat di R terakhir yang tergambar.
         if (!beku) tampilan_bunyi(ms);
     }
 }
 
-// Gelombang di layar ikut ditunda TUNDA_BIP: R tergambar tepat saat bipnya
-// berbunyi.
 static float tunda_plot[TUNDA_BIP];
 static size_t i_plot;
 
@@ -104,14 +89,14 @@ static void plot(float f)
 
     int y = GY + GH - 1 - (int)((f - lo) * (GH - 1) / (hi - lo));
     y = constrain(y, GY, GY + GH - 1);
-    if (monitor) {                         // menu terbuka: sapuan tetap maju, tidak digambar
-        tft.fillRect(x, GY, min(4, TFT_W - x), GH, ST77XX_BLACK); // hapus di depan kursor
+    if (monitor) {
+        tft.fillRect(x, GY, min(4, TFT_W - x), GH, ST77XX_BLACK);
         tft.drawFastVLine(x, min(y, y_lalu), abs(y - y_lalu) + 1, ST77XX_GREEN);
     }
     y_lalu = y;
 
     if (++x < TFT_W) return;
-    x = 0;                                 // akhir sapuan: skala ulang dari sapuan ini
+    x = 0;
     const float span = fmaxf(mx - mn, 50.0f);
     lo = mn - 0.1f * span;
     hi = lo + 1.2f * span;
@@ -125,16 +110,13 @@ void tampilan_sampel(void)
     plot(tertunda(ecg_live_tersaring_terakhir()));
 }
 
-// HR diambil dari RR_prev beat yang lolos gerbang ayunan, sama dengan bip:
-// tanpa elektroda detektor menemukan "beat" di derau, dan itu tidak boleh
-// berbunyi atau tampil sebagai detak jantung.
 void tampilan_beat(const ecg_beat_t &beat, bool aritmia)
 {
     if (gerbang_kualitas().ayun_bersih < AMBANG_AYUN) return;
     hr_tampil = (beat.rr[0] > 0.05f) ? (int)lroundf(60.0f / beat.rr[0]) : 0;
     hr_aritmia = aritmia;
     t_hr = millis();
-    if (gerbang_fase() != FASE_KALIBRASI) jadwalkan_bip(beat, aritmia);   // kalibrasi: senyap
+    if (gerbang_fase() != FASE_KALIBRASI) jadwalkan_bip(beat, aritmia);
 }
 
 void tampilan_gambar_tombol(int i)
@@ -154,8 +136,6 @@ void tampilan_gambar_tombol(int i)
         tft.setCursor(x + 6, 153);
         tft.print("B3 REC");
     } else {
-        // "B3 LANJUT" = 9 huruf x 12 px = 108 px: mulai tepat di tepi kotak,
-        // tinta huruf terakhir berakhir di x 319.
         tft.setCursor(x, 149);
         tft.print(rekam_dijeda() ? "B3 LANJUT" : "B3 JEDA");
         tft.setTextSize(1);
@@ -170,32 +150,21 @@ void tampilan_mulai(void)
     for (int i = 0; i < 3; i++) tampilan_gambar_tombol(i);
 }
 
-// Arti LED = kualitas sinyal SAJA (status rekaman ada di layar, kanan atas):
-//   biru   : kalibrasi (stabilisasi)
-//   oranye : ayunan BERSIH < ambang — kontak kurang / dengung dominan
-//   hijau  : ayunan sehat, siap rekam
-// Tanpa kedip. Clipping sengaja tidak punya pola LED sendiri: pola tambahan
-// menumpuk arti di satu warna. Clipping tetap dihitung
-// dan dilaporkan lewat serial ('q' tiap detik, 's' sesaat); sinyal terpotong
-// tampil HIJAU.
-// LO+/LO- SENGAJA tidak dipakai menyetir LED: ia hanya melaporkan elektroda
-// lepas total, dan pada 3-lead tanpa RL yang rapat ia menyala terus walau
-// sinyalnya sebenarnya bagus. Ayunan mengukur yang benar-benar kita butuhkan.
 static void perbarui_led()
 {
     static uint32_t t_led = 0;
 
-    if (millis() - t_led < 250) return;    // neopixelWrite matikan interrupt ~30 us
+    if (millis() - t_led < PERIODE_LED_MS) return;
     t_led = millis();
 
-    if (!daya_tahap(4))                    tampilan_led(0, 0, 0);    // LED ikut diukur di p4
+    if (!daya_tahap(4))                    tampilan_led(0, 0, 0);
     else if (gerbang_fase() == FASE_KALIBRASI) tampilan_led(0, 16, 64);
     else if (gerbang_kualitas().ayun_bersih < AMBANG_AYUN) tampilan_led(64, 24, 0);
     else                                   tampilan_led(0, 48, 0);
 }
 
 static uint32_t t_1hz;
-static char kanan_lalu[32];                // isi kanan atas yang tergambar; "" = gambar ulang
+static char kanan_lalu[32];
 constexpr uint32_t PESAN_MS = 2000, BIP_TOLAK_MS = 150;
 static char pesan_besar[9], pesan_kecil[17];
 static uint32_t t_pesan;
@@ -209,10 +178,6 @@ void tampilan_pesan(const char *besar, const char *kecil)
     tampilan_bunyi(BIP_TOLAK_MS);
 }
 
-// Tengah atas x 116..211, bergantian tiap 3 detik: INA219 (mA besar, V/mW
-// kecil) dan waktu (jam WIB + tanggal bila SNTP sudah masuk, selain itu
-// uptime). Selalu dicetak lebar tetap 8 / 16 huruf berlatar hitam, jadi sisa
-// mode sebelumnya tertimpa tanpa fillRect.
 static void gambar_tengah()
 {
     static const char *const BULAN[12] = {"Jan", "Feb", "Mar", "Apr", "Mei", "Jun",
@@ -225,15 +190,13 @@ static void gambar_tengah()
     struct tm t;
     localtime_r(&kini, &t);
     const bool sinkron = t.tm_year + 1900 > 2020;
-    if (sinkron && !jam_dilog) {           // sekali per boot: bukti zona waktu di log
+    if (sinkron && !jam_dilog) {
         jam_dilog = true;
         Serial.printf("jam: %02d:%02d:%02d WIB %d %s %d\n", t.tm_hour, t.tm_min, t.tm_sec,
                       t.tm_mday, BULAN[t.tm_mon], t.tm_year + 1900);
     }
 
     if ((millis() / 3000) % 2 == 0) {
-        // Chip merata-rata 128 sampel (~68 ms), jadi satu baca per detik tidak
-        // melompat mengikuti burst 33 ms.
         float mA = 0, V = 0;
         const bool ok = daya_ina_ada() && ina219_baca(R_SHUNT, &mA, &V);
         w = ok ? ST77XX_CYAN : ST77XX_RED;
@@ -248,7 +211,6 @@ static void gambar_tengah()
         snprintf(besar, sizeof besar, "%02d:%02d:%02d", t.tm_hour, t.tm_min, t.tm_sec);
         snprintf(kecil, sizeof kecil, "%d %s %d", t.tm_mday, BULAN[t.tm_mon], t.tm_year + 1900);
     } else {
-        // "up hh:mm:ss" tidak muat di ukuran 2 (11 x 12 px); "up" pindah ke baris kecil.
         const uint32_t d = millis() / 1000;
         snprintf(besar, sizeof besar, "%02u:%02u:%02u", (unsigned)(d / 3600 % 100),
                  (unsigned)(d / 60 % 60), (unsigned)(d % 60));
@@ -256,16 +218,13 @@ static void gambar_tengah()
     }
     tft.setTextColor(w, ST77XX_BLACK);
     tft.setTextSize(2);
-    tft.setCursor(116, 2);
+    tft.setCursor(X_TENGAH, 2);
     tft.printf("%-8.8s", besar);
     tft.setTextSize(1);
-    tft.setCursor(116, 20);
+    tft.setCursor(X_TENGAH, 20);
     tft.printf("%-16.16s", kecil);
 }
 
-// Kanan atas x 220..319 (8 huruf ukuran 2): status rekaman, label sumber
-// replay, atau kosong. Kualitas sinyal TIDAK ditulis di sini; LED yang
-// menunjukkannya. Digambar ulang hanya bila isinya berubah.
 static void gambar_kanan()
 {
     char t[16] = "", kecil[24] = "";
@@ -280,9 +239,9 @@ static void gambar_kanan()
         w = ST77XX_RED;
         snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);
     } else if (rekam_aktif()) {
-        snprintf(t, sizeof t, "JEDA%u:%02u", d / 60 % 10, d % 60);   // maks 300 s: menit 1 digit
+        snprintf(t, sizeof t, "JEDA%u:%02u", d / 60 % 10, d % 60);
     } else if (simpan) {
-        w = ST77XX_GREEN;                  // "SIMPAN#NNN" tidak muat: nomor di baris kecil
+        w = ST77XX_GREEN;
         snprintf(t, sizeof t, "SIMPAN");
         snprintf(kecil, sizeof kecil, REKAM_POLA, simpan);
     } else if (akuisisi_sumber() == SUMBER_REKAM) {
@@ -295,14 +254,14 @@ static void gambar_kanan()
     snprintf(kunci, sizeof kunci, "%s|%s|%u", t, kecil, (unsigned)w);
     if (strcmp(kunci, kanan_lalu) == 0) return;
     strcpy(kanan_lalu, kunci);
-    tft.fillRect(220, 0, TFT_W - 220, GY - 3, ST77XX_BLACK);
+    tft.fillRect(X_KANAN, 0, TFT_W - X_KANAN, GY - 3, ST77XX_BLACK);
     tft.setTextColor(w, ST77XX_BLACK);
     tft.setTextSize(2);
-    tft.setCursor(220, kecil[0] ? 2 : 8);
+    tft.setCursor(X_KANAN, kecil[0] ? 2 : 8);
     tft.print(t);
     if (kecil[0]) {
         tft.setTextSize(1);
-        tft.setCursor(220, 20);
+        tft.setCursor(X_KANAN, 20);
         tft.print(kecil);
     }
 }
@@ -331,7 +290,6 @@ static void layar_1hz()
     gambar_tengah();
     gambar_kanan();
 
-    // Label tombol bisa berubah lewat serial ('r'), jadi digambar ulang di sini.
     for (int i = 0; i < 3; i++) tampilan_gambar_tombol(i);
 }
 
@@ -341,16 +299,13 @@ void tampilan_set_monitor(bool on)
     if (!on) return;
     tft.fillScreen(ST77XX_BLACK);
     tampilan_mulai();
-    t_1hz = millis() - 1000;               // teks atas langsung digambar
+    t_1hz = millis() - 1000;
     kanan_lalu[0] = 0;
 }
 
 bool tampilan_monitor(void) { return monitor; }
 
-// ---- Layar menu: judul, TAMPILAN_BARIS baris teks ukuran 2, petunjuk tombol.
-// Tiap baris diingat isinya; baris yang sama tidak digambar ulang, sehingga
-// layar tidak berkedip dan biaya per gerakan sorotan = dua baris (~36 ms terukur di board).
-constexpr int MY = 26, MH = 20;            // baris pertama, tinggi baris
+constexpr int MY = 26, MH = 20;
 constexpr uint16_t BIRU_TUA = 0x0010;
 static char isi_baris[TAMPILAN_BARIS][TAMPILAN_KOLOM + 1];
 static int8_t sorot_baris[TAMPILAN_BARIS];
@@ -383,7 +338,7 @@ void tampilan_menu_baris(int r, const char *teks, bool sorot, uint16_t warna)
     sorot_baris[r] = sorot;
     const uint16_t bg = sorot ? ST77XX_YELLOW : ST77XX_BLACK;
     const int y = MY + r * MH;
-    tft.fillRect(0, y, 4, 16, bg);                     // tepi kiri-kanan di luar teks
+    tft.fillRect(0, y, 4, 16, bg);
     tft.fillRect(4 + TAMPILAN_KOLOM * 12, y, TFT_W - 4 - TAMPILAN_KOLOM * 12, 16, bg);
     tft.setTextSize(2);
     tft.setTextColor(sorot ? ST77XX_BLACK : warna, bg);

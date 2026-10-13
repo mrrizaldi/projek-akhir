@@ -1,7 +1,3 @@
-// Dua hal yang bisa diam-diam salah dan merusak klaim di laporan:
-//   1. format payload  -> dashboard sepi, tanpa error di board
-//   2. ring backlog    -> klaim "beat hilang = seharusnya - sampai" jadi bohong
-// Keduanya murni (tanpa WiFi), jadi diuji di PC.
 #include <unity.h>
 #include <string.h>
 #include "ecg_mqtt.h"
@@ -19,8 +15,6 @@ static ecg_mqtt_beat_t beat(uint32_t ms, int label)
     return b;
 }
 
-// Ring diPASANG, bukan statis: di board memakai PSRAM, di sini array biasa.
-// Kecil supaya uji "penuh" tidak perlu 27.000 iterasi.
 #define UJI_KAP 8
 static ecg_mqtt_beat_t ring_uji[UJI_KAP];
 
@@ -35,7 +29,6 @@ static void test_payload_tunggal(void)
     TEST_ASSERT_TRUE(n > 0);
     TEST_ASSERT_EQUAL_size_t(n, strlen(buf));
     TEST_ASSERT_EQUAL('{', buf[0]);
-    // ts = base + ms, bukan base: inilah yang menjaga waktu KEJADIAN.
     TEST_ASSERT_NOT_NULL(strstr(buf, "\"ts\":1700000000500"));
     TEST_ASSERT_NOT_NULL(strstr(buf, "\"label\":1"));
     TEST_ASSERT_NOT_NULL(strstr(buf, "\"label_str\":\"Aritmia\""));
@@ -56,8 +49,6 @@ static void test_payload_batch_array(void)
     TEST_ASSERT_NOT_NULL(strstr(buf, "\"ts\":1300"));
 }
 
-// Buffer kekecilan harus mengembalikan 0, bukan payload terpotong: JSON
-// separuh diterima broker sebagai sampah dan gagalnya tidak kelihatan.
 static void test_payload_buffer_kurang(void)
 {
     char buf[40];
@@ -74,7 +65,6 @@ static void test_antre_fifo(void)
     TEST_ASSERT_EQUAL_size_t(3, ecg_mqtt_antre_intip(keluar, 3));
     TEST_ASSERT_EQUAL_UINT32(0, keluar[0].ms);
     TEST_ASSERT_EQUAL_UINT32(2, keluar[2].ms);
-    // Mengintip TIDAK membuang: PUBACK belum datang.
     TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_antre_n());
 
     ecg_mqtt_antre_buang(3);
@@ -83,8 +73,6 @@ static void test_antre_fifo(void)
     TEST_ASSERT_EQUAL_UINT32(3, keluar[0].ms);
 }
 
-// Ring penuh membuang yang TERTUA dan mencatatnya. Kalau yang dibuang malah
-// yang terbaru, alat kehilangan justru menit yang paling ingin dilihat.
 static void test_antre_penuh_buang_tertua(void)
 {
     for (uint32_t i = 0; i < UJI_KAP + 5; i++) {
@@ -96,11 +84,9 @@ static void test_antre_penuh_buang_tertua(void)
 
     ecg_mqtt_beat_t keluar[1];
     ecg_mqtt_antre_intip(keluar, 1);
-    TEST_ASSERT_EQUAL_UINT32(5, keluar[0].ms);          // 0..4 terbuang
+    TEST_ASSERT_EQUAL_UINT32(5, keluar[0].ms);
 }
 
-// Kapasitas ikut yang dipasang, dan mem == NULL jatuh ke cadangan statis —
-// itu jalur yang dipakai kalau ps_malloc gagal di board.
 static void test_antre_pasang_kapasitas(void)
 {
     TEST_ASSERT_EQUAL_size_t(UJI_KAP, ecg_mqtt_antre_kapasitas());
@@ -110,11 +96,11 @@ static void test_antre_pasang_kapasitas(void)
     TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_kapasitas());
     for (uint32_t i = 0; i < 100; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_antre_isi(&b); }
     TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_n());
-    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_hilang());   // belum melimpah
+    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_hilang());
 
     ecg_mqtt_antre_pasang(NULL, 0);
     TEST_ASSERT_EQUAL_size_t(ECG_MQTT_ANTRE_MIN, ecg_mqtt_antre_kapasitas());
-    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_n());        // pasang = reset
+    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_n());
 }
 
 int main(int, char **)

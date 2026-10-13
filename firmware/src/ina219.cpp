@@ -13,6 +13,8 @@ float ina219_bus_V(uint16_t bus_reg)
 #ifdef ARDUINO
 #include <Wire.h>
 
+constexpr bool TANPA_STOP = false;
+
 static void tulis(uint8_t reg, uint16_t nilai)
 {
     Wire.beginTransmission(INA219_ALAMAT);
@@ -26,7 +28,7 @@ bool ina219_baca_reg(uint8_t reg, uint16_t *out)
 {
     Wire.beginTransmission(INA219_ALAMAT);
     Wire.write(reg);
-    if (Wire.endTransmission(false) != 0) // repeated start; != 0 = NACK
+    if (Wire.endTransmission(TANPA_STOP) != 0)
         return false;
     if (Wire.requestFrom((int)INA219_ALAMAT, 2) != 2)
         return false;

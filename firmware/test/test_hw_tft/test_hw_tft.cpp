@@ -1,8 +1,3 @@
-// TFT ST7789 172x320 di board: inisialisasi tanpa crash, lalu diag_layar()
-// (src/diagnosa.cpp, sama dengan menu Tes): waktu fillScreen membuktikan SPI
-// mengirim, pola warna dinilai mata.
-//
-//   pio test -e esp32-s3 -f test_hw_tft
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"

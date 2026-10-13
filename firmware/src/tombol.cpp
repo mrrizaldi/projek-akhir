@@ -1,4 +1,3 @@
-// Tombol. Kontrak: include/tombol.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "tombol.h"
 

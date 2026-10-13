@@ -1,15 +1,3 @@
-// Firmware utama: akuisisi + klasifikasi aritmia langsung di alat, dengan
-// tampilan TFT, bip buzzer per detak, tiga tombol, rekaman LittleFS, dan
-// publikasi MQTT. File ini hanya merangkai modul; pin map PCB ada di
-// include/perangkat.h.
-//
-//   akuisisi    ISR 360 Hz -> antrean, sumber ADC / replay
-//   gerbang     kualitas sinyal + fase kalibrasi
-//   klasifikasi TFLM INT8 + publikasi ke antrean MQTT
-//   tampilan    TFT, NeoPixel, buzzer        tombol  debounce + event
-//   rekam       rekaman bernomor LittleFS    daya    INA219 + tangga p0-p5
-//   konfig      daftar WiFi/broker + NVS     serial_cmd  perintah serial
-//   menu        pohon menu di layar, dibuka B2 tahan
 #ifndef PIO_UNIT_TESTING
 #include <Arduino.h>
 
@@ -30,11 +18,6 @@
 #include "tampilan.h"
 #include "tombol.h"
 
-// Monitor: B1 pendek bisu/bunyi bip detak, B2 pendek bekukan gelombang, B3
-// pendek mulai rekam / jeda / lanjut, B3 tahan stop + simpan (bip panjang),
-// B2 tahan buka menu. Aksi pendek terjadi saat DILEPAS karena tahan punya arti
-// lain. Tiap tekanan berbunyi klik, dan ambang tahan (800 ms) ditandai bip
-// pendek. Selama menu terbuka, semua event diteruskan ke menu.
 constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60, BIP_SIMPAN_MS = 400;
 
 static void layani_tombol()
@@ -53,7 +36,7 @@ static void layani_tombol()
         }
         if (e == TOMBOL_LAMA && i == 1) { menu_buka(); continue; }
         if (e == TOMBOL_LAMA && i == 2 && rekam_aktif()) {
-            rekam_toggle();                // simpan memblok; bipnya sesudah berkas tertulis
+            rekam_toggle();
             if (rekam_baru_disimpan()) tampilan_bunyi(BIP_SIMPAN_MS);
         }
         tampilan_gambar_tombol(i);
@@ -62,15 +45,12 @@ static void layani_tombol()
 
 void setup()
 {
-    perangkat_mulai();              // PERTAMA: buzzer diam secepatnya, urutan SPI di dalamnya
+    perangkat_mulai();
     Serial.begin(115200);
     delay(1500);
     daya_mulai();
     tampilan_mulai();
 
-    // Ring backlog MQTT di PSRAM, target bab3.tex: +-27.000 rekaman (4-7 jam).
-    // Satu entri 40 byte -> ~1,08 MB dari 8 MB. Kalau gagal, ecg_mqtt jatuh ke
-    // cadangan statis 64 beat: backlog pendek jauh lebih baik daripada mati.
     ecg_mqtt_beat_t *ring = (ecg_mqtt_beat_t *)ps_malloc(
         ECG_MQTT_ANTRE_TARGET * sizeof(ecg_mqtt_beat_t));
     if (ring) {
@@ -88,12 +68,10 @@ void setup()
     klasifikasi_mulai();
     gerbang_mulai_sesi();
     konfig_mulai();
-    ecg_mqtt_mulai();               // non-blocking: sambungan diurus di loop()
-    // Jam layar = WIB. ecg_mqtt memanggil configTzTime() dengan zona yang sama,
-    // jadi sambung ulang WiFi tidak mengembalikannya ke UTC.
+    ecg_mqtt_mulai();
     setenv("TZ", "WIB-7", 1);
     tzset();
-    akuisisi_mulai();               // terakhir: ISR mulai mengisi antrean
+    akuisisi_mulai();
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
@@ -110,8 +88,6 @@ void loop()
 {
     static ecg_beat_t beat;
 
-    // Kuras antrean ISR. Satu sampel per iterasi supaya tombol & serial tetap
-    // responsif; beban 3% membuat antrean selalu terkejar.
     uint16_t s;
     if (akuisisi_ambil(&s)) {
         const float sampel = (float)s;
@@ -119,14 +95,12 @@ void loop()
 
         const bool dsp = daya_tahap(2), cnn = daya_tahap(3), ui = daya_tahap(4);
         const int ada_beat = dsp ? ecg_live_push(sampel, &beat) : 0;
-        if (dsp) gerbang_nilai_kualitas(sampel);   // SETELAH push: baca sampel tersaring terbaru
+        if (dsp) gerbang_nilai_kualitas(sampel);
 
         bool aritmia = false;
         if (ada_beat) {
             daya_hitung_beat();
             gerbang_nilai_fase(beat);
-            // Selama kalibrasi detektor tetap jalan (RR-nya menilai kelayakan
-            // sinyal); yang dilewati cuma CNN-nya.
             if (gerbang_fase() == FASE_KALIBRASI) gerbang_lapor_kalibrasi(beat);
             else if (cnn) aritmia = klasifikasi_proses(beat);
             if (ui) tampilan_beat(beat, aritmia);
@@ -134,8 +108,6 @@ void loop()
         if (ui) tampilan_sampel();
     }
 
-    // Di luar cabang "ada sampel": sambung ulang & kuras backlog harus jalan
-    // walau antrean ADC sedang kosong.
     ecg_mqtt_layani();
     daya_layani();
     daya_tangga_tick();

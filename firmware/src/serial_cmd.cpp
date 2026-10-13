@@ -1,15 +1,3 @@
-// Perintah serial. Kontrak: include/serial_cmd.h
-//
-//   r      mulai / simpan rekaman (berkas bernomor baru); saat jeda juga simpan
-//   j      jeda / lanjut rekaman (setara B3 pendek saat merekam)
-//   d[n]   dump rekaman n; tanpa angka = terakhir (dipakai make pull)
-//   l      daftar rekaman          h<n>  hapus rekaman n
-//   s      status                  q     laporan kualitas tiap detik
-//   y      sumber ADC <-> replay   k     lewati gerbang kalibrasi (bench)
-//   m      MQTT ON/OFF             p<0-5> tangga daya, p + lainnya = normal
-//   w[n]   daftar / pilih WiFi     b[n]  daftar / pilih broker
-//   V      tangga daya mandiri     v[n]  daftar / dump hasil /daya/NNN.csv
-//   t<1-3> T<1-3>  suntik tombol B1-B3 pendek / tahan (uji menu tanpa jari)
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "serial_cmd.h"
 
@@ -29,16 +17,14 @@
 #include "tampilan.h"
 #include "tombol.h"
 
-// Angka sesudah huruf perintah; -1 = tidak ada. Monitor serial mengirim per
-// ketukan, jadi tiap digit ditunggu sampai 500 ms (preseden 'p'). Bukan digit =
-// tidak dikonsumsi, tetap jadi perintah berikutnya.
-// ponytail: menunggu memblok loop; perintah bench, tidak dipakai saat merekam sinyal tubuh.
+constexpr uint32_t TUNGGU_DIGIT_MS = 500;
+
 static int angka()
 {
     int v = -1;
     for (int k = 0; k < 3; k++) {
         const uint32_t t0 = millis();
-        while (!Serial.available() && millis() - t0 < 500) {}
+        while (!Serial.available() && millis() - t0 < TUNGGU_DIGIT_MS) {}
         const int c = Serial.peek();
         if (c < '0' || c > '9') break;
         Serial.read();
@@ -113,7 +99,7 @@ void serial_cmd_layani(void)
     else if (c == 'y') akuisisi_ganti_sumber();
     else if (c == 'p') {
         const uint32_t t0 = millis();
-        while (!Serial.available() && millis() - t0 < 500) {}
+        while (!Serial.available() && millis() - t0 < TUNGGU_DIGIT_MS) {}
         const char d = Serial.available() ? Serial.read() : 0;
         daya_set_mode(d >= '0' && d <= '5' ? d - '0' : -1);
     }
@@ -143,9 +129,9 @@ void serial_cmd_layani(void)
         if (n < 0) daftar_wifi();
         else if (!konfig_pilih_wifi(n) && !rekam_aktif()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
     }
-    else if (c == 't' || c == 'T') {      // satu digit saja: angka() menunggu digit kedua 500 ms
+    else if (c == 't' || c == 'T') {
         const uint32_t t0 = millis();
-        while (!Serial.available() && millis() - t0 < 500) {}
+        while (!Serial.available() && millis() - t0 < TUNGGU_DIGIT_MS) {}
         const int n = Serial.peek() - '0';
         if (n < 1 || n > 3) Serial.println("t<1-3> / T<1-3>: B1-B3 pendek / tahan");
         else { Serial.read(); tombol_suntik(n - 1, c == 'T' ? TOMBOL_LAMA : TOMBOL_PENDEK); }

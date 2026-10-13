@@ -1,4 +1,3 @@
-// Akuisisi sampel. Kontrak: include/akuisisi.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "akuisisi.h"
 
@@ -14,58 +13,36 @@
 
 static volatile uint16_t antre[ANTRE_N];
 static volatile size_t tulis, baca;
-static volatile uint32_t n_lewat;          // antrean penuh = sampel hilang
+static volatile uint32_t n_lewat;
 static hw_timer_t *timer;
 
-// Sumber sinyal replay: golden_raw (record 208, 2400 sampel, 9 beat)
-// diputar berulang menggantikan ADC. Tanpa sinyal, ecg_live_push tidak pernah
-// mengeluarkan beat — jadi replay bukan kemudahan, tapi syarat untuk mengukur
-// daya per mode (HW-7) dan untuk menguji jalur MQTT tanpa elektroda.
-//
-// Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis, dan itulah yang
-// membuat kehilangan data bisa diukur: beat hilang = seharusnya - sampai.
-//
-// Replay rekaman memakai jalur yang sama: berkas /rekam/NNN.csv dimuat ke PSRAM
-// lalu diputar berulang. ISR cukup membaca array apa pun yang ditunjuk rp_data.
-// PSRAM aman dibaca di ISR ini: timerAttachInterrupt memasangnya tanpa
-// ESP_INTR_FLAG_IRAM, jadi ia ditahan selama flash ditulis (cache mati).
 static int sumber, sumber_rekam;
-static const uint16_t *volatile rp_data;   // NULL = ADC
+static const uint16_t *volatile rp_data;
 static volatile size_t rp_n, replay_i;
-static uint16_t *rekam_buf;                // PSRAM, dialokasikan saat pertama dipakai
+static uint16_t *rekam_buf;
 static bool pasang(int s, int nomor);
 
-// golden_raw satuannya mV (bisa negatif); antrean menyimpan counts ADC 12-bit.
-// Skalanya bebas — bandpass membuang DC dan z-score membuang skala, jadi
-// pipeline kebal terhadap pilihan ini. Yang TIDAK boleh: sampai terpotong di
-// rail, karena clipping merusak morfologi. 1000 counts/mV menaruh puncak R
-// (~1,5 mV) di ~3550, aman di bawah 4095.
 constexpr float SKALA_REPLAY = 1000.0f;
 constexpr float OFFSET_REPLAY = 2048.0f;
 
-// Konversi dilakukan SEKALI di akuisisi_mulai(), bukan di ISR. ESP32 tidak
-// menyimpan register FPU di konteks interrupt, jadi operasi float di on_timer()
-// merusak state FPU task yang sedang diinterupsi. Gejalanya panic "Coprocessor
-// exception" (EXCCAUSE 4) setelah ~18 detik, bukan crash seketika — cukup
-// lambat untuk lolos uji 20 detik.
 static uint16_t sim_counts[GOLDEN_N];
 
 static void IRAM_ATTR on_timer()
 {
     const size_t berikut = (tulis + 1) % ANTRE_N;
-    if (berikut == baca) { n_lewat++; return; }        // loop ketinggalan
+    if (berikut == baca) { n_lewat++; return; }
     if (rp_data) {
-        antre[tulis] = rp_data[replay_i];          // INTEGER saja — lihat catatan
+        antre[tulis] = rp_data[replay_i];
         if (++replay_i >= rp_n) replay_i = 0;
     } else {
-        antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);   // cepat, aman di ISR
+        antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);
     }
     tulis = berikut;
 }
 
 void akuisisi_mulai(void)
 {
-    for (size_t i = 0; i < GOLDEN_N; i++) {        // WAJIB sebelum timer jalan: ISR cuma baca
+    for (size_t i = 0; i < GOLDEN_N; i++) {
         float v = golden_raw[i] * SKALA_REPLAY + OFFSET_REPLAY;
         if (v < 0.0f) v = 0.0f;
         if (v > 4095.0f) v = 4095.0f;
@@ -74,8 +51,6 @@ void akuisisi_mulai(void)
     timer = timerBegin(0, 80, true);
     timerAttachInterrupt(timer, &on_timer, true);
     timerAlarmWrite(timer, 1000000 / ECG_FS, true);
-    // Sumber tersimpan di NVS. Sesi kalibrasi sudah dimulai setup(), jadi
-    // tidak perlu sesi baru; rekaman yang sudah dihapus jatuh ke ADC.
     if (!pasang(konfig_sumber(), konfig_sumber_rekam())) pasang(SUMBER_ADC, 0);
     timerAlarmEnable(timer);
 }
@@ -101,13 +76,12 @@ void akuisisi_timer(bool jalan)
     else       timerAlarmDisable(timer);
 }
 
-// Dipanggil saat timer mati (atau sebelum timer pertama kali jalan).
 static bool pasang(int s, int nomor)
 {
     if (s == SUMBER_REKAM) {
         if (!rekam_buf) rekam_buf = (uint16_t *)ps_malloc(REKAM_SAMPEL_MAKS * sizeof(uint16_t));
         const size_t n = rekam_buf ? rekam_muat(nomor, rekam_buf, REKAM_SAMPEL_MAKS) : 0;
-        if (n < ECG_FS) {                  // < 1 detik: tidak ada beat yang bisa keluar
+        if (n < ECG_FS) {
             Serial.printf("replay rekaman %d GAGAL dimuat (%u sampel)\n", nomor, (unsigned)n);
             return false;
         }
@@ -129,7 +103,7 @@ static bool pasang(int s, int nomor)
 bool akuisisi_set_sumber(int s, int nomor, bool simpan)
 {
     if (rekam_tolak("ganti sumber")) return false;
-    akuisisi_timer(false);                 // memuat berkas memblok; jangan dihitung sampel hilang
+    akuisisi_timer(false);
     const bool ok = pasang(s, nomor);
     akuisisi_timer(true);
     if (!ok) return false;

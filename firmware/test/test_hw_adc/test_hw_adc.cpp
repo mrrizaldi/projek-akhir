@@ -1,23 +1,14 @@
-// Jalur akuisisi di board: ADC EKG (GPIO 1) + LO+/LO- (42/2) lewat diag_adc()
-// (src/diagnosa.cpp, sama dengan menu Tes), dan timer 360 Hz yang sama dengan
-// firmware utama.
-//
-//   pio test -e esp32-s3 -f test_hw_adc
-//
-// Syarat lulus hanya hal yang tidak bergantung pada elektroda: ADC menjawab
-// dalam rentang 12-bit dan timer menghasilkan tepat 360 sampel per detik.
-// Tanpa elektroda, keluaran AD8232 wajar menempel di rail atau tengah dan LO = 1.
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"
 #include "perangkat.h"
-#include "ecg_preproc.h"   // ECG_FS
+#include "ecg_preproc.h"
 
 static volatile uint32_t n_isr;
 
 static void IRAM_ATTR on_timer()
 {
-    if (adc1_get_raw(KANAL_EKG) >= 0) n_isr++;   // error ADC: n_isr tidak bertambah
+    if (adc1_get_raw(KANAL_EKG) >= 0) n_isr++;
 }
 
 void test_diag_adc(void)

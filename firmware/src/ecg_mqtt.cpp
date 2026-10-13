@@ -3,8 +3,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// ======================= MURNI =======================
-
 static ecg_mqtt_beat_t antre_cadangan[ECG_MQTT_ANTRE_MIN];
 static ecg_mqtt_beat_t *antre = antre_cadangan;
 static size_t antre_kap = ECG_MQTT_ANTRE_MIN;
@@ -26,7 +24,7 @@ size_t ecg_mqtt_antre_hilang(void) { return antre_hilang; }
 
 void ecg_mqtt_antre_isi(const ecg_mqtt_beat_t *b)
 {
-    if (antre_isi == antre_kap) {                  // penuh: buang yang tertua
+    if (antre_isi == antre_kap) {
         antre_kepala = (antre_kepala + 1) % antre_kap;
         antre_isi--;
         antre_hilang++;
@@ -50,9 +48,6 @@ void ecg_mqtt_antre_buang(size_t n)
     antre_isi -= n;
 }
 
-// Satu record. Nama field ikut dashboard/README.md — snake_case, bukan
-// camelCase yang disarankan docs ThingsBoard: proposal sudah terlanjur menulis
-// snake_case dan snake_case tetap jalan normal.
 static size_t satu(char *buf, size_t n, const ecg_mqtt_beat_t *b, uint64_t ts)
 {
     int w = snprintf(buf, n,
@@ -95,7 +90,6 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
     return p;
 }
 
-// ======================= JARINGAN =======================
 #ifdef ARDUINO
 #include <Arduino.h>
 #include <WiFi.h>
@@ -104,40 +98,25 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
 
 #define TOPIK "v1/devices/me/telemetry"
 
-// Klien MQTT ditulis langsung di atas WiFiClient, bukan menambah PubSubClient.
-// Yang dipakai cuma CONNECT / PUBLISH QoS1 / PUBACK / PINGREQ — empat paket,
-// dan kawatnya sudah terbukti: dashboard/smoke_test.py bicara ke broker yang
-// SAMA dengan byte yang sama. Sejalan dgn gate point CLAUDE.md (jangan tambah
-// dependency untuk yang beberapa baris sudah selesai) dan dengan preseden
-// ina219.cpp yang juga tanpa library.
-// Target diisi konfig.cpp lewat ecg_mqtt_atur(); string-nya statis milik pemanggil.
 static const char *w_ssid = "", *w_pass = "", *b_host = "", *b_token = "";
 static uint16_t b_port = 1883;
 
 static WiFiClient sock;
 static bool aktif = true, tersambung;
 static uint32_t t_coba, t_ping, t_layani, terkirim, gagal;
-static uint32_t paket_kirim, paket_ack;   // PDSR bab3.tex: per PAKET
-static uint32_t rtt_maks, rtt_lambat;     // diagnosa: RTT PUBACK
-// PUBLISH tidak menunggu PUBACK di tempat. Menunggu di sini berarti memblokir
-// loop() yang sedang menguras antrean ADC: satu timeout 3 detik = ~1.080 sampel
-// hilang dari antrean 256, dan interval RR rusak. Diukur di board 19 Sep 2026:
-// sampel hilang 4.493, antrean 255/256 penuh. Jadi PUBACK ditunggu LINTAS
-// iterasi loop(), bukan di dalam satu panggilan.
+static uint32_t paket_kirim, paket_ack;
+static uint32_t rtt_maks, rtt_lambat;
 static bool menunggu_ack, menunggu_connack;
 static uint32_t t_kirim;
-static size_t n_terbang;                   // beat yang sudah dikirim, belum ber-PUBACK
+static size_t n_terbang;
 static uint16_t pid;
-static uint64_t ts_base_ms;            // epoch ms saat millis() == 0
-// Satu buffer saja. Payload dirakit LANGSUNG di dalam paket, di belakang ruang
-// header, lalu headernya ditempel mundur tepat sebelum payload. Alternatif
-// dua-buffer (payload + paket) tidak dipakai: memakan 32 KB RAM internal untuk
-// batch 50, dua kali lipat satu buffer.
-//
-// Header tidak bisa dipadding: panjang sisa MQTT harus dikodekan minimal, jadi
-// jumlah bytenya ikut berubah dengan ukuran payload. Karena itu headernya dirakit
-// di tempat terpisah yang kecil, baru disalin mundur.
+static uint64_t ts_base_ms;
 #define ECG_HDR_MAKS (1 + 3 + 2 + 64 + 2)
+constexpr uint8_t MQTT_FLAG_USERNAME = 0x80, MQTT_KEEPALIVE_S = 60;
+constexpr uint8_t MQTT_PUBLISH_QOS1 = 0x32, MQTT_PUBACK = 0x40, MQTT_PANJANG_LANJUT = 0x80;
+constexpr uint32_t BATAS_TULIS_MS = 200, CONNECT_TIMEOUT_MS = 300, PERIODE_LAYANI_MS = 20;
+constexpr uint32_t JEDA_COBA_MS = 5000, PERIODE_PING_MS = 30000;
+constexpr time_t EPOCH_SNTP_MIN = 1700000000;
 static uint8_t paket_buf[ECG_HDR_MAKS + ECG_MQTT_BATCH_N * 320 + 8];
 
 static size_t varlen(uint8_t *out, size_t n)
@@ -153,20 +132,9 @@ static void putus(const char *sebab)
     sock.stop();
     tersambung = false;
     menunggu_ack = menunggu_connack = false;
-    n_terbang = 0;          // backlog TIDAK dibuang: beat dikirim ulang nanti,
-                            // dan ts identik membuat ThingsBoard meng-upsert
+    n_terbang = 0;
 }
 
-// Menulis sampai habis, dengan batas waktu.
-//
-// sock.write() bisa menulis lebih pendek dari yang diminta kalau buffer socket
-// penuh — dan paket MQTT yang terpotong tidak pernah di-PUBACK (diukur di board:
-// PUBACK timeout berulang padahal broker sehat, log broker bersih). Di sini
-// sisanya diulang, bukan diabaikan.
-//
-// Batasnya 200 ms: harus di bawah kedalaman antrean ADC (256 sampel @360 Hz =
-// 711 ms) supaya menulis paket besar tidak pernah menghilangkan sampel. Inilah
-// yang membuat batch 50 rekaman (~15 KB, target bab3.tex) aman dikirim.
 static bool kirim_sampai_habis(const uint8_t *p, size_t n)
 {
     const uint32_t t0 = millis();
@@ -175,13 +143,11 @@ static bool kirim_sampai_habis(const uint8_t *p, size_t n)
         const size_t w = sock.write(p + p_kirim, n - p_kirim);
         p_kirim += w;
         if (p_kirim == n) return true;
-        if (!sock.connected() || millis() - t0 > 200) return false;
+        if (!sock.connected() || millis() - t0 > BATAS_TULIS_MS) return false;
     }
     return true;
 }
 
-// Menulis CONNECT lalu selesai. CONNACK dipungut pungut_connack() di iterasi
-// berikutnya — tidak ada satu pun panggilan yang menunggu jaringan di tempat.
 static void kirim_connect()
 {
     const char *cid = "esp32-ecg", *user = b_token;
@@ -189,8 +155,8 @@ static void kirim_connect()
     uint8_t var[16];
     size_t v = 0;
     memcpy(var + v, "\x00\x04MQTT\x04", 7); v = 7;
-    var[v++] = 0x80;                                   // flags: username saja
-    var[v++] = 0; var[v++] = 60;                       // keepalive 60 s
+    var[v++] = MQTT_FLAG_USERNAME;
+    var[v++] = 0; var[v++] = MQTT_KEEPALIVE_S;
     const size_t rem = v + 2 + lc + 2 + lu;
 
     uint8_t paket[5 + sizeof var + 2 + 32 + 2 + 64];
@@ -227,8 +193,6 @@ static void pungut_connack()
     if (millis() - t_kirim > 2000) putus("CONNACK timeout");
 }
 
-// Menulis PUBLISH QoS 1 lalu SELESAI. PUBACK-nya dipungut ecg_mqtt_layani()
-// di iterasi berikutnya; backlog baru digeser di sana.
 static bool kirim_batch(const ecg_mqtt_beat_t *b, size_t nb, uint64_t base)
 {
     char *muatan = (char *)paket_buf + ECG_HDR_MAKS;
@@ -241,13 +205,13 @@ static bool kirim_batch(const ecg_mqtt_beat_t *b, size_t nb, uint64_t base)
 
     uint8_t h[ECG_HDR_MAKS];
     size_t q = 0;
-    h[q++] = 0x32;                                      // PUBLISH, QoS 1
+    h[q++] = MQTT_PUBLISH_QOS1;
     q += varlen(h + q, rem);
     h[q++] = (uint8_t)(lt >> 8); h[q++] = (uint8_t)(lt & 0xFF);
     memcpy(h + q, TOPIK, lt); q += lt;
     h[q++] = (uint8_t)(pid >> 8); h[q++] = (uint8_t)(pid & 0xFF);
 
-    uint8_t *awal = paket_buf + ECG_HDR_MAKS - q;       // tempel mundur
+    uint8_t *awal = paket_buf + ECG_HDR_MAKS - q;
     memcpy(awal, h, q);
 
     if (!kirim_sampai_habis(awal, q + n)) { gagal++; putus("write tidak habis"); return false; }
@@ -258,27 +222,15 @@ static bool kirim_batch(const ecg_mqtt_beat_t *b, size_t nb, uint64_t base)
     return true;
 }
 
-// Memungut SEMUA paket masuk tanpa memblokir, dan membuang yang tidak diminta.
-//
-// Tiap paket dibaca menurut header-nya, bukan dengan menganggap setiap 4 byte
-// yang tersedia sebagai PUBACK. PINGREQ dikirim tiap 30 detik dan broker
-// membalas PINGRESP (2 byte, 0xD0 0x00); kalau tidak dibaca, dua byte itu
-// mengendap di socket lalu terbaca sebagai DUA BYTE PERTAMA "PUBACK"
-// berikutnya — aliran baca desync permanen sampai reconnect.
-//
-// Gejala desync itu di board: `PUBACK timeout` acak tiap ~30 detik walau broker
-// sehat, dan latensi end-to-end berekor panjang (p95 10,4 detik, maks 19,5
-// detik) karena setiap desync memakan 5 detik timeout + reconnect. Diukur
-// 19 Sep 2026.
 static void pungut_masuk()
 {
     while (sock.available() >= 2) {
         uint8_t h[2];
         if (sock.readBytes(h, 2) != 2) return;
-        if (h[1] & 0x80) { putus("panjang sisa > 127"); return; }   // tak diharapkan
+        if (h[1] & MQTT_PANJANG_LANJUT) { putus("panjang sisa > 127"); return; }
         size_t rem = h[1];
 
-        if ((h[0] & 0xF0) == 0x40 && rem == 2) {                    // PUBACK
+        if ((h[0] & 0xF0) == MQTT_PUBACK && rem == 2) {
             uint8_t b[2];
             if (sock.readBytes(b, 2) != 2) { putus("PUBACK pendek"); return; }
             const uint16_t got = (uint16_t)((b[0] << 8) | b[1]);
@@ -292,14 +244,12 @@ static void pungut_masuk()
                 }
                 menunggu_ack = false;
                 paket_ack++;
-                ecg_mqtt_antre_buang(n_terbang);        // HANYA setelah PUBACK
+                ecg_mqtt_antre_buang(n_terbang);
                 terkirim += n_terbang;
                 n_terbang = 0;
             }
             continue;
         }
-        // PINGRESP (0xD0) dan apa pun yang tidak kita minta: buang isinya utuh
-        // supaya byte berikutnya tetap jatuh di batas paket.
         while (rem--) { if (sock.read() < 0) return; }
     }
 }
@@ -321,21 +271,8 @@ void ecg_mqtt_mulai(void)
         return;
     }
     WiFi.mode(WIFI_STA);
-    // Power save WiFi DIMATIKAN. Bawaan ESP32 (WIFI_PS_MIN_MODEM) menidurkan
-    // radio antar-beacon; paket masuk yang datang saat tidur bisa hilang, dan
-    // TCP menggantinya dengan retransmisi ber-RTO 1-2-4 detik. Itu persis pola
-    // RTT PUBACK yang terukur di board (1.236 / 2.037 / 4.235 ms), dan bukan
-    // broker yang lambat: dari laptop ke broker yang SAMA, RTT-nya 1,1 ms
-    // median dengan nol kejadian >1 detik.
-    //
-    // ONGKOSNYA DAYA (~+30 mA). Pengukuran daya mode WiFi (HW-7) harus diambil
-    // DENGAN setelan ini, bukan tanpa.
     WiFi.setSleep(false);
     WiFi.begin(w_ssid, w_pass);
-    // SNTP dipakai supaya ts tiap beat adalah waktu KEJADIAN. Tanpa jam benar,
-    // beat hasil flush backlog akan menumpuk di detik yang sama dan grafik
-    // dashboard berbohong. Zona WIB hanya untuk jam di layar; ts tetap epoch
-    // UTC dari gettimeofday(). configTime(0, 0, ...) akan menyetel TZ ke UTC.
     configTzTime("WIB-7", "pool.ntp.org", "time.google.com");
     Serial.printf("mqtt: WiFi \"%s\" -> %s:%u\n", w_ssid, b_host, (unsigned)b_port);
 }
@@ -343,21 +280,14 @@ void ecg_mqtt_mulai(void)
 static void sinkron_jam()
 {
     if (ts_base_ms) return;
-    // gettimeofday, BUKAN time(): time() beresolusi 1 detik, jadi memakainya
-    // menanam galat sistematis sampai 1.000 ms pada SETIAP ts yang dikirim —
-    // dan galat itu menyamar sebagai latensi saat dibandingkan dengan jam
-    // laptop. Terukur: latensi minimum bergeser 934/1.045/1.286/1.347 ms
-    // antar-boot tanpa ada yang berubah di sistemnya.
     struct timeval tv;
     if (gettimeofday(&tv, NULL) != 0) return;
-    if (tv.tv_sec < 1700000000) return;                // SNTP belum masuk
+    if (tv.tv_sec < EPOCH_SNTP_MIN) return;
     const uint64_t kini_ms = (uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000);
     ts_base_ms = kini_ms - (uint64_t)millis();
     Serial.printf("mqtt: jam tersinkron, epoch_ms %llu\n", (unsigned long long)kini_ms);
 }
 
-// Epoch ms menurut JAM BOARD. Dipakai alat ukur di laptop untuk menghitung
-// selisih jam kedua sisi, supaya selisih itu tidak terbaca sebagai latensi.
 uint64_t ecg_mqtt_epoch_ms(void)
 {
     return ts_base_ms ? ts_base_ms + (uint64_t)millis() : 0;
@@ -366,10 +296,7 @@ uint64_t ecg_mqtt_epoch_ms(void)
 void ecg_mqtt_layani(void)
 {
     if (!aktif) return;
-    // Dipanggil sekali per sampel (360 Hz). WiFi.status() + time() sebanyak itu
-    // ikut memakan anggaran 2.778 us/sampel, jadi dilayani tiap 20 ms saja —
-    // masih 50x lebih sering daripada laju beat.
-    if (millis() - t_layani < 20) return;
+    if (millis() - t_layani < PERIODE_LAYANI_MS) return;
     t_layani = millis();
 
     sinkron_jam();
@@ -379,37 +306,23 @@ void ecg_mqtt_layani(void)
         menunggu_ack = menunggu_connack = false;
         n_terbang = 0;
         if (WiFi.status() != WL_CONNECTED) return;
-        if (millis() - t_coba < 5000) return;          // jangan banjiri broker
+        if (millis() - t_coba < JEDA_COBA_MS) return;
         t_coba = millis();
-        // Batas waktu WAJIB, dan harus di bawah kedalaman antrean ADC: 256
-        // sampel @360 Hz = 711 ms, jadi blokir yang lebih lama dari itu mulai
-        // menghilangkan sampel dan merusak RR. Terukur di board 19 Sep: tanpa
-        // batas, `docker start` (port terbuka tapi broker belum menerima)
-        // memblokir ~7,7 detik -> 2.788 sampel hilang.
-        //
-        // IPAddress, bukan hostname: resolusi DNS itu panggilan blocking
-        // TERPISAH yang tidak ikut dibatasi argumen timeout ini.
         IPAddress ip;
         if (!ip.fromString(b_host)) {
             Serial.printf("mqtt: host broker \"%s\" bukan alamat IP\n", b_host);
             aktif = false;
             return;
         }
-        if (!sock.connect(ip, b_port, 300)) return;
-        // TCP_NODELAY. Tanpa ini algoritma Nagle menahan segmen kecil sampai
-        // ACK segmen sebelumnya datang; berpasangan dengan delayed-ACK broker,
-        // PUBACK jadi terlambat 1,0-4,8 detik dengan nilai yang berulang di
-        // ~1.250 ms (diukur di board: 27 kejadian >1 s dalam 130 detik, dan saat
-        // timeout socket-nya KOSONG — jadi bukan desync, memang belum dijawab).
-        // Payload kita ~330 B untuk satu beat = segmen kecil, tepat kasus Nagle.
+        if (!sock.connect(ip, b_port, CONNECT_TIMEOUT_MS)) return;
         sock.setNoDelay(true);
         kirim_connect();
         return;
     }
 
-    if (!tersambung) { pungut_connack(); return; }   // TCP hidup, MQTT belum
+    if (!tersambung) { pungut_connack(); return; }
 
-    pungut_masuk();                                 // termasuk membuang PINGRESP
+    pungut_masuk();
     if (menunggu_ack) {
         if (millis() - t_kirim > 5000) {
             gagal++;
@@ -417,11 +330,9 @@ void ecg_mqtt_layani(void)
                           (unsigned)n_terbang, sock.available());
             putus("PUBACK timeout");
         }
-        return;                                     // satu PUBLISH beredar saja
+        return;
     }
 
-    // Kirim apa pun yang tertahan. Satu batch per panggilan supaya loop tetap
-    // responsif terhadap sampel ADC — antrean ISR cuma 256 dalam.
     if (ecg_mqtt_antre_n() && ts_base_ms) {
         static ecg_mqtt_beat_t petak[ECG_MQTT_BATCH_N];
         const size_t n = ecg_mqtt_antre_intip(petak, ECG_MQTT_BATCH_N);
@@ -429,7 +340,7 @@ void ecg_mqtt_layani(void)
         return;
     }
 
-    if (millis() - t_ping > 30000) {                   // PINGREQ < keepalive 60 s
+    if (millis() - t_ping > PERIODE_PING_MS) {
         const uint8_t ping[2] = { 0xC0, 0x00 };
         sock.write(ping, 2);
         t_ping = millis();
@@ -457,4 +368,4 @@ const char *ecg_mqtt_status(void)
     if (!ts_base_ms) return "tunggu-jam";
     return "online";
 }
-#endif  // ARDUINO
+#endif

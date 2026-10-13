@@ -1,11 +1,3 @@
-// Buzzer di board lewat diag_buzzer() (src/diagnosa.cpp, sama dengan menu Tes):
-// pin, polaritas aktif-LOW, dan LEDC yang tetap memegang GPIO 13 setelah
-// SPI + TFT terpasang, lalu tiga bip untuk didengar.
-//
-//   pio test -e esp32-s3 -f test_hw_buzzer
-//
-// Bila lulus tetapi bip tidak terdengar, periksa rangkaian (VCC modul 3V3,
-// I/O ke GPIO 13).
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"
@@ -22,7 +14,7 @@ void tearDown(void) {}
 
 void setup()
 {
-    perangkat_mulai();            // urutan yang sama dengan firmware utama
+    perangkat_mulai();
     Serial.begin(115200);
     delay(2000);
     UNITY_BEGIN();

@@ -1,4 +1,3 @@
-// Inferensi dan publikasi. Kontrak: include/klasifikasi.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "klasifikasi.h"
 
@@ -22,10 +21,6 @@ alignas(16) static uint8_t arena[ARENA_N];
 static tflite::MicroInterpreter *interp;
 static TfLiteTensor *in_morph, *in_rr, *keluar;
 
-// tunda_*: tunda SISI ALAT, dari saat beat TERJADI sampai paketnya ditulis ke
-// socket. Dipakai memecah latensi end-to-end jadi "milik alat" vs "milik
-// jaringan+cloud", supaya target 2 detik bab3.tex bisa dibebankan ke penyebab
-// yang benar.
 static klasifikasi_hitung_t h;
 
 const klasifikasi_hitung_t &klasifikasi_hitung(void) { return h; }
@@ -76,47 +71,19 @@ static float klasifikasi(const ecg_beat_t &beat)
     return (keluar->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 }
 
-// Menyusun satu record telemetri dan menaruhnya ke antrean MQTT.
-//
-// GERBANG KUALITAS, bukan gerbang beat. Tanpa elektroda, ambang adaptif
-// Pan-Tompkins tetap menemukan puncak di derau 15 counts: alat mengarang ~2
-// beat/detik dengan 57% "ARITMIA". Kalau publikasi digerbangi ada-tidaknya
-// beat, elektroda lepas = banjir alarm palsu ke broker. Yang menggerbangi
-// harus ayunan sinyal (akuisisi-walkthrough.md §2).
-//
-// Replay TIDAK diperlakukan khusus dan memang tidak perlu: ayunannya ~2700
-// counts, jauh di atas AMBANG_AYUN 60, jadi ia lolos gerbang yang sama persis
-// dengan sinyal tubuh. Satu jalur kode untuk dummy dan nyata.
 static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
 {
     if (!ecg_mqtt_aktif()) return;
     if (gerbang_fase() != FASE_BAIK) { h.ditahan++; return; }
-    if (beat.sinyal_hilang) { h.ditahan++; return; }      // beat timeout, RR+1 sentinel
+    if (beat.sinyal_hilang) { h.ditahan++; return; }
 
     ecg_mqtt_beat_t t;
-    // Waktu KEJADIAN beat, dihitung dari indeks sampelnya — bukan millis() saat
-    // beat dikeluarkan. Deteksi jalan tiap 1 detik atas ring 4 detik, jadi
-    // beberapa beat keluar bergerombol dalam milidetik yang sama; memakai
-    // millis() membuat dashboard menampilkan denyut yang berdesakan lalu
-    // menganggur. Terukur di board 19 Sep: jeda antar-ts minimum 28 ms padahal
-    // RR terpendek ~200 ms.
-    //
-    // Sampel yang HILANG (antrean penuh) membuat hitungan ini menyimpang dari
-    // jam dinding sebesar durasi yang hilang. Itu sebabnya `sampel hilang` ikut
-    // dilaporkan di baris 's': kalau ia tidak nol, ts ikut meleset.
     t.ms = gerbang_t_sesi_ms() + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
     t.rr_ms = beat.rr[0] * 1000.0f;
     t.bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
     t.label = aritmia ? 1 : 0;
-    // Keyakinan pada KEPUTUSAN, bukan p mentah: p=0,02 untuk "normal" itu
-    // keyakinan 0,98. Dashboard menampilkannya apa adanya, jadi angka mentah
-    // akan terbaca "alat ragu" persis saat ia paling yakin.
     t.confidence = aritmia ? p : 1.0f - p;
-    t.quality_ok = 1;                  // fase sudah dipastikan FASE_BAIK di atas
-    // Snippet: window z-score dicuplik merata dan dikali 1000 supaya muat di
-    // int16 tanpa float di payload. ponytail: cuplikan merata, bukan di sekitar
-    // R — kalau widget butuh QRS yang terpusat, ambil ECG_SNIPPET_N titik mulai
-    // dari ECG_WIN_PRE.
+    t.quality_ok = 1;
     for (int i = 0; i < ECG_SNIPPET_N; i++) {
         const int j = i * (ECG_WIN_LEN_ - 1) / (ECG_SNIPPET_N - 1);
         t.snippet[i] = (int16_t)(beat.window[j] * 1000.0f);
@@ -134,9 +101,6 @@ bool klasifikasi_proses(const ecg_beat_t &beat)
     const bool aritmia = p >= ECG_THRESHOLD;
     h.total++;
     if (aritmia) h.aritmia++;
-    // BPM dari RR_prev, BUKAN dari selisih millis(): beat keluar bergerombol
-    // setelah deteksi berkala, jadi jarak waktu antar-cetak tidak sama dengan
-    // jarak antar-detak.
     const float bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
     Serial.printf("beat %4d  p=%.4f  %-7s  RR=%.3fs  %3.0f bpm\n",
                   h.total, p, aritmia ? "ARITMIA" : "normal", beat.rr[0], bpm);

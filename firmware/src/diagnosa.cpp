@@ -1,5 +1,3 @@
-// Tes perangkat PCB. Kontrak: include/diagnosa.h
-// Tidak dikecualikan saat PIO_UNIT_TESTING: test/test_hw_* memanggilnya.
 #ifdef ARDUINO
 #include "diagnosa.h"
 
@@ -11,6 +9,11 @@
 
 #include "ina219.h"
 #include "perangkat.h"
+
+constexpr uint32_t FILL_MIN_US = 5000;
+constexpr int BACA_ADC_SATU_DETIK = 360;
+constexpr uint32_t TUNGGU_RATA_INA219_MS = 70;
+constexpr float V_BUS_MAKS = 32.0f, I_SKALA_PENUH_MA = 3200.0f, V_BUS_CATU_MIN = 1.0f;
 
 static diag_hasil_t hasil(bool lulus, const char *fmt, ...)
 {
@@ -24,14 +27,8 @@ static diag_hasil_t hasil(bool lulus, const char *fmt, ...)
     return h;
 }
 
-// ---- buzzer ----------------------------------------------------------------
-// Yang diuji register GPIO matrix dan level pin, bukan bunyi. Bunyi dinilai
-// telinga: bila lulus tetapi bip tidak terdengar, periksa rangkaian (VCC modul
-// 3V3, I/O ke GPIO 13).
-
 static int level_buzz() { return (GPIO.in >> PIN_BUZZ) & 1; }
 
-// Porsi sampel LOW selama `us` mikrodetik.
 static float porsi_low(uint32_t us)
 {
     int low = 0, n = 0;
@@ -45,10 +42,8 @@ static float porsi_low(uint32_t us)
 
 diag_hasil_t diag_buzzer(void)
 {
-    PIN_INPUT_ENABLE(GPIO_PIN_MUX_REG[PIN_BUZZ]);   // supaya level pin bisa dibaca balik
+    PIN_INPUT_ENABLE(GPIO_PIN_MUX_REG[PIN_BUZZ]);
 
-    // Jebakan SPI: SPI.begin(9, -1, 8) menjadikan GPIO 13 MISO (INPUT). Bila
-    // itu terjadi sesudah LEDC terpasang, pin lepas dari LEDC dan buzzer bisu.
     const auto &cfg = GPIO.func_out_sel_cfg[PIN_BUZZ];
     if (cfg.func_sel != LEDC_LS_SIG_OUT0_IDX + KANAL_BUZZ)
         return hasil(false, "Buzzer GPIO%d lepas dari LEDC (SPI sesudah buzzer?)", PIN_BUZZ);
@@ -57,13 +52,11 @@ diag_hasil_t diag_buzzer(void)
     if (!((GPIO.enable >> PIN_BUZZ) & 1))
         return hasil(false, "Buzzer GPIO%d output nonaktif (jadi INPUT)", PIN_BUZZ);
 
-    // Modul aktif LOW: diam harus HIGH terus, tanpa satu sampel LOW pun.
     buzzer(false);
     delay(5);
     if (porsi_low(5000) > 0.0f)
         return hasil(false, "Buzzer LOW saat diam: bunyi terus (aktif-LOW)");
 
-    // Bunyi = gelombang kotak NADA_HZ, kira-kira separuh LOW separuh HIGH.
     buzzer(true);
     delay(5);
     const float p = porsi_low(5000);
@@ -85,11 +78,6 @@ diag_hasil_t diag_buzzer(void)
                  (unsigned)NADA_HZ);
 }
 
-// ---- layar -----------------------------------------------------------------
-// Layar tidak bisa dibaca balik (CS ke GND, tanpa MISO), jadi yang diukur
-// waktu transfer: satu layar penuh = 110 KB, bus SPI yang tidak mengirim apa
-// pun selesai seketika. Isi layar dinilai mata.
-
 diag_hasil_t diag_layar(void)
 {
     if (tft.width() != TFT_W || tft.height() != TFT_H)
@@ -109,17 +97,11 @@ diag_hasil_t diag_layar(void)
     Serial.println("LIHAT LAYAR: pita merah-hijau-biru-putih dan tulisan \"TFT OK\".");
     delay(2000);
 
-    // 110 KB pada 80 MHz pun butuh >= 11 ms; di bawah 5 ms berarti tidak ada transfer.
     const unsigned ms = (us + 500) / 1000;
-    if (us <= 5000) return hasil(false, "Layar fill %u us: SPI tidak mengirim?", (unsigned)us);
+    if (us <= FILL_MIN_US) return hasil(false, "Layar fill %u us: SPI tidak mengirim?", (unsigned)us);
     if (us >= 500000) return hasil(false, "Layar fill %u ms: terlalu lambat", ms);
     return hasil(true, "Layar %dx%d ok fill %u ms", TFT_W, TFT_H, ms);
 }
-
-// ---- ADC & lead-off --------------------------------------------------------
-// Lulus hanya hal yang tidak bergantung pada elektroda: ADC menjawab dalam
-// rentang 12-bit. Tanpa elektroda, keluaran AD8232 wajar menempel di rail atau
-// tengah dan LO = 1 (pull-up; 1 = elektroda lepas / kabel putus).
 
 diag_hasil_t diag_adc(void)
 {
@@ -128,7 +110,7 @@ diag_hasil_t diag_adc(void)
         if (v < 0 || v > 4095) return hasil(false, "ADC GPIO1 error (%d)", v);
     }
     int lo = 4095, hi = 0;
-    for (int i = 0; i < 360; i++) {             // ~1 s pada ~360 Hz
+    for (int i = 0; i < BACA_ADC_SATU_DETIK; i++) {
         const int v = adc1_get_raw(KANAL_EKG);
         if (v < lo) lo = v;
         if (v > hi) hi = v;
@@ -139,18 +121,11 @@ diag_hasil_t diag_adc(void)
                  (lop || lon) ? " lepas" : "");
 }
 
-// ---- INA219 ----------------------------------------------------------------
-// Konversi register diuji di PC (test_ina219); di sini sambungannya. Shunt di
-// jalur yang dialiri arus: bus = tegangan catu (~5 V USB / ~3,0-4,2 V
-// baterai). Bus ~0 V berarti VIN- tidak tersambung ke catu; angka arus dari
-// kondisi itu bukan konsumsi alat.
-
 diag_hasil_t diag_ina219(void)
 {
-    // Tulis config + baca balik; aman dipanggil ulang (Wire.begin kedua diabaikan).
     if (!ina219_mulai(I2C_SDA, I2C_SCL))
         return hasil(false, "INA219 0x%02X tidak menjawab (SDA%d SCL%d)", INA219_ALAMAT, I2C_SDA, I2C_SCL);
-    delay(70);                                  // > 68 ms: satu hasil rata-rata baru
+    delay(TUNGGU_RATA_INA219_MS);
 
     float mA = 0, V = 0;
     uint16_t sh, bus;
@@ -160,20 +135,15 @@ diag_hasil_t diag_ina219(void)
     Serial.printf("INA219 mentah: shunt 0x%04X (%d x 10 uV) | bus 0x%04X, CNVR %d OVF %d\n",
                   sh, (int16_t)sh, bus, (bus >> 1) & 1, bus & 1);
 
-    // BRNG 32 V; PGA /8 = +-320 mV / 0,1 ohm = +-3,2 A skala penuh.
     const int mV = (int)lroundf(V * 1000), iA = (int)lroundf(mA);
-    if (V < 0.0f || V > 32.0f || fabsf(mA) > 3200.0f)
+    if (V < 0.0f || V > V_BUS_MAKS || fabsf(mA) > I_SKALA_PENUH_MA)
         return hasil(false, "INA219 di luar rentang V=%d mV I=%dmA", mV, iA);
-    if (V < 1.0f)   // arus tanpa catu di VIN- bukan konsumsi alat: jangan tampilkan
+    if (V < V_BUS_CATU_MIN)
         return hasil(true, "INA219 0x%02X ok V=%d,%02d I=-- bus<1V:bukan jalur catu",
                      INA219_ALAMAT, mV / 1000, (mV % 1000) / 10);
     return hasil(true, "INA219 0x%02X ok V=%d,%02d I=%dmA", INA219_ALAMAT, mV / 1000,
                  (mV % 1000) / 10, iA);
 }
-
-// ---- tombol ----------------------------------------------------------------
-// Membaca pin langsung (tombol.cpp tidak ikut saat test). Klik buzzer tiap
-// tombol yang baru tercatat.
 
 diag_hasil_t diag_tombol(uint32_t batas_ms)
 {

@@ -1,4 +1,3 @@
-// Rekaman ke LittleFS. Kontrak: include/rekam.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "rekam.h"
 
@@ -14,14 +13,14 @@
 #include "tampilan.h"
 
 constexpr size_t REKAM_N = REKAM_SAMPEL_MAKS;
-constexpr int DAFTAR_MAKS = 64;            // ponytail: batas daftar tampilan saja; nomor baru tetap dari pindai penuh
+constexpr int DAFTAR_MAKS = 64;
+constexpr size_t BLOK_BACA = 512;
 
 static uint16_t *buf;
 static size_t n;
 static bool aktif, jeda;
-static size_t lepas;                       // sampel dgn LO aktif selama merekam
-// Indeks awal segmen sesudah tiap jeda; saat simpan jadi baris "# jeda".
-constexpr int BATAS_MAKS = 64;             // ponytail: jeda ke-65 dst. tidak dicatat (segmen lebur), cukup untuk 300 s
+static size_t lepas;
+constexpr int BATAS_MAKS = 64;
 static size_t batas[BATAS_MAKS];
 static int n_batas;
 static int no_simpan;
@@ -48,7 +47,7 @@ int rekam_daftar(int *nomor, int maks)
     for (File f = d.openNextFile(); f && k < maks; f = d.openNextFile()) {
         const int x = atoi(f.name());
         if (x <= 0) continue;
-        int j = k++;                       // sisip urut naik
+        int j = k++;
         while (j > 0 && nomor[j - 1] > x) { nomor[j] = nomor[j - 1]; j--; }
         nomor[j] = x;
     }
@@ -70,7 +69,7 @@ void rekam_siapkan(void)
     if (!buf) Serial.println("PERINGATAN: PSRAM gagal, perekaman mentah nonaktif");
     if (!LittleFS.begin(true)) { Serial.println("PERINGATAN: LittleFS gagal mount"); return; }
     LittleFS.mkdir(REKAM_DIR);
-    struct stat st;                        // stat(), bukan exists(): exists() mencetak [E] bila tidak ada
+    struct stat st;
     if (stat("/littlefs/rekaman.csv", &st) == 0 && !terakhir()) {
         char p[24];
         nama(1, p, sizeof p);
@@ -89,22 +88,18 @@ void rekam_sampel(uint16_t s)
 static void simpan()
 {
     aktif = false;
-    buzzer(false);       // menulis berkas memblok loop beberapa detik; bip jangan ikut tertahan
+    buzzer(false);
     const int nomor = terakhir() + 1;
     if (nomor > REKAM_NOMOR_MAKS) { Serial.println("GAGAL: nomor rekaman habis, hapus dulu (h<n>)"); return; }
     char p[24];
     nama(nomor, p, sizeof p);
     File f = LittleFS.open(p, "w");
     if (!f) { Serial.println("GAGAL membuka LittleFS"); return; }
-    // 'lepas' menjawab yang tidak bisa dijawab data mentah: apakah elektroda
-    // benar-benar menempel saat rekaman dibuat? AD8232 memarkir output di
-    // mid-rail saat leads-off, dan garis datar itu menyamar sebagai "sinyal
-    // tenang" di CSV.
     const unsigned lewat = (unsigned)akuisisi_lewat();
     const float persen = n ? 100.0f * lepas / n : 0.0f;
     f.printf("# fs=%u n=%u lewat=%u lepas=%u (%.0f%%)\n", ECG_FS, (unsigned)n, lewat,
              (unsigned)lepas, persen);
-    if (n_batas && batas[n_batas - 1] >= n) n_batas--;   // jeda lalu langsung simpan: bukan segmen
+    if (n_batas && batas[n_batas - 1] >= n) n_batas--;
     size_t i = 0;
     for (int k = 0; i < n; i++) {
         if (k < n_batas && batas[k] == i) { f.print("# jeda\n"); k++; }
@@ -144,8 +139,6 @@ void rekam_jeda(void)
 {
     if (!aktif) { Serial.println("REKAM: tidak sedang merekam"); return; }
     jeda = !jeda;
-    // Batas dicatat saat jeda; jeda tanpa sampel baru sejak batas terakhir
-    // tidak membuat segmen kosong.
     if (jeda && n && (!n_batas || batas[n_batas - 1] < n)) {
         if (n_batas < BATAS_MAKS) batas[n_batas++] = n;
         else Serial.println("PERINGATAN: batas jeda penuh, segmen ini lebur dengan berikutnya");
@@ -191,7 +184,6 @@ void rekam_cetak_daftar(void)
         f.close();
     }
 }
-// Header "# fs=360 n=<sampel> ..." -> n. 0 = berkas tidak ada / header rusak.
 size_t rekam_sampel_n(int nomor)
 {
     char p[24];
@@ -204,15 +196,13 @@ size_t rekam_sampel_n(int nomor)
     return k < 0 ? 0 : (size_t)atol(h.c_str() + k + 3);
 }
 
-// Dibaca per blok 512 B dan diurai sendiri: readStringUntil per baris terlalu
-// lambat untuk 108.000 baris. Baris berawalan '#' dilewati.
 size_t rekam_muat(int nomor, uint16_t *buf, size_t maks)
 {
     char p[24];
     nama(nomor, p, sizeof p);
     File f = nomor > 0 ? LittleFS.open(p, "r") : File();
     if (!f) return 0;
-    uint8_t blok[512];
+    uint8_t blok[BLOK_BACA];
     size_t k = 0;
     uint32_t v = 0;
     bool ada = false, komentar = false;

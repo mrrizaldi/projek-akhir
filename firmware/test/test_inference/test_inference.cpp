@@ -1,16 +1,7 @@
-// Uji inferensi INT8 di ESP32-S3 sungguhan.
-//
-//   pio test -e esp32-s3
-//
-// Rantai penuh: golden_raw -> bandpass C -> z-score C -> TFLite Micro,
-// dibandingkan ke golden_prob_int8 (jawaban dari interpreter TFLite di PC).
-// Kalau angka di device beda dari di PC, model yang sama dijalankan berbeda —
-// itu yang harus ketahuan DI SINI, bukan saat alat sudah dipasang ke orang.
 #include <Arduino.h>
 #include <unity.h>
 
 #include "tensorflow/lite/micro/micro_interpreter.h"
-// TFLM lama (2022) menuntut ErrorReporter di argumen ke-4; yang baru menghapusnya.
 #if __has_include("tensorflow/lite/micro/micro_error_reporter.h")
 #include "tensorflow/lite/micro/micro_error_reporter.h"
 #define TFLM_PUNYA_ERROR_REPORTER 1
@@ -18,14 +9,13 @@
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
 
-#include "model_int8.h"      // GENERATED: bobot + scale/zero_point
+#include "model_int8.h"
 #include "ecg_pipeline.h"
 #include "ecg_live.h"
 #include "../golden_ref.h"
 
-// Tensor arena WAJIB di RAM internal, bukan PSRAM: inferensi menyentuhnya
-// ribuan kali per detak dan PSRAM lewat SPI jauh lebih lambat.
 constexpr int kArenaSize = 24 * 1024;
+constexpr uint32_t TUNGGU_USB_CDC_MS = 2000;
 alignas(16) static uint8_t tensor_arena[kArenaSize];
 
 static tflite::MicroInterpreter *interpreter = nullptr;
@@ -43,14 +33,12 @@ static void siapkan_model(void)
     TEST_ASSERT_EQUAL_MESSAGE(TFLITE_SCHEMA_VERSION, model->version(),
                               "skema flatbuffer model != versi library");
 
-    // Persis 8 op yang dipakai model deploy — jangan AllOpsResolver, dia
-    // menarik seluruh kernel TFLM dan membengkakkan flash ~100 KB.
     static tflite::MicroMutableOpResolver<8> resolver;
     resolver.AddConv2D();
-    resolver.AddDepthwiseConv2D();   // rata-rata 31 langkah (pengganti MEAN)
+    resolver.AddDepthwiseConv2D();
     resolver.AddMaxPool2D();
-    resolver.AddConcatenation();     // gabung cabang morfologi + ritme
-    resolver.AddLogistic();          // sigmoid
+    resolver.AddConcatenation();
+    resolver.AddLogistic();
     resolver.AddAdd();
     resolver.AddReshape();
     resolver.AddExpandDims();
@@ -65,11 +53,9 @@ static void siapkan_model(void)
     TEST_ASSERT_EQUAL_MESSAGE(kTfLiteOk, interpreter->AllocateTensors(),
                               "AllocateTensors gagal — arena kurang besar?");
 
-    // Urutan input di .tflite TIDAK dijamin sama dengan di Keras. Bedakan lewat
-    // ukuran tensor: RR (1,3) jauh lebih kecil dari morfologi (1,256,1).
     TfLiteTensor *a = interpreter->input(0);
     TfLiteTensor *b = interpreter->input(1);
-    const bool a_kecil = a->bytes < b->bytes;      // RR 3 byte vs morfologi 256
+    const bool a_kecil = a->bytes < b->bytes;
     in_rr = a_kecil ? a : b;
     in_morph = a_kecil ? b : a;
     out = interpreter->output(0);
@@ -93,7 +79,6 @@ void test_model_termuat(void)
     TEST_ASSERT_EQUAL(GOLDEN_N_RR, (int)in_rr->bytes);
 }
 
-// Rantai penuh di device, dibandingkan ke jawaban PC.
 void test_inferensi_cocok_dengan_pc(void)
 {
     float state[ECG_N_SOS * 2];
@@ -124,14 +109,10 @@ void test_inferensi_cocok_dengan_pc(void)
                  b, golden_sym[b], p, golden_prob_int8[b]);
         TEST_ASSERT_FLOAT_WITHIN_MESSAGE(GOLDEN_TOL_PROB, golden_prob_int8[b], p, pesan);
 
-        // Keputusan akhir harus sama, bukan cuma probabilitasnya berdekatan.
         TEST_ASSERT_EQUAL_MESSAGE(golden_label[b], p >= GOLDEN_THRESHOLD ? 1 : 0, pesan);
     }
 }
 
-// DIAGNOSTIK: suapi window & RR GOLDEN langsung (lewati preprocessing C).
-// Kalau ini cocok tapi test rantai-penuh tidak → salahnya di preprocessing.
-// Kalau ini ikut meleset → salahnya di sisi inferensi/kuantisasi.
 void test_diagnostik_input_golden(void)
 {
     for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT; b++) {
@@ -158,7 +139,6 @@ void test_diagnostik_input_golden(void)
     Serial.printf("DIAG out    : scale=%.8f zero=%d | header %.8f %d\n",
                   out->params.scale, out->params.zero_point, ECG_OUT_SCALE, ECG_OUT_ZERO);
 
-    // Reproducer minimal: masukan bernilai NOL (float) -> q = zero_point.
     for (int i = 0; i < GOLDEN_WIN_LEN; i++) in_morph->data.int8[i] = ECG_IN_MORPH_ZERO;
     for (int i = 0; i < GOLDEN_N_RR; i++)    in_rr->data.int8[i] = ECG_IN_RR_ZERO;
     interpreter->Invoke();
@@ -166,7 +146,6 @@ void test_diagnostik_input_golden(void)
                   (int)out->data.int8[0],
                   (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE);
 
-    // Beat 2 dalam domain int8 mentah, plus 5 nilai input pertama.
     const float *w2 = golden_window + (size_t)2 * GOLDEN_WIN_LEN;
     const float *r2 = golden_rr + (size_t)2 * GOLDEN_N_RR;
     for (int i = 0; i < GOLDEN_WIN_LEN; i++)
@@ -181,9 +160,6 @@ void test_diagnostik_input_golden(void)
                   in_rr->data.int8[0], in_rr->data.int8[1], in_rr->data.int8[2]);
 }
 
-// ALUR HIDUP UJUNG KE UJUNG: sampel mentah -> bandpass -> deteksi ->
-// penyelarasan -> window -> RR -> inferensi, semuanya di board.
-// golden_raw diputar ulang seolah datang dari ADC, jadi tidak butuh elektroda.
 void test_alur_hidup(void)
 {
     static ecg_beat_t beat;
@@ -226,7 +202,7 @@ void test_alur_hidup(void)
     const uint32_t us_jalan = micros() - t_mulai;
     const uint32_t us_rata = us_jalan / GOLDEN_N;
     const float beban = 100.0f * us_rata / 2778.0f;
-    const uint32_t antrean = (us_maks + 2777) / 2778;   // sampel menumpuk saat burst
+    const uint32_t antrean = (us_maks + 2777) / 2778;
 
     Serial.printf("\n=== ALUR HIDUP ===\n");
     Serial.printf("beat keluar   : %d (%d cocok anotasi, %d prediksi benar)\n",
@@ -244,16 +220,12 @@ void test_alur_hidup(void)
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, cocok, "terlalu sedikit beat cocok anotasi");
     TEST_ASSERT_EQUAL_MESSAGE(cocok, benar, "ada prediksi yang beda dari jawaban PC");
 
-    // Yang menentukan kelayakan real-time adalah RATA-RATA, bukan puncak:
-    // akuisisi diumpankan ISR ke antrean, jadi burst cuma menumpuk sampel
-    // sementara lalu terkuras. Puncaknya dilaporkan supaya antrean bisa disizing.
     TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(2778, us_rata,
         "rata-rata > 2778 us/sampel — tidak mungkin real-time pada 360 Hz");
     TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(ECG_LIVE_RING, antrean * 4,
         "burst terlalu panjang untuk ring 4 detik");
 }
 
-// Angka untuk Bab 4: latensi per detak & pemakaian arena.
 void test_latensi_dan_memori(void)
 {
     uint32_t total = 0, maks = 0;
@@ -273,7 +245,6 @@ void test_latensi_dan_memori(void)
     Serial.printf("CPU           : %u MHz\n", (unsigned)ESP.getCpuFreqMHz());
     Serial.printf("==========================\n");
 
-    // Satu detak ~0,8 detik. Inferensi harus jauh di bawah itu supaya kontinu.
     TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(200000, maks,
         "inferensi > 200 ms — terlalu lambat untuk kontinu, pertimbangkan ESP-NN");
     TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(kArenaSize, arena, "arena kurang besar");
@@ -282,7 +253,7 @@ void test_latensi_dan_memori(void)
 void setup()
 {
     Serial.begin(115200);
-    delay(2000);            // tunggu USB-CDC siap sebelum test menulis
+    delay(TUNGGU_USB_CDC_MS);
     UNITY_BEGIN();
     RUN_TEST(test_model_termuat);
     RUN_TEST(test_diagnostik_input_golden);

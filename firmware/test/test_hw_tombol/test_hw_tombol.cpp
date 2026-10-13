@@ -1,8 +1,3 @@
-// Tombol B1/B2/B3 di board, tanpa menunggu manusia: pin diam = HIGH (pull-up,
-// tidak ada tombol macet / terhubung singkat ke GND) dan diag_tombol() kembali
-// tepat waktu bila tidak ada yang menekan. Uji tekan sungguhan lewat menu Tes.
-//
-//   pio test -e esp32-s3 -f test_hw_tombol     (JANGAN menekan tombol)
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"

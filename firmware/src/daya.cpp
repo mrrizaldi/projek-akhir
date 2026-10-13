@@ -1,4 +1,3 @@
-// Ukur daya. Kontrak: include/daya.h
 #if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
 #include "daya.h"
 
@@ -13,8 +12,6 @@
 #include "perangkat.h"
 #include "rekam.h"
 
-// Bawaan = measure_power.py (jendela 10 s, --blok 6). Uji singkat di board:
-// PLATFORMIO_BUILD_FLAGS="-DDAYA_JENDELA_MS=2000 -DDAYA_BLOK=2" pio run -t upload
 #ifndef DAYA_JENDELA_MS
 #define DAYA_JENDELA_MS 10000
 #endif
@@ -22,11 +19,12 @@
 #define DAYA_BLOK 6
 #endif
 constexpr uint32_t JENDELA_DAYA_MS = DAYA_JENDELA_MS;
-constexpr int TANGGA_N = 6;                // p0..p5
+constexpr int TANGGA_N = 6;
+constexpr uint32_t PERIODE_BACA_INA219_MS = 100;
 
 static bool ina_ada;
 static int mode_daya = -1;
-static uint32_t beat_dsp;          // beat keluar dari ecg_live, termasuk saat kalibrasi
+static uint32_t beat_dsp;
 static bool mulai_ulang;
 static void tangga_catat(int n, double i, double sd, double v, unsigned beat, unsigned lewat);
 
@@ -53,12 +51,10 @@ void daya_set_mode(int m)
     if (rekam_tolak("mode daya")) return;
     mode_daya = m;
     akuisisi_timer(m != 0);
-    // esp_wifi_stop/start, bukan WiFi.mode(WIFI_OFF): yang terakhir ikut
-    // men-deinit driver dan berebut dengan task WiFi (panic LoadProhibited di core 0).
     if (m >= 0 && m < 5) {
         if (!wifi_mati) { ecg_mqtt_set_aktif(0); esp_wifi_stop(); }
         wifi_mati = true;
-    } else if (wifi_mati) {        // p5 / normal: radio kembali dengan setelan ecg_mqtt_mulai()
+    } else if (wifi_mati) {
         esp_wifi_start();
         ecg_mqtt_mulai();
         ecg_mqtt_set_aktif(1);
@@ -69,16 +65,12 @@ void daya_set_mode(int m)
     else       Serial.printf("daya: mode p%d, jendela %lu s\n", m, (unsigned long)(JENDELA_DAYA_MS / 1000));
 }
 
-// Rata-rata INA219 per jendela tetap. Dibaca tiap 100 ms (> 68 ms konversi 128
-// sampel), jadi tiap bacaan adalah rata-rata baru. Baris pertama sesudah ganti
-// mode memuat transien; pencatat (model/scripts/measure_power.py) membuangnya.
-// Format baris 'DAYA' di-parse pencatat itu: jangan diubah.
 void daya_layani(void)
 {
     static uint32_t t_baca, t_jendela, beat0, lewat0;
     static double jml, jml2, jml_v;
     static int n;
-    if (mode_daya < 0 || !ina_ada || millis() - t_baca < 100) return;
+    if (mode_daya < 0 || !ina_ada || millis() - t_baca < PERIODE_BACA_INA219_MS) return;
     t_baca = millis();
     if (mulai_ulang) {
         mulai_ulang = false;
@@ -97,11 +89,6 @@ void daya_layani(void)
     mulai_ulang = true;
 }
 
-// ---------------------------------------------------------------------------
-// Tangga mandiri. Jendela dicatat oleh daya_layani(); tick hanya memindah
-// langkah, jadi loop tidak pernah tertahan selain saat menulis CSV di akhir
-// (~36 baris, jauh di bawah 700 ms penyangga antrean ISR).
-
 struct jendela_t {
     char waktu[24];
     int8_t mode;
@@ -113,16 +100,16 @@ struct jendela_t {
 static jendela_t jd[TANGGA_N * DAYA_BLOK];
 static int jd_n;
 static int langkah = -1;
-static int jendela_langkah;                // jendela diterima di langkah ini, termasuk yang dibuang
+static int jendela_langkah;
 static uint32_t t_langkah;
-static int sumber_awal, rekam_awal;   // dipulihkan setelah tangga
+static int sumber_awal, rekam_awal;
 static daya_baris_t hasil[TANGGA_N];
 static int hasil_n;
-static int berkas_akhir = -1;              // -1 = belum dipindai
+static int berkas_akhir = -1;
 
 static File buka_dir(void)
 {
-    LittleFS.mkdir("/daya");               // open() pada direktori yang belum ada mencetak [E]
+    LittleFS.mkdir("/daya");
     return LittleFS.open("/daya");
 }
 
@@ -184,8 +171,6 @@ void daya_tangga_mulai(void)
     if (langkah >= 0) { Serial.println("tangga: sudah berjalan"); return; }
     if (!ina_ada) { Serial.println("tangga: INA219 tidak terdeteksi, batal"); return; }
     jd_n = hasil_n = 0;
-    // Beban identik tiap ulangan: selalu replay acuan (golden 208), seperti
-    // measure_power.py, apa pun sumber yang sedang dipilih. Tidak ditulis ke NVS.
     sumber_awal = akuisisi_sumber();
     rekam_awal = akuisisi_sumber_rekam();
     if (sumber_awal != SUMBER_ACUAN) akuisisi_set_sumber(SUMBER_ACUAN, 0, false);
@@ -194,9 +179,6 @@ void daya_tangga_mulai(void)
     mulai_langkah(0);
 }
 
-// Kriteria = measure_power.py: V bus < 1 V (INA219 tidak di jalur catu), sampel
-// hilang (p>=1), tanpa beat (p>=2), arus tidak naik > 2 x sd antar-langkah.
-// Kegagalan pasangan pN-1 -> pN menandai pN. Batal di tengah = semua tidak sah.
 static void selesai(const char *batal)
 {
     langkah = -1;

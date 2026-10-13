@@ -28,6 +28,26 @@ Penjelasan rinci: [`firmware-walkthrough`](../model/docs/firmware-walkthrough.md
 replay. Kadens deteksi memakai nilai bawaan `ECG_LIVE_TIAP = ECG_FS` (deteksi
 tiap 1 detik); `-D ECG_LIVE_TIAP=90` tersedia sebagai knob ablasi.
 
+Isi `platformio.ini` yang perlu diketahui:
+
+- `default_envs = esp32-s3` wajib ada. Tanpanya `pio run` polos ikut me-link
+  env `native`, yang tidak memiliki `main()`, dan gagal dengan
+  `undefined reference to main`.
+- Profil board `4d_systems_esp32s3_gen4_r8n16` sudah membawa
+  `-DBOARD_HAS_PSRAM`; flag itu tidak ditulis ulang.
+- `build_src_flags` mengisi `VERSI_GIT` dari `git describe --always --dirty`
+  (ditampilkan di Menu → Info). Flag ini hanya berlaku untuk `src/`, sehingga
+  pustaka tidak dikompilasi ulang setiap commit.
+- Chirale_TensorFLowLite memakai kernel referensi (belum ESP-NN); angka latensi
+  inferensi di repo ini adalah baseline kernel referensi.
+- ST7789 di-init dengan `SPI_MODE3` karena CS diikat ke GND.
+- `test_build_src = yes`: suite test memakai `src/`; `main.cpp` kosong saat
+  `PIO_UNIT_TESTING`.
+- Serial berjalan lewat USB JTAG/serial bawaan S3; USB-CDC tidak diaktifkan.
+  Bila `pio device monitor` tidak menampilkan apa pun, tambahkan
+  `-D ARDUINO_USB_CDC_ON_BOOT=1 -D ARDUINO_USB_MODE=1` ke `build_flags` env
+  `esp32-s3`.
+
 ## Perintah
 
 ```bash
@@ -117,6 +137,136 @@ dipasang ke LEDC. Di ESP32-S3, MISO −1 diganti MISO bawaan FSPI, yaitu GPIO 13
 dan pin itu dijadikan input; bila LEDC dipasang lebih dulu, buzzer kehilangan
 pinnya dan tidak berbunyi. `perangkat_mulai()` memegang urutan ini dan
 `test_hw_buzzer` memeriksanya dari register GPIO matrix.
+
+## Jebakan
+
+Hal yang terbukti di board dan mudah rusak bila kode diubah. Rincian
+pengukuran ada di walkthrough yang dirujuk.
+
+**Perangkat**
+
+- `SPI.begin(TFT_SCK, TANPA_MISO, TFT_MOSI)` dipanggil sebelum buzzer dipasang
+  (bagian Pin map). `tft.init()` memanggil `SPI.begin()` lagi, tetapi
+  `SPIClass::begin()` langsung kembali bila bus sudah aktif, jadi urutan tidak
+  rusak oleh TFT.
+- Buzzer modul aktif LOW: LOW = bunyi, HIGH = diam. Pin dibuat HIGH dengan
+  `digitalWrite` sebelum LEDC mengambil alih, karena pin yang belum diatur
+  dapat terbaca LOW oleh modul dan berbunyi saat boot. Kanal LEDC dipasang
+  dengan `output_invert = 1` (kanal 0 → `LEDC_TIMER_0`, sama dengan
+  `ledcSetup`), sehingga `ledcWriteTone(kanal, NADA_DIAM)` (duty 0) menghasilkan
+  HIGH = diam dan gelombang kotak tetap berbunyi. `perangkat_mulai()`
+  dipanggil pertama di `setup()` supaya buzzer diam secepatnya.
+- `NADA_HZ` (`perangkat.h`) adalah knob: buzzer pasif paling keras di frekuensi
+  resonansinya, yang berbeda per part.
+- Pin LO+/LO− dipasang `INPUT_PULLUP`: kabel LO yang putus terbaca HIGH
+  (elektroda lepas), bukan mengambang. Keluaran LO AD8232 push-pull, sehingga
+  pull-up internal ±45 kΩ tidak melawannya.
+- LO+/LO− tidak dipakai menyetir LED. LO hanya melaporkan elektroda lepas
+  total, dan pada 3-lead tanpa RL yang rapat LO menyala terus walau sinyalnya
+  bagus. LED disetir ayunan bersih (akuisisi-walkthrough §2).
+- `neopixelWrite()` mematikan interrupt ±30 µs per panggilan; LED karena itu
+  diperbarui paling sering tiap `PERIODE_LED_MS` (250 ms), bukan tiap loop.
+- Layar tidak dapat dibaca balik (CS ke GND, tanpa MISO). `diag_layar()`
+  menilai SPI dari waktu `fillScreen` penuh (110 KB; pada 80 MHz pun ≥ 11 ms);
+  di bawah `FILL_MIN_US` (5 ms) berarti tidak ada transfer.
+- INA219: modul yang tidak terpasang membalas `0x0000`/`0xFFFF`, sehingga
+  `ina219_mulai()` menulis config lalu membaca balik untuk membedakan "tidak
+  terpasang" dari 0 mA. Setelah config ditulis, tunggu > 68 ms (satu hasil
+  rata-rata 128 sampel) sebelum membaca. Register kalibrasi on-chip tidak
+  dipakai; `R_SHUNT` membagi di software sebagai knob kalibrasi terhadap
+  multimeter (firmware-walkthrough §5d). Tegangan bus < 1 V berarti shunt
+  tidak di jalur catu, dan arusnya bukan konsumsi alat.
+
+**Akuisisi dan pipeline**
+
+- ADC dibaca di ISR, bukan di `loop()`: beban pemrosesan rata-rata 82 µs per
+  sampel tetapi puncaknya 33 ms saat deteksi dan inferensi bersamaan; `ANTRE_N`
+  = 256 (≥ 13 sampel puncak burst, dibulatkan ke pangkat 2) = 711 ms penyangga
+  (firmware-walkthrough §5b).
+- Tidak ada operasi float di ISR. ESP32 tidak menyimpan register FPU di konteks
+  interrupt; float di `on_timer()` merusak state FPU task yang diinterupsi dan
+  baru panic `Coprocessor exception` setelah ±18 detik. Konversi `golden_raw`
+  (mV) ke counts (`SKALA_REPLAY` 1000 counts/mV + `OFFSET_REPLAY` 2048, puncak R
+  ±3550 < 4095) dilakukan sekali di `akuisisi_mulai()` (firmware-walkthrough
+  §5c).
+- Replay rekaman membaca buffer PSRAM di ISR. Ini aman karena timer dipasang
+  tanpa `ESP_INTR_FLAG_IRAM`, sehingga ISR ikut ditahan selama flash ditulis.
+- `ecg_live` menyimpan beat terakhir yang dikeluarkan sebagai indeks sampel
+  absolut, bukan posisi di `r_hist`: `r_hist` bergeser (`memmove`) saat penuh,
+  sehingga posisi tersimpan basi dan beat dapat keluar dua kali.
+- Beat yang menunggu R berikutnya dikeluarkan setelah `ECG_LIVE_TIMEOUT`
+  (3 detik ≈ 20 bpm) dengan R semu (RR berikutnya = RR sekarang), sehingga
+  RR+1/RR0 = 1,0 sebagai sentinel netral dan `sinyal_hilang = 1`. Beat
+  seperti ini tidak dipublikasi (`ditahan`).
+- Pan-Tompkins: ambang awal diinisialisasi dari `ECG_PT_INIT_N` (2 detik
+  pertama) dengan akumulasi `double` (penjumlahan float sepanjang itu kehilangan
+  presisi); deteksi tidak berjalan sebelum ring berisi 2 detik. Puncak lokal
+  asimetris (`>` kiri, `>=` kanan) agar plateau datar tidak menghasilkan nol
+  maupun dua puncak.
+- `ecg_window_zscore` memakai std populasi (pembagi N, sama dengan
+  `numpy.std()`). Di `ecg_rr_features`, varians RR lokal yang negatif akibat
+  galat pembulatan dijepit ke 0.
+- Ayunan kualitas diukur pada sinyal setelah bandpass, dikurangi kontribusi
+  50 Hz (`FREK_JALA_HZ`) yang diukur dengan Goertzel (akuisisi-walkthrough §2).
+  Clipping tetap dinilai dari ADC mentah karena sinyal yang terpotong di rail
+  sudah kehilangan informasi sebelum filter.
+- Kriteria RR (300–1500 ms, |dRR| ≤ 200 ms) adalah gerbang masuk fase
+  pemantauan, bukan gerbang per detak; beat ventrikular memang datang dengan
+  dRR besar (mqtt-walkthrough §3.1).
+
+**TFLite Micro** (`test_inference`, `klasifikasi.cpp`)
+
+- Urutan input di `.tflite` tidak dijamin sama dengan di Keras; tensor RR dan
+  morfologi dibedakan lewat ukuran (`bytes`), bukan indeks.
+- Tensor arena wajib di RAM internal, bukan PSRAM: inferensi menyentuhnya
+  ribuan kali per detak.
+- Resolver hanya memuat op model deploy; `AllOpsResolver` menambah flash
+  ±100 KB (firmware-walkthrough §5).
+- TFLM versi 2022 menuntut `ErrorReporter` sebagai argumen ke-4 konstruktor
+  interpreter; versi baru menghapusnya.
+
+**Jaringan dan jam**
+
+- Radio dimatikan untuk tangga daya dengan `esp_wifi_stop()`/`esp_wifi_start()`,
+  bukan `WiFi.mode(WIFI_OFF)`: yang terakhir ikut men-deinit driver dan
+  berebut dengan task WiFi (panic `LoadProhibited` di core 0)
+  (firmware-walkthrough §5d).
+- Jam dimulai dengan `configTzTime("WIB-7", ...)`. `configTime(0, 0, ...)`
+  menyetel TZ ke UTC setiap kali WiFi tersambung ulang, sehingga jam layar
+  kembali ke UTC (mqtt-walkthrough §3.6). Jam dianggap tersinkron bila
+  `tv_sec` ≥ `EPOCH_SNTP_MIN`.
+- Klien MQTT tidak pernah menunggu jaringan di tempat: CONNECT, PUBLISH, dan
+  PINGREQ ditulis lalu jawabannya dipungut di iterasi `loop()` berikutnya.
+  Setiap blokir harus di bawah 711 ms: `CONNECT_TIMEOUT_MS` 300,
+  `BATAS_TULIS_MS` 200, layanan tiap `PERIODE_LAYANI_MS` 20 ms. Host broker
+  berupa `IPAddress` karena resolusi DNS memblokir di luar batas waktu itu.
+  `TCP_NODELAY`, `WiFi.setSleep(false)`, membaca PINGRESP, dan `gettimeofday()`
+  (bukan `time()`) masing-masing menutup satu bug yang hanya muncul di board
+  (mqtt-walkthrough §7b).
+- `Preferences::begin(NS, BUKAN_READ_ONLY)` dipakai juga untuk membaca, karena
+  mode read-only gagal bila namespace belum ada; mode tulis membuatnya.
+
+**LittleFS**
+
+- Keberadaan berkas dicek dengan `stat()`, bukan `LittleFS.exists()`, dan
+  direktori `/daya` dibuat dengan `mkdir` sebelum dibuka: `exists()` dan
+  `open()` pada jalur yang belum ada mencetak `[E]` ke serial.
+- Rekaman dimuat untuk replay per blok `BLOK_BACA` (512 B) dan diurai sendiri;
+  `readStringUntil` per baris terlalu lambat untuk 108.000 baris.
+- Menulis berkas memblok `loop()` beberapa detik; buzzer dimatikan sebelum
+  menulis, dan bip simpan dibunyikan sesudah berkas tertulis.
+
+## Batasan yang disengaja
+
+| Batasan | Dampak | Bila perlu diubah |
+|---|---|---|
+| Ring backlog MQTT di memori volatil (PSRAM) | Beat yang belum terkirim hilang bila board reboot | LittleFS sudah terpasang dan dapat dipakai sebagai penyimpan backlog |
+| Snippet payload dicuplik merata dari window, bukan di sekitar R | Widget dashboard tidak menampilkan QRS terpusat | Ambil `ECG_SNIPPET_N` titik mulai dari `ECG_WIN_PRE` |
+| Jadwal bip memakai jam sampel yang sudah diproses `ecg_live` | Saat burst deteksi bip terlambat paling lama sepanjang burst (±33 ms) | Pakai indeks sampel yang masuk antrean |
+| Batas segmen rekaman `BATAS_MAKS` = 64 | Jeda ke-65 dan seterusnya tidak dicatat (segmen bersambung) | Cukup untuk 300 detik; naikkan bila rekaman lebih panjang |
+| Daftar rekaman di menu `DAFTAR_MAKS` = 64 | Hanya batas tampilan; nomor berkas baru tetap dari pindai penuh | — |
+| Angka sesudah perintah serial ditunggu sampai 500 ms per digit | `loop()` terblokir selama menunggu | Perintah bench, tidak dipakai saat merekam sinyal tubuh |
+| Memilih WiFi saat tangga daya `p0`–`p4` | Radio ikut menyala lagi lewat `ecg_mqtt_mulai()` | Pilih jaringan di operasi normal |
 
 ## Catu daya dan pengukuran arus
 
