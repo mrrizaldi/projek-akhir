@@ -67,7 +67,7 @@ Parameter eksperimen dikelompokkan ke dalam tujuh kategori yang mengikuti tiga j
     g. Konsumsi daya &
     Arus dan daya rata-rata (mA dan mW) &
     Dilaporkan per mode operasi (Tabel~\ref{tab:pengujian-model}) &
-    Konsumsi daya diukur sebagai acuan awal dan tidak dioptimasi (Subbab~\ref{sec:batasan-masalah}) \\
+    Konsumsi daya diukur sebagai acuan awal dan tidak dioptimasi \\
     \hline
   \end{longtable}
 \end{center}
@@ -120,9 +120,9 @@ Berdasarkan Tabel~\ref{tab:dataset}, DS1 secara keseluruhan memuat 22 rekaman de
 
 \subsubsection{Data Primer dari Perangkat}
 
-Data primer berupa rekaman sinyal mentah dari modul AD8232 yang dicuplik ADC ESP32-S3 pada 360 Hz dan disimpan sebagai berkas CSV berisi nilai \textit{count} ADC 12-bit, dengan alur perekaman pada Subbab~\ref{subsec:antarmuka-perangkat}. Rekaman yang sempat dijeda terdiri atas beberapa segmen, dan durasinya dihitung dari jumlah sampel seluruh segmen tanpa waktu jeda. Rekaman yang diambil selama pengembangan hanya dipakai untuk menyusun prosedur perekaman dan menguji alat analisis, sehingga tidak dilaporkan sebagai hasil. Data primer yang dilaporkan berasal dari pengujian rekaman resmi, yaitu sebanyak \PlaceholderData{jumlah rekaman} rekaman yang diambil pada \PlaceholderData{tanggal sesi perekaman} dengan durasi \PlaceholderData{durasi terpendek sampai terpanjang} detik per rekaman, atau total sekitar \PlaceholderData{total durasi} detik. Rekaman berasal dari \PlaceholderData{jumlah dan kode subjek} subjek sehat dengan konfigurasi Lead II dan elektroda \textit{wet-gel}. Identitas subjek dianonimkan dan pengambilan data bukan uji klinis, sesuai Batasan Masalah pada Subbab~\ref{sec:batasan-masalah}.
+Data primer berupa rekaman sinyal mentah dari modul AD8232 yang dicuplik ADC ESP32-S3 pada 360 Hz dan disimpan sebagai berkas CSV berisi nilai \textit{count} ADC 12-bit, dengan alur perekaman pada Subbab~\ref{subsec:antarmuka-perangkat}. Rekaman yang sempat dijeda terdiri atas beberapa segmen, dan durasinya dihitung dari jumlah sampel seluruh segmen tanpa waktu jeda. Rekaman yang diambil selama pengembangan hanya dipakai untuk menyusun prosedur perekaman dan menguji alat analisis, sehingga tidak dilaporkan sebagai hasil. Data primer yang dilaporkan berasal dari pengujian rekaman resmi, yaitu sebanyak \PlaceholderData{jumlah rekaman} rekaman yang diambil pada \PlaceholderData{tanggal sesi perekaman} dengan durasi \PlaceholderData{durasi terpendek sampai terpanjang} detik per rekaman, atau total sekitar \PlaceholderData{total durasi} detik. Rekaman berasal dari \PlaceholderData{jumlah dan kode subjek} subjek sehat dengan konfigurasi Lead II dan elektroda \textit{wet-gel}. Identitas subjek dianonimkan dan pengambilan data bukan uji klinis.
 % PLACEHOLDER-DATA data-primer: jumlah rekaman resmi, tanggal sesi, durasi terpendek-terpanjang dan total (detik), jumlah dan kode subjek, beserta konfirmasi persetujuan subjek. Prosedur: model/docs/akuisisi-walkthrough.md §3-§5 (rekam dengan B3: pendek mulai/jeda/lanjut, tahan simpan; make pull -> model/data/recordings/<tanggal-jam>.csv). Hitung: ls model/data/recordings/*.csv | wc -l (hanya rekaman resmi, mulai 13 Okt 2026); durasi = n pada header "# fs=360 n=..." dibagi 360
-% sumber: rekaman uji coba 10 Sep - 11 Okt 2026 (27 berkas) diarsipkan di model/data/arsip/rekaman-uji-coba/README.md dan tidak dipakai sebagai hasil; laporan/buku-pa/bab/bab1.tex Batasan Masalah butir 3 dan 4
+% sumber: rekaman uji coba 10 Sep - 11 Okt 2026 (27 berkas) diarsipkan di model/data/arsip/rekaman-uji-coba/README.md dan tidak dipakai sebagai hasil
 
 Penempatan elektroda mengikuti konfigurasi Lead II sebagaimana ditunjukkan pada Gambar~\ref{fig:4-elektroda}.
 
@@ -172,8 +172,8 @@ Data telemetri adalah hasil klasifikasi per detak yang dikirim perangkat ke Thin
 \section{Tempat Ujicoba}
 \label{sec:tempat-ujicoba}
 
-Seluruh uji dilakukan di lingkungan non-klinis sesuai Batasan Masalah. Perekaman sinyal tubuh dilakukan di \PlaceholderData{tempat perekaman} dengan subjek duduk diam dan perangkat dicatu \textit{powerbank}, sehingga tidak ada sambungan listrik ke jala-jala selama perekaman. Uji \textit{pipeline} dilakukan pada jaringan WiFi rumah, yaitu ESP32-S3 terhubung ke titik akses yang sama dengan komputer yang menjalankan ThingsBoard di dalam \textit{container} Docker, sehingga \textit{broker} MQTT berada di jaringan lokal, bukan di server publik. Lingkungan ini dipilih karena seluruh komponen \textit{pipeline} dapat dikendalikan sendiri, termasuk pembekuan \textit{broker} untuk meniru putusnya koneksi. Jaringan WiFi tersebut tidak terisolasi dari perangkat lain sehingga \textit{channel contention} tetap dapat terjadi.
-% sumber: dashboard/docker-compose.yml (thingsboard/tb-postgres, port 1883 MQTT dan 8080 UI di komputer lokal); model/docs/mqtt-walkthrough.md §7 ("broker ThingsBoard CE di laptop pada jaringan WiFi rumah") dan §7c (kontensi kanal WiFi rumah); model/docs/akuisisi-walkthrough.md §1 dan §3 (powerbank, USB laptop dicabut, subjek duduk diam); laporan/buku-pa/bab/bab1.tex Batasan Masalah butir 4
+Seluruh uji dilakukan di lingkungan non-klinis. Perekaman sinyal tubuh dilakukan di \PlaceholderData{tempat perekaman} dengan subjek duduk diam dan perangkat dicatu \textit{powerbank}, sehingga tidak ada sambungan listrik ke jala-jala selama perekaman. Uji \textit{pipeline} dilakukan pada jaringan WiFi rumah, yaitu ESP32-S3 terhubung ke titik akses yang sama dengan komputer yang menjalankan ThingsBoard di dalam \textit{container} Docker, sehingga \textit{broker} MQTT berada di jaringan lokal, bukan di server publik. Lingkungan ini dipilih karena seluruh komponen \textit{pipeline} dapat dikendalikan sendiri, termasuk pembekuan \textit{broker} untuk meniru putusnya koneksi. Jaringan WiFi tersebut tidak terisolasi dari perangkat lain sehingga \textit{channel contention} tetap dapat terjadi.
+% sumber: dashboard/docker-compose.yml (thingsboard/tb-postgres, port 1883 MQTT dan 8080 UI di komputer lokal); model/docs/mqtt-walkthrough.md §7 ("broker ThingsBoard CE di laptop pada jaringan WiFi rumah") dan §7c (kontensi kanal WiFi rumah); model/docs/akuisisi-walkthrough.md §1 dan §3 (powerbank, USB laptop dicabut, subjek duduk diam)
 % PLACEHOLDER-DATA tempat-perekaman: tempat pengujian rekaman sinyal tubuh resmi (laboratorium atau bukan, nama laboratorium bila ada), dicatat penulis saat sesi perekaman resmi
 
 Pelatihan model, ablasi, kuantisasi, dan uji unit kode C yang tidak memerlukan perangkat keras dijalankan di komputer pribadi. Pemisahan ini dimungkinkan karena tahap tersebut hanya membutuhkan data sekunder dan daya komputasi, sedangkan uji yang melibatkan sinyal tubuh dan jaringan memerlukan perangkat keras. Komputer yang sama juga menjalankan ThingsBoard saat uji \textit{pipeline}.
@@ -1243,20 +1243,20 @@ Terhadap penelitian pendahulu yang mendeteksi atrial fibrilasi dengan SVM di sis
 \subsection{Keterbatasan dan Status \textit{Proof of Concept}}
 \label{subsec:analisis-keterbatasan}
 
-Walaupun jalur komputasi, model INT8, dan \textit{pipeline} telah terukur di perangkat, sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis (Subbab~\ref{sec:batasan-masalah}), dengan keterbatasan yang diuraikan pada butir berikut.
+Walaupun jalur komputasi, model INT8, dan \textit{pipeline} telah terukur di perangkat, sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis, dengan keterbatasan yang diuraikan pada butir berikut.
 \begin{enumerate}
   \item Rekaman perangkat berasal dari \PlaceholderData{jumlah subjek} subjek sehat yang dianonimkan, sehingga variasi sinyal antarindividu belum terwakili.
   \item Rekaman sinyal tubuh yang memenuhi kriteria berjumlah \PlaceholderData{jumlah rekaman Berhasil dari jumlah sesi} (Tabel~\ref{tab:kualitas-rekaman}), sehingga variasi antarsesi baru terwakili secara terbatas.
   % PLACEHOLDER-DATA keterbatasan-rekaman: butir 1 dan 2 diisi dari data primer dan tab:kualitas-rekaman pengujian resmi; sesuaikan kalimatnya bila jumlah subjek atau sesi sudah memadai
   \item Konsumsi daya belum diukur, termasuk biaya daya radio WiFi yang tidak ditidurkan.
   \item Ekor latensi belum stabil, yaitu p95 1.404~ms dan 3.304~ms pada dua ulangan yang diduga akibat kontensi kanal WiFi.
-  \item Model hanya biner dan tidak menamai jenis aritmia, sesuai Batasan Masalah.
+  \item Model hanya biner dan tidak menamai jenis aritmia.
   \item \textit{Recall} kelas S masih rendah, juga lintas basis data. \textit{Learning rate} $10^{-3}$ tetap dipakai demi kelas S karena $10^{-4}$ menurunkan \textit{recall} S DS2 dari 0,4473 menjadi 0,3126 walaupun AUC naik (Tabel~\ref{tab:ablasi}), dengan konsekuensi model akhir hasil satu \textit{epoch}.
   \item Angka DS2 berpotensi sedikit optimistis karena DS2 ikut menilai ablasi \textit{window} dan \textit{jitter}.
   \item Uji \textit{pipeline} memakai sinyal \textit{replay}, sehingga perilakunya pada sinyal tubuh dengan laju dan kualitas yang berubah-ubah belum diukur.
   \item Gerbang kualitas baru diuji pada gerbang ayunan, sedangkan stabilisasi elektroda, kriteria R-R, dan batas antara elektroda lepas dan sinyal lemah belum diuji.
   \item Uji putus koneksi dijalankan satu kali pada konfigurasi awal dan hanya mengisi 43 dari 27.000 entri atau sekitar 0,16\% kapasitas akhir.
 \end{enumerate}
-% sumber: bab4 sec:karakteristik-data butir data primer, tab:kualitas-rekaman, subsec:hasil-tujuan2 butir Konsumsi Daya dan subsec:hasil-tujuan3 butir Latensi (setSleep(false) menambah arus, belum diukur), tab:target-pipeline (p95), bab1 sec:batasan-masalah butir 1, tab:ablasi (0,4473 dan 0,3126) dan butir Ablasi (satu epoch), butir Evaluasi DS2 (DS2 ikut menilai ablasi window dan jitter, berpotensi sedikit optimistis), subsec:hasil-tujuan3 butir Gerbang dan Putus Koneksi (43 dari 27.000, 0,16%), subsec:hasil-tujuan1 butir Segmentasi (0,6661 menjadi 0,5656, window 250)
+% sumber: bab4 sec:karakteristik-data butir data primer, tab:kualitas-rekaman, subsec:hasil-tujuan2 butir Konsumsi Daya dan subsec:hasil-tujuan3 butir Latensi (setSleep(false) menambah arus, belum diukur), tab:target-pipeline (p95), tab:ablasi (0,4473 dan 0,3126) dan butir Ablasi (satu epoch), butir Evaluasi DS2 (DS2 ikut menilai ablasi window dan jitter, berpotensi sedikit optimistis), subsec:hasil-tujuan3 butir Gerbang dan Putus Koneksi (43 dari 27.000, 0,16%), subsec:hasil-tujuan1 butir Segmentasi (0,6661 menjadi 0,5656, window 250)
 
 Sebagian besar keterbatasan tersebut berkaitan dengan cakupan uji, bukan dengan jalur komputasi, dan arah pengembangannya dirangkum sebagai saran pada Bab~\ref{chap:penutup}.

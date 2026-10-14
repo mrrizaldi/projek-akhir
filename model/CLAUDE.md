@@ -77,6 +77,10 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
   Sisanya cocok dengan `firmware/include/perangkat.h` dan
   `docs/arsip/2026-10-08-pcb-rev2-adjustment.md`. Ukur tegangan VIN_ESP setelah
   D2 saat dicatu baterai.
+- **(14 Okt 2026) Wujud rakitan di buku menunggu PCB final.** Buku-pa menyebut
+  "rangkaian uji dengan peta pin PCB". Setelah desain PCB final dicetak,
+  perbarui tabel perangkat keras uji, foto rakitan, dan saran perangkat
+  *wearable* di Bab 4/5.
 
 Daftar hal yang BELUM selesai dan mudah terlupa. Butir bertanggal; hapus butir
 hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).

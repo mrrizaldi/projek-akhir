@@ -50,7 +50,8 @@ Fakta proyek diambil 10 Okt 2026 dari `model/CLAUDE.md`, `README.md`,
 Ini penyesuaian yang paling menentukan.
 
 **Format yang sudah diterima pembimbing kita (terlihat di AFIB), ditiru:**
-- Bab 1 punya **Batasan Masalah** (AFIB 1.3 a–f). Proposal kita belum punya.
+- Bab 1 punya **Batasan Masalah** (AFIB 1.3 a–f). PA ini tidak memakainya:
+  Bab 1 mengikuti proposal (§6).
 - Butir **Tujuan bertarget angka** (AFIB 1.4). Target kita saat ini baru ada
   di tabel rencana Bab 3.
 - **Manfaat per pemangku kepentingan** (tenaga medis, masyarakat, mahasiswa).
@@ -101,27 +102,14 @@ Setiap keunggulan yang diklaim atas AFIB harus punya angka di Bab 4:
 |---|---|---|
 | 1.1 | ada | cek ulang angka epidemiologi + sitasi |
 | 1.2 | 3 pertanyaan "Bagaimana ...?" (pola AFIB) | pertahankan |
-| **Batasan Masalah** | **tidak ada** | **tambah** (draf di bawah) |
+| Batasan Masalah | tidak ada | tidak ditambah; Bab 1 mengikuti proposal (§6) |
 | 1.3 | klaim orisinalitas + 3 tujuan | tambahkan kriteria terukur per tujuan, atau rujukan eksplisit ke tabel rencana Bab 3 |
 | 1.4 | 3 butir umum | pertimbangkan pola per pemangku (gaya AFIB) |
 | 1.5 | rencana | tulis ulang Bab 4–5 sesuai realisasi tahap progres |
 
-Draf butir Batasan Masalah, semua diturunkan dari keputusan yang sudah
-terkunci. Disetujui user 10 Okt 2026 (tidak ada keberatan). Keamanan
-transport **tidak dibahas sama sekali** di laporan, termasuk tidak dijadikan
-butir batasan.
-1. Klasifikasi biner Normal/Aritmia. Penamaan jenis aritmia (V/S/F) tidak
-   termasuk keluaran, karena aturan tahap 2 tidak lolos sertifikasi VAL.
-2. Data latih MIT-BIH Arrhythmia Database (mitdb), satu sadapan MLII, dibagi
-   inter-patient DS1/DS2. svdb dan incartdb hanya untuk uji lintas basis data.
-3. Akuisisi *single-lead* AD8232, konfigurasi Lead II, elektroda *wet-gel*.
-4. Pengujian perangkat pada subjek sehat yang dianonimkan, dalam lingkungan
-   laboratorium non-klinis. Bukan alat diagnosis dan bukan uji klinis (pola
-   AFIB 1.3 f).
-5. Ketahanan *pipeline* diuji dalam batas kapasitas *ring buffer* PSRAM.
-   Kehilangan daya perangkat di luar cakupan (catatan kaki bab3 proposal).
-6. Daya diukur, tidak dioptimasi. Rangkaian baterai/*power path* di luar
-   lingkup tahap ini (doc rev2 §6).
+Lingkup (klasifikasi biner, data mitdb inter-patient, subjek sehat anonim,
+bukan alat diagnosis) ditulis di bab tempat hal itu dibahas (Bab 3, 4.2,
+Keterbatasan), bukan sebagai subbab Batasan Masalah.
 
 ### Bab 2
 
@@ -185,22 +173,22 @@ fokus, kernel ESP-NN bila daya jadi kendala.
 | Konversi satuan ADC → mV (0,757 mV/count, gain AD8232 sekitar 1100) | 4.2 atau 4.6 akuisisi | amplitudo dalam counts tidak bermakna bagi penguji |
 | Kondisi fisik uji: Lead II, stabilisasi 10–15 menit, subjek diam, RSSI WiFi | 4.2/4.3 | variabel yang memengaruhi hasil |
 | Validitas alat ukur: reset DTR saat membuka serial, resolusi `time()`, ohmmeter di rangkaian bertegangan | 4.5 (subbagian "validitas pengukuran") atau 4.6 | menunjukkan angka dijaga dari galat alat. Penguji teknik menghargai ini |
-| Etika subjek: subjek **anonim** (kode S01, S02, ...), persetujuan, bukan alat medis | Batasan + 4.2. Nama, foto wajah, dan data identitas tidak dimuat, termasuk di lampiran | data manusia |
+| Etika subjek: subjek **anonim** (kode S01, S02, ...), persetujuan, bukan alat medis | 4.2 dan Keterbatasan. Nama, foto wajah, dan data identitas tidak dimuat, termasuk di lampiran | data manusia |
 | Kredit rancangan PCB rev1 oleh rekan (PA tetap individu) | Bab 3 (perangkat keras, satu kalimat sumber rancangan), Kata Pengantar di buku | jujur soal asal artefak tanpa mengaburkan bahwa PA ini individu |
 | Uji tanpa subjek (replay golden) sebagai pengganti sah saat elektroda buntu | 4.2 (jenis data) + 4.6 | pola "uji tetap jalan walau satu variabel fisik buntu" |
 
 ## 6. Keputusan
 
-### Sudah diputuskan (user, 10 Okt 2026)
+### Sudah diputuskan (user, 10 dan 14 Okt 2026)
 
 | Hal | Keputusan | Akibat |
 |---|---|---|
 | Jenis PA | individu | tidak ada pembagian lingkup antarpenulis; PCB rev1 cukup diberi kredit (§5) |
 | Subjek uji | belum pasti, **anonim** | kode subjek S01, S02, ...; tanpa identitas di teks, gambar, dan lampiran |
 | Tempat uji | lab (kemungkinan besar) | 4.3 ditulis "laboratorium", nama lab diisi saat pasti |
-| Keamanan transport (TLS/MQTTS) | **tidak dibahas sama sekali** | tidak masuk Batasan, Keterbatasan, maupun Saran |
+| Keamanan transport (TLS/MQTTS) | **tidak dibahas sama sekali** | tidak masuk Keterbatasan maupun Saran |
 | Lokasi projek LaTeX | **satu projek: `laporan/buku-pa`** untuk progres dan buku | progres = tahap awal buku yang sama (01 §7 jadi penyuntingan di tempat, bukan pindah projek) |
-| Butir Batasan Masalah 1–6 | dipakai sebagai draf | |
+| Bab 1 (14 Okt 2026) | **mengikuti proposal**: Latar Belakang, Permasalahan (3 butir), Tujuan, Manfaat, Sistematika; tanpa subbab Batasan Masalah | lingkup ditulis di Bab 3/4; buku tidak menambah subbab Bab 1 di luar proposal |
 
 Akibat teknis keputusan satu projek:
 - `laporan/buku-pa` sudah A4 `twoside,openright`, cocok dengan pola bab di

@@ -26,19 +26,6 @@ Berdasarkan latar belakang yang telah diuraikan, rumusan masalah dalam penelitia
   \item Bagaimana membangun \textit{pipeline} IoT \textit{edge-to-cloud} yang resilien dengan mekanisme \textit{buffering} lokal saat terjadi gangguan jaringan?
 \end{enumerate}
 
-\section{Batasan Masalah}
-\label{sec:batasan-masalah}
-
-Agar penelitian tetap terarah dan tujuan dapat dicapai, ruang lingkup penelitian ini dibatasi pada butir berikut.
-\begin{enumerate}
-  \item Klasifikasi dirumuskan secara biner, yaitu Normal dan Aritmia. Penamaan jenis aritmia (ventrikular, supraventrikular, atau fusi) tidak termasuk keluaran sistem.
-  \item Model dilatih menggunakan MIT-BIH \textit{Arrhythmia Database} pada sadapan MLII dengan pembagian data \textit{inter-patient} (DS1 untuk pelatihan, DS2 untuk pengujian). Basis data MIT-BIH \textit{Supraventricular Arrhythmia Database} dan St.~Petersburg INCART digunakan sebagai data uji lintas basis data pada ablasi dan tidak digunakan untuk melatih model akhir yang dijalankan di perangkat.
-  \item Akuisisi sinyal menggunakan modul AD8232 dalam konfigurasi single-lead Lead II dengan elektroda \textit{wet-gel}.
-  \item Pengujian perangkat dilakukan pada subjek sehat yang dianonimkan dalam lingkungan non-klinis. Sistem tidak dirancang sebagai alat diagnosis dan pengujian ini bukan uji klinis.
-  \item Ketahanan \textit{pipeline} diuji dalam batas kapasitas \textit{ring buffer} PSRAM. Kehilangan daya pada perangkat berada di luar cakupan pengujian ketahanan.
-  \item Konsumsi daya diukur sebagai acuan awal dan tidak menjadi objek optimasi. Rangkaian baterai hanya dipakai sebagai catu saat pengukuran daya, sedangkan manajemen baterai dan kemasan perangkat \textit{wearable} berada di luar lingkup penelitian ini.
-\end{enumerate}
-
 \section{Tujuan}
 \label{sec:tujuan}
 
@@ -68,7 +55,7 @@ Sistematika penulisan laporan ini disusun sebagai berikut.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 1}PENDAHULUAN}\\
-\hspace*{1.5cm} Bab ini berisi latar belakang masalah yang melatarbelakangi penelitian, perumusan masalah, batasan masalah, tujuan, manfaat, serta sistematika penulisan laporan secara keseluruhan. Bab ini memberikan gambaran umum mengenai urgensi pengembangan sistem monitoring aritmia berbasis IoT \textit{edge computing} dengan pendekatan TinyML.
+\hspace*{1.5cm} Bab ini berisi latar belakang masalah yang melatarbelakangi penelitian, perumusan masalah, tujuan, manfaat, serta sistematika penulisan laporan secara keseluruhan. Bab ini memberikan gambaran umum mengenai urgensi pengembangan sistem monitoring aritmia berbasis IoT \textit{edge computing} dengan pendekatan TinyML.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 2}KAJIAN PUSTAKA}\\
