@@ -117,6 +117,11 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   jalur catu (board dicatu USB langsung, VIN± mengambang). Rakit sesuai
   [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) §5d, jalankan
   skripnya, lalu isi `PLACEHOLDER-DATA daya` di bab4 buku-pa.
+  **(14 Okt 2026) Catu baterai + WiFi:** keluaran konverter 4,x V membuat board
+  reset tiap ±2,5 s saat `WiFi.begin()`. Sampai konverter disetel 5,0–5,1 V,
+  perekaman dari baterai memakai **Jaringan → WiFi aktif OFF**; uji WiFi/MQTT
+  dan `p5` dijalankan sambil dicolok USB. Tangga `/daya/003.csv` (tanpa WiFi,
+  dugaan charger tercolok mulai +326 s) belum sah untuk laporan.
 
 ## Walkthrough per fase
 
