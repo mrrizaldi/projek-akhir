@@ -72,7 +72,7 @@ alur dan alasan ada di walkthrough yang disebut di kolom terakhir.
 | `ablasi.py` | `python scripts/ablasi.py --tag <nama> [--jitter empiris --salinan 2]` | Satu varian ujung ke ujung, lihat di bawah |
 | `ringkas_ablasi.py` | `python scripts/ringkas_ablasi.py [--tag A B] [--vs A]` | Rerata ± setengah-rentang per tag, vonis ambang F1 0,04, tag < 3 seed ditandai |
 | `cek_lead.py`, `cek_kalibrasi.py`, `cek_fp.py`, `cek_titik_operasi.py`, `tahap2.py` | lihat [docs/README.md](docs/README.md) §Alat analisis pendukung | Diagnosis eksperimen; DS2 hanya mendiagnosis, tidak memilih parameter |
-| `pull_recording.py` | `make pull` | Tarik rekaman dari board ([akuisisi](docs/akuisisi-walkthrough.md)). Bila board masih merekam, skrip menghentikan & menyimpannya dulu. Port lain: `ECG_PORT=/dev/ttyACM1` |
+| `pull_recording.py` | `make pull [N=n]` | Tarik rekaman dari board ([akuisisi](docs/akuisisi-walkthrough.md)). Bila board masih merekam, skrip menghentikan & menyimpannya dulu. Port lain: `ECG_PORT=/dev/ttyACM1` |
 | `analyze_recording.py` | `make analisis FILE=...` | Nilai kualitas rekaman dengan angka, lihat di bawah |
 | `measure_power.py`, `pull_daya.py` | `.venv/bin/python scripts/measure_power.py`, `make pull-daya [N=n]` | Tangga daya dari laptop dan dari board ([firmware](docs/firmware-walkthrough.md) §5d) |
 | `broker_info.py` | `make broker-info` | SSID WiFi laptop, IPv4 LAN, status port, saran entri `wifi_secrets.h`. Firmware tidak me-resolve nama host, jadi broker = alamat IP dan board harus di SSID yang sama. Memakai `ip -j` (iproute2, Linux saja) dan `nmcli -t` |

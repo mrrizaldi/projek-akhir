@@ -10,6 +10,7 @@ TUJUAN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 
 
 def main() -> None:
+    nomor = int(sys.argv[1]) if len(sys.argv) > 1 else None
     try:
         import serial
     except ImportError:
@@ -45,7 +46,7 @@ def main() -> None:
                 break
 
     s.reset_input_buffer()
-    s.write(b"d")
+    s.write(f"d{nomor}\n".encode() if nomor else b"d")
     s.flush()
 
     isi, mulai = [], False
@@ -68,6 +69,8 @@ def main() -> None:
 
     os.makedirs(TUJUAN, exist_ok=True)
     nama = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    if nomor:
+        nama += f"-rekam-{nomor:03d}"
     path = os.path.join(TUJUAN, f"{nama}.csv")
     with open(path, "w") as f:
         f.write("\n".join(isi) + "\n")

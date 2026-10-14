@@ -268,7 +268,8 @@ lebih dulu secara otomatis.
 Nama berkas = **waktu tarik**, bukan waktu rekam (`datetime.now()` di
 `pull_recording.py`). `make pull` menarik rekaman bernomor terakhir; bila tidak
 ada rekaman baru sejak tarikan sebelumnya, rekaman lama itu tertarik lagi dengan
-nama baru. Rekaman bernomor lain ditarik lewat serial `d<n>`.
+nama baru. Rekaman bernomor lain: `make pull N=<n>` (nama berkas diberi akhiran
+`-rekam-NNN`); daftar nomor di board: serial `l`.
 
 Semuanya jalan di `.venv` yang sama — `pyserial` sudah masuk `requirements.txt`.
 Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.

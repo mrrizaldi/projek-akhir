@@ -39,8 +39,8 @@ quantize: ## PTQ INT8 + evaluasi ulang + tabel delta
 export: ## salin artefak ke firmware/ & laporan/
 	bash ../scripts/export_artifacts.sh
 
-pull: ## tarik rekaman dari board -> data/recordings/<tanggal-jam>.csv
-	$(PY) scripts/pull_recording.py
+pull: ## tarik rekaman dari board (N=nomor, bawaan terakhir) -> data/recordings/<tanggal-jam>.csv
+	$(PY) scripts/pull_recording.py $(N)
 pull-daya: ## tarik hasil tangga daya mandiri (N=nomor, bawaan terakhir) -> artifacts/metrics/daya/
 	$(PY) scripts/pull_daya.py $(N)
 analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv

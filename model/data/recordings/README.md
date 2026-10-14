@@ -1,7 +1,8 @@
 # Rekaman sinyal tubuh (resmi)
 
 Folder tujuan `make pull` (`scripts/pull_recording.py`): setiap rekaman yang
-ditarik dari board tersimpan di sini sebagai `<tanggal-jam-tarik>.csv`.
+ditarik dari board tersimpan di sini sebagai `<tanggal-jam-tarik>.csv`, atau
+`<tanggal-jam-tarik>-rekam-NNN.csv` bila ditarik per nomor (`make pull N=<n>`).
 
 **Rekaman resmi dimulai 13 Oktober 2026.** Rekaman sebelum tanggal itu adalah
 uji coba selama pengembangan dan diarsipkan di
