@@ -253,8 +253,19 @@ pengukuran ada di walkthrough yang dirujuk.
   `open()` pada jalur yang belum ada mencetak `[E]` ke serial.
 - Rekaman dimuat untuk replay per blok `BLOK_BACA` (512 B) dan diurai sendiri;
   `readStringUntil` per baris terlalu lambat untuk 108.000 baris.
-- Menulis berkas memblok `loop()` beberapa detik; buzzer dimatikan sebelum
-  menulis, dan bip simpan dibunyikan sesudah berkas tertulis.
+- Menulis berkas 300 detik (±540 KB) sekaligus memblok `loop()` ±4 detik dan
+  membuang ±1.450 sampel (terukur 14 Okt 2026). Karena itu `simpan()` hanya
+  menulis header, menukar `buf` dengan `buf_cadangan` (dua buffer PSRAM
+  `REKAM_SAMPEL_MAKS`), dan isi berkas ditulis `rekam_layani()` per
+  `SAMPEL_PER_TULIS` (256) sampel. Potongan berikutnya hanya ditulis saat
+  antrean ISR kosong (`akuisisi_isi() == 0`), karena `loop()` mengambil satu
+  sampel per iterasi: menulis di setiap iterasi membuat antrean terisi lebih
+  cepat daripada dikuras dan sesekali meluap (1–23 sampel hilang per sesi
+  tanpa satu pun iterasi > 200 ms). Terukur sesudahnya: potongan terlama
+  81 ms, isi antrean maksimum < 64, sampel hilang 0 pada sesi 300 detik +
+  lanjutan. Buzzer dimatikan saat `simpan()`; bip simpan dibunyikan sesudah
+  berkas akhir sesi tertulis. `d<n>`, `h<n>`, dan memuat replay menyelesaikan
+  penulisan yang tertunda lebih dulu.
 
 ## Batasan yang disengaja
 
@@ -505,9 +516,23 @@ dapat diuji tanpa menekan tombol fisik.
    kuning dan sampel tidak disimpan. Tekan pendek B3 lagi untuk melanjutkan.
    Langkah ini dapat diulang.
 3. Tahan B3 (800 ms) untuk stop dan simpan, dari keadaan merekam maupun
-   dijeda. Bip panjang menandai berkas sudah tertulis, kanan atas menampilkan
-   `SIMPAN` dan nama berkas selama 3 detik, dan serial mencetak
+   dijeda. Selama berkas ditulis kanan atas menampilkan `SIMPAN..`; bip panjang
+   menandai berkas sudah tertulis, kanan atas menampilkan `SIMPAN` dan nama
+   berkas selama 3 detik, dan serial mencetak
    `SIMPAN <n> sampel (<detik> detik, <k> segmen), ... -> /rekam/NNN.csv`.
+
+**Rekaman panjang.** Satu berkas memuat paling banyak `REKAM_DETIK_MAKS`
+(300) detik sinyal. Saat batas itu tercapai, berkas disimpan dan perekaman
+langsung lanjut ke berkas berikutnya tanpa menekan tombol: serial mencetak
+`REKAM lanjut bagian <k> (lanjutan NNN, celah <c> sampel)`, kanan atas tetap
+`RECmm:ss` dengan waktu total sesi dan baris kecil `bagian <k>`. Sesi 45 menit
+menjadi sembilan berkas berurutan. Perekaman berhenti sendiri bila LittleFS
+tidak cukup untuk berkas berikutnya (`PENUH` / `tarik data dulu`, serial
+`REKAM berhenti: LittleFS tidak cukup ...`); mulai rekam juga ditolak dengan
+pesan yang sama. Kapasitas LittleFS 3.456 KB memuat ±6 berkas 300 detik, jadi
+tarik data (`make pull N=<n>`) dan hapus (`h<n>`) sesudah tiap subjek. Untuk
+menguji tanpa menunggu 5 menit:
+`PLATFORMIO_BUILD_FLAGS="-DREKAM_DETIK=10" pio run -t upload`.
 
 Mulai rekam ditolak bila sumber sinyal bukan Sensor (ADC): layar menampilkan
 `TOLAK` / `hanya sensor ADC` selama 2 detik dengan bip tolak 150 ms, dan serial
@@ -545,8 +570,8 @@ cd model && .venv/bin/python scripts/uji_alur_rekam.py [/dev/ttyACM0]
 Port bawaan: `ECG_PORT`, atau `/dev/ttyACM*` pertama. Skrip menunggu hingga
 `s` menjawab karena membuka port dapat me-reset board.
 
-Padanan serial: `r` (mulai / stop dan simpan) dan `j` (jeda / lanjut). Panjang
-maksimum 300 detik sinyal tersimpan; waktu jeda tidak dihitung. Berkas ditarik
+Padanan serial: `r` (mulai / stop dan simpan) dan `j` (jeda / lanjut). Batas
+300 detik per berkas tidak menghitung waktu jeda. Berkas ditarik
 ke laptop dengan `make pull` di `model/` dan dianalisis per segmen dengan
 `make analisis` (prosedur lengkap:
 [`akuisisi-walkthrough`](../model/docs/akuisisi-walkthrough.md) §3–§5).
@@ -554,7 +579,7 @@ ke laptop dengan `make pull` di `model/` dan dianalisis per segmen dengan
 Format berkas `/rekam/NNN.csv`:
 
 ```
-# fs=360 n=<total sampel> lewat=<hilang> lepas=<LO aktif> (<persen>%)
+# fs=360 n=<total sampel> lewat=<hilang> lepas=<LO aktif> (<persen>%) [lanjutan=<NNN> celah=<c>]
 <counts ADC, satu sampel per baris>
 # jeda
 <counts ADC segmen berikutnya>
@@ -562,7 +587,10 @@ Format berkas `/rekam/NNN.csv`:
 
 Baris `# jeda` memisahkan segmen yang direkam sebelum dan sesudah jeda; dua
 segmen bersebelahan tidak kontinu dalam waktu. `n` adalah jumlah sampel semua
-segmen. Rekaman tanpa jeda tidak memuat baris `# jeda`.
+segmen. Rekaman tanpa jeda tidak memuat baris `# jeda`. `lanjutan=NNN`
+hanya ada pada berkas yang menyambung berkas `NNN` dalam satu sesi; `celah`
+adalah jumlah sampel yang hilang di antara akhir berkas `NNN` dan awal berkas
+ini (terukur 0).
 
 ## Konfigurasi jaringan dan broker
 

@@ -134,6 +134,17 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
      +326 s) tidak dipakai untuk laporan.
   4. Hapus butir ini dan kalimat "Selama keluaran konverter belum disetel"
      di `firmware/README.md` bagian Hal yang perlu dicek pada rakitan.
+- **(14 Okt 2026) Rencana, dikerjakan sesudah WiFi ON kembali: rekaman langsung
+  ke server.** Rekaman panjang sekarang dipecah per 5 menit di LittleFS
+  (3.456 KB, ±6 berkas, harus ditarik lewat USB). Arah yang diminta user:
+  saat WiFi tersedia, sampel mentah dialirkan ke server di laptop sehingga
+  durasi rekam tidak dibatasi LittleFS. Rencana awal (MQTT ke ThingsBoard
+  untuk hasil klasifikasi per detak) tetap berjalan; aliran mentah adalah
+  tambahan. Hal yang perlu dirancang bersama user sebelum mulai: protokol
+  (topik MQTT terpisah atau HTTP), penerima di laptop yang menulis CSV dengan
+  format `/rekam/NNN.csv` agar `make analisis` tetap dipakai, perilaku saat
+  koneksi putus (fallback ke LittleFS), dan beban WiFi terhadap catu baterai
+  (bergantung pada butir WiFi OFF di atas).
 
 ## Walkthrough per fase
 

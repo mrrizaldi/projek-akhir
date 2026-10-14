@@ -18,7 +18,7 @@
 #include "tampilan.h"
 #include "tombol.h"
 
-constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60, BIP_SIMPAN_MS = 400;
+constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60;
 
 static void layani_tombol()
 {
@@ -35,10 +35,7 @@ static void layani_tombol()
             if (i == 2) { if (rekam_aktif()) rekam_jeda(); else rekam_toggle(); }
         }
         if (e == TOMBOL_LAMA && i == 1) { menu_buka(); continue; }
-        if (e == TOMBOL_LAMA && i == 2 && rekam_aktif()) {
-            rekam_toggle();
-            if (rekam_baru_disimpan()) tampilan_bunyi(BIP_SIMPAN_MS);
-        }
+        if (e == TOMBOL_LAMA && i == 2 && rekam_aktif()) rekam_toggle();
         tampilan_gambar_tombol(i);
     }
 }
@@ -107,6 +104,7 @@ void loop()
         if (ui) tampilan_sampel();
     }
 
+    rekam_layani();
     ecg_mqtt_layani();
     daya_layani();
     daya_tangga_tick();

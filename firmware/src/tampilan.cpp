@@ -229,7 +229,7 @@ static void gambar_kanan()
 {
     char t[16] = "", kecil[24] = "";
     uint16_t w = ST77XX_YELLOW;
-    const unsigned d = (unsigned)(rekam_n() / ECG_FS);
+    const unsigned d = (unsigned)(rekam_n_sesi() / ECG_FS);
     const int simpan = rekam_baru_disimpan();
     if (t_pesan && millis() - t_pesan < PESAN_MS) {
         w = ST77XX_ORANGE;
@@ -238,8 +238,11 @@ static void gambar_kanan()
     } else if (rekam_aktif() && !rekam_dijeda()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);
+        if (rekam_bagian() > 1) snprintf(kecil, sizeof kecil, "bagian %d", rekam_bagian());
     } else if (rekam_aktif()) {
         snprintf(t, sizeof t, "JEDA%u:%02u", d / 60 % 10, d % 60);
+    } else if (rekam_menulis()) {
+        snprintf(t, sizeof t, "SIMPAN..");
     } else if (simpan) {
         w = ST77XX_GREEN;
         snprintf(t, sizeof t, "SIMPAN");
