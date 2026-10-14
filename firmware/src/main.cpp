@@ -68,7 +68,6 @@ void setup()
     klasifikasi_mulai();
     gerbang_mulai_sesi();
     konfig_mulai();
-    ecg_mqtt_mulai();
     setenv("TZ", "WIB-7", 1);
     tzset();
     akuisisi_mulai();

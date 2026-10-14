@@ -7,6 +7,8 @@ int konfig_wifi_n(void);
 const char *konfig_wifi_nama(int i);
 int konfig_wifi(void);
 bool konfig_pilih_wifi(int i);
+bool konfig_wifi_aktif(void);
+bool konfig_set_wifi_aktif(bool on);
 
 int konfig_broker_n(void);
 const char *konfig_broker_nama(int i);

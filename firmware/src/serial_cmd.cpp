@@ -109,10 +109,7 @@ void serial_cmd_layani(void)
                       "stabilisasi 10-15 menit + RR tenang 30 s)\n",
                       gerbang_lewati() ? "ON" : "OFF");
     }
-    else if (c == 'm') {
-        ecg_mqtt_set_aktif(!ecg_mqtt_aktif());
-        Serial.printf("mqtt %s\n", ecg_mqtt_aktif() ? "ON" : "OFF");
-    }
+    else if (c == 'm') konfig_set_wifi_aktif(!konfig_wifi_aktif());
     else if (c == 'q') {
         gerbang_set_lapor(!gerbang_lapor());
         Serial.printf("laporan kualitas %s\n", gerbang_lapor() ? "ON" : "OFF");

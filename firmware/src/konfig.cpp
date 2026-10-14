@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <Preferences.h>
+#include "esp_wifi.h"
 
 #include "ecg_mqtt.h"
 #include "rekam.h"
@@ -34,6 +35,7 @@ constexpr int N_BROKER = sizeof BROKER / sizeof BROKER[0];
 constexpr const char *NS = "konfig";
 constexpr bool BUKAN_READ_ONLY = false;
 static int i_wifi, i_broker, sumber, sumber_rekam;
+static bool wifi_aktif = true;
 
 static int baca(const char *kunci, int n)
 {
@@ -57,8 +59,9 @@ static void terapkan()
     const wifi_t &w = WIFI[i_wifi];
     const broker_t &b = BROKER[i_broker];
     ecg_mqtt_atur(w.ssid, w.pass, b.host, b.port, b.token);
-    Serial.printf("konfig: wifi %d/%d \"%s\" | broker %d/%d %s (%s:%u)\n",
-                  i_wifi, N_WIFI, w.ssid, i_broker, N_BROKER, b.nama, b.host, (unsigned)b.port);
+    Serial.printf("konfig: wifi %d/%d \"%s\" %s | broker %d/%d %s (%s:%u)\n",
+                  i_wifi, N_WIFI, w.ssid, wifi_aktif ? "ON" : "OFF", i_broker, N_BROKER, b.nama,
+                  b.host, (unsigned)b.port);
 }
 
 void konfig_mulai(void)
@@ -66,11 +69,14 @@ void konfig_mulai(void)
     i_wifi = baca("wifi", N_WIFI);
     i_broker = baca("broker", N_BROKER);
     sumber = baca("sumber", 3);
+    wifi_aktif = !baca("wifimati", 2);
     Preferences p;
     p.begin(NS, BUKAN_READ_ONLY);
     sumber_rekam = p.getUShort("rekam", 0);
     p.end();
     terapkan();
+    if (wifi_aktif) ecg_mqtt_mulai();
+    else ecg_mqtt_set_aktif(0);
 }
 
 int konfig_wifi_n(void) { return N_WIFI; }
@@ -89,7 +95,26 @@ bool konfig_pilih_wifi(int i)
     i_wifi = i;
     tulis("wifi", i);
     terapkan();
-    ecg_mqtt_mulai();
+    if (wifi_aktif) ecg_mqtt_mulai();
+    return true;
+}
+
+bool konfig_wifi_aktif(void) { return wifi_aktif; }
+
+bool konfig_set_wifi_aktif(bool on)
+{
+    if (rekam_tolak("WiFi")) return false;
+    wifi_aktif = on;
+    tulis("wifimati", !on);
+    if (on) {
+        esp_wifi_start();
+        ecg_mqtt_mulai();
+        ecg_mqtt_set_aktif(1);
+    } else {
+        ecg_mqtt_set_aktif(0);
+        esp_wifi_stop();
+    }
+    Serial.printf("wifi %s (tersimpan)\n", on ? "ON" : "OFF");
     return true;
 }
 

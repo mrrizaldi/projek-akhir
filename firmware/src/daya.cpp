@@ -9,6 +9,7 @@
 #include "akuisisi.h"
 #include "ecg_mqtt.h"
 #include "ina219.h"
+#include "konfig.h"
 #include "perangkat.h"
 #include "rekam.h"
 
@@ -55,9 +56,11 @@ void daya_set_mode(int m)
         if (!wifi_mati) { ecg_mqtt_set_aktif(0); esp_wifi_stop(); }
         wifi_mati = true;
     } else if (wifi_mati) {
-        esp_wifi_start();
-        ecg_mqtt_mulai();
-        ecg_mqtt_set_aktif(1);
+        if (konfig_wifi_aktif()) {
+            esp_wifi_start();
+            ecg_mqtt_mulai();
+            ecg_mqtt_set_aktif(1);
+        }
         wifi_mati = false;
     }
     mulai_ulang = true;

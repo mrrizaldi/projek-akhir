@@ -91,13 +91,13 @@ def main():
         syarat = []
         for cmd, pola in [("y", "ganti sumber"), ("V", "tangga daya"), ("p3", "mode daya"),
                           ("k", "lewati kalibrasi"), ("w0\n", "ganti WiFi"),
-                          ("b0\n", "ganti broker")]:
+                          ("b0\n", "ganti broker"), ("m", "WiFi")]:
             o = b.kirim(cmd, 1.2)
             syarat.append((f"{cmd.strip()} -> 'DITOLAK: {pola}'", ada(o, f"DITOLAK: {pola}")))
             syarat.append((f"{cmd.strip()} tanpa efek", not ada(o, r"^replay |^tangga: mulai|"
-                                                                r"^daya: mode|tidak ada, lihat")))
+                                                                r"^daya: mode|tidak ada, lihat|^wifi (ON|OFF)")))
         st = b.status(); hilang_selama_rekam.append(st["hilang"])
-        periksa("c. merekam -> y/V/p3/k/w0/b0 ditolak", syarat + [
+        periksa("c. merekam -> y/V/p3/k/w0/b0/m ditolak", syarat + [
             ("sumber adc", st["sumber"] == "adc"), ("daya -1", st["daya"] == "-1"),
             ("lewati tidak berubah", st["lewati"] == lewati0),
             ("rekam=1, jeda 0", st["rekam"] == "1" and st["jeda"] == "0"),

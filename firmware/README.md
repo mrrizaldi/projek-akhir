@@ -336,6 +336,14 @@ burst dirata-ratakan oleh konversi 128 sampel (±68 ms). Bit `OVF` register bus
   saat beban. Bila margin tipis, gejalanya reset `Brownout detector was
   triggered` saat WiFi aktif (mode `p5`). Pemeriksaan langsung: ukur pin 3V3
   dengan multimeter selama `p5` berjalan; nilainya harus tetap sekitar 3,3 V.
+  Gejala yang terukur pada rakitan baterai dengan keluaran konverter ±4,x V
+  (14 Okt 2026): board reset setiap ±2,5 detik tepat sesudah `WiFi.begin()`,
+  layar tidak sempat menyala, dan bip kalibrasi 600 ms terpotong reset sehingga
+  terdengar putus-putus (9 reset per 20 detik dengan WiFi, 0 tanpa WiFi; tangga
+  daya 7 menit dari baterai tanpa WiFi berjalan tanpa reset). Penyebabnya belum
+  diukur dengan multimeter. Selama keluaran konverter belum disetel ke
+  5,0–5,1 V, matikan WiFi lewat **Jaringan → WiFi aktif** sebelum memakai
+  baterai.
 - Bila jalur dari pin 5V ke regulator melewati dioda (periksa skematik board),
   jatuh tegangan dioda ikut mengurangi margin di atas.
 
@@ -351,7 +359,9 @@ ke `/daya/NNN.csv` di LittleFS dan ditarik ke laptop sesudahnya.
 
 Syarat: INA219 terdeteksi saat boot (tanpa INA219 tangga dibatalkan dengan
 pesan `tangga: INA219 tidak terdeteksi, batal`). Agar `p5` mewakili operasi
-normal, WiFi dan broker aktif harus terjangkau selama pengukuran.
+normal, WiFi aktif ON dan broker harus terjangkau selama pengukuran. Bila WiFi
+aktif OFF, `p5` tidak menyalakan radio sehingga arusnya sama dengan `p4` dan
+langkah itu ditandai tidak sah.
 
 1. Rakit INA219 di sisi baterai sesuai bagian Rangkaian catu baterai di atas.
 2. Cabut USB board dan masukan pengisi TP4056, lalu nyalakan alat dari baterai.
@@ -466,13 +476,13 @@ MENU
 ├─ Kalibrasi ────── Mulai ulang | Lewati (bench) ON/OFF | Status
 ├─ Tes perangkat ── Buzzer | Layar (pola warna) | ADC & lead-off | INA219 | Tombol (10 s)
 ├─ Ukur daya ────── Mulai tangga p0-p5 | Hasil terakhir
-├─ Jaringan ─────── WiFi ─► daftar | Broker ─► daftar | MQTT ON/OFF | Status
+├─ Jaringan ─────── WiFi aktif ON/OFF | WiFi ─► daftar | Broker ─► daftar | Status
 └─ Info
 ```
 
 Tanda `*` di sebelah kanan menandai pilihan aktif, `>` menandai submenu.
-Pilihan sumber sinyal, WiFi, dan broker disimpan di NVS dan dipulihkan saat
-boot.
+Pilihan sumber sinyal, WiFi aktif, WiFi, dan broker disimpan di NVS dan
+dipulihkan saat boot.
 
 | Halaman | Isi dan aksi |
 |---|---|
@@ -480,7 +490,7 @@ boot.
 | Kalibrasi | **Mulai ulang**: sesi kalibrasi baru dan hitungan klasifikasi dari nol. **Lewati (bench)**: setara `k`; OFF memulai sesi baru dengan gerbang penuh. **Status**: fase, waktu stabil x/600 s, RR tenang x/30 s, ayunan dan ambangnya, status lewati dan replay, sampel hilang; diperbarui tiap detik |
 | Tes perangkat | Menjalankan satu fungsi `diag_*` (sama dengan `test_hw_*`) lalu membuka halaman hasil `LULUS`/`GAGAL` dengan ringkasan bacaan. Selama tes akuisisi dijeda. **Buzzer**: tiga bip untuk didengar. **Layar**: pola empat pita warna dan `TFT OK` ±2 detik. **ADC & lead-off**: rentang ADC ±1 detik dan status LO±; lulus tidak bergantung elektroda. **INA219**: V/I dan alamat; V bus < 1 V ditandai `bukan jalur catu`. **Tombol (10 s)**: tekan B1, B2, B3 masing-masing sekali dalam 10 detik |
 | Ukur daya | **Mulai tangga p0-p5**: tangga mandiri (prosedur di bagian Ukur daya tanpa laptop). **Hasil terakhir**: tabel mode, arus, dan daya tangga terakhir; `pN!` = langkah tidak sah |
-| Jaringan | **WiFi** / **Broker**: daftar dari `wifi_secrets.h`, memilih entri = setara `w<n>` / `b<n>` (disimpan, sambung ulang). **MQTT**: setara `m`. **Status**: status MQTT, SSID, IP, RSSI, host:port broker, jumlah terkirim dan backlog |
+| Jaringan | **WiFi aktif**: setara `m`; OFF mematikan radio WiFi dan MQTT, ON menyalakan dan menyambung ulang; disimpan di NVS (bagian WiFi aktif di Konfigurasi jaringan dan broker). **WiFi** / **Broker**: daftar dari `wifi_secrets.h`, memilih entri = setara `w<n>` / `b<n>` (disimpan, sambung ulang; saat WiFi aktif OFF radio tetap mati). **Status**: status MQTT, SSID, IP, RSSI, host:port broker, jumlah terkirim dan backlog |
 | Info | IP dan RSSI, broker aktif, V/I INA219, uptime, versi git (`git describe` saat build), tanggal dan jam build |
 
 Setiap gerakan di menu dicetak ke serial (`menu: <judul> [i/n] <baris>`), dan
@@ -512,14 +522,14 @@ sinyal dan menu tidak dapat diubah:
 | Aksi | Perilaku selama sesi |
 |---|---|
 | Tahan B2 (serial `T2`) | menu tidak terbuka; kanan atas `TERKUNCI` / `tahan B3=simpan` 2 detik, bip tolak, serial `DITOLAK: menu ...` |
-| `y`, `p0`–`p5`, `V`, `k`, `w<n>`, `b<n>` | ditolak, serial `DITOLAK: ganti sumber` / `mode daya` / `tangga daya` / `lewati kalibrasi` / `ganti WiFi` / `ganti broker` |
+| `y`, `p0`–`p5`, `V`, `k`, `w<n>`, `b<n>`, `m` | ditolak, serial `DITOLAK: ganti sumber` / `mode daya` / `tangga daya` / `lewati kalibrasi` / `ganti WiFi` / `ganti broker` / `WiFi` |
 | B1 pendek, B2 pendek, B3, `r`, `j` | tetap berlaku (bisu, beku, jeda/lanjut, simpan) |
-| `s`, `l`, `q`, `v`, `m`, `h<n>` | tetap berlaku; `d` ditolak (`Sedang merekam.`) |
+| `s`, `l`, `q`, `v`, `h<n>` | tetap berlaku; `d` ditolak (`Sedang merekam.`) |
 
 Pemeriksaan ada di satu fungsi, `rekam_tolak()` (`rekam.h`), yang dipanggil di
 fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `akuisisi_set_sumber`,
 `daya_set_mode`, `daya_tangga_mulai`, `gerbang_set_lewati`,
-`konfig_pilih_wifi`, dan `konfig_pilih_broker`. Jalur baru ke fungsi-fungsi itu
+`konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu
 otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,
 mengukur daya, atau mengganti jaringan, simpan rekaman lebih dulu.
 
@@ -561,6 +571,16 @@ satu waktu. Keduanya dipilih dari daftar yang ditulis di `include/wifi_secrets.h
 saat build ([`src/konfig.cpp`](src/konfig.cpp)). Indeks pilihan aktif disimpan
 di NVS (`Preferences`), sehingga tetap berlaku setelah board di-reset atau
 dicabut catunya. Entri 0 dipakai bila belum pernah ada pilihan.
+
+**WiFi aktif.** Sakelar menu **Jaringan → WiFi aktif** (serial `m`) mematikan
+radio WiFi dan MQTT tanpa build ulang. Nilainya disimpan di NVS (kunci
+`wifimati`, bawaan ON) dan dibaca `konfig_mulai()` sebelum radio dinyalakan,
+sehingga bila OFF, `WiFi.begin()` tidak pernah dipanggil saat boot. Perekaman
+sinyal tubuh tidak membutuhkan WiFi karena rekaman disimpan ke LittleFS. Saat
+OFF, kembalinya tangga daya ke operasi normal dan pemilihan entri WiFi tidak
+menyalakan radio. Sakelar ditolak selama sesi rekam, karena menyalakan radio
+di tengah rekaman dari baterai dapat mereset board (bagian Hal yang perlu
+dicek pada rakitan).
 
 **Board dan laptop yang menjalankan broker harus terhubung ke jaringan WiFi
 (SSID) yang sama.** Firmware tidak me-resolve nama host; host broker adalah
@@ -718,7 +738,7 @@ menunggu sinkronisasi jam, `online` = normal, `mati` = MQTT dinonaktifkan.
 | `V` | Mulai tangga daya mandiri `p0`–`p5` (sama dengan menu Ukur daya → Mulai), hasil ke `/daya/NNN.csv` |
 | `v` / `v<n>` | Daftar berkas `/daya/` / cetak `/daya/<n>.csv` di antara `---MULAI---` dan `---SELESAI---` (`make pull-daya` memakai ini) |
 | `t1`–`t3` / `T1`–`T3` | Suntik tekan pendek / lama tombol B1–B3; diproses sama dengan tombol fisik (uji menu tanpa menekan tombol) |
-| `m` | Toggle publikasi MQTT |
+| `m` | Toggle WiFi aktif (radio WiFi dan MQTT), disimpan di NVS; ditolak selama sesi rekam |
 | `w` / `w<n>` | Daftar `WIFI_DAFTAR` (`*` = aktif) / pilih entri `<n>`, disimpan di NVS lalu sambung ulang |
 | `b` / `b<n>` | Daftar `BROKER_DAFTAR` (`*` = aktif) / pilih entri `<n>`, disimpan di NVS lalu sambung ulang |
 | `q` | Toggle laporan kualitas sinyal per detik |

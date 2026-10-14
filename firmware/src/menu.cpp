@@ -196,12 +196,8 @@ static void broker_pilih(int i) { konfig_pilih_broker(i); }
 static const halaman_t H_WIFI = DINAMIS("WiFi", wifi_n, wifi_teks, wifi_pilih);
 static const halaman_t H_BROKER = DINAMIS("Broker", broker_n, broker_teks, broker_pilih);
 
-static void mqtt_ganti()
-{
-    ecg_mqtt_set_aktif(!ecg_mqtt_aktif());
-    Serial.printf("mqtt %s\n", on_off(ecg_mqtt_aktif()));
-}
-static const char *n_mqtt() { return on_off(ecg_mqtt_aktif()); }
+static void wifi_ganti() { konfig_set_wifi_aktif(!konfig_wifi_aktif()); }
+static const char *n_wifi_aktif() { return on_off(konfig_wifi_aktif()); }
 static const char *n_wifi() { return konfig_wifi_nama(konfig_wifi()); }
 static const char *n_broker() { return konfig_broker_nama(konfig_broker()); }
 static const char *ip_teks()
@@ -224,9 +220,9 @@ static void net_status(baris_t *b)
 }
 static const halaman_t H_NET_STATUS = TEKS("Status jaringan", net_status);
 static const item_t I_JARINGAN[] = {
+    {"WiFi aktif", nullptr, wifi_ganti, n_wifi_aktif},
     {"WiFi", &H_WIFI, nullptr, n_wifi},
     {"Broker", &H_BROKER, nullptr, n_broker},
-    {"MQTT", nullptr, mqtt_ganti, n_mqtt},
     {"Status", &H_NET_STATUS, nullptr, nullptr},
 };
 static const halaman_t H_JARINGAN = DAFTAR("Jaringan", I_JARINGAN);
