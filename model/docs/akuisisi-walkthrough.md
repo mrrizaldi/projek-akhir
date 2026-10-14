@@ -332,6 +332,28 @@ seluruh rekaman setelah bandpass pada sumbu waktu gabungan (waktu jeda tidak
 dihitung), dengan batas segmen sebagai garis vertikal putus-putus. Garis yang
 sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
 
+4. Grafik satu menit untuk dilihat detak per detak:
+
+   ```
+   make grafik FILE=data/recordings/<nama>.csv            # 60 detik terbaik
+   make grafik FILE=data/recordings/<nama>.csv MULAI=120  # mulai detik 120
+   ```
+
+   Hasil: `artifacts/metrics/akuisisi/rekaman_<nama>_detik-<awal>.png`, enam
+   baris 10 detik sinyal bandpass 0,5–40 Hz dengan tanda ▼ di setiap R
+   terdeteksi, ditambah panel HR per detak. Tanpa `MULAI`,
+   `plot_rekaman.py` menggeser jendela 60 detik tiap 5 detik dan memilih yang
+   RR tak wajarnya (< 30 atau > 200 bpm) paling sedikit, lalu yang derau
+   > 60 Hz-nya paling kecil relatif terhadap pita EKG. Tanda R memakai
+   deteksi Pan-Tompkins yang dikoreksi `PT_DETECTOR_OFFSET` lalu diselaraskan
+   ke puncak (`selaraskan_r`), sama dengan rantai firmware. Rekaman berjeda
+   dicari per segmen; segmen yang lebih pendek dari jendela dilewati. Contoh
+   keluaran:
+
+   ```
+   jendela detik 240-300: RR tak wajar 0, derau >60 Hz 5.6% pita EKG, HR median 78 bpm (61-95), 76 R
+   ```
+
 ### Analisis per segmen
 
 `analyze_recording.py` memecah berkas pada setiap `# jeda` dan menghitung tiap

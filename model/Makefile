@@ -45,6 +45,8 @@ pull-daya: ## tarik hasil tangga daya mandiri (N=nomor, bawaan terakhir) -> arti
 	$(PY) scripts/pull_daya.py $(N)
 analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv
 	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE)))
+grafik: ## grafik EKG 60 detik terbaik: make grafik FILE=data/recordings/xxx.csv [MULAI=detik]
+	$(PY) scripts/plot_rekaman.py $(FILE) $(if $(MULAI),--mulai $(MULAI))
 broker-info: ## SSID WiFi, IP LAN, port 1883/8080, saran entri wifi_secrets.h
 	$(PY) scripts/broker_info.py
 
