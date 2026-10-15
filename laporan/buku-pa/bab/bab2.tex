@@ -8,7 +8,7 @@ Deteksi dini aritmia pada sistem monitoring detak jantung berbasis IoT masih men
 
 Sistem monitoring detak jantung berbasis IoT yang ada saat ini umumnya mengadopsi paradigma \textit{cloud-centric}, di mana perangkat sensor hanya bertugas mengumpulkan data fisiologis mentah untuk kemudian dikirimkan ke server pusat guna diproses dan dianalisis. Kondisi ini menyebabkan dua permasalahan mendasar, yaitu latensi sistem yang tinggi akibat \textit{round-trip} data ke server yang dapat mencapai 152,3 ms~\cite{al_quayed_2026}, serta ketidakmampuan sistem untuk beroperasi secara mandiri ketika koneksi jaringan terganggu atau terputus.
 
-Mayoritas penelitian yang mengembangkan model kecerdasan buatan untuk deteksi aritmia masih mengevaluasi algoritmanya pada PC server, bukan pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{tinyml_iot_review}. \textit{Pipeline} pengiriman data dari perangkat ke \textit{cloud} juga belum dilengkapi mekanisme resiliensi yang memastikan data ECG tetap tersimpan secara lokal dan dapat diteruskan ketika koneksi kembali tersedia~\cite{resilient_edge_cloud}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
+Mayoritas penelitian yang mengembangkan model kecerdasan buatan untuk deteksi aritmia masih mengevaluasi algoritmanya pada PC server, bukan pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{tinyml_iot_review}. \textit{Pipeline} pengiriman data dari perangkat ke \textit{cloud} juga belum dilengkapi mekanisme resiliensi yang memastikan data ECG tetap tersimpan secara lokal dan dapat diteruskan ketika koneksi kembali tersedia~\cite{yaacoub_2020, escobedo_2026}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
 
 \section{Teori Penunjang}
 \label{sec:teori-penunjang}
@@ -68,7 +68,7 @@ dataset MIT-BIH yang diuraikan pada Bab~3.
 \subsection{IoT Edge Computing}
 \label{subsec:iot-edge}
 
-IoT \textit{edge computing} adalah pendekatan arsitektur yang menempatkan kapabilitas komputasi langsung pada perangkat \textit{edge}, alih-alih mengandalkan server terpusat. Dengan paradigma ini, data diproses secara lokal sehingga latensi berkurang, privasi data lebih terjaga, dan sistem dapat beroperasi secara mandiri tanpa ketergantungan penuh pada koneksi internet~\cite{al_quayed_2026}. Arsitektur yang umum digunakan terdiri dari tiga lapisan, yaitu lapisan perangkat (\textit{device layer}) untuk akuisisi dan pemrosesan lokal, lapisan \textit{edge/fog} untuk agregasi, serta lapisan \textit{cloud} untuk penyimpanan dan pemantauan jangka panjang. Dalam konteks monitoring kesehatan, \textit{edge computing} memungkinkan perangkat \textit{wearable} menghasilkan diagnosis secara \textit{real-time} tanpa harus mengirimkan seluruh data mentah ke \textit{cloud}~\cite{tinyml_iot_review}.
+IoT \textit{edge computing} adalah pendekatan arsitektur yang menempatkan kapabilitas komputasi langsung pada perangkat \textit{edge}, alih-alih mengandalkan server terpusat. Dengan paradigma ini, data diproses secara lokal sehingga latensi berkurang, privasi data lebih terjaga, dan sistem dapat beroperasi secara mandiri tanpa ketergantungan penuh pada koneksi internet~\cite{shi_2016}. Arsitektur yang umum digunakan terdiri dari tiga lapisan, yaitu lapisan perangkat (\textit{device layer}) untuk akuisisi dan pemrosesan lokal, lapisan \textit{edge/fog} untuk agregasi, serta lapisan \textit{cloud} untuk penyimpanan dan pemantauan jangka panjang. Dalam konteks monitoring kesehatan, \textit{edge computing} memungkinkan perangkat \textit{wearable} menghasilkan diagnosis secara \textit{real-time} tanpa harus mengirimkan seluruh data mentah ke \textit{cloud}~\cite{tinyml_iot_review}.
 
 \subsection{Tiny Machine Learning (TinyML)}
 \label{subsec:tinyml}
@@ -91,7 +91,7 @@ hierarkis dari data masukan melalui operasi konvolusi, tanpa memerlukan
 rekayasa fitur manual~\cite{kim_2023}. Pada sinyal satu dimensi seperti ECG,
 digunakan varian 1D-CNN yang mengoperasikan \textit{kernel} sepanjang dimensi
 waktu untuk menangkap pola morfologi lokal seperti kompleks QRS, gelombang P,
-dan gelombang T.
+dan gelombang T~\cite{kiranyaz_2016}.
 
 Operasi inti konvolusi 1D pada setiap posisi $t$ dituliskan pada Persamaan~\ref{eq:conv1d}.
 
@@ -125,8 +125,7 @@ Bab~\ref{chap:deskripsi-sistem}.
 Kuantisasi adalah teknik kompresi model \textit{neural network} yang mengubah
 representasi numerik bobot dari \textit{floating-point} 32-bit (float32) menjadi
 \textit{integer} 8-bit (INT8). Teknik ini menghasilkan pengurangan ukuran model
-hingga $4\times$ dengan penurunan akurasi yang sangat minimal
-($< 0{,}01\%$)~\cite{laiu_2026}. Kuantisasi menjadi teknik krusial dalam
+hingga $4\times$ dengan penurunan akurasi yang kecil~\cite{jacob_2018}. Kuantisasi menjadi teknik krusial dalam
 TinyML karena memungkinkan model CNN yang semula terlalu besar untuk memori
 MCU dapat di-\textit{deploy} pada ESP32-S3 (512 KB SRAM internal). Selain kuantisasi,
 \textit{pruning} juga dapat digunakan untuk meningkatkan efisiensi inferensi
@@ -201,7 +200,7 @@ sinyal biopotensial jantung. Modul ini menangkap sinyal listrik lemah dari
 aktivitas jantung melalui elektroda yang ditempelkan pada tubuh pengguna,
 kemudian memperkuat dan menyaring sinyal tersebut sehingga menghasilkan
 keluaran analog yang bersih dan siap dicuplik oleh ADC pada
-mikrokontroler~\cite{tinyml_iot_review}.
+mikrokontroler~\cite{analog_ad8232}.
 
 Secara internal, AD8232 mengintegrasikan penguat instrumentasi (\textit{in-amp})
 \textit{low-noise}, filter \textit{high-pass} untuk menghilangkan
@@ -229,7 +228,7 @@ deteksi R-\textit{peak} menggunakan algoritma Pan-Tompkins.
 \subsection{Protokol MQTT}
 \label{subsec:mqtt}
 
-MQTT (\textit{Message Queuing Telemetry Transport}) adalah protokol komunikasi \textit{publish-subscribe} yang dirancang untuk perangkat IoT dengan \textit{overhead} \textit{header} minimal (2 byte) sehingga efisien dalam penggunaan \textit{bandwidth}~\cite{oasis_mqtt5}. MQTT mendukung tiga tingkat \textit{Quality of Service}, yaitu QoS-0 (\textit{at most once}), QoS-1 (\textit{at least once}), dan QoS-2 (\textit{exactly once}), di mana untuk data biomedis kritis seperti ECG direkomendasikan QoS-1 atau QoS-2 agar tidak ada data yang hilang saat transmisi.
+MQTT (\textit{Message Queuing Telemetry Transport}) adalah protokol komunikasi \textit{publish-subscribe} yang dirancang untuk perangkat IoT dengan \textit{overhead} \textit{header} minimal (2 byte) sehingga efisien dalam penggunaan \textit{bandwidth}~\cite{oasis_mqtt5}. MQTT mendukung tiga tingkat \textit{Quality of Service}, yaitu QoS-0 (\textit{at most once}), QoS-1 (\textit{at least once}), dan QoS-2 (\textit{exactly once}), di mana untuk data biomedis kritis seperti ECG direkomendasikan QoS-1 atau QoS-2 agar tidak ada data yang hilang saat transmisi~\cite{lee_2013}.
 
 \subsection{Platform Dashboard ThingsBoard}
 \label{subsec:thingsboard}
@@ -239,7 +238,7 @@ infrastruktur lengkap untuk pengumpulan, pemrosesan, visualisasi, dan
 manajemen data perangkat IoT. Platform ini mendukung penerimaan data dari
 perangkat melalui protokol MQTT secara langsung, menyimpannya dalam basis
 data telemetri, dan menampilkannya melalui \textit{dashboard} yang dapat
-dikonfigurasi sepenuhnya~\cite{resilient_edge_cloud}.
+dikonfigurasi sepenuhnya~\cite{reoukadji_2025}.
 
 Dalam penelitian ini digunakan ThingsBoard Community Edition (CE) yang
 dapat di-\textit{host} secara mandiri (\textit{self-hosted}). Arsitektur
@@ -316,7 +315,7 @@ pada Bab 3.
 \subsection{Evaluasi \textit{Inter-Patient} dan Metrik Klasifikasi}
 \label{subsec:evaluasi-metrik}
 
-Evaluasi \textit{inter-patient} adalah skema pembagian data yang memisahkan rekaman berdasarkan pasien, sehingga detak dari satu pasien tidak muncul di himpunan latih dan himpunan uji sekaligus. De Chazal et al.~\cite{dechazal_2004} membagi rekaman MIT-BIH menjadi dua kelompok pasien yang saling lepas, yaitu DS1 untuk pelatihan dan DS2 untuk pengujian. Pemisahan ini diperlukan karena pada pembagian per detak, detak dari pasien yang sama tersebar di kedua himpunan sehingga model dapat menghafal morfologi khas pasien dan metrik yang diperoleh menjadi optimistis. Pembagian antarpasien mengukur kemampuan model pada pasien yang belum pernah dilihat, yaitu kondisi yang sesungguhnya dihadapi ketika perangkat dipakai oleh pengguna baru.
+Evaluasi \textit{inter-patient} adalah skema pembagian data yang memisahkan rekaman berdasarkan pasien, sehingga detak dari satu pasien tidak muncul di himpunan latih dan himpunan uji sekaligus. De Chazal et al.~\cite{dechazal_2004} membagi rekaman MIT-BIH menjadi dua kelompok pasien yang saling lepas, yaitu DS1 untuk pelatihan dan DS2 untuk pengujian. Pemisahan ini diperlukan karena pada pembagian per detak, detak dari pasien yang sama tersebar di kedua himpunan sehingga model dapat menghafal morfologi khas pasien dan metrik yang diperoleh menjadi optimistis~\cite{luz_2016, bahrami_2025}. Pembagian antarpasien mengukur kemampuan model pada pasien yang belum pernah dilihat, yaitu kondisi yang sesungguhnya dihadapi ketika perangkat dipakai oleh pengguna baru.
 
 Kinerja klasifikasi dinilai dari hasil perbandingan prediksi dan label sebenarnya, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), dengan kelas Aritmia sebagai kelas positif. Dari keempat nilai tersebut, \textit{recall}, \textit{precision}, \textit{specificity}, dan F1 dirumuskan pada Persamaan~\ref{eq:metrik}.
 
@@ -340,7 +339,7 @@ Akurasi yang tinggi dengan demikian belum menunjukkan kemampuan mendeteksi aritm
 Pada perangkat, posisi puncak R ditentukan oleh detektor R-\textit{peak} sehingga tidak selalu berimpit dengan posisi anotasi yang dipakai saat menyiapkan data latih. Akibatnya, \textit{window} yang diumpankan ke model bergeser dari posisi yang dilihat model selama pelatihan. Pada data latih DS1, sekitar 80\% deteksi hanya berselisih satu sampel atau kurang dari anotasi, tetapi sebagian kecil lainnya menyimpang hingga puluhan sampel, sehingga model yang hanya dilatih pada segmentasi yang presisi berisiko kurang tahan terhadap pergeseran tersebut.
 % sumber: model/CLAUDE.md Fase 6c (DS1 50.601 pasangan, 80% <=1 sampel, |p99| 26, maks 54)
 
-Augmentasi \textit{jitter} menggeser posisi segmentasi data latih secara acak sehingga model terbiasa melihat kompleks QRS pada posisi yang tidak persis sama di dalam \textit{window}, dan menjadi lebih tahan terhadap \textit{error} segmentasi~\cite{dias_2021}. Penelitian ini mengadopsi gagasan tersebut, tetapi besar pergeserannya diambil dari sebaran \textit{error} detektor R-\textit{peak} yang diukur sendiri, bukan dari sebaran seragam yang dipakai pada penelitian tersebut. Augmentasi \textit{jitter} ini hanya diterapkan pada data latih DS1 sehingga model dilatih menghadapi \textit{error} yang benar-benar dihasilkan detektor, sedangkan DS2 dibiarkan bersih.
+Augmentasi \textit{jitter} menggeser posisi segmentasi data latih secara acak sehingga model terbiasa melihat kompleks QRS pada posisi yang tidak persis sama di dalam \textit{window}, dan menjadi lebih tahan terhadap \textit{error} segmentasi~\cite{dias_2021, safdar_2023}. Penelitian ini mengadopsi gagasan tersebut, tetapi besar pergeserannya diambil dari sebaran \textit{error} detektor R-\textit{peak} yang diukur sendiri, bukan dari sebaran seragam yang dipakai pada penelitian tersebut. Augmentasi \textit{jitter} ini hanya diterapkan pada data latih DS1 sehingga model dilatih menghadapi \textit{error} yang benar-benar dihasilkan detektor, sedangkan DS2 dibiarkan bersih.
 % sumber: model/CLAUDE.md Fase 2 (DS1 diaugmentasi jitter empiris, DS2 tetap bersih)
 
 \section{Penelitian Terkait}
@@ -506,4 +505,4 @@ Berdasarkan ulasan kedua belas penelitian di atas, Tabel~\ref{tab:perbandingan-p
 
 Dari Tabel~\ref{tab:perbandingan-penelitian} terlihat bahwa belum ada penelitian yang secara komprehensif mengintegrasikan ketiga aspek sekaligus, yaitu algoritma preprocessing ECG yang divalidasi di MCU \textit{low-power}, inferensi TinyML \textit{on-device} pada ESP32-S3, serta \textit{pipeline} \textit{edge-to-cloud} dengan mekanisme resiliensi berbasis MQTT dan bufer lokal.
 
-Perlu dicatat bahwa angka akurasi pada sebagian penelitian tersebut tidak dapat dibandingkan secara langsung dengan hasil penelitian ini. Zambrano-de la Torre et al.\ membagi data per detak tanpa pemisahan antarpasien sehingga metriknya berpotensi optimistis~\cite{zambrano_2026}, sedangkan penelitian pendahulu menyasar deteksi atrial fibrilasi dan melaporkan akurasi pada pengujian \textit{offline}~\cite{mulyawan_2026}. Penelitian ini menggunakan skema \textit{inter-patient} dengan metrik yang diuraikan pada Subbab~\ref{subsec:evaluasi-metrik}, sehingga tidak mengklaim akurasi yang lebih unggul, melainkan menawarkan evaluasi yang lebih ketat terhadap kemampuan generalisasi pada pasien baru.
+Perlu dicatat bahwa angka akurasi pada sebagian penelitian tersebut tidak dapat dibandingkan secara langsung dengan hasil penelitian ini. Zambrano-de la Torre et al.\ membagi data per detak tanpa pemisahan antarpasien sehingga metriknya berpotensi optimistis~\cite{zambrano_2026, luz_2016}, sedangkan penelitian pendahulu menyasar deteksi atrial fibrilasi dan melaporkan akurasi pada pengujian \textit{offline}~\cite{mulyawan_2026}. Penelitian ini menggunakan skema \textit{inter-patient} dengan metrik yang diuraikan pada Subbab~\ref{subsec:evaluasi-metrik}, sehingga tidak mengklaim akurasi yang lebih unggul, melainkan menawarkan evaluasi yang lebih ketat terhadap kemampuan generalisasi pada pasien baru.

@@ -44,15 +44,18 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
   dijelaskan sebagai opsional atas keputusan user dengan rekomendasi
   (foto dokumentasi masuk 4.5 atau lampiran), dan placeholder foto tidak
   dibuatkan gambar.
-- B. Tugas 2: target "tinggi" dan "hemat" ditandai tidak bisa divonis dan
-  diberi perlakuan (angka atau indikatif + pembanding), daya ditulis belum
-  diukur (Sebagian tercapai / Belum), skenario putus koneksi yang hilang
+- B. Tugas 2: target "tinggi" dan "hemat" keduanya berstatus "Belum dapat
+  divonis (target tanpa angka)" dan diberi perlakuan (angka atau indikatif
+  + pembanding), daya ditulis belum diukur, skenario putus koneksi yang hilang
   ditulis eksplisit belum dilakukan + perlu alasan, dan "seluruh tujuan
   tercapai" dihapus atau dibatasi sesuai tabel.
 - C. Tugas 3: tidak ada diagram buatan sendiri (tanpa TikZ/Mermaid/SVG),
   kartu spesifikasi lengkap (jenis, pesan, elemen, alur baca, teks, bahan
-  repo, ukuran) di komentar `%`, `\label` dan caption final, penjelas hanya
-  menyebut elemen yang ada di kartu, dan tidak memakai "di atas/di bawah".
+  repo, ukuran) di komentar `%`, `\label` dan caption final, bagian
+  pembacaan gambar di penjelas hanya menyebut elemen/label/alur yang ada
+  di kartu (kalimat makna penutup boleh merujuk tujuan atau subbab lain),
+  dan posisi gambar tidak disebut
+  "di atas/di bawah" ("di atas ambang" untuk besaran tidak dihitung).
 - D. Tugas 4: abstrak ditulis ulang sebagai hasil dengan angka yang sama
   persis dengan fakta Bab 4, "diharapkan"/"direncanakan" dan "proposal ini"
   dihapus, daya ditulis belum diukur (tidak diklaim hemat), dan disebut
@@ -65,4 +68,6 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 
 | Tanggal | Penulis | Penilai | Skor | Catatan |
 |---|---|---|---|---|
-| 2026-10-15 | -- | -- | belum dijalankan | skill baru |
+| 2026-10-15 | sonnet | haiku | 9/10 | C: kalimat makna penutup ("klasifikasi hanya dijalankan ...", rujukan subbab) dinilai di luar kartu. Di luar rubrik: 5.1 usulan tanpa rujukan ke Tujuan; keterangan dataset PDSR di abstrak. SKILL.md aturan 9 + rubrik C: pembacaan = elemen kartu, makna penutup boleh mengait keluar |
+| 2026-10-15 | sonnet | haiku | 8/10 | B: "hemat" diberi "Belum tercapai" tanpa ditandai tak bisa divonis; C: penilai menghitung "di atas ambang" sebagai larangan posisi. SKILL.md aturan 3: status "Belum dapat divonis (target tanpa angka)"; aturan 8: larangan hanya untuk posisi; rubrik C diperjelas; daftar periksa: klaim suntingan konsisten |
+| 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 3. Di luar rubrik: teks kartu vs paragraf isinya sama tetapi tidak identik kata per kata; dicatat, tidak mengubah skill |
