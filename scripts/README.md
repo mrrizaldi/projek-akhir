@@ -89,3 +89,37 @@ python3 scripts/cek_tabel.py --tanpa-prosa                   # tabel dan penjela
 python3 scripts/cek_tabel.py --kertas a5 laporan/buku-kp/... # lebar teks A5
 python3 scripts/cek_tabel.py --uji                           # uji mandiri pemeriksa
 ```
+
+## Pengunduh daftar pustaka
+
+`unduh_pustaka.py` mengunduh PDF untuk entri `laporan/*/referensi.bib` ke
+`laporan/pustaka/<kunci-bib>.pdf` (folder di-ignore git: PDF penerbit tidak
+boleh masuk repo). Sumber: DOI → Unpaywall → URL PDF open access; entri
+`@misc` yang `url`-nya langsung `.pdf` diunduh apa adanya. Berkas yang sudah
+ada dilewati, jadi aman dijalankan berulang. Entri tanpa DOI di bib proposal
+(beku) diberi DOI lewat tabel `DOI_TAMBAHAN` di skrip, hasil pencarian judul
+di Scopus (15 Okt 2026).
+
+```bash
+cd model && .venv/bin/python ../scripts/unduh_pustaka.py   # python3 biasa juga bisa, stdlib saja
+```
+
+Keluaran: baris `[unduh]`, `[ada]`, atau `[gagal]` per kunci, lalu rekap.
+Kode keluar 1 bila ada yang gagal. Skrip ini hanya menjangkau penerbit yang
+mengizinkan unduhan otomatis; sisanya diunduh manual lewat browser dengan
+akun kampus, lalu disimpan dengan nama `<kunci-bib>.pdf` di folder yang sama.
+
+Kondisi 15 Okt 2026 (48 entri gabungan tiga bib):
+
+| Status | Entri |
+|---|---|
+| Terunduh otomatis (10) | `al_quayed_2026`, `david_2021`, `escobedo_2026`, `jacob_2018`, `kim_2023`, `li_2020`, `reoukadji_2025`, `saito_2015`, `tipparaju_2021`, `zambrano_2026` |
+| Elsevier/ScienceDirect: CAPTCHA, unduh manual (19; 9 di antaranya open access) | `tinyml_iot_review`, `resilient_edge_cloud`, `mekhfioui_2025`, `xie_2021`, `karri_2023`, `laiu_2026`, `crespi_2026`, `sheeba_rani_2026`, `chowdhury_2023`, `dias_2021`, `luz_2016`, `safdar_2023`, `bui_2021`, `elhadad_2025`, `khan_2025`, `fahoum_2026`, `xiang_2026`, `kumaran_2026`, `verma_2024` |
+| IEEE berbayar, perlu akun kampus (7) | `pan_tompkins_1985`, `moody_mark_2001`, `dechazal_2004`, `shi_2016`, `kiranyaz_2016`, `lee_2013`, `yaacoub_2020` |
+| Open access tetapi diblokir untuk otomasi (3) | `yahyati_2025` (IEEE Access), `goldberger_2000_physionet` (AHA), `skorinkapov_2010` (Wiley) |
+| Springer berbayar (1) | `bahrami_2025` |
+| Bukan artikel: buku, tesis, standar, halaman web (8) | `ecg_goldberger`, `sornmo_laguna_2005`, `mulyawan_2026`, `aami_ec57_2012`, `iec_60601_2_27_2011`, `who_cvd`, `oasis_mqtt5`, `analog_ad8232` |
+
+MDPI, IEEE open access, dan Unpaywall menolak `curl`/`urllib` dengan 403;
+yang berhasil untuk mereka adalah unduhan lewat browser sungguhan (Chrome
+headed), bukan headless. CAPTCHA ScienceDirect/AHA/Wiley tidak dilewati.
