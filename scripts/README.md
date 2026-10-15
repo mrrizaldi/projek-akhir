@@ -114,7 +114,8 @@ Kondisi 15 Okt 2026 (48 entri gabungan tiga bib):
 | Status | Entri |
 |---|---|
 | Terunduh otomatis (10) | `al_quayed_2026`, `david_2021`, `escobedo_2026`, `jacob_2018`, `kim_2023`, `li_2020`, `reoukadji_2025`, `saito_2015`, `tipparaju_2021`, `zambrano_2026` |
-| Elsevier/ScienceDirect: CAPTCHA, unduh manual (19; 9 di antaranya open access) | `tinyml_iot_review`, `resilient_edge_cloud`, `mekhfioui_2025`, `xie_2021`, `karri_2023`, `laiu_2026`, `crespi_2026`, `sheeba_rani_2026`, `chowdhury_2023`, `dias_2021`, `luz_2016`, `safdar_2023`, `bui_2021`, `elhadad_2025`, `khan_2025`, `fahoum_2026`, `xiang_2026`, `kumaran_2026`, `verma_2024` |
+| Terunduh lewat browser Chrome headed (4; MDPI, IEEE OA, Nature) | `xiao_2023`, `orphanidou_2015`, `lueken_2023`, `joutsen_2024` (tiga terakhir belum di bib, bahan bedah paper) |
+| Elsevier/ScienceDirect: CAPTCHA, unduh manual (18; 8 di antaranya open access) | `tinyml_iot_review`, `resilient_edge_cloud`, `mekhfioui_2025`, `xie_2021`, `karri_2023`, `laiu_2026`, `crespi_2026`, `sheeba_rani_2026`, `chowdhury_2023`, `dias_2021`, `safdar_2023`, `bui_2021`, `elhadad_2025`, `khan_2025`, `fahoum_2026`, `xiang_2026`, `kumaran_2026`, `verma_2024` |
 | IEEE berbayar, perlu akun kampus (7) | `pan_tompkins_1985`, `moody_mark_2001`, `dechazal_2004`, `shi_2016`, `kiranyaz_2016`, `lee_2013`, `yaacoub_2020` |
 | Open access tetapi diblokir untuk otomasi (3) | `yahyati_2025` (IEEE Access), `goldberger_2000_physionet` (AHA), `skorinkapov_2010` (Wiley) |
 | Springer berbayar (1) | `bahrami_2025` |
