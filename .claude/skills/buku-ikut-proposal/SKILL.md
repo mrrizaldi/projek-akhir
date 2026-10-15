@@ -19,11 +19,17 @@ Kegagalan yang ditangkap user (14 Okt 2026):
    "Bagaimana ...?"), Tujuan (3 butir), Manfaat (3 butir), Sistematika
    Penulisan. Jumlah butir Permasalahan dan Tujuan tetap 3.
 2. Jangan menambah subbab Bab 1 yang tidak ada di proposal (Batasan Masalah,
-   Ruang Lingkup, Kontribusi, dll.), walau laporan acuan (AFIB) memilikinya
-   dan walau `docs/pola-laporan-pa/` menyarankannya. Keputusan berlaku:
-   `docs/pola-laporan-pa/07-penerapan-ke-pa-kita.md` §6, baris "Bab 1".
-   Isi subbab Bab 1 boleh diperbarui (angka, sitasi, istilah) bila faktanya
-   berubah.
+   Ruang Lingkup, Kontribusi, dll.), walau laporan acuan (AFIB) memilikinya.
+   Keputusan user 14 Okt 2026: Bab 1 buku mengikuti proposal. Isi subbab
+   Bab 1 boleh diperbarui (angka, sitasi, istilah) bila faktanya berubah.
+   Yang diikuti dari proposal adalah **garis besar**, bukan kalimat: tiga
+   hal yang dipermasalahkan, tiga tujuan, dan apa yang diuji (Rencana
+   Pengujian Bab 3). Kalimat buku ditulis dengan skill `narasi-pa` dan
+   tidak harus identik dengan proposal.
+   Arah sebaliknya, saat proposal disesuaikan dengan keadaan proyek, hanya
+   garis besar yang sama itu dan daftar pustaka yang disinkronkan. Bab 3
+   proposal tetap rancangan (register skill `struktur-pa` aturan 4). Angka
+   hasil Bab 4 buku tidak dipindahkan ke proposal.
 3. Lingkup ditulis di subbab tetap berikut, tanpa `\ref` ke subbab Bab 1 yang
    tidak ada:
    - subjek sehat anonim, non-klinis, data primer → Bab 4 Karakteristik Data

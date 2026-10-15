@@ -27,11 +27,19 @@ yang belum diamati tidak ditulis sebagai sudah terjadi ("sukses", "0").
    (tercatat di arsip), (b) jumlah rekaman resmi (belum ada data),
    (c) wujud rakitan final (menunggu PCB dicetak), (d) warna sampul buku
    (template kampus belum ada di repo, user belum pernah memutuskan).
+5. User: "proposal sesuaikan sama buku". Fakta: Bab 1 buku sudah ditulis
+   ulang kalimatnya dengan skill narasi-pa (butir Permasalahan dan Tujuan
+   tetap 3 dan isinya sama), Bab 4 buku memuat F1 0,6594 pada DS2,
+   daftar pustaka buku memuat `dias_2021` yang tidak ada di proposal, dan
+   Bab 3 proposal masih berupa rancangan. Tulis rencana suntingan proposal.
 
 ## Rubrik (tiap butir 2 poin)
 
 - A. Kerangka Bab 1 tetap sama dengan proposal; tidak menambah Batasan
-  Masalah atau subbab lain (tugas 1); boleh menyebut alasannya.
+  Masalah atau subbab lain (tugas 1); boleh menyebut alasannya. Sinkronisasi
+  proposal (tugas 5) hanya pada garis besar (3 masalah, 3 tujuan, apa yang
+  diuji) dan daftar pustaka; kalimat tidak disamakan, Bab 3 proposal tetap
+  rancangan, dan angka hasil Bab 4 tidak dipindahkan ke proposal.
 - B. Lingkup ditempatkan di Bab 3/4 dan rujukan ke subbab yang dihapus dibuang
   (tugas 3), dengan pemeriksaan `make pdf` + `undefined` 0.
 - C. Riwayat yang tercatat di repo dipakai tanpa ditanyakan (tugas 2 dan 4a).
@@ -49,3 +57,4 @@ yang belum diamati tidak ditulis sebagai sudah terjadi ("sukses", "0").
 | 2026-10-14 | sonnet | haiku | 10/10 | Di luar rubrik: sel tabel "PCB final" menyatakan keadaan yang belum ada. SKILL.md + rubrik D: peristiwa menunggu tidak ditulis seolah terjadi. Wajib eval ulang |
 | 2026-10-14 | sonnet | haiku | 10/10 | Di luar rubrik: hasil build ("sukses", "undefined 0") ditulis tanpa dijalankan; alasan rekomendasi "biasanya". SKILL.md aturan 5: hasil hanya dari keluaran nyata, alasan dari fakta repo. Wajib eval ulang |
 | 2026-10-14 | sonnet | haiku | **10/10** | LULUS. Di luar rubrik: "sudah diganti" dan `[daftar perubahan]` karena peserta tidak boleh menyunting; batas cara uji, bukan celah skill |
+| 2026-10-15 | -- | -- | belum dijalankan | SKILL.md aturan 2 ditambah "garis besar, bukan kalimat" + sinkronisasi balik ke proposal; tugas 5 dan rubrik A diperluas. Wajib eval ulang |

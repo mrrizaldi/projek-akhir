@@ -236,8 +236,8 @@ env `native` = test di PC). Jalankan dari `firmware/`.
   Di posisi gambar, taruh
   **placeholder** + kartu spesifikasi isi (jenis, pesan, elemen wajib, alur
   baca, bahan di repo); **user yang menggambar**. Caption, `\label`, `\ref`, dan
-  paragraf pengantar/penjelas tetap ditulis final. Templat:
-  `docs/pola-laporan-pa/05-gambar-tabel-persamaan.md` §Placeholder gambar.
+  paragraf pengantar/penjelas tetap ditulis final. Templat: skill
+  `struktur-pa` aturan 9.
   Sisa placeholder: `grep -rn "PLACEHOLDER-GAMBAR" laporan/`.
 - Plot data eksperimen (confusion matrix, kurva, grafik latensi) hasil pipeline
   repo bukan ilustrasi: rujuk berkas yang sudah di-export. Kalau belum ada →
@@ -246,12 +246,15 @@ env `native` = test di PC). Jalankan dari `firmware/`.
 
 ## Menulis laporan (progres / buku PA)
 
-Pola bab → paragraf → kalimat dari 6 laporan PA PENS (2 buku full, 4 progres 1),
-beda sistemik progres vs buku, anti-pola, dan kerangka progres untuk PA ini ada
-di `docs/pola-laporan-pa/` (mulai dari `README.md`). Pakai sebagai acuan
-struktur; aturan gaya tulis tetap `laporan/CLAUDE.md`. Keputusan lingkup yang
-sudah diambil user (PA individu, subjek uji anonim, TLS tidak dibahas) ada di
-`docs/pola-laporan-pa/07-penerapan-ke-pa-kita.md` §6. Buku full =
+Acuan penulisan = empat skill di `.claude/skills/`: `struktur-pa` (kerangka
+bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
+`narasi-pa` (paragraf), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
+dan sinkronisasi proposal). Bedah 6 laporan PA PENS yang menjadi asal
+aturannya sudah diarsipkan di `docs/arsip/2026-10-10-pola-laporan-pa/` dan
+tidak dijadikan acuan lagi. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
+Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim
+(kode S01, S02, ...), tempat uji laboratorium, TLS/keamanan transport tidak
+dibahas sama sekali. Buku full =
 `laporan/buku-pa` (dikerjakan), varian progres = `laporan/progres-pa-1`
 (dibekukan, dibahas ulang bersama user).
 

@@ -53,3 +53,39 @@ git config core.hooksPath .githooks
 
 Batasan: hook membaca isi berkas di working tree, bukan isi yang di-stage;
 raw string C++ (`R"(...)"`) dan pemisah digit (`1'000`) belum dikenali tokenizer C.
+
+## Pemeriksa tabel dan narasi laporan
+
+`cek_tabel.py` memeriksa tabel LaTeX dan paragraf penjelasnya di laporan PA
+(skill `tabel-pa` dan `narasi-pa`). Galat keluar dengan kode 1, sedangkan
+saran hanya dicetak (`--ketat` membuat saran ikut gagal). Format keluaran:
+`berkas:baris: [KODE tingkat] pesan`.
+
+| Kode | Tingkat | Yang diperiksa |
+|---|---|---|
+| `T-BAB` | galat | tabel di Bab 1 atau Bab 5 |
+| `T-GRID` | galat | `booktabs`, padahal panduan PENS memakai grid penuh |
+| `T-HEADER` | galat | header tanpa `\rowcolor{headgray}` |
+| `T-CAPTION` | galat/saran | caption hilang atau di bawah tabel (galat), berakhir titik, memuat kurung, > 15 kata (saran) |
+| `T-LEBAR` | galat | jumlah lebar `p{}` + `\tabcolsep` melebihi lebar teks (A4 14 cm) |
+| `T-RUJUK` | galat/saran | label tidak pernah dirujuk (galat) atau baru dirujuk sesudah tabel (saran) |
+| `T-FLOAT` | saran | `[H]` |
+| `T-SEL` | saran | sel > 20 kata |
+| `T-CATATAN` | saran | baris `\multicolumn` selebar tabel berisi catatan panjang |
+| `T-SATUAN` | saran | satuan diulang di ≥ 3 sel satu kolom |
+| `T-DESIMAL` | saran | jumlah desimal tidak seragam dalam satu kolom |
+| `T-ISIAN` | saran | isian "Sama", "idem", "Tidak diulang", "Konfigurasi sama" |
+| `N-PEMBUKA` | saran | penjelas berurutan dengan pembuka sama, "Berdasarkan Tabel" > 3 per bab |
+| `N-ULANG` | saran | penjelas mengulang > 50% angka tabel (tabel ≥ 5 angka) |
+| `N-PANJANG` | saran | penjelas > 180 kata |
+| `N-KALIMAT` | saran | kalimat > 35 kata (diringkas per bab, 5 terpanjang) |
+| `N-GAYA` | saran | titik koma atau em dash di paragraf |
+| `N-SEHINGGA` | saran | "sehingga" > 5 per 1.000 kata |
+
+```bash
+python3 scripts/cek_tabel.py                                 # laporan/buku-pa/bab/bab*.tex
+python3 scripts/cek_tabel.py laporan/buku-pa/bab/bab4.tex    # satu bab
+python3 scripts/cek_tabel.py --tanpa-prosa                   # tabel dan penjelasnya saja
+python3 scripts/cek_tabel.py --kertas a5 laporan/buku-kp/... # lebar teks A5
+python3 scripts/cek_tabel.py --uji                           # uji mandiri pemeriksa
+```

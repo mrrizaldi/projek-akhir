@@ -4,7 +4,9 @@
 **Status:** read-only. Kondisi firmware yang berlaku ada di
 [`firmware/README.md`](../../firmware/README.md); kondisi laporan ada di `laporan/` dan aturan
 gayanya di `laporan/CLAUDE.md`; pola penulisan ada di
-[`../pola-laporan-pa/README.md`](../pola-laporan-pa/README.md).
+[`2026-10-10-pola-laporan-pa/README.md`](2026-10-10-pola-laporan-pa/README.md)
+(diarsipkan 15 Okt 2026 setelah isinya didistilasi ke skill `struktur-pa`,
+`narasi-pa`, `tabel-pa`, dan `buku-ikut-proposal`).
 
 | Tanggal | Dokumen | Ringkasan | Status akhir / vonis |
 |---|---|---|---|
