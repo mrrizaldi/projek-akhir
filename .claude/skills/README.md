@@ -13,6 +13,7 @@ berbeda, maksimal 3 putaran.
 | `buku-ikut-proposal` | Bab 1 buku mengikuti proposal pada garis besar, sinkronisasi balik ke proposal |
 | `batas-tidak-diam` | firmware: batas tidak membuang data diam-diam, aksi di batas tidak memblok |
 | `tanpa-komentar-kode` | kode tanpa komentar/docstring, penjelasan ke dokumen |
+| `deck-pa` | deck presentasi PA (PPTX): isi dari buku, angka tidak dikarang, tanpa label internal, ilustrasi = placeholder, render + lihat tiap slide |
 
 Pemeriksa mesin untuk skill laporan: `python3 scripts/cek_tabel.py`
 (`scripts/README.md`).

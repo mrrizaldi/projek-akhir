@@ -26,6 +26,9 @@ firmware/.pio/
 firmware/.pioenvs/
 firmware/.piolibdeps/
 
+# ===== Deck presentasi (build output, sumber = deck.js) =====
+presentasi/*/output/
+
 # ===== LaTeX (build output) =====
 *.aux
 *.log
