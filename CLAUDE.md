@@ -63,8 +63,13 @@ C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
 ### Tutup lingkarannya
 7. **Setiap kegagalan yang ditangkap user menjadi skill hari itu juga**
    (`.claude/skills/<nama>/SKILL.md`). Kegagalan yang sama tidak boleh terulang.
-8. **Setiap skill punya eval** yang dinilai model berbeda, diulang sampai
-   skor 10/10.
+8. **Setiap skill punya eval** yang dinilai model berbeda, target 10/10,
+   **maksimal 3 putaran**. Belum 10/10 sesudah putaran ke-3 → berhenti, catat
+   skor terbaik dan temuannya di `eval.md`, commit, lalu tanya user. Soal eval
+   sempit dan berjawaban pasti (kegagalan aslinya), bukan desain terbuka.
+   Skor yang tidak naik dua putaran berturut-turut = berhenti lebih awal.
+   (Ditetapkan 15 Okt 2026 sesudah eval `batas-tidak-diam` berputar 8 kali
+   di skor 7–9 tanpa hasil.)
 9. **Pemeriksaan hijau → commit langsung**, tanpa menunggu persetujuan; user
    meninjau setelahnya. Satu revert lebih murah daripada agen yang tertahan.
    Push ke remote tetap hanya atas permintaan eksplisit.
