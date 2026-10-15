@@ -277,6 +277,7 @@ pengukuran ada di walkthrough yang dirujuk.
 | Batas segmen rekaman `BATAS_MAKS` = 64 | Jeda ke-65 dan seterusnya tidak dicatat (segmen bersambung) | Cukup untuk 300 detik; naikkan bila rekaman lebih panjang |
 | Daftar rekaman di menu `DAFTAR_MAKS` = 64 | Hanya batas tampilan; nomor berkas baru tetap dari pindai penuh | — |
 | Angka sesudah perintah serial ditunggu sampai 500 ms per digit | `loop()` terblokir selama menunggu | Perintah bench, tidak dipakai saat merekam sinyal tubuh |
+| Antrean jadwal bip `JADWAL_N` = 8 | Saat lonjakan detak lebih dari 8 bip menunggu, bip berikutnya tidak dibunyikan; data beat dan klasifikasi tidak terpengaruh | Perbesar `JADWAL_N` di `tampilan.cpp` |
 | Memilih WiFi saat tangga daya `p0`–`p4` | Radio ikut menyala lagi lewat `ecg_mqtt_mulai()` | Pilih jaringan di operasi normal |
 
 ## Catu daya dan pengukuran arus
@@ -530,9 +531,11 @@ menjadi sembilan berkas berurutan. Perekaman berhenti sendiri bila LittleFS
 tidak cukup untuk berkas berikutnya (`PENUH` / `tarik data dulu`, serial
 `REKAM berhenti: LittleFS tidak cukup ...`); mulai rekam juga ditolak dengan
 pesan yang sama. Kapasitas LittleFS 3.456 KB memuat ±6 berkas 300 detik, jadi
-tarik data (`make pull N=<n>`) dan hapus (`h<n>`) sesudah tiap subjek. Untuk
-menguji tanpa menunggu 5 menit:
-`PLATFORMIO_BUILD_FLAGS="-DREKAM_DETIK=10" pio run -t upload`.
+tarik data (`make pull N=<n>`) dan hapus (`h<n>`) sesudah tiap subjek. Nomor
+berkas berhenti di `REKAM_NOMOR_MAKS` (999): sesi berhenti sesudah menyimpan
+berkas bernomor terakhir, dan mulai rekam ditolak (`REKAM ditolak: nomor
+rekaman habis, hapus dulu (h<n>)`, layar `PENUH`). Untuk menguji tanpa
+menunggu: `PLATFORMIO_BUILD_FLAGS="-DREKAM_DETIK=10 -DREKAM_NOMOR=4" pio run -t upload`.
 
 Mulai rekam ditolak bila sumber sinyal bukan Sensor (ADC): layar menampilkan
 `TOLAK` / `hanya sensor ADC` selama 2 detik dengan bip tolak 150 ms, dan serial

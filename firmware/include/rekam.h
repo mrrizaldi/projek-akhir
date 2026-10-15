@@ -7,7 +7,10 @@
 
 #define REKAM_DIR  "/rekam"
 #define REKAM_POLA "/rekam/%03d.csv"
-constexpr int REKAM_NOMOR_MAKS = 999;
+#ifndef REKAM_NOMOR
+#define REKAM_NOMOR 999
+#endif
+constexpr int REKAM_NOMOR_MAKS = REKAM_NOMOR;
 #ifndef REKAM_DETIK
 #define REKAM_DETIK 300
 #endif

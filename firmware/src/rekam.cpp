@@ -160,7 +160,11 @@ static int simpan(bool akhir_sesi)
     buzzer(false);
     selesaikan_tulis();
     const int nomor = terakhir() + 1;
-    if (nomor > REKAM_NOMOR_MAKS) { Serial.println("GAGAL: nomor rekaman habis, hapus dulu (h<n>)"); return 0; }
+    if (nomor > REKAM_NOMOR_MAKS) {
+        Serial.println("GAGAL: nomor rekaman habis, hapus dulu (h<n>)");
+        tampilan_pesan("PENUH", "nomor habis");
+        return 0;
+    }
     nama(nomor, tulis.path, sizeof tulis.path);
     tulis.f = LittleFS.open(tulis.path, "w");
     if (!tulis.f) { Serial.println("GAGAL membuka LittleFS"); return 0; }
@@ -205,9 +209,9 @@ static void sambung()
     const size_t n_ini = n;
     const int nomor = simpan(false);
     if (!nomor) return;
-    if (!ruang_cukup()) {
+    if (!ruang_cukup() || nomor >= REKAM_NOMOR_MAKS) {
         tulis.akhir_sesi = true;
-        Serial.println("REKAM berhenti: LittleFS tidak cukup untuk berkas berikutnya, tarik data dulu (make pull)");
+        Serial.println("REKAM berhenti: LittleFS atau nomor berkas tidak cukup untuk berkas berikutnya, tarik data dulu (make pull) lalu hapus (h<n>)");
         tampilan_pesan("PENUH", "tarik data dulu");
         return;
     }
@@ -233,10 +237,11 @@ void rekam_toggle(void)
     const char *tolak = akuisisi_sumber() != SUMBER_ADC ? "REKAM hanya dari sensor"
                       : daya_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
                       : menu_terbuka() ? "REKAM ditolak: tutup menu dulu"
-                      : !ruang_cukup() ? "REKAM ditolak: LittleFS penuh, tarik data dulu" : nullptr;
+                      : !ruang_cukup() ? "REKAM ditolak: LittleFS penuh, tarik data dulu"
+                      : terakhir() >= REKAM_NOMOR_MAKS ? "REKAM ditolak: nomor rekaman habis, hapus dulu (h<n>)" : nullptr;
     if (tolak) {
         Serial.println(tolak);
-        tampilan_pesan(ruang_cukup() ? "TOLAK" : "PENUH",
+        tampilan_pesan(akuisisi_sumber() != SUMBER_ADC || daya_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
                        akuisisi_replay() ? "hanya sensor ADC" : "rekam ditolak");
         return;
     }
