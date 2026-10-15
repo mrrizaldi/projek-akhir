@@ -34,6 +34,8 @@ const angkaBesar = (slide, x, y, angka, label) => {
 };
 
 const sel = (t) => ({ text: t, options: { bold: true, fill: { color: TIPIS } } });
+const catatan = (bacaan, istilah) =>
+  `${bacaan}\n\nISTILAH (tidak dibacakan)\n${istilah.map(([k, v]) => `- ${k}: ${v}`).join("\n")}`;
 const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 2023. DOI 10.3390/s23125618 (open access, CC BY)";
 
 {
@@ -49,7 +51,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
   s.addText("Muhammad Rafi Rizaldi, NRP 3123600001\nBimbingan Proyek Akhir, 15 Oktober 2026", {
     x: 0.6, y: 4.2, w: 8.8, h: 0.8, fontFace: FONT, fontSize: 13, color: "FFFFFF", margin: 0, valign: "top",
   });
-  s.addNotes("Paper ini dipilih karena menilai kualitas sinyal ECG single-lead secara otomatis sebelum sinyal dipakai mendeteksi aritmia, persis kebutuhan minggu ini untuk rekaman sinyal tubuh. Terbit 2023, open access, 20 sitasi di Scopus per 15 Oktober 2026.");
+  s.addNotes(catatan("Paper ini dipilih karena menilai kualitas sinyal ECG single-lead secara otomatis sebelum sinyal dipakai mendeteksi aritmia, persis kebutuhan minggu ini untuk rekaman sinyal tubuh. Terbit 2023, open access, 20 sitasi di Scopus per 15 Oktober 2026.", [["ECG (elektrokardiogram)", "rekaman aktivitas listrik jantung terhadap waktu"], ["Single-lead", "hanya satu sudut pandang listrik jantung dari satu pasang elektroda; ECG klinis standar memakai 12 lead"], ["AF (atrial fibrillation, fibrilasi atrium)", "atrium bergetar tidak teratur sehingga detak jantung tidak teratur; aritmia paling umum, menaikkan risiko stroke"], ["Silent AF", "AF tanpa gejala, penderitanya tidak sadar"], ["Signal quality assessment", "penilaian apakah sinyal cukup bersih untuk dianalisis"]]));
 }
 
 {
@@ -64,7 +66,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
     "Tujuan: indeks kualitas otomatis (AISQA) yang meniru penilaian ahli",
   ]);
   sumber(s, SUMBER);
-  s.addNotes("Latar: AF 1 sampai 2% populasi, naik sampai 17,8% di atas 85 tahun, risiko stroke lima kali. Alat skrining single-lead mudah dipakai tetapi sinyalnya berbeda dari ECG konvensional. Paper memodelkan rantai pengukuran lalu membangun penilai kualitas berbasis machine learning.");
+  s.addNotes(catatan("Latar: AF 1 sampai 2% populasi, naik sampai 17,8% di atas 85 tahun, risiko stroke lima kali. Alat skrining single-lead mudah dipakai tetapi sinyalnya berbeda dari ECG konvensional. Paper memodelkan rantai pengukuran lalu membangun penilai kualitas berbasis machine learning.", [["Paroksismal", "muncul dan hilang sendiri dalam episode, sehingga bisa terlewat saat pemeriksaan singkat"], ["Stik ECG genggam", "alat dipegang dua tangan, tiap tangan menyentuh satu elektroda"], ["Elektroda tanpa gel (dry electrode)", "logam langsung menempel kulit; kontaknya berubah saat tangan bergeser atau berkeringat"], ["Impedansi kulit", "hambatan listrik di antara kulit dan elektroda; bila berubah, garis dasar sinyal ikut bergeser"], ["Artefak gerak", "gangguan pada sinyal akibat gerakan atau tekanan tangan, bukan dari jantung"], ["High-pass filter", "filter yang membuang komponen frekuensi rendah (garis dasar yang naik turun); efek sampingnya ikut mengubah gelombang yang lambat seperti P dan T"], ["Morfologi", "bentuk gelombang ECG: P, QRS, T"], ["Gelombang P", "gelombang kecil sebelum QRS, tanda aktivitas atrium; pada AF gelombang ini hilang, jadi penting untuk diagnosis"], ["AISQA", "artificial intelligence-based signal quality assessment, indeks kualitas dari model paper ini; skala 0 (excellent) sampai 3 (uninterpretable)"]]));
 }
 
 {
@@ -86,7 +88,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
     "Makin buruk kualitas, makin besar porsi rekaman yang ditandai AF",
   ], { y: 3.6, h: 1.4, fontSize: 14 });
   sumber(s, SUMBER);
-  s.addNotes("Data dari studi skrining sebelumnya oleh tim yang sama. Ahli menilai irama dan kualitas bertahap; AF didefinisikan irama tak teratur minimal 30 detik tanpa gelombang P, atrial flutter ikut dihitung AF. Tabel 2 paper dipangkas ke kolom yang menjawab judul slide.");
+  s.addNotes(catatan("Data dari studi skrining sebelumnya oleh tim yang sama. Ahli menilai irama dan kualitas bertahap; AF didefinisikan irama tak teratur minimal 30 detik tanpa gelombang P, atrial flutter ikut dihitung AF. Tabel 2 paper dipangkas ke kolom yang menjawab judul slide.", [["Irama normal (sinus)", "irama jantung teratur yang dipicu simpul SA, kondisi sehat"], ["Q0 sampai Q3", "empat kelas kualitas dari ahli: excellent, good, poor, uninterpretable (tidak bisa dibaca)"], ["200 Hz", "frekuensi sampling, 200 titik data per detik"], ["Atrial flutter", "aritmia atrium yang mirip AF tetapi lebih teratur; di paper ini dihitung sebagai AF"]]));
 }
 
 {
@@ -102,7 +104,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
   ], { w: 4.6, fontSize: 14 });
   gambar(s, "output/fig6_rantai.png", 5.4, 1.9, 4.1, 0.96, "Gambar 6 paper: rantai preprocessing sebelum ekstraksi fitur");
   sumber(s, SUMBER);
-  s.addNotes("Tiga gerbang: artefak gerak, durasi minimal, dan deteksi puncak dengan rentang HR fisiologis. Dari 7.031 rekaman hanya 33 tidak valid dan 49 gagal deteksi puncak, kebanyakan dari kelas uninterpretable. Angka dari Tabel 3 paper.");
+  s.addNotes(catatan("Tiga gerbang: artefak gerak, durasi minimal, dan deteksi puncak dengan rentang HR fisiologis. Dari 7.031 rekaman hanya 33 tidak valid dan 49 gagal deteksi puncak, kebanyakan dari kelas uninterpretable. Angka dari Tabel 3 paper.", [["Jendela (window)", "potongan sinyal pendek, di sini 5 detik, yang dianalisis satu per satu"], ["FFT (fast Fourier transform)", "mengubah sinyal waktu menjadi spektrum: seberapa kuat tiap frekuensi di dalamnya"], ["eCDF (empirical cumulative distribution function)", "kurva yang menunjukkan berapa persen sampel bernilai di bawah amplitudo tertentu; ringkasan sebaran amplitudo"], ["Korelasi (Pearson)", "angka -1 sampai 1 yang menunjukkan seberapa mirip dua kurva; 1 = identik bentuknya"], ["Ambang 0,982", "jendela yang kemiripannya dengan jendela lain di bawah angka ini dianggap artefak dan dibuang"], ["ESC", "European Society of Cardiology, pedomannya meminta minimal 30 detik untuk diagnosis AF"], ["Polaritas terbalik", "sinyal terbalik atas bawah karena tangan kiri dan kanan tertukar"], ["Mean vs median", "rata-rata vs nilai tengah; bila mean lebih kecil dari median, puncak tajam R kemungkinan mengarah ke bawah"], ["R-peak", "puncak tertinggi kompleks QRS, satu per detak; dipakai menghitung detak jantung"], ["HR, bpm", "heart rate, detak per menit"]]));
 }
 
 {
@@ -116,7 +118,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
   ], { w: 5.3, fontSize: 15 });
   gambar(s, "output/fig7_artefak.png", 6.3, 1.25, 2.85, 3.28, "Gambar 7 paper: sinus dengan artefak awal (atas), AF tanpa artefak (bawah)");
   sumber(s, SUMBER);
-  s.addNotes("Ini pembeda utama dari SQI berbasis keteraturan interval RR: korelasi FFT dan eCDF antar jendela peka pada artefak tetapi tidak pada irama tak teratur. Untuk sistem yang mengklasifikasi aritmia, penyaring kualitas harus seperti ini supaya segmen aritmia tidak dibuang sebelum sampai ke model.");
+  s.addNotes(catatan("Ini pembeda utama dari SQI berbasis keteraturan interval RR: korelasi FFT dan eCDF antar jendela peka pada artefak tetapi tidak pada irama tak teratur. Untuk sistem yang mengklasifikasi aritmia, penyaring kualitas harus seperti ini supaya segmen aritmia tidak dibuang sebelum sampai ke model.", [["Spektrum", "hasil FFT: komposisi frekuensi sinyal"], ["Distribusi amplitudo", "sebaran nilai tegangan dalam satu jendela (itulah yang diringkas eCDF)"], ["Interval RR", "jarak waktu antara dua R-peak berurutan; pada AF jaraknya acak"]]));
 }
 
 {
@@ -131,7 +133,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
   ], { w: 4.6, fontSize: 14 });
   gambar(s, "output/fig8_prototipe.png", 5.6, 1.3, 3.6, 2.96, "Gambar 8 paper: empat klaster prototipe denyut dari rekaman excellent");
   sumber(s, SUMBER);
-  s.addNotes("Fitur dihitung sekali per rekaman, vektor 22 dimensi. basSQI, qrsSQI, pliSQI mengikuti Clifford 2012. Prototipe dibuat dari denyut rata-rata rekaman excellent, diklaster k-means dengan jarak DTW. Daftar lengkap di Tabel 4 paper.");
+  s.addNotes(catatan("Fitur dihitung sekali per rekaman, vektor 22 dimensi. basSQI, qrsSQI, pliSQI mengikuti Clifford 2012. Prototipe dibuat dari denyut rata-rata rekaman excellent, diklaster k-means dengan jarak DTW. Daftar lengkap di Tabel 4 paper.", [["Mean, median, deviasi", "rata-rata, nilai tengah, dan seberapa jauh nilai menyebar dari rata-rata"], ["Skewness", "kemencengan sebaran, apakah nilai lebih banyak di satu sisi"], ["Kurtosis", "seberapa runcing sebaran, apakah ada nilai ekstrem seperti puncak R yang tajam"], ["SDNN", "standard deviation of NN intervals, simpangan baku interval antardetak; ukuran variasi detak"], ["Coverage", "panjang segmen sinyal yang valid setelah artefak dibuang"], ["Konsistensi eCDF/FFT", "rata-rata korelasi antarjendela dari tahap deteksi artefak"], ["Konsistensi sinyal", "jarak DTW antara paruh pertama dan paruh kedua rekaman"], ["SQI (signal quality index)", "angka indeks kualitas sinyal"], ["basSQI", "SQI untuk baseline wander, garis dasar yang naik turun lambat (napas, gerak)"], ["qrsSQI", "SQI dari porsi daya di pita frekuensi QRS; QRS yang kuat berarti sinyal bersih"], ["pliSQI", "SQI untuk power-line interference, dengung jala-jala listrik 50/60 Hz"], ["SNR (signal-to-noise ratio)", "perbandingan kekuatan sinyal terhadap noise; makin besar makin bersih"], ["Mean SQI", "rata-rata basSQI, qrsSQI, dan pliSQI"], ["Template / prototipe", "bentuk denyut acuan; template = rata-rata denyut rekaman itu, prototipe = denyut ideal dari rekaman excellent"], ["Jarak Euclid, L1", "cara mengukur beda dua kurva titik demi titik (akar jumlah kuadrat selisih, dan jumlah selisih mutlak)"], ["DTW (dynamic time warping)", "jarak dua kurva yang boleh meregang atau memampatkan waktu, jadi denyut yang sedikit lebih cepat tetap dianggap mirip"], ["Klaster, k-means", "pengelompokan data mirip menjadi k kelompok"], ["Varians", "ukuran keragaman data; dua klaster memuat 90% varians artinya dua kelompok sudah mewakili hampir semua bentuk"]]));
 }
 
 {
@@ -147,7 +149,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
     "Label ahli berbasis aturan heuristik, batas antar kelas tidak tajam",
   ], { y: 3.4, h: 1.5, fontSize: 15 });
   sumber(s, SUMBER);
-  s.addNotes("Hasil Tabel 5 dan Gambar 9 paper. Korelasi uji turun ke 0,60 karena subjektivitas label ahli dan jumlah kelas uninterpretable yang kecil. Paper menyebut AISQA sebagai interpolasi yang menghaluskan keputusan ahli berdasarkan ciri sinyal objektif.");
+  s.addNotes(catatan("Hasil Tabel 5 dan Gambar 9 paper. Korelasi uji turun ke 0,60 karena subjektivitas label ahli dan jumlah kelas uninterpretable yang kecil. Paper menyebut AISQA sebagai interpolasi yang menghaluskan keputusan ahli berdasarkan ciri sinyal objektif.", [["Regresi", "model yang menebak angka kontinu (di sini AISQA 0 sampai 3), bukan kelas"], ["Gaussian process", "model regresi yang menebak nilai dari kemiripan dengan contoh latih; kemiripan diatur oleh kernel"], ["Kernel eksponensial", "rumus kemiripan antar sampel yang dipilih karena hasilnya paling baik di antara kernel yang dicoba"], ["Korelasi Pearson", "seberapa searah tebakan model dengan nilai ahli; 1 = sempurna, 0 = tidak berhubungan"], ["Validasi 5 lipatan (5-fold cross-validation)", "data latih dibagi 5, model dilatih 5 kali dengan bagian uji bergiliran supaya tidak overfitting"], ["Data uji 20%", "bagian data yang disisihkan dan tidak pernah dilihat saat latih"], ["Balanced accuracy", "rata-rata akurasi tiap kelas, adil saat jumlah kelas timpang (uninterpretable hanya 77 rekaman)"], ["RMSE (root mean square error)", "rata-rata besar kesalahan tebakan, satuannya sama dengan skala 0 sampai 3"], ["Monoton, tumpang tindih", "nilai AISQA naik seiring kelas ahli memburuk, tetapi rentang tiap kelas saling beririsan"], ["Heuristik", "aturan praktis berdasarkan pengalaman, bukan rumus pasti"]]));
 }
 
 {
@@ -162,7 +164,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
   ], { w: 4.6, fontSize: 14 });
   gambar(s, "output/fig13_roc.png", 5.6, 1.3, 3.6, 2.7, "Gambar 13 paper: ROC per kelompok fitur dibanding acuan Clifford dkk.");
   sumber(s, SUMBER);
-  s.addNotes("Makin buruk kualitas, makin besar peluang alat salah. Ambang AISQA bisa dipakai memicu pengulangan pengukuran: Gambar 12 paper menunjukkan trade-off antara persentase pengulangan dan salah klasifikasi yang tersisa. Fitur frekuensi sendirian lemah karena ambang kerasnya tidak cocok untuk rantai pengukuran alat ini.");
+  s.addNotes(catatan("Makin buruk kualitas, makin besar peluang alat salah. Ambang AISQA bisa dipakai memicu pengulangan pengukuran: Gambar 12 paper menunjukkan trade-off antara persentase pengulangan dan salah klasifikasi yang tersisa. Fitur frekuensi sendirian lemah karena ambang kerasnya tidak cocok untuk rantai pengukuran alat ini.", [["Salah klasifikasi", "keputusan otomatis alat (AF atau bukan) berbeda dengan diagnosis ahli"], ["ROC (receiver operating characteristic)", "kurva trade-off antara deteksi benar dan alarm palsu saat ambang digeser"], ["AUC (area under curve)", "luas di bawah kurva ROC; 1 = sempurna, 0,5 = sama dengan menebak acak"], ["Kelompok fitur", "ROC dihitung untuk semua fitur, fitur frekuensi saja, dan fitur morfologi saja"], ["ECG 12 lead", "ECG klinis standar di rumah sakit, 10 elektroda di dada dan anggota tubuh"]]));
 }
 
 {
@@ -177,7 +179,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
     "High-pass AD8232 juga mengubah morfologi, pengaruhnya perlu diukur di rekaman resmi",
   ]);
   sumber(s, SUMBER);
-  s.addNotes("Usulan konkret: tiga gerbang preprocessing paper ini dipasang sebagai penyaring rekaman sinyal tubuh, autokorelasi 30 detik yang sudah ada dibandingkan dengan korelasi FFT dan eCDF per jendela 5 detik pada rekaman resmi. Bagian regresi tidak ditiru; cukup ambang per fitur.");
+  s.addNotes(catatan("Usulan konkret: tiga gerbang preprocessing paper ini dipasang sebagai penyaring rekaman sinyal tubuh, autokorelasi 30 detik yang sudah ada dibandingkan dengan korelasi FFT dan eCDF per jendela 5 detik pada rekaman resmi. Bagian regresi tidak ditiru; cukup ambang per fitur.", [["Pan-Tompkins", "algoritma klasik (1985) pendeteksi R-peak: filter, turunan, kuadrat, integrasi, lalu ambang adaptif"], ["ESP32", "mikrokontroler di perangkat PA, sumber daya terbatas"], ["AD8232", "modul penguat ECG analog yang dipakai PA, punya high-pass sendiri di jalur masuk"], ["Template QRS", "SQI yang membandingkan tiap denyut dengan denyut acuan; denyut aritmia yang bentuknya lain bisa ikut dianggap buruk"], ["Autokorelasi", "kemiripan sinyal dengan dirinya sendiri yang digeser waktu; tinggi bila sinyal berulang teratur"]]));
 }
 
 {
@@ -194,7 +196,7 @@ const SUMBER = "Sumber: M. Lueken dkk., Sensors, vol. 23, no. 12, art. 5618, 202
     { x: 0.6, y: 1.4, w: 8.8, h: 3.4, fontFace: FONT, fontSize: 15, color: "FFFFFF", margin: 0, valign: "top" }
   );
   s.addText(SUMBER, { x: 0.6, y: 5.0, w: 8.8, h: 0.4, fontFace: FONT, fontSize: 9, color: "C9D1E0", italic: true, margin: 0 });
-  s.addNotes("Tindak lanjut: pasang gerbang HR, durasi, dan polaritas di firmware; uji deteksi artefak jendela 5 detik melawan autokorelasi 30 detik pada rekaman resmi; ukur efek high-pass AD8232 pada morfologi.");
+  s.addNotes(catatan("Tindak lanjut: pasang gerbang HR, durasi, dan polaritas di firmware; uji deteksi artefak jendela 5 detik melawan autokorelasi 30 detik pada rekaman resmi; ukur efek high-pass AD8232 pada morfologi.", [["Wearable kontinu", "alat yang dipakai di tubuh dan merekam terus-menerus, bukan sekali ukur satu menit"], ["Validasi prospektif", "pengujian pada data baru yang dikumpulkan setelah model jadi, bukan data lama"], ["Label subjektif", "penilaian ahli bisa berbeda antarorang, sehingga kebenaran acuannya tidak mutlak"]]));
 }
 
 pres.writeFile({ fileName: "output/deck.pptx" }).then((f) => console.log("tersimpan", f));

@@ -6,6 +6,8 @@ di-ignore git, unduh ulang lewat tautan DOI atau `scripts/unduh_pustaka.py`).
 Deck ini menggantikan `presentasi/2026-10-15-bedah-paper-orphanidou/` (paper
 2015) atas permintaan user agar rujukan 2020 ke atas.
 
+Catatan pembicara tiap slide memuat bagian `ISTILAH (tidak dibacakan)`: arti singkat istilah asing di slide itu (FFT, eCDF, DTW, SDNN, AUC, dan seterusnya), dicocokkan dengan Tabel 4 dan Bagian 3 paper. Buka lewat tampilan Notes di PowerPoint/Google Slides/Impress.
+
 Gambar slide 4, 5, 6, dan 8 dipotong dari halaman paper (A4, 200 dpi), bukan digambar. Bangun ulang:
 
 ```bash
