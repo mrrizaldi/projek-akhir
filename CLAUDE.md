@@ -256,7 +256,10 @@ Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim
 (kode S01, S02, ...), tempat uji laboratorium, TLS/keamanan transport tidak
 dibahas sama sekali. Buku full =
 `laporan/buku-pa` (dikerjakan), varian progres = `laporan/progres-pa-1`
-(dibekukan, dibahas ulang bersama user).
+(dibekukan, dibahas ulang bersama user). **`laporan/proposal-pa` sudah
+diserahkan dan dibekukan (15 Okt 2026): tidak disunting lagi, termasuk
+`.bib`-nya.** Pergeseran buku terhadap proposal dicatat di tabel perubahan
+rancangan Bab 4 buku.
 
 - **Label kerja internal repo TIDAK boleh muncul di teks laporan resmi**
   (`laporan/**/*.tex` yang dicetak): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,

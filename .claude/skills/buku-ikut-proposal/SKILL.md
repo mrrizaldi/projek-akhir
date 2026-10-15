@@ -26,10 +26,11 @@ Kegagalan yang ditangkap user (14 Okt 2026):
    hal yang dipermasalahkan, tiga tujuan, dan apa yang diuji (Rencana
    Pengujian Bab 3). Kalimat buku ditulis dengan skill `narasi-pa` dan
    tidak harus identik dengan proposal.
-   Arah sebaliknya, saat proposal disesuaikan dengan keadaan proyek, hanya
-   garis besar yang sama itu dan daftar pustaka yang disinkronkan. Bab 3
-   proposal tetap rancangan (register skill `struktur-pa` aturan 4). Angka
-   hasil Bab 4 buku tidak dipindahkan ke proposal.
+   Arah sebaliknya tidak ada: `laporan/proposal-pa` sudah diserahkan dan
+   dibekukan (keputusan user 15 Okt 2026). Proposal tidak disunting lagi,
+   termasuk daftar pustakanya, walau buku sudah bergeser (target berangka,
+   uji tambahan, sitasi baru). Pergeseran itu dicatat di tabel perubahan
+   rancangan pada pembuka 4.6 buku, bukan dengan mengubah proposal.
 3. Lingkup ditulis di subbab tetap berikut, tanpa `\ref` ke subbab Bab 1 yang
    tidak ada:
    - subjek sehat anonim, non-klinis, data primer → Bab 4 Karakteristik Data
