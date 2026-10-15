@@ -131,10 +131,7 @@ representasi numerik bobot dari \textit{floating-point} 32-bit (float32) menjadi
 \textit{integer} 8-bit (INT8). Teknik ini menghasilkan pengurangan ukuran model
 hingga $4\times$ dengan penurunan akurasi yang kecil~\cite{jacob_2018}. Kuantisasi menjadi teknik krusial dalam
 TinyML karena memungkinkan model CNN yang semula terlalu besar untuk memori
-MCU dapat di-\textit{deploy} pada ESP32-S3 (512 KB SRAM internal). Selain kuantisasi,
-\textit{pruning} juga dapat digunakan untuk meningkatkan efisiensi inferensi
-hingga $3\times$ dibandingkan implementasi standar TFLite
-Micro~\cite{crespi_2026}. Pemetaan bobot \textit{float32} ke INT8 pada kuantisasi dituliskan pada Persamaan~\ref{eq:kuantisasi}.
+MCU dapat di-\textit{deploy} pada ESP32-S3 (512 KB SRAM internal). Pemetaan bobot \textit{float32} ke INT8 pada kuantisasi dituliskan pada Persamaan~\ref{eq:kuantisasi}.
 
 \begin{equation}
 \label{eq:kuantisasi}
