@@ -22,8 +22,9 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
    Durasi flush | ≤ 60 detik | ≤ 24,6 detik (uji yang sama) | Tidak diulang
    | Terpenuhi. Deduplikasi cloud | Timestamp ganda | Duplikat QoS 1
    dikenali dan diabaikan | 0 | Sama | Terpenuhi. Fakta: p95 tidak punya
-   target pada rencana pengujian Bab 3, dan skenario putus koneksi
-   dijalankan sekali.
+   target pada rencana pengujian Bab 3 selain acuan 2 detik; skenario putus
+   koneksi (baris Durasi flush) dijalankan sekali; deduplikasi diukur pada
+   kedua ulangan \textit{streaming} dan ulangan kedua juga 0 duplikat.
 3. Sel kolom "Alasan dan Acuan" pada `tab:parameter-eksperimen` baris f
    berisi 47 kata: bufer lokal mempertahankan kontinuitas saat koneksi putus
    dengan sitasi `resilient_edge_cloud`, detak hilang yang bertepatan dengan
@@ -67,3 +68,5 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 | 2026-10-15 | sonnet | haiku | 9/10 | B: acuan "≤ 2 detik" p95 dihapus jadi "tanpa target" (ditiru dari templat A), konversi 2 detik → 2.000 ms tidak disebut. Di luar rubrik: "diminta penguji" tanpa fakta; varian model tidak di caption. SKILL.md aturan 5 (konversi satuan disebut) + 7 (acuan tetap ditulis); templat A diperbaiki; rubrik B diperjelas |
 | 2026-10-15 | sonnet | haiku | 9/10 | B: "Sama" ditulis `0` (ulangan kedua memang dijalankan), rubrik menuntut `--`, padahal templat A skill sendiri memakai `0`. Di luar rubrik: penjelas mengulang 2 angka tabel, `% sumber:` tanpa path (tugas tidak memberi path). SKILL.md aturan 6: "Sama" yang terukur → nilainya; rubrik B diselaraskan dengan templat, rubrik A + batas pengulangan angka |
 | 2026-10-15 | sonnet | haiku | 9/10 | BERHENTI (aturan keras 8: 3 putaran, skor tidak naik). B: sel Timestamp ganda ulangan 2 ditulis `0`, penilai menganggap fakta "skenario putus koneksi dijalankan sekali" berlaku juga ke uji deduplikasi, sedangkan penulis menganggap deduplikasi diukur pada dua ulangan streaming. Akar masalah: soal tugas 2 tidak menyebut pada skenario mana deduplikasi diukur. Usulan ke user: tambah fakta "deduplikasi diukur pada dua ulangan streaming" ke tugas 2 (soal berjawaban pasti), lalu satu putaran ulang; atau terima 9/10 |
+| 2026-10-15 | -- | -- | belum dijalankan | Atas izin user, satu putaran tambahan di luar batas 3. Soal tugas 2 diperjelas: dedup diukur pada kedua ulangan (ulangan kedua 0), skenario putus = baris flush saja. Skill tidak diubah |
+| 2026-10-15 | sonnet | haiku | 9/10 | BERHENTI (putaran tambahan atas izin user). B: target teks "Duplikat QoS 1 dikenali dan diabaikan" ditulis `0` tanpa disebut ke user; penilai sendiri menandai ini "penilaian ketat". Rubrik A, C, D, E 2/2 di keempat putaran. Skor terbaik 9/10 diterima sebagai status skill; bila ingin 10/10, soal tugas 2 perlu menyebut target dedup sebagai angka ("0 duplikat") |
