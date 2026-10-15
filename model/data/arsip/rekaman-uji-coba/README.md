@@ -1,6 +1,6 @@
-# Arsip rekaman uji coba (10 September – 11 Oktober 2026)
+# Arsip rekaman uji coba (10 September – 14 Oktober 2026)
 
-27 rekaman AD8232 yang diambil selama pengembangan, **sebelum** prosedur
+28 rekaman AD8232 yang diambil selama pengembangan, **sebelum** prosedur
 perekaman resmi ditetapkan pada 13 Oktober 2026. Diarsipkan supaya tidak
 tertukar dengan rekaman resmi di [`../../recordings/`](../../recordings/README.md).
 
@@ -13,6 +13,7 @@ data hasil.** Jangan dikutip sebagai hasil di laporan.
 | 14 Sep 2026 | 8 (`20260914-*`) | breadboard, OUTPUT dipindah dari GPIO 4 ke GPIO 8 pada hari itu (jalur GPIO 4 putus); powerbank | rangkaian masih berubah |
 | 15 Sep 2026 | 11 (`20260915-*`) | breadboard, GPIO 8, firmware utama versi lama; powerbank | sebagian besar gagal (lantai derau, diduga header modul AD8232 belum disolder) |
 | 11 Okt 2026 | 2 (`20261011-*`) | rangkaian uji dengan peta pin PCB, OUTPUT → GPIO 1; firmware uji perangkat keras lama | 1 rekaman lead-off penuh, 1 rekaman bersinyal |
+| 14 Okt 2026 | 1 (`20261014-2014-rekam-001`) | rangkaian uji dengan peta pin PCB, catu baterai, WiFi OFF; firmware dengan batas rekam 300 s yang membuang sampel sesudahnya tanpa tanda | direkam ±45 menit, tersimpan 300 s pertama; sinyal bagus (autokorelasi 0,36 median per 30 s, 97% RR wajar), derau otot di 29–31 s dan 106–111 s. Tidak dihitung sebagai data resmi karena diambil sebelum perbaikan firmware rekaman lanjut (15 Okt 2026) |
 
 Kondisi bersama: satu subjek, Lead II, elektroda wet-gel, firmware yang sudah
 diganti (format CSV sama: header `# fs=360 n=... lewat=... [lepas=...]`).

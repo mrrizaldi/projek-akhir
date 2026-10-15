@@ -1,6 +1,8 @@
 import numpy as np
 
-from scripts.analyze_recording import analisis_segmen, gabung, muat
+from scripts.analyze_recording import (
+    JENDELA_AUTOKORELASI_S, analisis_segmen, denyut_autokorelasi, denyut_per_jendela, gabung, muat,
+)
 
 FS = 360
 
@@ -28,3 +30,18 @@ def test_rr_tidak_melintasi_jeda(tmp_path):
     assert all(len(h["r"]) > 10 for h in hasil)
     assert len(rr) == len(r) - 2
     assert np.all(np.abs(rr - 1.0) < 0.05)
+
+
+def test_autokorelasi_pendek_tetap_seluruh_segmen():
+    x = (_ekg(50, 0.5, 2000) - 2000) / 1000.0
+    assert denyut_per_jendela(x, FS) == denyut_autokorelasi(x, FS)
+
+
+def test_autokorelasi_panjang_median_per_jendela():
+    x = (_ekg(95, 0.5, 2000) - 2000) / 1000.0
+    n = JENDELA_AUTOKORELASI_S * FS
+    tiap = [denyut_autokorelasi(x[i:i + n], FS) for i in range(0, len(x) - n + 1, n)]
+    kuat, bpm, _ = denyut_per_jendela(x, FS)
+    assert len(tiap) == 3
+    assert kuat == float(np.median([k for k, _, _ in tiap]))
+    assert bpm == float(np.median([b for _, b, _ in tiap]))

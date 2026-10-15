@@ -32,6 +32,18 @@ def denyut_autokorelasi(x, fs):
     return float(ac[lag]), 60.0 * fs / lag, saingan
 
 
+JENDELA_AUTOKORELASI_S = 30
+
+
+def denyut_per_jendela(x, fs):
+    n = int(JENDELA_AUTOKORELASI_S * fs)
+    if len(x) < 2 * n:
+        return denyut_autokorelasi(x, fs)
+    kuat, bpm, saingan = zip(*(denyut_autokorelasi(x[i:i + n], fs)
+                               for i in range(0, len(x) - n + 1, n)))
+    return float(np.median(kuat)), float(np.median(bpm)), int(round(np.median(saingan)))
+
+
 def muat(path: str):
     fs, lewat = FS, None
     segmen = [[]]
@@ -70,7 +82,7 @@ def analisis_segmen(mentah, fs):
         "rr": np.diff(r) / fs if len(r) > 2 else np.array([]),
         "pita": [pita_energi(x, fs, a, b) for a, b in
                  ((0.5, 40), (49, 51), (60, fs / 2), (0.01, 0.5))],
-        "ac": denyut_autokorelasi(x, fs) if len(x) > int(1.5 * fs) + 1 else None,
+        "ac": denyut_per_jendela(x, fs) if len(x) > int(1.5 * fs) + 1 else None,
     }
 
 
@@ -130,7 +142,9 @@ def main() -> None:
         vonis = f"PALSU — {saingan} puncak setara (gangguan periodik, bukan denyut)"
     else:
         vonis = "ADA denyut"
-    print(f"  denyut       autokorelasi {kuat:.2f} @ {bpm_ac:.0f} bpm   {vonis}")
+    berjendela = any(h["n"] >= 2 * JENDELA_AUTOKORELASI_S * fs for h in hasil)
+    cara = f" (median per {JENDELA_AUTOKORELASI_S} s)" if berjendela else ""
+    print(f"  denyut       autokorelasi {kuat:.2f} @ {bpm_ac:.0f} bpm{cara}   {vonis}")
     print(f"  R-peak       {len(r)} dalam {n / fs:.1f} detik")
     if len(bpm):
         print(f"  BPM          mean {bpm.mean():.0f}  min {bpm.min():.0f}  max {bpm.max():.0f}"

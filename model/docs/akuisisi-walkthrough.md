@@ -370,7 +370,7 @@ segmen secara terpisah, lalu menggabungkan hasilnya:
 | R-peak Pan-Tompkins | dideteksi per segmen | indeks digeser ke sumbu waktu gabungan |
 | RR dan BPM | `diff` R-peak di dalam segmen | disambung; **tidak ada RR yang melintasi jeda** |
 | Energi pita (dengung, derau, drift, pita EKG) | per segmen | dijumlahkan, lalu dirasiokan |
-| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
+| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati; segmen ≥ 60 detik dihitung per jendela 30 detik lalu diambil median (`JENDELA_AUTOKORELASI_S`) | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
 | ADC min/maks, clipping | seluruh sampel | — |
 
 Alasannya: sinyal sebelum dan sesudah jeda tidak bersambung dalam waktu.
@@ -391,7 +391,7 @@ dan PNG sama persis). Uji: `tests/test_analyze_recording.py`.
 | `dengung 50Hz` | < 15% | cabut USB laptop, pilin kabel, cek RL |
 | `derau >60Hz` | < 50% | sebagian ditekan bandpass, ikut membaik kalau 50 Hz turun |
 | `drift <0.5Hz` | < 10% | subjek bergerak, atau elektroda bergeser |
-| `denyut` | ADA, autokorelasi > 0,25 | lihat di bawah |
+| `denyut` | ADA, autokorelasi > 0,25 (rekaman ≥ 60 detik: median per 30 detik, ditandai `(median per 30 s)`) | lihat di bawah |
 | `BPM masuk akal` | > 90% (30–200 bpm) | turunkan dengung lebih dulu |
 
 Ambang `dengung`, `derau`, `denyut`, dan `BPM masuk akal` adalah ambang yang
@@ -412,6 +412,15 @@ derau karena dengung 50 Hz berulang tiap 20 ms — jauh di luar jendela itu.
 **Pan-Tompkins** bertanya "di mana lonjakan energi?". Dengung yang kuat bocor
 lewat tahap kuadrat + integrasi dan terhitung sebagai QRS — itu sebabnya ia bisa
 melaporkan 169 "R-peak" dalam 44 detik.
+
+Autokorelasi mencari SATU jarak antardetak yang dominan. Pada rekaman panjang
+detak jantung berubah antarmenit, sehingga puncaknya melebar dan nilainya
+turun walau sinyalnya bagus. Karena itu segmen ≥ 60 detik dinilai per jendela
+30 detik dan diambil mediannya. Terukur pada rekaman 300 detik 14 Okt 2026
+(arsip uji coba): seluruh rekaman 0,24 (di bawah ambang), per 30 detik
+0,25–0,44 dengan median 0,36, HR median per menit 70–81 bpm. Segmen < 60 detik
+tetap dinilai utuh; keluaran rekaman arsip 44 detik `20260910-2019` identik
+sebelum dan sesudah perubahan ini.
 
 Vonis `PALSU — N puncak setara` berarti autokorelasi tinggi tapi puncaknya
 berderet seragam. Jantung memberi **satu** puncak dominan; variabilitas denyut
