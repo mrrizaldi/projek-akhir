@@ -5,45 +5,47 @@ Penulis menerima SKILL.md + tugas di bawah (tanpa akses repo; fakta repo ada di
 tugas, angka build boleh `[N]` karena peserta tidak menjalankan perintah) dan
 mengembalikan kode/rencana + pesan ke user.
 
-## Tugas uji
+## Tugas uji (dipersempit 15 Okt 2026, setelah 7 putaran tidak konvergen)
 
-1. Tambahkan log kualitas sinyal per detik ke firmware ESP32-S3: tiap detik satu
-   entri 8 byte (ayunan, dengung, RR) ke array PSRAM `LOG_N = 900` entri (15
-   menit), lalu dicetak lewat serial `g`. Tulis fungsi `log_catat()` yang
-   dipanggil sekali per detik dari `loop()` dan jelaskan perilaku saat penuh.
-2. Tinjau potongan ini (fakta: layar menampilkan `REC mm:ss` dari `n / 360`):
+Fakta yang diberikan ke peserta: build/flash `pio run -t upload` dari
+`firmware/`; serial 115200: `r` mulai/stop rekam, `j` jeda, `s` status dengan
+`sampel hilang <n>` (= `akuisisi_lewat()`), `l` daftar berkas, `d<n>` cetak
+berkas, `h<n>` hapus, `y` sumber replay; tarik `make pull N=<n>` dari `model/`;
+layar menampilkan `REC mm:ss` dari `n / 360`; LittleFS total 3456 KiB, terpakai
+580 KiB; berkas CSV 300 detik ±540 KB; menyimpan 540 KB dengan `f.printf("%u\n")`
+per sampel ±4 s (fakta ukur sebelumnya); antrean ISR 256 sampel pada 360 Hz;
+`loop()` mengambil satu sampel per iterasi.
+
+1. Tinjau dan perbaiki (bendera `jeda` harus tetap berfungsi):
    ```cpp
    void rekam_sampel(uint16_t s) {
        if (!aktif || n >= REKAM_N) return;
        buf[n++] = s;
    }
    ```
-   Sebutkan masalahnya dan tunjukkan perbaikan.
-3. Fakta: menyimpan berkas 540 KB ke LittleFS dengan `f.printf("%u\n")` per
-   sampel memakan ±4 detik; antrean ISR 256 sampel pada 360 Hz; `loop()`
-   mengambil satu sampel per iterasi. Rancang cara menyimpan saat batas
-   rekaman tercapai tanpa kehilangan sampel.
-4. Tulis rencana uji untuk perubahan tugas 3, termasuk perintah dan angka yang
-   diperiksa.
-5. Pilah tiga batas ini: (a) `tumpuk[DALAM_MAKS = 4]` menu, pohon menu statis
-   terdalam 3 tingkat; (b) antrean jadwal bip `JADWAL_N = 8`, penuh saat
-   lonjakan detak; (c) penghitung nomor berkas `/rekam/NNN.csv` maksimum 999.
+2. Rancang penyimpanan saat batas tercapai, untuk rekaman yang berlanjut ke
+   berkas baru, tanpa kehilangan sampel; termasuk pesan ke user untuk pilihan
+   yang mengubah pengalamannya.
+3. Rencana uji untuk tugas 2: perintah dan angka yang diperiksa.
 
 ## Rubrik (tiap butir 2 poin)
 
-- A. Tidak ada data terkumpul yang dibuang, diam-diam maupun dengan pesan (tugas
-  1, 2, 3, 5c), kecuali data yang secara fisik tak bisa ditulis dan dihitung;
-  perilaku dipilih (lanjut/berhenti/tolak) dan setiap pilihan yang mengubah
-  pengalaman user ditawarkan sebagai opsi lengkap + rekomendasi.
-- B. Batas terlihat: serial + layar, dan keadaan layar jujur (tugas 2: REC tidak
-  terus tampil sementara data dibuang).
-- C. Aksi di batas tidak memblok (tugas 3): penulisan dipecah lintas iterasi,
-  hanya saat antrean kosong (karena satu sampel per iterasi), buffer kedua.
-- D. Uji batas kecil lewat build flag + batas asli di board, dengan angka:
-  sampel hilang 0 selama dan sesudah, jumlah tersimpan cocok (tugas 4).
-- E. Pemilahan tepat (tugas 5): (a) tak tercapai menurut rancangan, (b) isyarat
-  UI boleh dibuang tetapi didokumentasikan, (c) data → ditolak dengan pesan;
-  plus dokumentasi di README dan kode tanpa komentar.
+- A. Tidak ada data terkumpul yang dibuang, diam-diam maupun dengan pesan,
+  kecuali byte yang ditolak tulis karena ruang dan dihitung; perilaku batas
+  dipilih (lanjut/berhenti/tolak) dan pilihan yang mengubah pengalaman user
+  ditulis sebagai blok opsi lengkap + rekomendasi.
+- B. Batas terlihat: serial + layar (+ bip saat sesi berakhir), `aktif = false`
+  lebih dulu, dan keadaan layar jujur (REC tidak tampil saat data tidak
+  disimpan; indikator saat `hilang`/`belum` > 0).
+- C. Aksi di batas tidak memblok: jalur sampel hanya tukar pointer, simpan
+  dipecah lintas iterasi hanya saat antrean kosong, buffer kedua; konstanta
+  waktu dibandingkan dengan 711 ms.
+- D. Uji batas kecil lewat build flag + batas asli di board, tiap uji dengan
+  perintah literal, `sampel hilang 0` sebelum/selama/sesudah, dan baris
+  harapan pasti (tanpa `≈`, `<`, placeholder).
+- E. Teks README lengkap (prosedur, jebakan + angka, flag uji), sumber angka
+  disebut, kode tanpa komentar, dan tidak ada hasil yang ditulis teramati
+  tanpa dijalankan.
 
 ## Riwayat skor
 
@@ -56,3 +58,4 @@ mengembalikan kode/rencana + pesan ke user.
 | 2026-10-15 | sonnet | haiku | 7/10 | A: log tanpa blok opsi; B: REC tetap tampil saat sampel hilang; D: harapan "parsial"/"<". Penilai juga salah hitung (4 berkas benar). SKILL.md: opsi untuk batas data rancangan sendiri, REC diganti HILANG, harapan pasti + sumber angka, tabel cek ke-k, opsi tak menghapus data |
 | 2026-10-15 | sonnet | haiku | 8/10 | A: tolak hanya satu usulan, gagal close tak terdeteksi; D: hilang tidak di semua uji, `<` di S2, perintah tidak lengkap. SKILL.md: blok opsi tolak, verifikasi ukuran sesudah close, baris harapan tetap + perintah lengkap tiap uji, konstanta waktu dibandingkan angka |
 | 2026-10-15 | sonnet | haiku | 7/10 | A: coba ulang habis membuang wadah utuh; B: belum naik tanpa pesan layar, REC tetap tampil; D: sampel hilang 0 tidak di semua uji, placeholder di harapan. Belum direvisi: loop dihentikan untuk keputusan user (7 putaran tidak konvergen) |
+| 2026-10-15 | sonnet | haiku | 8/10 | Soal dipersempit (3 tugas). C: hentikan() dari jalur sampel memanggil Serial/layar/bip; D: uji merujuk "sama dengan Uji 1", tanpa baris sebelum, klausa bersyarat. SKILL.md: jalur sampel hanya menandai, uji berdiri sendiri, pesan layar manusiawi, REC = sampel masuk wadah, butir tak dijalankan tetap [ ] |
