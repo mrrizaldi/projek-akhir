@@ -45,9 +45,12 @@ skill `tabel-pa`.
      dikatakan beserta alasannya.
    - Uji yang direncanakan tetapi tidak dilakukan ditulis eksplisit belum
      dilakukan beserta alasannya, tidak dihilangkan diam-diam.
-   - Target tanpa angka ("tinggi", "kecil", "hemat") tidak bisa divonis.
-     Beri angka dari rencana, atau tulis "target indikatif" dan bandingkan
-     dengan pembanding yang disebut.
+   - Target tanpa angka ("tinggi", "kecil", "hemat") tidak bisa divonis,
+     termasuk saat hasilnya belum diukur. Di tabel ketercapaian statusnya
+     ditulis "Belum dapat divonis (target tanpa angka)", lalu perlakuannya
+     disebut: beri angka dari rencana, atau tulis "target indikatif" dan
+     bandingkan dengan pembanding yang disebut. "Belum tercapai" hanya untuk
+     target berangka yang diukur dan tidak terpenuhi.
    - Minimal satu rujukan balik per bab ke Tujuan atau Permasalahan
      ("dikaitkan kembali dengan Tujuan 2 pada Subbab~\ref{sec:tujuan}").
 
@@ -78,15 +81,18 @@ skill `tabel-pa`.
 
 7. **Abstrak buku full = abstrak hasil.** Urutan: masalah dan urgensi →
    tujuan → perangkat dan metode → angka hasil utama (metrik model,
-   kinerja di perangkat, pipeline) → status dan keterbatasan satu kalimat.
+   kinerja di perangkat, pipeline) → status dan keterbatasan, paling banyak
+   dua kalimat.
    Angka abstrak = angka Bab 4 = angka Bab 5. *Abstract* berbahasa Inggris
    isinya sama. Abstrak proposal dan progres boleh berupa rencana tanpa
    angka.
 
 8. **Setiap gambar dan tabel diapit.** Dirujuk dengan nomor sebelum muncul,
    dijelaskan sesudah muncul oleh paragraf yang dibuka temuan atau
-   nomornya, lalu ditutup makna terhadap tujuan. Tidak ada "di atas" atau
-   "di bawah". Pembacaan gambar mengikuti alurnya (flowchart per cabang
+   nomornya, lalu ditutup makna terhadap tujuan. Posisi gambar atau tabel
+   tidak disebut dengan "di atas" atau "di bawah" ("Tabel 4.2 di atas");
+   kata itu tetap boleh untuk besaran ("di atas ambang"). Pembacaan
+   gambar mengikuti alurnya (flowchart per cabang
    keputusan, arsitektur per zona bernomor, panel (a)/(b) disebut di caption
    dan di paragraf). Paragraf penjelas gambar yang hanya mengulang caption
    adalah pelanggaran.
@@ -96,7 +102,9 @@ skill `tabel-pa`.
    skrip gambar baru, atau gambar AI). Di posisi gambar dipasang placeholder
    berisi kartu spesifikasi, dan user yang menggambar. Caption, `\label`,
    semua `\ref`, paragraf pengantar, dan paragraf penjelas tetap ditulis
-   final, dan penjelas hanya menyebut elemen yang ada di kartu. Plot data
+   final. Bagian pembacaan gambar di paragraf penjelas hanya menyebut
+   elemen, label, dan alur yang ada di kartu. Kalimat makna penutupnya
+   boleh mengaitkan gambar ke tujuan atau subbab lain. Plot data
    eksperimen dari pipeline repo (confusion matrix, kurva, grafik latensi)
    bukan ilustrasi. Berkas yang sudah di-export dirujuk langsung. Bila belum
    ada, placeholder menyebut skrip penghasilnya, dan skrip plot baru tidak
@@ -188,3 +196,6 @@ yang ada; identitas (nama, NRP, NIP, tahun) dicek ke sumber resmi.
 - [ ] Perintah pada daftar periksa sebelum kumpul dijalankan, dan angkanya
       ditulis dari keluaran nyata. Yang belum dijalankan ditulis "belum
       dijalankan".
+- [ ] Pesan akhir hanya mengklaim suntingan pada berkas yang benar-benar
+      diubah. Tanpa wewenang menyunting (`laporan/` read-only), jawaban
+      ditulis sebagai usulan, konsisten di seluruh pesan.

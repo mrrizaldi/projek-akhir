@@ -39,8 +39,9 @@ Angka keluaran skrip boleh `[N]` karena peserta tidak menjalankan perintah.
 ## Rubrik (tiap butir 2 poin)
 
 - A. Tugas 1: dibuka temuan (bukan "Berdasarkan Tabel" karena paragraf
-  sebelumnya sudah memakainya), ≤ 5 angka dengan pembanding (selisih
-  terbesar vs ambang 0,02), "signifikan", "terbukti", dan "menjamin" dihapus
+  sebelumnya sudah memakainya), ≤ 5 angka di seluruh paragraf termasuk
+  ambang 0,02, tiap angka berpembanding (selisih terbesar vs ambang),
+  "signifikan", "terbukti", dan "menjamin" dihapus
   atau dibenarkan, tanpa rantai "sehingga ... sehingga", dan kalimat ≤ 35
   kata.
 - B. Tugas 2: klaim dibatasi pada kondisi uji (*replay*, dua ulangan, WiFi
@@ -48,19 +49,25 @@ Angka keluaran skrip boleh `[N]` karena peserta tidak menjalankan perintah.
   rumah" dengan alasan lingkup bukti. p95 dilaporkan tanpa status
   terpenuhi atau gagal.
 - C. Tugas 3: dipecah per fungsi menjadi hasil, mekanisme (atau dirujuk ke
-  4.7/Bab 3), dan keputusan, masing-masing ≤ 150 kata dengan kalimat
-  pertama berupa temuan.
+  4.7/Bab 3), dan keputusan, masing-masing ≤ 150 kata, kalimat pertama
+  tiap paragraf menyatakan klaim utama paragraf itu (temuan, pernyataan
+  mekanisme, atau keputusan), dan tidak ada fakta yang tidak diberikan
+  tugas (mis. "tertinggi di antara seluruh varian", jumlah seed, anggaran
+  perangkat).
 - D. Tugas 4: temuan diurutkan terburuk dulu. Klaim "berkualitas baik" tanpa
   data ditandai prioritas Tinggi (register/klaim melebihi bukti, aturan 4
   dan 10), temuan skrip diringkas sebagai Rendah/Sedang, ≤ 15 baris, dan
   tanpa pujian.
 - E. Tugas 5: menyebut pemeriksaan isi (angka/`\cite`/`\ref` hilang atau
   tambah) dan `make pdf` + `undefined`, menyebut angka yang sengaja tidak
-  diulang dari tabel, dan tidak menulis hasil yang belum dijalankan sebagai
-  sukses.
+  diulang dari tabel, tidak menulis hasil yang belum dijalankan sebagai
+  sukses, dan status suntingan konsisten ("usulan" selama belum ditulis ke
+  `.tex`, bukan "sudah dirapikan").
 
 ## Riwayat skor
 
 | Tanggal | Penulis | Penilai | Skor | Catatan |
 |---|---|---|---|---|
-| 2026-10-15 | -- | -- | belum dijalankan | skill baru, eval belum dijalankan |
+| 2026-10-15 | sonnet | haiku | 9/10 | E: "sudah saya rapikan" padahal kalimat berikutnya "belum ditulis ke bab4.tex". Di luar rubrik: "memenuhi target" untuk satu pengukuran; p95 1.404 tidak disebut. Mode Sunting: pesan memakai "usulan" selama belum ditulis; rubrik E ditambah syarat konsistensi |
+| 2026-10-15 | sonnet | haiku | 8/10 | A: 6 angka (ambang ikut dihitung) dan salah hitung "5 angka"; C: kalimat pertama paragraf mekanisme/keputusan dinilai bukan temuan, fakta dikarang ("F1 tertinggi", "anggaran perangkat"). Di luar rubrik: PDSR tanpa definisi, mode Sunting tidak mengutip teks sebelum. SKILL.md: batas 5 angka termasuk ambang + hitung; larangan mengarang fakta; kalimat pertama = klaim sesuai fungsi; Sunting mengutip teks sebelum. Rubrik A dan C diperjelas |
+| 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 3. Di luar rubrik: PDSR tanpa kepanjangan di jawaban tugas 2; hanya p95 terbesar yang disebut; audit tugas 4 tanpa reverse outline (tugas tidak memberi bab). Dicatat, skill tidak diubah |

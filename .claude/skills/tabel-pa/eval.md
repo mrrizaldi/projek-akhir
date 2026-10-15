@@ -42,9 +42,13 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
   `fig:cm-ds2` sudah ada, tabel hanya berisi metrik (atau *confusion matrix*
   dipisah dengan alasan yang jelas). Desimal seragam 4, Accuracy di urutan
   akhir dan status "bukan acuan" ditaruh di Keterangan, bukan di sel.
-- B. Tugas 2: satuan di label baris atau header (bukan di tiap sel), "Sama"
-  dan "Tidak diulang" diganti `--` + kalimat Keterangan, p95 berstatus
-  "Dilaporkan" (bukan "Tidak stabil"/"Terpenuhi"), dan angka tidak berubah.
+  Paragraf penjelas mengulang paling banyak setengah angka tabel.
+- B. Tugas 2: satuan di label baris atau header (bukan di tiap sel),
+  "Tidak diulang" diganti `--` + kalimat Keterangan, "Sama" pada baris
+  deduplikasi (ulangan kedua memang dijalankan) diganti nilainya `0`,
+  p95 berstatus "Dilaporkan" (bukan "Tidak stabil"/"Terpenuhi") dengan
+  acuan 2 detik tetap tertulis di kolom Target, dan angka tidak berubah
+  (konversi satuan detik ke ms boleh bila disebut ke user).
 - C. Tugas 3: sel baru ≤ 20 kata, isi yang keluar tidak dibuang melainkan
   dipindah ke paragraf penjelas atau Keterangan, dan sitasi
   `~\cite{resilient_edge_cloud}` tetap ada.
@@ -60,4 +64,6 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 
 | Tanggal | Penulis | Penilai | Skor | Catatan |
 |---|---|---|---|---|
-| 2026-10-15 | -- | -- | belum dijalankan | skill baru, eval belum dijalankan |
+| 2026-10-15 | sonnet | haiku | 9/10 | B: acuan "≤ 2 detik" p95 dihapus jadi "tanpa target" (ditiru dari templat A), konversi 2 detik → 2.000 ms tidak disebut. Di luar rubrik: "diminta penguji" tanpa fakta; varian model tidak di caption. SKILL.md aturan 5 (konversi satuan disebut) + 7 (acuan tetap ditulis); templat A diperbaiki; rubrik B diperjelas |
+| 2026-10-15 | sonnet | haiku | 9/10 | B: "Sama" ditulis `0` (ulangan kedua memang dijalankan), rubrik menuntut `--`, padahal templat A skill sendiri memakai `0`. Di luar rubrik: penjelas mengulang 2 angka tabel, `% sumber:` tanpa path (tugas tidak memberi path). SKILL.md aturan 6: "Sama" yang terukur → nilainya; rubrik B diselaraskan dengan templat, rubrik A + batas pengulangan angka |
+| 2026-10-15 | sonnet | haiku | 9/10 | BERHENTI (aturan keras 8: 3 putaran, skor tidak naik). B: sel Timestamp ganda ulangan 2 ditulis `0`, penilai menganggap fakta "skenario putus koneksi dijalankan sekali" berlaku juga ke uji deduplikasi, sedangkan penulis menganggap deduplikasi diukur pada dua ulangan streaming. Akar masalah: soal tugas 2 tidak menyebut pada skenario mana deduplikasi diukur. Usulan ke user: tambah fakta "deduplikasi diukur pada dua ulangan streaming" ke tugas 2 (soal berjawaban pasti), lalu satu putaran ulang; atau terima 9/10 |

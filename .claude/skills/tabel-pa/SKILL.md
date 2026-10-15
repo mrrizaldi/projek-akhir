@@ -67,6 +67,9 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
    - Satuan ditulis sekali: di header kolom bila satu kolom satu besaran
      (`\textbf{Latensi (ms)}`), atau di label baris bila tiap baris besaran
      berbeda (`Latensi median (ms)`). Jangan tulis `939~ms` di tiap sel.
+     Nilai boleh dikonversi agar satu baris satu satuan (target "2 detik"
+     menjadi `2.000` pada baris bersatuan ms), dan konversi itu disebut ke
+     user sebagai perubahan tampilan, bukan perubahan angka.
    - Jumlah desimal seragam per kolom: metrik klasifikasi 4 desimal, persen 1
      desimal, latensi bilangan bulat ms. Desimal koma, ribuan titik
      (`3.813`, `0,6996`, `99,2`).
@@ -79,6 +82,9 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
    - Tidak ada nilai → `--`, lalu satu kalimat di Keterangan yang menjelaskan
      alasannya ("-- : skenario putus koneksi dijalankan sekali").
    - Dilarang "Sama", "idem", "Konfigurasi sama", "Tidak diulang", "dst".
+     "Sama" yang berarti ulangan kedua memang dijalankan dan hasilnya sama
+     diganti nilainya (mis. `0`). "Sama"/"Tidak diulang" yang berarti tidak
+     dijalankan diganti `--` + Keterangan.
    - Nilai sama di beberapa baris berturut-turut pada kolom pertama →
      `\multirow` (paket sudah dimuat), atau baris kelompok
      `\multicolumn{k}{|l|}{\textit{Nama kelompok}}`.
@@ -90,8 +96,10 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
    Sebagian tercapai / Belum tercapai. Tabel ablasi memakai Dipilih /
    Ditolak / Acuan, dan setiap Ditolak yang F1-nya lebih tinggi dari yang
    Dipilih wajib dijelaskan alasannya di Keterangan atau paragraf. Metrik yang
-   tidak punya target ("dilaporkan") tidak diberi status. Tulis "Dilaporkan"
-   lalu bahas di paragraf.
+   tidak punya target di rencana pengujian diberi status "Dilaporkan", bukan
+   Terpenuhi/Tidak terpenuhi, lalu dibahas di paragraf. Bila ada angka acuan
+   yang bukan target (mis. "acuan 2 detik" untuk p95), tulis di kolom Target
+   sebagai `acuan $\leq$ 2.000`, jangan dihapus.
 
 8. **Lebar dihitung, bukan ditebak.** Lebar teks A4 = 14 cm, A5 = 9,8 cm.
    - Tabel float baru → `tabularx` dengan `\linewidth`, kolom teks

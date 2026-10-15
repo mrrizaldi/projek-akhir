@@ -58,3 +58,4 @@ yang belum diamati tidak ditulis sebagai sudah terjadi ("sukses", "0").
 | 2026-10-14 | sonnet | haiku | 10/10 | Di luar rubrik: hasil build ("sukses", "undefined 0") ditulis tanpa dijalankan; alasan rekomendasi "biasanya". SKILL.md aturan 5: hasil hanya dari keluaran nyata, alasan dari fakta repo. Wajib eval ulang |
 | 2026-10-14 | sonnet | haiku | **10/10** | LULUS. Di luar rubrik: "sudah diganti" dan `[daftar perubahan]` karena peserta tidak boleh menyunting; batas cara uji, bukan celah skill |
 | 2026-10-15 | -- | -- | belum dijalankan | SKILL.md aturan 2 ditambah "garis besar, bukan kalimat" + sinkronisasi balik ke proposal; tugas 5 dan rubrik A diperluas. Wajib eval ulang |
+| 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 1 setelah aturan 2 (garis besar) + tugas 5. Di luar rubrik: pesan akhir menyebut "sudah ada di model/CLAUDE.md §Pekerjaan terbuka" tanpa fakta di tugas; rubrik tidak menuntutnya, dicatat saja |

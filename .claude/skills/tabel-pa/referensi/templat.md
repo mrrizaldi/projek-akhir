@@ -65,7 +65,7 @@ Sesudah:
     \hline
     Latensi median (ms) & $\leq$ 2.000 & 939 & 1.108 & Terpenuhi \\
     \hline
-    Latensi p95 (ms) & tanpa target & 1.404 & 3.304 & Dilaporkan \\
+    Latensi p95 (ms) & acuan $\leq$ 2.000 & 1.404 & 3.304 & Dilaporkan \\
     \hline
     Kapasitas \textit{ring buffer} (entri) & 27.000 tanpa \textit{overflow} & 27.000 & -- & Terpenuhi \\
     \hline
@@ -79,9 +79,11 @@ Sesudah:
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: PDSR dihitung per paket (292 dan 255 paket). Tanda -- berarti skenario kapasitas dan putus koneksi dijalankan sekali pada konfigurasi yang sama. Perilaku antrean penuh diverifikasi pada uji unit.\par}
 ```
 
-Yang berubah: satuan pindah ke label baris, isian samar menjadi `--` dengan
-satu kalimat di Keterangan, p95 diberi status "Dilaporkan", dan jumlah paket
-pindah ke Keterangan sehingga sel angka hanya berisi angka.
+Yang berubah: satuan pindah ke label baris (target "2 detik" dikonversi
+menjadi 2.000 ms dan disebut ke user), isian samar menjadi `--` dengan satu
+kalimat di Keterangan, p95 diberi status "Dilaporkan" dengan acuannya tetap
+tertulis, dan jumlah paket pindah ke Keterangan sehingga sel angka hanya
+berisi angka.
 
 ## B. Dua kondisi dan selisihnya
 

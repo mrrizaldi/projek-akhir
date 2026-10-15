@@ -47,10 +47,12 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
      tabel/gambar di dalam kalimat atau di kurung akhir. Contoh pola:
      "{Objek} {memenuhi/tidak memenuhi/berubah} {arah} pada {kondisi}
      (Tabel~\ref{..})."
-   - Bukti: paling banyak 3–5 angka dari tabel yang paling menentukan, dan
-     setiap angka **dibandingkan** dengan sesuatu (target, acuan, kondisi
-     lain) atau **dijelaskan** sebabnya. Angka tanpa pembanding adalah
-     transkripsi.
+   - Bukti: paling banyak **lima angka di seluruh paragraf**, termasuk
+     ambang, target, dan selisih yang dipakai sebagai pembanding. Pilih
+     angka tabel yang paling menentukan, dan setiap angka **dibandingkan**
+     dengan sesuatu (target, acuan, kondisi lain) atau **dijelaskan**
+     sebabnya. Angka tanpa pembanding adalah transkripsi. Hitung angkanya
+     sebelum menyerahkan, dan tulis jumlahnya dengan benar.
    - Makna: satu kalimat penutup yang mengaitkan ke target, tujuan, atau
      keputusan rancangan.
    - Opsional: anomali atau keterbatasan yang terlihat di tabel, satu sampai
@@ -98,6 +100,10 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
      Klaim tentang sinyal tubuh tidak boleh berdasar uji *replay*.
    - "Menjamin", "selalu", "pasti", dan "sangat" dihapus kecuali dibuktikan
      di seluruh lingkupnya.
+   - Tidak menambah fakta yang tidak ada di sumber (tabel, artefak, atau
+     tugas), misalnya "tertinggi di antara seluruh varian" atau "memenuhi
+     anggaran perangkat" tanpa angkanya. Yang tidak diketahui ditulis `[N]`
+     atau `\PlaceholderData{...}`.
 
 5. **Kalimat 15–30 kata, pecah di atas 35.** Paling banyak satu "sehingga"
    per kalimat, dan jangan merangkai "..., sehingga ..., sedangkan ...,
@@ -115,8 +121,11 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
    hasil (apa yang terukur, 4.6), mekanisme (mengapa, 4.7 atau Bab 3),
    keputusan rancangan (apa yang dipilih dan atas bukti apa), dan
    keterbatasan. Paragraf di atas 180 kata dipecah per fungsi
-   (`N-PANJANG`). Uji cepat: setiap paragraf bisa diberi judul 3–5 kata
-   yang jujur. Bila judulnya butuh "dan", pecah.
+   (`N-PANJANG`). Kalimat pertama setiap paragraf menyatakan klaim utama
+   paragraf itu sesuai fungsinya (temuan untuk hasil, pernyataan mekanisme
+   untuk mekanisme, keputusan untuk keputusan), bukan rincian atau
+   pengantar. Uji cepat: setiap paragraf bisa diberi judul 3–5 kata yang
+   jujur. Bila judulnya butuh "dan", pecah.
 
 7. **Kohesi lama → baru.** Kalimat dibuka dengan hal yang sudah dikenal
    pembaca dari kalimat atau paragraf sebelumnya, dan ditutup dengan
@@ -175,11 +184,14 @@ di PA ini. Setiap arketipe tunduk pada aturan 1–11 di atas.
 
 - **Tulis**: draf paragraf baru mengikuti aturan 1–10. Angka hanya dari
   artefak repo atau tabel yang sudah ada, dengan komentar `% sumber:`.
-- **Sunting**: tampilkan per paragraf versi sebelum → sesudah, ditambah satu
-  baris alasan per perubahan yang menyebut nomor aturan. Ubah seperlunya, dan
+- **Sunting**: tampilkan per paragraf versi sebelum (dikutip apa adanya) →
+  sesudah, ditambah satu baris alasan per perubahan yang menyebut nomor
+  aturan. Ubah seperlunya, dan
   jangan menulis ulang paragraf yang sudah lolos aturan. Suntingan `.tex`
   menunggu persetujuan user kecuali bab dan paragrafnya sudah disebut boleh
-  diubah (`laporan/` read-only, `CLAUDE.md` root).
+  diubah (`laporan/` read-only, `CLAUDE.md` root). Selama belum ditulis ke
+  `.tex`, pesan ke user menyebutnya "usulan", bukan "sudah dirapikan" atau
+  "sudah disunting", dan status itu konsisten di seluruh pesan.
 - **Audit** (read-only): jalankan `python3 scripts/cek_tabel.py`, baca
   babnya, lalu buat *reverse outline* (satu baris fungsi per paragraf).
   Laporkan paling banyak 15 temuan per bab, temuan terburuk dulu:
