@@ -113,10 +113,11 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   Jalur ukur sudah jadi: dari laptop (serial `p0`-`p5`, `scripts/measure_power.py`
   -> `artifacts/metrics/daya/<ts>.csv`) atau mandiri dari baterai (menu Ukur daya
   / serial `V`, lalu `make pull-daya`; prosedur di `firmware/README.md` bagian
-  Ukur daya tanpa laptop). **Terhalang rangkaian:** INA219 belum di
-  jalur catu (board dicatu USB langsung, VIN± mengambang). Rakit sesuai
-  [`docs/firmware-walkthrough.md`](docs/firmware-walkthrough.md) §5d, jalankan
-  skripnya, lalu isi `PLACEHOLDER-DATA daya` di bab4 buku-pa.
+  Ukur daya tanpa laptop). INA219 sudah di jalur baterai (tangga 14 Okt 2026
+  terbaca 3,69 V, ±137–154 mA tanpa WiFi; baterai bertahan hampir 1 jam).
+  **Terhalang catu:** `p5` butuh WiFi ON, yang menunggu konverter 5 V (butir
+  WiFi OFF di bawah). Setelah itu jalankan tangga tanpa charger, lalu isi
+  `PLACEHOLDER-DATA daya` di bab4 buku-pa.
 - **(14 Okt 2026) WiFi board sengaja OFF — keadaan darurat, kembalikan ke ON.**
   Keluaran konverter baterai 4,x V membuat board reset tiap ±2,5 s saat
   `WiFi.begin()`, jadi NVS board disetel **Jaringan → WiFi aktif OFF** (serial
