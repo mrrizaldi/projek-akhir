@@ -11,6 +11,9 @@ tanpa ditanya. Pemeriksaan mesin menangkap sisanya: skematik dari server MCP
 tidak terbaca KiCad 9, rotasi 180° membalik katoda D2 sehingga VBOOST
 terhubung pendek ke +5V, 117 `net_conflict` karena nama net tanpa `/`,
 skrip pcbnew segfault sesudah `Remove`, dan autoroute best-of-N gagal.
+Sesudah layout pertama, user menangkap tiga hal lagi: teks ref/value melintang
+terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
+0,25 mm/clearance 0,2 mm terlalu sempit dengan komponen berdempetan.
 
 ## Aturan
 
@@ -86,7 +89,7 @@ skrip pcbnew segfault sesudah `Remove`, dan autoroute best-of-N gagal.
 
 9. **Selesai = `cek_board.py` LULUS.** `python3 hardware/mainboard/cek_board.py`
    (peta pin vs netlist, +5V tidak menyentuh GPIO, ERC, DRC error,
-   unconnected, paritas). Peta pin di skrip diperbarui bersamaan dengan
+   unconnected, paritas, lalu `cek_tata_letak.py`: lebar, courtyard, teks). Peta pin di skrip diperbarui bersamaan dengan
    perubahan pin. Jalankan juga `kicad-cli pcb drc --severity-all` dan baca
    setiap temuan. Bukti di pesan commit adalah keluaran skrip ini, ditambah
    satu uji negatif bila skrip diubah.
@@ -96,7 +99,49 @@ skrip pcbnew segfault sesudah `Remove`, dan autoroute best-of-N gagal.
     dilakukan ditulis sebagai langkah ("baca X", "jalankan Y"), dan keluarannya
     `[N]`.
 
-11. **Yang tidak terbukti ditulis.** Dimensi fisik, urutan pin modul,
+11. **Lebar dan jarak untuk pabrik, bukan batas minimum.** Bawaan papan PA
+    (fabrikasi pabrik): sinyal 0,4 mm, EKG 0,5 mm, daya 1,2 mm (cabang gate
+    dan stub di net daya ikut 1,2 mm), clearance 0,3 mm, via 1,0/0,5 mm (daya
+    1,2/0,6 mm), jarak antar-courtyard ≥ 1,0 mm. Cara fabrikasi lain
+    (etching sendiri) ditanyakan dulu dan angkanya ikut jawaban user. Sebelum
+    menggambar jalur, hitung celah dengan lebar jalur DAN lebar pad: jalur
+    lewat di antara dua pad berjarak p butuh `p − pad ≥ lebar + 2 × clearance`
+    (pad bulat 1,7 mm di pitch 2,54 hanya menyisakan 0,84 mm; pad oval
+    2,0 × 1,4 mm menyisakan 1,14 mm). Mengubah bentuk/ukuran pad footprint
+    resmi untuk celah ini boleh tanpa bertanya selama lubang dan posisi pad
+    tidak berubah dan ring ≥ 0,2 mm; perubahannya dicatat di README bagian
+    footprint. Pad GND yang hanya mendapat satu spoke
+    thermal disambung solid ke zona.
+
+12. **Ruang mekanik dipesan sebelum layout.** Baterai, holder, modul yang
+    berbaring di atas papan, dan konektor yang perlu dijangkau tangan
+    ditanyakan dulu: jenis (berkabel atau kaki PCB), sisi papan, dan
+    ukurannya. Ruangnya dipesan sebagai rule area "dilarang footprint",
+    ditambah garis dan teks silkscreen, lalu dibuktikan dengan uji negatif
+    (footprint yang dipindah ke dalamnya ditolak DRC). Ukuran area = ukuran
+    yang diukur user + margin 1,5 mm tiap sisi. Bila ukuran belum diukur,
+    tanyakan; sementara itu pakai ukuran khas + margin (holder 18650 ±77 ×
+    21 mm → area 80 × 24 mm), sebut angka itu "ukuran khas, belum diukur",
+    dan masukkan ke "Yang belum terverifikasi". Jangan menyebutnya ukuran
+    terukur.
+
+13. **Teks searah header, tidak bertumpuk.** Referensi di silkscreen (tinggi
+    ≥ 0,8 mm) dan value di Fab, sejajar sumbu baris pin (mendatar untuk header
+    mendatar, tegak untuk header tegak), di sisi yang berlawanan, dekat
+    footprint-nya sendiri, tidak di atas pad, tidak keluar tepi, dan tidak
+    menumpuk teks lain di silk maupun Fab. Value yang panjang diputuskan
+    dengan urutan tetap ini dan keputusannya ditulis: (1) pindah ke baris
+    kedua/ketiga di sisi yang sama, maksimal 4 mm dari footprint; (2) kecilkan
+    sampai 0,4 mm (Fab tidak dicetak, jadi boleh di bawah 0,8 mm); (3) taruh di
+    tengah badan footprint searah barisan pin. Ref silk tidak pernah di bawah
+    0,8 mm; bila tidak muat searah header, putar tegak lurus dan tulis sebagai
+    pengecualian beserta alasannya. Tidak ada teks yang disembunyikan
+    diam-diam.
+    Teks bebas footprint (`PCB_TEXT`) tidak bisa disembunyikan di KiCad 9
+    (`SetVisible(False)` tidak tersimpan), jadi duplikat `${REFERENCE}`
+    dihapus. `cek_tata_letak.py` memeriksa aturan 11–13.
+
+14. **Yang tidak terbukti ditulis.** Dimensi fisik, urutan pin modul,
     perilaku rangkaian yang belum diuji di breadboard, dan tegangan komponen
     yang tidak diketahui masuk "Yang belum terverifikasi" di
     `hardware/mainboard/README.md`, dengan cara mengeceknya.

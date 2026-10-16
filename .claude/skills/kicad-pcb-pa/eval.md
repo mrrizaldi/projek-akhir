@@ -30,25 +30,52 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
    merute sisanya. Tulis urutan langkah sebelum dan sesudah autoroute,
    termasuk parameter autoroute dan cara membuktikan jalur manual tidak
    berubah.
+6. Papan dibuat di pabrik PCB. Jalur `+3V3` (netclass Default) harus lewat di
+   antara dua pin bertetangga di satu kolom U1 (pitch 2,54 mm, pad bulat
+   1,7 mm). Tulis lebar dan clearance yang kamu pakai, hitung apakah jalurnya
+   muat, dan bila tidak, perubahan yang membuatnya muat beserta angka celah
+   barunya.
+7. User akan memakai holder 18650 berkabel yang ditempel di sisi atas papan.
+   Baterai berukuran 65 × 18 mm; ukuran holder belum diukur. Tulis apa yang
+   kamu lakukan di PCB dan bagaimana membuktikannya.
+8. Footprint `PinSocket_1x06` (J3) diputar 90° sehingga barisan pinnya
+   mendatar sepanjang 12,7 mm, tetapi ref dan value-nya ikut tegak. Ruang
+   kosong: 2,0 mm di atas courtyard, 6,0 mm di bawahnya; ke kiri dan kanan
+   hanya 2,0 mm sebelum header tetangga, jadi teks di atas/bawah J3 boleh
+   selebar maksimal 16,7 mm. Teks 1 mm selebar ±0,75 mm per karakter dan
+   setinggi 1,3 mm per baris. Value `AD8232 GND 3V3 OUT LO- LO+ SDN`
+   (30 karakter). Teks Fab `${REFERENCE}` milik footprint (sebuah
+   `PCB_TEXT`, bukan field) menimpa pin. Tulis posisi, sudut, dan ukuran ref
+   dan value, serta apa yang dilakukan pada `${REFERENCE}` itu.
 
 ## Rubrik (tiap butir 2 poin)
 
-- A. Tugas 1: kepala diganti `(version 20250114)` dan `(generator_version "9.0")`,
-  verifikasi `kicad-cli sch export netlist` (atau ERC) sukses.
-- B. Tugas 2: K di (102; 100,8), A di (98; 100,8); langkah mencetak koordinat
-  pad dari board sebelum merute (keluaran boleh `[N]`); keputusan tegas:
-  rotasi diganti 0 sehingga K di (98; 100,8), lalu pad dicetak ulang.
-- C. Tugas 3: tidak memilih sendiri; bertanya ke user dengan ≥ 2 opsi
+- A. Tugas 1–2: kepala diganti `(version 20250114)` dan
+  `(generator_version "9.0")` + verifikasi `kicad-cli` sukses; K di
+  (102; 100,8), A di (98; 100,8), langkah mencetak pad (keluaran boleh `[N]`),
+  keputusan tegas rotasi 0 sehingga K di (98; 100,8), lalu pad dicetak ulang.
+- B. Tugas 3: tidak memilih sendiri; bertanya ke user dengan ≥ 2 opsi
   (3V3, GPIO12, atau jumper) beserta akibat tiap opsi dan rekomendasi + alasan.
-- D. Tugas 4: net board diganti nama ke `/NAMA`, pad NC diberi net
-  `unconnected-(...)` dengan `{slash}`, pola netclass ikut `/`, perubahan
-  berikutnya lewat skrip pcbnew (FootprintLoad, salin ref/posisi/rotasi/net),
-  bukan sinkronisasi ulang; verifikasi
-  `cek_board.py` atau `kicad-cli pcb drc --schematic-parity` → 0.
-- E. Tugas 5: jalur dan footprint dikunci, salinan acuan disimpan, autoroute
-  satu percobaan (`maxPasses`, bukan `attempts` > 1); sesudahnya bandingkan
-  segmen terkunci (0 hilang/berubah), hapus segmen nol-panjang dan tak
-  terkunci di net manual, tuang zona, `cek_board.py` LULUS.
+- C. Tugas 4–5: net board diganti ke `/NAMA`, pad NC `unconnected-(...)`
+  dengan `{slash}`, pola netclass ikut `/`, perubahan berikutnya lewat skrip
+  pcbnew (FootprintLoad, salin ref/posisi/rotasi/net) bukan sinkronisasi
+  ulang, verifikasi paritas → 0; jalur dan footprint dikunci, salinan acuan,
+  autoroute satu percobaan (`maxPasses`), segmen terkunci dibandingkan
+  (0 hilang/berubah), segmen nol-panjang dan tak terkunci di net manual
+  dihapus, zona dituang, `cek_board.py` LULUS.
+- D. Tugas 6–7: 0,4 mm + clearance 0,3 mm; celah 2,54 − 1,7 = 0,84 mm < 1,0 mm
+  sehingga tidak muat, pad diubah oval 2,0 × 1,4 mm sehingga celah 1,14 mm;
+  holder: rule area "dilarang footprint" berukuran holder terukur + margin
+  (atau ±80 × 24 mm dengan ukuran holder dicatat belum terverifikasi /
+  ditanyakan), garis + teks silkscreen, uji negatif DRC menolak footprint di
+  dalam area.
+- E. Tugas 8: ref `J3` di silkscreen 1,0 mm (atau 0,8 mm), sudut 0, di atas J3
+  (muat di ruang 2,0 mm); value di Fab, sudut 0, di bawah J3 (sisi
+  berlawanan), dikecilkan karena 30 × 0,75 × 0,8 = 18 mm > 16,7 mm: ukuran
+  0,7 mm (15,75 mm) atau lebih kecil sampai ≥ 0,4 mm, dengan keputusan tertulis;
+  `${REFERENCE}` dihapus dengan `Delete()` di skrip terpisah (bukan
+  `SetVisible(False)`, yang tidak tersimpan); dibuktikan `cek_tata_letak.py`
+  teks 0 temuan.
 
 ## Riwayat skor
 
@@ -56,3 +83,6 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
 |---|---|---|---|---|
 | 2026-10-16 | sonnet | haiku | 8/10 | B: keputusan rotasi ditunda; D: jalur pengganti sinkronisasi ulang tidak disebut. Di luar rubrik: klaim memeriksa berkas tanpa akses. SKILL.md: aturan 6 putuskan rotasi saat itu, aturan 5 prosedur skrip pengganti sync, aturan 10 klaim sebatas yang dilakukan; tugas 2 minta keputusan akhir |
 | 2026-10-16 | sonnet | haiku | 10/10 | Lulus. Di luar rubrik (tidak mengubah SKILL.md): klaim isi berkas yang tidak dibuka di tugas 3, urutan simpan/muat ulang sesudah Delete tidak ditulis, klaim daya backlight dari ingatan |
+| 2026-10-16 | sonnet | haiku | 9/10 | SKILL.md + aturan 11–13 (teks, holder, lebar; ditangkap user), tugas 6–8 baru. E: penempatan value panjang tidak diputuskan. Di luar rubrik: holder disebut "terukur" padahal belum. SKILL.md: urutan tetap penempatan value, ukuran khas vs terukur di aturan 12 |
+| 2026-10-16 | sonnet | haiku | 9/10 | E: keputusan value tidak diambil; sebab soal tanpa data ruang (tidak berjawaban pasti). Tugas 8 diberi angka ruang, rubrik E diisi jawaban pasti. SKILL.md: aturan 11 mengizinkan ubah bentuk pad footprint resmi bila lubang dan posisi tetap, dicatat di README |
+| 2026-10-16 | sonnet | haiku | 10/10 | Lulus (putaran ke-3 siklus aturan 11–13). Di luar rubrik, tidak mengubah SKILL.md: DRC tanpa tuang zona di tugas 4/6/7; aturan 9 `python3` vs aturan 7 `/usr/bin/python3` (bukan pertentangan: cek_board.py tanpa pcbnew dan memanggil cek_tata_letak.py lewat /usr/bin/python3); klaim GPIO12 dari ingatan |
