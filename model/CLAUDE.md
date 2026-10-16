@@ -70,13 +70,13 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 
 ## Pekerjaan terbuka
 
-- **(13 Okt 2026) Skematik PCB rev2 (`~/Downloads/schematic_rev2.pdf`, di luar
-  repo) — perbaiki sebelum fabrikasi.** Pull-up tombol R11–R13 1 kΩ masih ke
-  +5V padahal GPIO ESP32-S3 maks 3,6 V (firmware sudah `INPUT_PULLUP`: buang
-  R11–R13 atau pindah ke 3V3); TFT BLK tidak tersambung (ke 3V3 atau GPIO12).
-  Sisanya cocok dengan `firmware/include/perangkat.h` dan
-  `docs/arsip/2026-10-08-pcb-rev2-adjustment.md`. Ukur tegangan VIN_ESP setelah
-  D2 saat dicatu baterai.
+- **(13 Okt 2026) PCB rev2 — cek fisik sebelum fabrikasi.** Desain ada di
+  [`../hardware/mainboard/`](../hardware/mainboard/README.md) (skematik +
+  layout, `cek_board.py` lulus). Yang tersisa ada di bagian "Yang belum
+  terverifikasi" README itu: jarak baris header DevKit fisik, urutan pin
+  modul, ruang mekanik modul, uji breadboard jalur D1→VSYS, konektor baterai,
+  dan tegangan lampu saklar. Ukur tegangan VIN_ESP setelah D2 saat dicatu
+  baterai.
 - **(14 Okt 2026) Wujud rakitan di buku menunggu PCB final.** Buku-pa menyebut
   "rangkaian uji dengan peta pin PCB". Setelah desain PCB final dicetak,
   perbarui tabel perangkat keras uji, foto rakitan, dan saran perangkat

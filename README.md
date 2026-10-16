@@ -12,6 +12,7 @@ MQTT ke ThingsBoard. Klasifikasi berjalan di alat, bukan di server.
 | `model/` | Jalur TinyML: data MIT-BIH → preprocessing → pelatihan → kuantisasi INT8 → ekspor | Python 3.11 + TensorFlow/TFLite |
 | `firmware/` | Program ESP32-S3: akuisisi 360 Hz, deteksi R-peak, inferensi TFLite Micro, MQTT | PlatformIO (C/C++) |
 | `dashboard/` | ThingsBoard CE (broker MQTT, rule engine, dashboard) dan skrip pengukuran pipeline | Docker Compose, Python |
+| `hardware/` | PCB mainboard rev2: skematik, layout, library DevKitC-1, pemeriksaan otomatis ([`hardware/mainboard/`](hardware/mainboard/README.md)) | KiCad 9 |
 | `laporan/` | Dokumen LaTeX: `proposal-pa`, `buku-pa`, `surat-magang`, `shared` | pdflatex + bibtex |
 | `scripts/` | Otomasi lintas-komponen (sinkronisasi artefak) | bash |
 | `docs/` | Pola penulisan laporan PA dan arsip rencana kerja | Markdown |

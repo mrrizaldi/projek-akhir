@@ -1,0 +1,7 @@
+*.kicad_prl
+*.dsn
+*.ses
+fp-info-cache
+*-backups/
+.mcp-backups/
+*.lck
