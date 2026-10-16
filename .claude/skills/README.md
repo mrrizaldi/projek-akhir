@@ -14,6 +14,7 @@ berbeda, maksimal 3 putaran.
 | `batas-tidak-diam` | firmware: batas tidak membuang data diam-diam, aksi di batas tidak memblok |
 | `tanpa-komentar-kode` | kode tanpa komentar/docstring, penjelasan ke dokumen |
 | `deck-pa` | deck presentasi PA (PPTX): isi dari buku, angka tidak dikarang, tanpa label internal, ilustrasi = placeholder, render + lihat tiap slide |
+| `kicad-pcb-pa` | PCB/skematik KiCad: keputusan desain ditanyakan, format KiCad 9, pad dibaca bukan ditebak, nama net = skematik, `cek_board.py` LULUS |
 
 Pemeriksa mesin untuk skill laporan: `python3 scripts/cek_tabel.py`
 (`scripts/README.md`).
