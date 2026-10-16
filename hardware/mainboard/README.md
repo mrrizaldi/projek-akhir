@@ -3,7 +3,7 @@
 Proyek KiCad untuk papan induk alat: ESP32-S3-DevKitC-1 N16R8, AD8232, TFT
 ST7789 1,47", INA219, modul buzzer pasif, tiga tombol, dan jalur catu
 baterai 18650 (TP4056 + boost MT3608) dengan saklar on-off. Semua modul
-dipasang lewat header 2,54 mm. Papan dua lapis, 110 × 75 mm.
+dipasang lewat header 2,54 mm. Papan dua lapis, 110 × 103 mm.
 
 Kondisi: skematik dan layout lengkap, pemeriksaan otomatis lulus (lihat
 **Pemeriksaan**). Belum difabrikasi, dan butir di **Yang belum terverifikasi**
@@ -51,7 +51,7 @@ Urutan pin header modul:
 | J1 | boost MT3608 | VIN+, VIN−, VOUT+, VOUT− |
 | J10 | saklar on-off berlampu (di casing) | masuk (VSYS), keluar ke boost (VSW), GND lampu |
 | J4 / J5 / J6 | TP4056 | IN+ IN− / B+ B− / OUT+ OUT− |
-| J8 | baterai 18650 (JST PH) | +, − |
+| J8 | kabel holder 18650 (JST PH) | +, − |
 
 ## Catu daya
 
@@ -88,6 +88,7 @@ Urutan pin header modul:
 | Kanan bawah | jalur baterai, INA219, Q1, D1, D2, header TP4056/boost/baterai | jauh dari AD8232; modul boost di luar papan lewat kabel |
 | Kiri | TFT, buzzer, tombol | SPI TFT berlawanan sisi dengan jalur analog |
 | Atas U1 | rule area `antena_devkit` | tanpa tembaga dan via di bawah antena WROOM |
+| Bawah | rule area `holder_18650` 80 × 24 mm (x 66–146, y 116,5–140,5) + garis silkscreen | tempat holder 18650 berkabel yang ditempel; baterai 65 × 18 mm, holder ±77 × 21 mm, margin 1,5 mm tiap sisi; footprint dilarang, jalur dan GND pour boleh |
 
 Jalur yang dirute manual dan dikunci (`locked`): tiga jalur EKG (F.Cu
 0,3 mm), catu AD8232 (3V3 dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2, SDN ke
@@ -176,7 +177,7 @@ Peta pin di skrip (`PIN_U1`, `PIN_LAIN`) wajib diperbarui bersamaan dengan
    +5V dengan charger tercolok dan tercabut, dan pastikan arus baterai ≈ 0
    saat dicas.
 5. **Konektor baterai** memakai JST PH 2 mm. Sesuaikan dengan kabel holder
-   18650 yang dipakai.
+   18650 yang dipakai, dan ukur holdernya: area di papan 80 × 24 mm.
 6. **Tegangan lampu saklar J10.** Lampu dicatu VSYS ±3,0–4,6 V. Lampu LED
    12 V atau neon 220 V tidak akan menyala di tegangan ini; cek tulisan di
    badan saklar sebelum memakai pin lampu.
