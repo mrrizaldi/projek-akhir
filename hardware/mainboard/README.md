@@ -15,7 +15,8 @@ harus dicek pada modul fisik sebelum Gerber dikirim.
 |---|---|
 | `mainboard.kicad_pro`, `.kicad_sch`, `.kicad_pcb` | proyek KiCad 9.0.2 |
 | `lib/PA.kicad_sym`, `lib/PA.pretty/` | simbol dan footprint ESP32-S3-DevKitC-1 (library proyek, dirujuk lewat `${KIPRJMOD}`) |
-| `cek_board.py` | pemeriksaan netlist, ERC, DRC, dan paritas skematik–PCB |
+| `cek_board.py` | pemeriksaan netlist, ERC, DRC, dan paritas skematik–PCB; memanggil `cek_tata_letak.py` |
+| `cek_tata_letak.py` | pemeriksaan pcbnew (`/usr/bin/python3`): lebar jalur per netclass, jarak courtyard ≥ 1 mm, teks |
 
 Berkas dibuat dengan KiCad 9.0.2 dan bisa dibuka KiCad 10. Arah sebaliknya
 tidak bisa: berkas KiCad 10 (misalnya skematik rev2 yang disusun dengan
@@ -91,15 +92,29 @@ Urutan pin header modul:
 | Bawah | rule area `holder_18650` 80 × 24 mm (x 66–146, y 116,5–140,5) + garis silkscreen | tempat holder 18650 berkabel yang ditempel; baterai 65 × 18 mm, holder ±77 × 21 mm, margin 1,5 mm tiap sisi; footprint dilarang, jalur dan GND pour boleh |
 
 Jalur yang dirute manual dan dikunci (`locked`): tiga jalur EKG (F.Cu
-0,3 mm), catu AD8232 (3V3 dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2, SDN ke
-3V3), dan seluruh jalur daya (0,8 mm). Gate Q1 lewat B.Cu karena urutan pin
+0,5 mm), catu AD8232 (3V3 0,4 mm dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2,
+SDN ke 3V3), dan seluruh jalur daya (1,2 mm, termasuk cabang gate Q1 dan R2). Gate Q1 lewat B.Cu karena urutan pin
 SOT-23 (G, D, S searah jarum jam) berlawanan dengan arah net di sekitarnya,
 dan gate tidak membawa arus. Sisa sinyal digital dirute Freerouting 2.3.0.
 GND dituang di kedua lapis.
 
-Netclass (`mainboard.kicad_pro`): `Power` 0,8 mm/clearance 0,25 mm untuk
-`/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-`; `ECG` 0,3 mm
-untuk `/ECG_*`; `Default` 0,25 mm, via 0,8/0,4 mm.
+Aturan jalur dipilih untuk fabrikasi pabrik PCB, dengan margin lebar di atas
+batas minimum pabrik:
+
+| Netclass (`mainboard.kicad_pro`) | Net | Lebar | Clearance | Via |
+|---|---|---|---|---|
+| `Default` | sinyal digital, `+3V3` | 0,4 mm | 0,3 mm | 1,0/0,5 mm |
+| `ECG` | `/ECG_*` | 0,5 mm | 0,3 mm | 1,0/0,5 mm |
+| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,2 mm | 0,3 mm | 1,2/0,6 mm |
+
+Jarak antar-courtyard komponen minimal 1,0 mm. Pad GND U2-2, U1-22, C3-2, dan
+C2-2 tersambung penuh (*solid*) ke zona, karena jalur selebar ini menyisakan
+hanya satu spoke thermal di pad-pad tersebut.
+
+Teks: referensi di silkscreen (tinggi ≥ 0,8 mm) dan value di Fab, sejajar
+sumbu header dan di sisi yang berlawanan, tanpa menumpuk dan tidak di atas
+pad. Pengecualian: ref C4 mendatar di atas C4, karena celah 9 mm antara U1 dan
+J3 tidak muat teks tegak 0,8 mm.
 
 ## Perbedaan terhadap skematik rev2
 
@@ -128,9 +143,12 @@ rev2) agar tanda polaritas tercetak.
 Diambil dari library resmi Espressif (`espressif/kicad-libraries`,
 `ESP32-S3-DevKitC.kicad_mod` dan simbol `ESP32-S3-DevKitC`). Posisi pad tidak
 diubah: 2 × 22 pin, pitch 2,54 mm, jarak antar-baris 22,86 mm. Yang diubah
-hanya lubang, dari 0,8 mm menjadi 1,0 mm dengan pad 1,7 mm. Pin header persegi
-0,64 mm berdiagonal 0,9 mm, sehingga tidak masuk lubang 0,8 mm. Ukuran 1,0 mm
-sama dengan footprint `PinSocket` KiCad. Simbol diturunkan dari format KiCad 10
+hanya lubang dan pad: lubang 0,8 mm menjadi 1,0 mm, pad oval 2,0 mm (mendatar)
+× 1,4 mm (tegak). Pin header persegi 0,64 mm berdiagonal 0,9 mm, sehingga
+tidak masuk lubang 0,8 mm; 1,0 mm sama dengan footprint `PinSocket` KiCad.
+Pad 1,4 mm tegak menyisakan celah 1,14 mm antar-pin satu kolom, cukup untuk
+jalur 0,4 mm + clearance 2 × 0,3 mm. Jalur 3V3 ke AD8232 dan I2C ke INA219
+menyeberangi kolom pin kanan lewat celah ini. Simbol diturunkan dari format KiCad 10
 ke format KiCad 9 tanpa mengubah pin.
 
 ## Pemeriksaan
@@ -146,10 +164,15 @@ netlist: 87/87 pin sesuai peta
 +5V di luar jalur daya: tidak ada
 ERC: error 0 warning 0
 DRC error: 0, unconnected: 0, paritas skematik: 0
+lebar jalur: 0 temuan
+jarak courtyard: 0 temuan
+teks: 0 temuan
 LULUS
 ```
 
-Skrip keluar dengan kode 1 bila satu pin saja menyimpang dari peta di atas.
+Skrip keluar dengan kode 1 bila satu pin saja menyimpang dari peta di atas,
+bila ada jalur lebih tipis dari netclass-nya, dua courtyard berjarak < 1 mm,
+atau teks menumpuk, di atas pad, keluar tepi, atau tidak searah header.
 Peta pin di skrip (`PIN_U1`, `PIN_LAIN`) wajib diperbarui bersamaan dengan
 `perangkat.h` setiap kali pin dipindah.
 
