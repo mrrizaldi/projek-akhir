@@ -16,7 +16,8 @@ harus dicek pada modul fisik sebelum Gerber dikirim.
 | `mainboard.kicad_pro`, `.kicad_sch`, `.kicad_pcb` | proyek KiCad 9.0.2 |
 | `lib/PA.kicad_sym`, `lib/PA.pretty/` | simbol dan footprint ESP32-S3-DevKitC-1 (library proyek, dirujuk lewat `${KIPRJMOD}`) |
 | `cek_board.py` | pemeriksaan netlist, ERC, DRC, dan paritas skematik–PCB; memanggil `cek_tata_letak.py` |
-| `cek_tata_letak.py` | pemeriksaan pcbnew (`/usr/bin/python3`): lebar jalur per netclass, jarak courtyard ≥ 1 mm, teks |
+| `cek_tata_letak.py` | pemeriksaan pcbnew (`/usr/bin/python3`): lebar jalur per netclass, jarak courtyard ≥ 1 mm, teks depan dan belakang |
+| `tata_letak.py` | alat layout (`/usr/bin/python3`): posisi terkunci, rute manual, pembersihan sesudah autoroute, pad GND solid, tuang zona, penempat teks, ukiran |
 
 Berkas dibuat dengan KiCad 9.0.2 dan bisa dibuka KiCad 10. Arah sebaliknya
 tidak bisa: berkas KiCad 10 (misalnya skematik rev2 yang disusun dengan
@@ -87,25 +88,33 @@ Urutan pin header modul:
 | Tengah | U1, USB menghadap tepi bawah | semua GPIO terpakai ada di kolom kiri kecuali EKG |
 | Kanan atas | J3 AD8232, C4 | pad 39–41 U1 sejajar J3 pin 3–5, jalur EKG lurus 9 mm |
 | Kanan bawah | jalur baterai, INA219, Q1, D1, D2, header TP4056/boost/baterai | jauh dari AD8232; modul boost di luar papan lewat kabel |
-| Kiri | TFT, buzzer, tombol | SPI TFT berlawanan sisi dengan jalur analog |
+| Kiri | TFT, buzzer; tombol SW1–SW3 berjajar tegak di tepi kiri (x 53–57,5, y 57,5–88) | SPI TFT berlawanan sisi dengan jalur analog; tombol mudah dijangkau dari sisi papan |
 | Atas U1 | rule area `antena_devkit` | tanpa tembaga dan via di bawah antena WROOM |
 | Bawah | rule area `holder_18650` 80 × 24 mm (x 66–146, y 116,5–140,5) + garis silkscreen | tempat holder 18650 berkabel yang ditempel; baterai 65 × 18 mm, holder ±77 × 21 mm, margin 1,5 mm tiap sisi; footprint dilarang, jalur dan GND pour boleh |
 
 Jalur yang dirute manual dan dikunci (`locked`): tiga jalur EKG (F.Cu
-0,5 mm), catu AD8232 (3V3 0,4 mm dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2,
-SDN ke 3V3), dan seluruh jalur daya (1,2 mm, termasuk cabang gate Q1 dan R2). Gate Q1 lewat B.Cu karena urutan pin
+0,6 mm), catu AD8232 (3V3 dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2, SDN ke
+3V3), stub I2C yang menyeberangi kolom pin kanan U1, sambungan 3V3 sisi kiri
+ke pad 2 U1, dan seluruh jalur daya (1,5 mm, termasuk cabang gate Q1 dan R2). Gate Q1 lewat B.Cu karena urutan pin
 SOT-23 (G, D, S searah jarum jam) berlawanan dengan arah net di sekitarnya,
 dan gate tidak membawa arus. Sisa sinyal digital dirute Freerouting 2.3.0.
 GND dituang di kedua lapis.
 
-Aturan jalur dipilih untuk fabrikasi pabrik PCB, dengan margin lebar di atas
-batas minimum pabrik:
+Aturan jalur dipilih untuk fabrikasi JLCPCB (2 lapis, batas pabrik 0,127 mm
+jalur/clearance, via 0,3/0,5 mm), dengan margin lebar di atasnya:
 
 | Netclass (`mainboard.kicad_pro`) | Net | Lebar | Clearance | Via |
 |---|---|---|---|---|
-| `Default` | sinyal digital, `+3V3` | 0,4 mm | 0,3 mm | 1,0/0,5 mm |
-| `ECG` | `/ECG_*` | 0,5 mm | 0,3 mm | 1,0/0,5 mm |
-| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,2 mm | 0,3 mm | 1,2/0,6 mm |
+| `Default` | sinyal digital, `+3V3`, GND | 0,5 mm | 0,35 mm | 1,2/0,6 mm |
+| `ECG` | `/ECG_*` | 0,6 mm | 0,35 mm | 1,2/0,6 mm |
+| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,5 mm | 0,35 mm | 1,4/0,7 mm |
+
+Pengecualian lebar: tiga jalur yang menyeberang di sela pin satu kolom U1
+(3V3 ke AD8232, `I2C_SDA`, `I2C_SCL`) menyempit ke 0,4 mm hanya di segmen
+sela itu. Jalur 0,5 mm butuh celah 0,5 + 2 × 0,35 = 1,2 mm, sedangkan celah
+antar-pad U1 1,14 mm; 0,4 + 2 × 0,35 = 1,1 mm muat. `cek_tata_letak.py`
+hanya menerima jalur Default di bawah 0,5 mm (minimal 0,4 mm) bila segmennya
+berada dalam 1 mm dari pad U1.
 
 Jarak antar-courtyard komponen minimal 1,0 mm. Pad GND U2-2, U1-22, C3-2, dan
 C2-2 tersambung penuh (*solid*) ke zona, karena jalur selebar ini menyisakan
@@ -176,13 +185,51 @@ atau teks menumpuk, di atas pad, keluar tepi, atau tidak searah header.
 Peta pin di skrip (`PIN_U1`, `PIN_LAIN`) wajib diperbarui bersamaan dengan
 `perangkat.h` setiap kali pin dipindah.
 
+## Ukiran nama
+
+Silkscreen sisi belakang, dicerminkan agar terbaca dari bawah, di balik area
+holder (yang bebas footprint sehingga sisi belakangnya tanpa pad):
+
+| Baris | Teks | Tinggi | Posisi |
+|---|---|---|---|
+| 1 | Muhammad Rafi Rizaldi | 2,5 mm | (106; 125) |
+| 2 | 3123600001 | 2,0 mm | (106; 131) |
+
+Teksnya diatur di `UKIRAN` dan `POSISI_UKIRAN` (`tata_letak.py`).
+
 ## Mengubah desain
 
+Perubahan rangkaian:
+
 1. Buka `mainboard.kicad_pro` di KiCad 9 atau lebih baru.
-2. Ubah skematik, lalu **Tools → Update PCB from Schematic** (F8).
-3. Jalur yang dikunci tidak ikut dipindah autorouter. Buka kuncinya
-   (pilih jalur, `L`) sebelum mengubah bagian analog atau daya.
-4. Tuang ulang zona (`B`), lalu jalankan `cek_board.py`.
+2. Ubah skematik. Penerapan ke board lewat skrip pcbnew (lihat skill
+   `kicad-pcb-pa` aturan 5), bukan F8, agar nama net tetap `/NAMA`.
+
+Rute ulang seluruh papan (posisi di `POSISI`, rute manual di fungsi `rute_*`
+pada `tata_letak.py`), dijalankan dari `hardware/mainboard/`:
+
+```bash
+/usr/bin/python3 tata_letak.py hapus
+/usr/bin/python3 tata_letak.py rute
+/usr/bin/python3 tata_letak.py tuang
+```
+
+Lalu autoroute sisa sinyal dengan Freerouting (server MCP kicad: `open_project`,
+`autoroute` dengan `maxPasses` 60), kemudian:
+
+```bash
+/usr/bin/python3 tata_letak.py bersih
+/usr/bin/python3 tata_letak.py solid
+/usr/bin/python3 tata_letak.py sambung_3v3_kiri
+/usr/bin/python3 tata_letak.py teks
+/usr/bin/python3 tata_letak.py ukiran
+/usr/bin/python3 tata_letak.py tuang
+python3 cek_board.py
+```
+
+Hasil yang diharapkan: baris terakhir `cek_board.py` adalah `LULUS`.
+`sambung_3v3_kiri` menutup satu sambungan +3V3 yang tidak diselesaikan
+Freerouting; bila DRC tetap melapor `unconnected`, rute sambungan itu manual.
 
 ## Yang belum terverifikasi
 

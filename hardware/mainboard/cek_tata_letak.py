@@ -12,6 +12,8 @@ PRO = DIR / "mainboard.kicad_pro"
 
 JARAK_COURTYARD_MIN = 1.0
 TINGGI_SILK_MIN = 0.8
+LEBAR_SELA_PIN = 0.4
+JANGKAUAN_SELA = 1.0
 TEKS_BOLEH_MELINTANG = {("C4", "ref")}
 mm = pcbnew.ToMM
 
@@ -41,17 +43,26 @@ def kelas_net():
     return lebar, kelas
 
 
+def di_sela_pin(t, pad_u1):
+    k = kotak(t.GetBoundingBox())
+    return any(iris(k, p, -JANGKAUAN_SELA) for p in pad_u1)
+
+
 def cek_lebar(b):
     lebar, kelas = kelas_net()
+    pad_u1 = [kotak(p.GetBoundingBox()) for p in b.FindFootprintByReference("U1").Pads()]
     temuan = []
     for t in b.GetTracks():
-        if t.Type() == pcbnew.PCB_VIA_T or t.GetNetname() == "/GND":
+        if t.Type() == pcbnew.PCB_VIA_T:
             continue
         k = kelas(t.GetNetname())
-        if mm(t.GetWidth()) < lebar[k] - 1e-6 and k != "Default":
-            temuan.append(f"{t.GetNetname()} {mm(t.GetWidth()):.2f} mm < {k} {lebar[k]} mm")
-        elif mm(t.GetWidth()) < lebar["Default"] - 1e-6:
-            temuan.append(f"{t.GetNetname()} {mm(t.GetWidth()):.2f} mm < Default {lebar['Default']} mm")
+        w = mm(t.GetWidth())
+        batas = lebar[k]
+        if w >= batas - 1e-6:
+            continue
+        if k == "Default" and w >= LEBAR_SELA_PIN - 1e-6 and di_sela_pin(t, pad_u1):
+            continue
+        temuan.append(f"{t.GetNetname()} {w:.2f} mm < {k} {batas} mm")
     return temuan
 
 
@@ -110,6 +121,15 @@ def cek_teks(b):
                 temuan.append(f"{a[0]} {a[1]} menumpuk {c[0]} {c[1]}")
     temuan += [f"{a[0]} {a[1]} di atas pad {p[0]}" for a in teks if a[2] == pcbnew.F_SilkS
                for p in pads if iris(a[3], p[1], 0)]
+    vias = [kotak(v.GetBoundingBox()) for v in b.GetTracks() if v.Type() == pcbnew.PCB_VIA_T]
+    for d in b.GetDrawings():
+        if isinstance(d, pcbnew.PCB_TEXT) and d.GetLayer() == pcbnew.B_SilkS:
+            k = kotak(d.GetBoundingBox())
+            nama = d.GetText().splitlines()[0][:20]
+            if not (k[0] >= tepi[0] and k[1] >= tepi[1] and k[2] <= tepi[2] and k[3] <= tepi[3]):
+                temuan.append(f"teks belakang '{nama}': keluar tepi papan")
+            temuan += [f"teks belakang '{nama}' di atas pad {p[0]}" for p in pads if iris(k, p[1], 0)]
+            temuan += [f"teks belakang '{nama}' di atas via" for v in vias if iris(k, v, 0)]
     return temuan
 
 
