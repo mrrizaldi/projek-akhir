@@ -11,9 +11,7 @@ PCB = DIR / "mainboard.kicad_pcb"
 PRO = DIR / "mainboard.kicad_pro"
 
 JARAK_COURTYARD_MIN = 1.0
-TINGGI_SILK_MIN = 0.8
-LEBAR_SELA_PIN = 0.4
-JANGKAUAN_SELA = 1.0
+TINGGI_SILK_MIN = 1.0
 TEKS_BOLEH_MELINTANG = {("C4", "ref")}
 mm = pcbnew.ToMM
 
@@ -43,14 +41,8 @@ def kelas_net():
     return lebar, kelas
 
 
-def di_sela_pin(t, pad_u1):
-    k = kotak(t.GetBoundingBox())
-    return any(iris(k, p, -JANGKAUAN_SELA) for p in pad_u1)
-
-
 def cek_lebar(b):
     lebar, kelas = kelas_net()
-    pad_u1 = [kotak(p.GetBoundingBox()) for p in b.FindFootprintByReference("U1").Pads()]
     temuan = []
     for t in b.GetTracks():
         if t.Type() == pcbnew.PCB_VIA_T:
@@ -59,8 +51,6 @@ def cek_lebar(b):
         w = mm(t.GetWidth())
         batas = lebar[k]
         if w >= batas - 1e-6:
-            continue
-        if k == "Default" and w >= LEBAR_SELA_PIN - 1e-6 and di_sela_pin(t, pad_u1):
             continue
         temuan.append(f"{t.GetNetname()} {w:.2f} mm < {k} {batas} mm")
     return temuan

@@ -92,38 +92,43 @@ Urutan pin header modul:
 | Atas U1 | rule area `antena_devkit` | tanpa tembaga dan via di bawah antena WROOM |
 | Bawah | rule area `holder_18650` 80 × 24 mm (x 66–146, y 116,5–140,5) + garis silkscreen | tempat holder 18650 berkabel yang ditempel; baterai 65 × 18 mm, holder ±77 × 21 mm, margin 1,5 mm tiap sisi; footprint dilarang, jalur dan GND pour boleh |
 
-Jalur yang dirute manual dan dikunci (`locked`): tiga jalur EKG (F.Cu
-0,6 mm), catu AD8232 (3V3 dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2, SDN ke
-3V3), stub I2C yang menyeberangi kolom pin kanan U1, sambungan 3V3 sisi kiri
-ke pad 2 U1, dan seluruh jalur daya (1,5 mm, termasuk cabang gate Q1 dan R2). Gate Q1 lewat B.Cu karena urutan pin
-SOT-23 (G, D, S searah jarum jam) berlawanan dengan arah net di sekitarnya,
-dan gate tidak membawa arus. Sisa sinyal digital dirute Freerouting 2.3.0.
-GND dituang di kedua lapis.
+Jalur yang dirute manual dan dikunci (`locked`): tiga jalur EKG (F.Cu),
+catu AD8232 (3V3 dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2, SDN ke 3V3),
+I2C ke INA219 (SDA di F.Cu; SCL turun lewat via ke B.Cu di x 118 dan
+menyeberang di bawah SDA, karena urutan pin INA219 SCL–SDA terbalik terhadap
+urutan dari DevKit), 3V3 ke INA219, 3V3 sisi kiri (U1 pad 2 ke C3), dan
+seluruh jalur daya (termasuk cabang gate Q1 dan R2). Gate Q1 lewat B.Cu
+karena urutan pin SOT-23 (G, D, S searah jarum jam) berlawanan dengan arah
+net di sekitarnya, dan gate tidak membawa arus. Sisa sinyal digital dirute
+Freerouting 2.3.0. GND dituang di kedua lapis.
 
-Aturan jalur dipilih untuk fabrikasi JLCPCB (2 lapis, batas pabrik 0,127 mm
-jalur/clearance, via 0,3/0,5 mm), dengan margin lebar di atasnya:
+Batas JLCPCB untuk 2 lapis 1 oz (halaman *PCB Capabilities*): jalur/clearance
+0,10 mm, jalur ke lubang PTH 0,28 mm (rekomendasi 0,35 mm), via lubang 0,15 /
+pad 0,25 mm (lubang < 0,3 mm lebih mahal), ring PTH 0,18 mm (rekomendasi
+0,25 mm), teks silkscreen tinggi 1,0 mm dan garis 0,15 mm, tembaga ke tepi
+0,2 mm. Profil papan ini adalah profil "ideal teknis": lebar mengikuti
+kebutuhan arus menurut IPC-2221 (1 oz, kenaikan suhu 10 °C: 0,3 mm ±1 A,
+1,0 mm ±2,4 A), jarak dan ring mengikuti rekomendasi JLCPCB.
 
 | Netclass (`mainboard.kicad_pro`) | Net | Lebar | Clearance | Via |
 |---|---|---|---|---|
-| `Default` | sinyal digital, `+3V3`, GND | 0,5 mm | 0,35 mm | 1,2/0,6 mm |
-| `ECG` | `/ECG_*` | 0,6 mm | 0,35 mm | 1,2/0,6 mm |
-| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,5 mm | 0,35 mm | 1,4/0,7 mm |
+| `Default` | sinyal digital, `+3V3`, GND | 0,3 mm | 0,35 mm | 0,9/0,4 mm |
+| `ECG` | `/ECG_*` | 0,4 mm | 0,35 mm | 0,9/0,4 mm |
+| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,0 mm | 0,35 mm | 1,2/0,6 mm |
 
-Pengecualian lebar: tiga jalur yang menyeberang di sela pin satu kolom U1
-(3V3 ke AD8232, `I2C_SDA`, `I2C_SCL`) menyempit ke 0,4 mm hanya di segmen
-sela itu. Jalur 0,5 mm butuh celah 0,5 + 2 × 0,35 = 1,2 mm, sedangkan celah
-antar-pad U1 1,14 mm; 0,4 + 2 × 0,35 = 1,1 mm muat. `cek_tata_letak.py`
-hanya menerima jalur Default di bawah 0,5 mm (minimal 0,4 mm) bila segmennya
-berada dalam 1 mm dari pad U1.
+Arus terbesar di papan: jalur baterai/boost ±1 A puncak (MT3608 dibatasi
+2 A), sehingga 1,0 mm memberi margin di atas batas boost. Sinyal hanya
+membawa miliampere; 0,3 mm dipilih karena tiga kali minimum JLCPCB dan muat di
+sela pin DevKit tanpa menyempit (0,3 + 2 × 0,35 = 1,0 mm ≤ celah 1,04 mm).
 
-Jarak antar-courtyard komponen minimal 1,0 mm. Pad GND U2-2, U1-22, C3-2, dan
-C2-2 tersambung penuh (*solid*) ke zona, karena jalur selebar ini menyisakan
-hanya satu spoke thermal di pad-pad tersebut.
+Jarak antar-courtyard komponen minimal 1,0 mm. Semua pad GND memakai thermal
+relief kecuali C2-2, yang disambung penuh (*solid*) karena hanya mendapat satu
+spoke di sela antara U1 dan jalur +5V.
 
-Teks: referensi di silkscreen (tinggi ≥ 0,8 mm) dan value di Fab, sejajar
-sumbu header dan di sisi yang berlawanan, tanpa menumpuk dan tidak di atas
-pad. Pengecualian: ref C4 mendatar di atas C4, karena celah 9 mm antara U1 dan
-J3 tidak muat teks tegak 0,8 mm.
+Teks: referensi di silkscreen (tinggi ≥ 1,0 mm, batas JLCPCB) dan value di
+Fab, sejajar sumbu header dan di sisi yang berlawanan, tanpa menumpuk dan
+tidak di atas pad. Pengecualian: ref C4 mendatar di atas C4, karena celah
+9 mm antara U1 dan J3 tidak muat teks tegak.
 
 ## Perbedaan terhadap skematik rev2
 
@@ -153,11 +158,11 @@ Diambil dari library resmi Espressif (`espressif/kicad-libraries`,
 `ESP32-S3-DevKitC.kicad_mod` dan simbol `ESP32-S3-DevKitC`). Posisi pad tidak
 diubah: 2 × 22 pin, pitch 2,54 mm, jarak antar-baris 22,86 mm. Yang diubah
 hanya lubang dan pad: lubang 0,8 mm menjadi 1,0 mm, pad oval 2,0 mm (mendatar)
-× 1,4 mm (tegak). Pin header persegi 0,64 mm berdiagonal 0,9 mm, sehingga
-tidak masuk lubang 0,8 mm; 1,0 mm sama dengan footprint `PinSocket` KiCad.
-Pad 1,4 mm tegak menyisakan celah 1,14 mm antar-pin satu kolom, cukup untuk
-jalur 0,4 mm + clearance 2 × 0,3 mm. Jalur 3V3 ke AD8232 dan I2C ke INA219
-menyeberangi kolom pin kanan lewat celah ini. Simbol diturunkan dari format KiCad 10
+× 1,5 mm (tegak), ring 0,25 mm sesuai rekomendasi JLCPCB. Pin header persegi
+0,64 mm berdiagonal 0,9 mm, sehingga tidak masuk lubang 0,8 mm; 1,0 mm sama
+dengan footprint `PinSocket` KiCad. Pad 1,5 mm tegak menyisakan celah 1,04 mm
+antar-pin satu kolom, cukup untuk jalur 0,3 mm + clearance 2 × 0,35 mm. Jalur
+3V3 ke AD8232 dan I2C ke INA219 menyeberangi kolom pin lewat celah ini. Simbol diturunkan dari format KiCad 10
 ke format KiCad 9 tanpa mengubah pin.
 
 ## Pemeriksaan
@@ -220,7 +225,6 @@ Lalu autoroute sisa sinyal dengan Freerouting (server MCP kicad: `open_project`,
 ```bash
 /usr/bin/python3 tata_letak.py bersih
 /usr/bin/python3 tata_letak.py solid
-/usr/bin/python3 tata_letak.py sambung_3v3_kiri
 /usr/bin/python3 tata_letak.py teks
 /usr/bin/python3 tata_letak.py ukiran
 /usr/bin/python3 tata_letak.py tuang
@@ -228,8 +232,9 @@ python3 cek_board.py
 ```
 
 Hasil yang diharapkan: baris terakhir `cek_board.py` adalah `LULUS`.
-`sambung_3v3_kiri` menutup satu sambungan +3V3 yang tidak diselesaikan
-Freerouting; bila DRC tetap melapor `unconnected`, rute sambungan itu manual.
+Freerouting bisa melapor sukses sambil meninggalkan sambungan; bila DRC
+melapor `unconnected`, sambungan itu ditambahkan ke fungsi `rute_*` di
+`tata_letak.py` lalu seluruh urutan diulang dari `hapus`.
 
 ## Yang belum terverifikasi
 

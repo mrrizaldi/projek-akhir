@@ -7,11 +7,12 @@ import pcbnew
 DIR = Path(__file__).resolve().parent
 PCB = str(DIR / "mainboard.kicad_pcb")
 
-W_DAYA, W_EKG, W_SINYAL, W_SELA = 1.5, 0.6, 0.5, 0.4
-VIA_SINYAL, VIA_DAYA = (1.2, 0.6), (1.4, 0.7)
+W_DAYA, W_EKG, W_SINYAL = 1.0, 0.4, 0.3
+VIA_SINYAL, VIA_DAYA = (0.9, 0.4), (1.2, 0.6)
+PAD_DEVKIT = (1.5, 2.0)
 NET_MANUAL = {"/" + n for n in ["+5V", "VBOOST", "VSYS", "VSW", "VCHG", "VBAT_OUT", "VBAT_SENSE",
                                 "BAT+", "BAT-", "ECG_OUT", "ECG_LON", "ECG_LOP"]}
-PAD_GND_SOLID = [("U2", "2"), ("U1", "22"), ("C3", "2"), ("C2", "2")]
+PAD_GND_SOLID = [("C2", "2")]
 UKIRAN = ("Muhammad Rafi Rizaldi", "3123600001")
 POSISI_UKIRAN = (106.0, 125.0, 131.0)
 
@@ -95,30 +96,33 @@ def rute_analog(p, F, B):
     p.jalur("/+3V3", F, [c41, (c41[0] + 0.48, 55.08), (122, 55.08)], W_SINYAL)
     p.jalur("/GND", F, [c42, (c42[0] + 0.1, 52.54), (122, 52.54)], W_SINYAL)
     p.jalur("/+3V3", F, [(122, 65.24), (124, 65.24), (124, 55.08), (122, 55.08)], W_SINYAL)
-    p.jalur("/+3V3", B, [p.pad("U1", "2"), (91.27, 53.81)], W_SELA)
-    p.jalur("/+3V3", B, [(91.27, 53.81), (110.6, 53.81)], W_SINYAL)
-    p.jalur("/+3V3", B, [(110.6, 53.81), (115.0, 53.81)], W_SELA)
-    p.jalur("/+3V3", B, [(115.0, 53.81), (116.2, 55.01), (116.2, c41[1])], W_SINYAL)
+    p.jalur("/+3V3", B, [p.pad("U1", "2"), (91.27, 53.81), (115.0, 53.81), (116.2, 55.01), (116.2, c41[1])], W_SINYAL)
     p.via("/+3V3", 116.2, c41[1], VIA_SINYAL)
     p.jalur("/+3V3", F, [(116.2, c41[1]), c41], W_SINYAL)
     p.jalur("/GND", F, [p.pad("U1", "44"), (115, 50), (117.46, 52.46), c42], W_SINYAL)
 
 
-def sambung_3v3_kiri():
-    p = Papan()
-    p.jalur("/+3V3", pcbnew.F_Cu, [(86.35, 52.57), p.pad("U1", "2")], W_SINYAL)
-    p.simpan()
-    print("sambung_3v3_kiri: (86,35; 52,57) ke U1 pad 2")
+def rute_3v3_kiri(p, F):
+    c31 = p.pad("C3", "1")
+    p.jalur("/+3V3", F, [p.pad("U1", "2"), (87.0, 52.54), (87.0, c31[1]), c31], W_SINYAL)
 
 
-def rute_sela_i2c(p, F):
+def pad_devkit(p):
+    for q in p.fp("U1").Pads():
+        q.SetSize(pcbnew.VECTOR2I(MM(PAD_DEVKIT[0]), MM(PAD_DEVKIT[1])))
+
+
+def rute_sela_i2c(p, F, B):
     for nomor, net in (("10", "/I2C_SDA"), ("11", "/I2C_SCL")):
         x, y = p.pad("U1", nomor)
         ys = y + 1.27
-        p.jalur(net, F, [(x, y), (91.27, ys)], W_SELA)
-        p.jalur(net, F, [(91.27, ys), (110.6, ys)], W_SINYAL)
-        p.jalur(net, F, [(110.6, ys), (115.0, ys)], W_SELA)
-        p.jalur(net, F, [(115.0, ys), (117.0, ys)], W_SINYAL)
+        p.jalur(net, F, [(x, y), (91.27, ys), (117.0, ys)], W_SINYAL)
+    sda, scl = p.pad("U2", "4"), p.pad("U2", "3")
+    p.jalur("/I2C_SDA", F, [(117.0, 74.13), (137.51, 74.13), sda], W_SINYAL)
+    p.via("/I2C_SCL", 118.0, 76.67, VIA_SINYAL)
+    p.jalur("/I2C_SCL", F, [(117.0, 76.67), (118.0, 76.67)], W_SINYAL)
+    p.jalur("/I2C_SCL", B, [(118.0, 76.67), (140.0, 76.67), (scl[0] - 2.6, scl[1]), scl], W_SINYAL)
+    p.jalur("/+3V3", F, [(124.0, 65.24), (142.0, 65.24), (155.0, 78.24), p.pad("U2", "1")], W_SINYAL)
 
 
 def rute_daya(p, F, B):
@@ -156,9 +160,11 @@ def rute_daya(p, F, B):
 def rute():
     p = Papan()
     tempatkan(p)
+    pad_devkit(p)
     F, B = pcbnew.F_Cu, pcbnew.B_Cu
     rute_analog(p, F, B)
-    rute_sela_i2c(p, F)
+    rute_3v3_kiri(p, F)
+    rute_sela_i2c(p, F, B)
     rute_daya(p, F, B)
     p.simpan()
     for ref in ("SW1", "SW2", "SW3", "R1", "D1", "D2", "J8"):
@@ -178,10 +184,13 @@ def bersih():
 
 def solid():
     p = Papan()
-    for ref, nomor in PAD_GND_SOLID:
-        p.fp(ref).FindPadByNumber(nomor).SetLocalZoneConnection(pcbnew.ZONE_CONNECTION_FULL)
+    for f in p.b.GetFootprints():
+        for q in f.Pads():
+            sambung = pcbnew.ZONE_CONNECTION_FULL if (f.GetReference(), q.GetNumber()) in PAD_GND_SOLID \
+                else pcbnew.ZONE_CONNECTION_INHERITED
+            q.SetLocalZoneConnection(sambung)
     p.simpan()
-    print(f"solid: {len(PAD_GND_SOLID)} pad")
+    print(f"solid: {len(PAD_GND_SOLID)} pad solid, sisanya thermal")
 
 
 def tuang():
@@ -290,7 +299,7 @@ def teks():
         if f.GetReference() == "U1":
             penempat.terpasang += [kotak(x.GetBoundingBox(), 0.15) for x in (f.Reference(), f.Value()) if x.IsVisible()]
     urut = sorted([f for f in p.b.GetFootprints() if f.GetReference() != "U1"], key=lambda f: -len(f.Pads()))
-    hasil = {f.GetReference(): [penempat.taruh(f, f.Reference(), [1.0, 0.8], 0)] for f in urut}
+    hasil = {f.GetReference(): [penempat.taruh(f, f.Reference(), [1.0], 0)] for f in urut}
     for f in urut:
         v = f.Value()
         v.SetLayer(pcbnew.F_Fab)
@@ -332,7 +341,6 @@ def ukiran():
 
 
 PERINTAH = {"hapus": hapus, "rute": rute, "bersih": bersih, "solid": solid, "tuang": tuang,
-            "sambung_3v3_kiri": sambung_3v3_kiri,
             "teks": teks, "ukiran": ukiran}
 
 if __name__ == "__main__":
