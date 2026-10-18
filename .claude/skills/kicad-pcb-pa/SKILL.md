@@ -23,7 +23,9 @@ terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
    ke mana pin opsional disambung (BLK, SDN, CS), pull-up, posisi saklar,
    ukuran footprint pasif, jumlah pin header modul, dan perubahan topologi
    catu. Setiap pertanyaan berisi ≥ 2 opsi, akibat tiap opsi, dan
-   rekomendasi beserta alasannya. Data yang tidak bisa diukur (jumlah kaki
+   rekomendasi beserta alasannya. Rekomendasi = tepat satu opsi yang
+   dipilih sekarang; data yang belum ada ditulis sebagai "rekomendasi berubah
+   ke X bila ...", bukan sebagai alasan menunda rekomendasi. Data yang tidak bisa diukur (jumlah kaki
    saklar, tegangan lampu, urutan pin modul) juga ditanyakan atau ditulis
    sebagai butir "belum terverifikasi", tidak pernah dikarang.
 
@@ -76,8 +78,11 @@ terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
    (berakhir `SwigPyObject` atau segfault). Hapus dengan `board.Delete()` di
    skrip terpisah, simpan, lalu muat ulang. Sesudah `SetNetname`, peta
    `GetNetsByName()` masih memakai nama lama, jadi ambil net dari
-   `pad.GetNet()`. `kicad-cli pcb drc` tidak menuang zona: jalankan
-   `pcbnew.ZONE_FILLER(b).Fill(b.Zones())` di skrip sebelum DRC.
+   `pad.GetNet()`. `kicad-cli pcb drc` tidak menuang zona, jadi SETIAP
+   perintah DRC (paritas, uji negatif, sesudah autoroute, sebelum commit)
+   didahului `/usr/bin/python3 hardware/mainboard/tata_letak.py tuang` (isinya
+   `pcbnew.ZONE_FILLER(b).Fill(b.Zones())`), ditulis sebagai langkah tersendiri
+   tepat sebelum DRC.
 
 8. **Rute manual dulu, autoroute sesudahnya.** Jalur analog dan daya dirute
    manual lalu dikunci (`SetLocked(True)` untuk jalur dan footprint), dan
@@ -106,25 +111,26 @@ terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
     `[N]`.
 
 11. **Lebar dan jarak untuk pabrik, bukan batas minimum.** Profil papan PA
-    untuk JLCPCB (pilihan user 18 Okt 2026): sinyal dan GND 0,5 mm, EKG
-    0,6 mm, daya 1,5 mm (cabang gate dan stub di net daya ikut), clearance
-    0,35 mm, via 1,2/0,6 mm (daya 1,4/0,7 mm), jarak antar-courtyard ≥ 1,0 mm.
-    Jalur yang harus lewat di sela dua pin dan tidak muat boleh menyempit
-    ke 0,4 mm hanya di segmen sela itu (segmen dipecah: lebar penuh, 0,4 mm di
-    sela, lebar penuh); pengecualian ini dicatat di README dan diterima
-    `cek_tata_letak.py` hanya dalam 1 mm dari pad U1. "Net daya" = net di
-    netclass `Power` (`/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE
-    /BAT+ /BAT-`), yaitu jalur arus baterai/boost; `+3V3` (keluaran regulator
-    DevKit, arus beban kecil) termasuk Default 0,5 mm. Cara fabrikasi lain
-    (etching sendiri) ditanyakan dulu dan angkanya ikut jawaban user. Sebelum
-    menggambar jalur, hitung celah dengan lebar jalur DAN lebar pad: jalur
-    lewat di antara dua pad berjarak p butuh `p − pad ≥ lebar + 2 × clearance`
-    (pad bulat 1,7 mm di pitch 2,54 hanya menyisakan 0,84 mm; pad oval
-    2,0 × 1,4 mm menyisakan 1,14 mm). Mengubah bentuk/ukuran pad footprint
-    resmi untuk celah ini boleh tanpa bertanya selama lubang dan posisi pad
-    tidak berubah dan ring ≥ 0,2 mm; perubahannya dicatat di README bagian
-    footprint. Pad GND yang hanya mendapat satu spoke
-    thermal disambung solid ke zona.
+    untuk JLCPCB = "ideal teknis" (pilihan user 18 Okt 2026): lebar dari
+    kebutuhan arus IPC-2221 (1 oz, kenaikan 10 °C: 0,3 mm ±1 A, 1,0 mm
+    ±2,4 A), jarak dan ring dari rekomendasi JLCPCB. Sinyal dan GND 0,3 mm,
+    EKG 0,4 mm, daya 1,0 mm (cabang gate dan stub di net daya ikut),
+    clearance 0,35 mm (rekomendasi jalur–PTH), via 0,9/0,4 mm (daya
+    1,2/0,6 mm), ring PTH ≥ 0,25 mm, jarak antar-courtyard ≥ 1,0 mm. Batas
+    minimum JLCPCB (jalur/clearance 0,10 mm, ring 0,18 mm, via 0,15/0,25 mm)
+    tidak dipakai sebagai target. "Net daya" = net di netclass `Power`
+    (`/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-`);
+    `+3V3` (keluaran regulator DevKit, arus kecil) termasuk Default.
+    Profil yang lebih tebal atau cara fabrikasi lain ditanyakan dulu.
+    Sebelum menggambar jalur, hitung celah dengan lebar jalur DAN lebar pad:
+    jalur lewat di antara dua pad berjarak p butuh
+    `p − pad ≥ lebar + 2 × clearance` (pad bulat 1,7 mm di pitch 2,54 hanya
+    menyisakan 0,84 mm; pad oval 2,0 × 1,5 mm menyisakan 1,04 mm, cukup untuk
+    0,3 + 2 × 0,35). Mengubah bentuk/ukuran pad footprint resmi untuk celah ini
+    boleh tanpa bertanya selama lubang dan posisi pad tidak berubah dan ring
+    ≥ 0,25 mm; perubahannya dicatat di README bagian footprint. Pad GND yang
+    hanya mendapat satu spoke thermal disambung solid ke zona; pad lain tetap
+    thermal relief.
 
 12. **Ruang mekanik dipesan sebelum layout.** Baterai, holder, modul yang
     berbaring di atas papan, dan konektor yang perlu dijangkau tangan
@@ -139,15 +145,15 @@ terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
     terukur.
 
 13. **Teks searah header, tidak bertumpuk.** Referensi di silkscreen (tinggi
-    ≥ 0,8 mm) dan value di Fab, sejajar sumbu baris pin (mendatar untuk header
+    ≥ 1,0 mm, batas JLCPCB) dan value di Fab, sejajar sumbu baris pin (mendatar untuk header
     mendatar, tegak untuk header tegak), di sisi yang berlawanan, dekat
     footprint-nya sendiri, tidak di atas pad, tidak keluar tepi, dan tidak
     menumpuk teks lain di silk maupun Fab. Value yang panjang diputuskan
     dengan urutan tetap ini dan keputusannya ditulis: (1) pindah ke baris
     kedua/ketiga di sisi yang sama, maksimal 4 mm dari footprint; (2) kecilkan
-    sampai 0,4 mm (Fab tidak dicetak, jadi boleh di bawah 0,8 mm); (3) taruh di
+    sampai 0,4 mm (Fab tidak dicetak, jadi boleh di bawah 1,0 mm); (3) taruh di
     tengah badan footprint searah barisan pin. Ref silk tidak pernah di bawah
-    0,8 mm; bila tidak muat searah header, putar tegak lurus dan tulis sebagai
+    1,0 mm; bila tidak muat searah header, putar tegak lurus dan tulis sebagai
     pengecualian beserta alasannya. Tidak ada teks yang disembunyikan
     diam-diam.
     Teks bebas footprint (`PCB_TEXT`) tidak bisa disembunyikan di KiCad 9

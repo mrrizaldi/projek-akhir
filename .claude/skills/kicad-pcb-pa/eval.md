@@ -32,11 +32,11 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
    merute sisanya. Tulis urutan langkah sebelum dan sesudah autoroute,
    termasuk parameter autoroute dan cara membuktikan jalur manual tidak
    berubah.
-6. Papan dibuat di JLCPCB. Jalur `+3V3` (netclass Default) harus lewat di
-   antara dua pin bertetangga di satu kolom U1 (pitch 2,54 mm, pad oval
-   2,0 × 1,4 mm, sisi 1,4 mm searah pitch). Tulis lebar dan clearance profil
-   papan, hitung apakah jalur selebar itu muat, dan bila tidak, apa yang kamu
-   lakukan beserta angkanya.
+6. Papan dibuat di JLCPCB. Jalur `+3V3` harus lewat di antara dua pin
+   bertetangga di satu kolom U1 (pitch 2,54 mm). Pad U1 saat ini bulat 1,7 mm
+   dengan lubang 1,0 mm. Tulis lebar dan clearance profil papan untuk net ini
+   (sebut juga netclass-nya), hitung apakah jalur muat, dan bila tidak, apa
+   yang kamu ubah beserta angka celah dan ring barunya.
 7. User akan memakai holder 18650 berkabel yang ditempel di sisi atas papan.
    Baterai berukuran 65 × 18 mm; ukuran holder belum diukur. Tulis apa yang
    kamu lakukan di PCB dan bagaimana membuktikannya.
@@ -69,15 +69,16 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
   autoroute satu percobaan (`maxPasses`), segmen terkunci dibandingkan
   (0 hilang/berubah), segmen nol-panjang dan tak terkunci di net manual
   dihapus, zona dituang, `cek_board.py` LULUS.
-- D. Tugas 6–7: 0,5 mm + clearance 0,35 mm; celah 2,54 − 1,4 = 1,14 mm <
-  0,5 + 2 × 0,35 = 1,2 mm sehingga tidak muat; segmen di sela menyempit ke
-  0,4 mm (0,4 + 0,7 = 1,1 ≤ 1,14) dengan segmen dipecah dan pengecualian
+- D. Tugas 6–7: `+3V3` di Default: 0,3 mm + clearance 0,35 mm, butuh 1,0 mm;
+  pad bulat 1,7 mm menyisakan 2,54 − 1,7 = 0,84 mm < 1,0 mm sehingga tidak
+  muat; pad diubah oval 2,0 × 1,5 mm (sisi 1,5 searah pitch) sehingga celah
+  1,04 mm ≥ 1,0 mm dan ring (1,5 − 1,0)/2 = 0,25 mm, lubang dan posisi tetap,
   dicatat di README;
   holder: rule area "dilarang footprint" berukuran holder terukur + margin
   (atau ±80 × 24 mm dengan ukuran holder dicatat belum terverifikasi /
   ditanyakan), garis + teks silkscreen, uji negatif DRC menolak footprint di
   dalam area.
-- E. Tugas 8: ref `J3` di silkscreen 1,0 mm (atau 0,8 mm), sudut 0, di atas J3
+- E. Tugas 8: ref `J3` di silkscreen 1,0 mm, sudut 0, di atas J3
   (muat di ruang 2,0 mm); value di Fab, sudut 0, di bawah J3 (sisi
   berlawanan), dikecilkan karena 30 × 0,75 × 0,8 = 18 mm > 16,7 mm: ukuran
   0,7 mm (15,75 mm) atau lebih kecil sampai ≥ 0,4 mm, dengan keputusan tertulis;
@@ -99,3 +100,7 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
 | 2026-10-16 | sonnet | haiku | 10/10 | Lulus (putaran ke-3 siklus aturan 11–13). Di luar rubrik, tidak mengubah SKILL.md: DRC tanpa tuang zona di tugas 4/6/7; aturan 9 `python3` vs aturan 7 `/usr/bin/python3` (bukan pertentangan: cek_board.py tanpa pcbnew dan memanggil cek_tata_letak.py lewat /usr/bin/python3); klaim GPIO12 dari ingatan |
 | 2026-10-18 | sonnet | haiku | 8/10 | Siklus aturan 8 (cek unconnected sesudah autoroute, alat di repo) dan 11 (profil JLCPCB, neck di sela pin), tugas 6 diubah, tugas 9 baru. C: prosedur FootprintLoad tidak ditulis; E: cara hapus ${REFERENCE} dan "teks 0 temuan" tidak ditulis. Soal 4 dan 8 diminta caranya secara eksplisit. SKILL.md: definisi net daya di aturan 11 |
 | 2026-10-18 | sonnet | haiku | 10/10 | Lulus (putaran ke-2 siklus 18 Okt). Di luar rubrik, tidak mengubah SKILL.md: kata "terukur" sekali terselip untuk holder yang belum diukur, ukuran ref ditulis ganda (0,8 / 1 mm), hasil pemeriksa ditulis sebelum dijalankan |
+| 2026-10-18 | – | – | – | SKILL.md aturan 11 diganti profil "ideal teknis" (0,3/0,4/1,0 mm, clearance 0,35, via 0,9/0,4 dan 1,2/0,6, ring ≥ 0,25), aturan 13 silk ≥ 1,0 mm (batas JLCPCB). Tugas 6 dan rubrik D, E disesuaikan; eval ulang di bawah |
+| 2026-10-18 | sonnet | haiku | 9/10 | B: rekomendasi ditunda bersyarat. SKILL.md aturan 1: rekomendasi = satu opsi sekarang, data kurang jadi syarat perubahan |
+| 2026-10-18 | sonnet | haiku | 9/10 | C: tuang zona tidak ditulis di alur tugas 4–5 (sudah 3 kali muncul di luar rubrik). SKILL.md aturan 7: setiap DRC didahului `tata_letak.py tuang` sebagai langkah tersendiri |
+| 2026-10-18 | sonnet | haiku | 10/10 | Lulus (putaran ke-3 siklus profil ideal). Di luar rubrik, tidak mengubah SKILL.md: langkah konversi simbol KiCad 10 tidak dirinci di tugas 1, uji negatif untuk skrip yang diubah tidak disebut, DRC tugas 5 tanpa `--severity-all` |
