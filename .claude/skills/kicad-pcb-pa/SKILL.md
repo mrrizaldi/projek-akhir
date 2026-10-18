@@ -85,7 +85,13 @@ terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
    (`maxPasses`), karena `attempts` > 1 gagal menyalin SES milik root dari
    docker. Sesudahnya: bandingkan segmen terkunci dengan salinan acuan
    (harus 0 hilang/berubah), lalu hapus segmen nol-panjang dan segmen tak
-   terkunci di net yang sudah dirute manual.
+   terkunci di net yang sudah dirute manual. Freerouting bisa melapor sukses
+   sambil meninggalkan sambungan yang tidak dirute (18 Okt 2026: +3V3 sisi kiri
+   tidak tersambung ke U1): baca `unconnected` di DRC sesudah setiap
+   autoroute, dan sambungan yang tersisa dirute manual lalu dikunci.
+   Alat layout (posisi, rute manual, bersih, tuang, teks) disimpan di repo
+   (`hardware/mainboard/tata_letak.py`), bukan di scratchpad: scratchpad
+   hilang antar-sesi dan papan ini sudah dirute ulang empat kali.
 
 9. **Selesai = `cek_board.py` LULUS.** `python3 hardware/mainboard/cek_board.py`
    (peta pin vs netlist, +5V tidak menyentuh GPIO, ERC, DRC error,
@@ -99,10 +105,17 @@ terhadap header dan bertumpuk, tidak ada ruang untuk holder 18650, dan jalur
     dilakukan ditulis sebagai langkah ("baca X", "jalankan Y"), dan keluarannya
     `[N]`.
 
-11. **Lebar dan jarak untuk pabrik, bukan batas minimum.** Bawaan papan PA
-    (fabrikasi pabrik): sinyal 0,4 mm, EKG 0,5 mm, daya 1,2 mm (cabang gate
-    dan stub di net daya ikut 1,2 mm), clearance 0,3 mm, via 1,0/0,5 mm (daya
-    1,2/0,6 mm), jarak antar-courtyard ≥ 1,0 mm. Cara fabrikasi lain
+11. **Lebar dan jarak untuk pabrik, bukan batas minimum.** Profil papan PA
+    untuk JLCPCB (pilihan user 18 Okt 2026): sinyal dan GND 0,5 mm, EKG
+    0,6 mm, daya 1,5 mm (cabang gate dan stub di net daya ikut), clearance
+    0,35 mm, via 1,2/0,6 mm (daya 1,4/0,7 mm), jarak antar-courtyard ≥ 1,0 mm.
+    Jalur yang harus lewat di sela dua pin dan tidak muat boleh menyempit
+    ke 0,4 mm hanya di segmen sela itu (segmen dipecah: lebar penuh, 0,4 mm di
+    sela, lebar penuh); pengecualian ini dicatat di README dan diterima
+    `cek_tata_letak.py` hanya dalam 1 mm dari pad U1. "Net daya" = net di
+    netclass `Power` (`/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE
+    /BAT+ /BAT-`), yaitu jalur arus baterai/boost; `+3V3` (keluaran regulator
+    DevKit, arus beban kecil) termasuk Default 0,5 mm. Cara fabrikasi lain
     (etching sendiri) ditanyakan dulu dan angkanya ikut jawaban user. Sebelum
     menggambar jalur, hitung celah dengan lebar jalur DAN lebar pad: jalur
     lewat di antara dua pad berjarak p butuh `p − pad ≥ lebar + 2 × clearance`

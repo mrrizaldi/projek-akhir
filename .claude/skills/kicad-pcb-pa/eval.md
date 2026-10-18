@@ -25,16 +25,18 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
 4. DRC `--schematic-parity` sesudah sinkronisasi MCP melapor 117 baris
    `Pad net (+5V) doesn't match net given by schematic (/+5V)` dan
    `Pad missing net given by schematic (unconnected-(U1-GPIO7{slash}ADC1_CH6-Pad7))`.
-   Tulis perbaikannya dan perintah verifikasinya.
+   Tulis perbaikannya, cara persis menerapkan perubahan skematik berikutnya
+   ke board (fungsi pcbnew yang dipakai dan data yang disalin), dan perintah
+   verifikasinya.
 5. Kamu baru saja merute dan mengunci jalur daya, lalu ingin Freerouting
    merute sisanya. Tulis urutan langkah sebelum dan sesudah autoroute,
    termasuk parameter autoroute dan cara membuktikan jalur manual tidak
    berubah.
-6. Papan dibuat di pabrik PCB. Jalur `+3V3` (netclass Default) harus lewat di
-   antara dua pin bertetangga di satu kolom U1 (pitch 2,54 mm, pad bulat
-   1,7 mm). Tulis lebar dan clearance yang kamu pakai, hitung apakah jalurnya
-   muat, dan bila tidak, perubahan yang membuatnya muat beserta angka celah
-   barunya.
+6. Papan dibuat di JLCPCB. Jalur `+3V3` (netclass Default) harus lewat di
+   antara dua pin bertetangga di satu kolom U1 (pitch 2,54 mm, pad oval
+   2,0 × 1,4 mm, sisi 1,4 mm searah pitch). Tulis lebar dan clearance profil
+   papan, hitung apakah jalur selebar itu muat, dan bila tidak, apa yang kamu
+   lakukan beserta angkanya.
 7. User akan memakai holder 18650 berkabel yang ditempel di sisi atas papan.
    Baterai berukuran 65 × 18 mm; ukuran holder belum diukur. Tulis apa yang
    kamu lakukan di PCB dan bagaimana membuktikannya.
@@ -46,7 +48,11 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
    setinggi 1,3 mm per baris. Value `AD8232 GND 3V3 OUT LO- LO+ SDN`
    (30 karakter). Teks Fab `${REFERENCE}` milik footprint (sebuah
    `PCB_TEXT`, bukan field) menimpa pin. Tulis posisi, sudut, dan ukuran ref
-   dan value, serta apa yang dilakukan pada `${REFERENCE}` itu.
+   dan value, apa yang dilakukan pada `${REFERENCE}` itu (fungsi pcbnew yang
+   dipakai dan di skrip mana), serta keluaran pemeriksa yang diharapkan.
+9. Freerouting selesai dengan `"success": true`. Tulis apa yang kamu periksa
+   sesudahnya dan apa yang dilakukan bila satu sambungan +3V3 belum dirute.
+   Sebut juga di mana skrip rute manual disimpan.
 
 ## Rubrik (tiap butir 2 poin)
 
@@ -63,8 +69,10 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
   autoroute satu percobaan (`maxPasses`), segmen terkunci dibandingkan
   (0 hilang/berubah), segmen nol-panjang dan tak terkunci di net manual
   dihapus, zona dituang, `cek_board.py` LULUS.
-- D. Tugas 6–7: 0,4 mm + clearance 0,3 mm; celah 2,54 − 1,7 = 0,84 mm < 1,0 mm
-  sehingga tidak muat, pad diubah oval 2,0 × 1,4 mm sehingga celah 1,14 mm;
+- D. Tugas 6–7: 0,5 mm + clearance 0,35 mm; celah 2,54 − 1,4 = 1,14 mm <
+  0,5 + 2 × 0,35 = 1,2 mm sehingga tidak muat; segmen di sela menyempit ke
+  0,4 mm (0,4 + 0,7 = 1,1 ≤ 1,14) dengan segmen dipecah dan pengecualian
+  dicatat di README;
   holder: rule area "dilarang footprint" berukuran holder terukur + margin
   (atau ±80 × 24 mm dengan ukuran holder dicatat belum terverifikasi /
   ditanyakan), garis + teks silkscreen, uji negatif DRC menolak footprint di
@@ -75,7 +83,10 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
   0,7 mm (15,75 mm) atau lebih kecil sampai ≥ 0,4 mm, dengan keputusan tertulis;
   `${REFERENCE}` dihapus dengan `Delete()` di skrip terpisah (bukan
   `SetVisible(False)`, yang tidak tersimpan); dibuktikan `cek_tata_letak.py`
-  teks 0 temuan.
+  teks 0 temuan. Tugas 9: DRC `unconnected` dibaca sesudah autoroute walau
+  sukses; sambungan sisa dirute manual dan dikunci; skrip rute manual di repo
+  (`hardware/mainboard/tata_letak.py`), bukan scratchpad. (Tugas 9 bagian
+  dari butir E; E penuh hanya bila tugas 8 dan 9 sama-sama benar.)
 
 ## Riwayat skor
 
@@ -86,3 +97,5 @@ menyinkronkan skematik ke board; skrip pcbnew dijalankan dengan
 | 2026-10-16 | sonnet | haiku | 9/10 | SKILL.md + aturan 11–13 (teks, holder, lebar; ditangkap user), tugas 6–8 baru. E: penempatan value panjang tidak diputuskan. Di luar rubrik: holder disebut "terukur" padahal belum. SKILL.md: urutan tetap penempatan value, ukuran khas vs terukur di aturan 12 |
 | 2026-10-16 | sonnet | haiku | 9/10 | E: keputusan value tidak diambil; sebab soal tanpa data ruang (tidak berjawaban pasti). Tugas 8 diberi angka ruang, rubrik E diisi jawaban pasti. SKILL.md: aturan 11 mengizinkan ubah bentuk pad footprint resmi bila lubang dan posisi tetap, dicatat di README |
 | 2026-10-16 | sonnet | haiku | 10/10 | Lulus (putaran ke-3 siklus aturan 11–13). Di luar rubrik, tidak mengubah SKILL.md: DRC tanpa tuang zona di tugas 4/6/7; aturan 9 `python3` vs aturan 7 `/usr/bin/python3` (bukan pertentangan: cek_board.py tanpa pcbnew dan memanggil cek_tata_letak.py lewat /usr/bin/python3); klaim GPIO12 dari ingatan |
+| 2026-10-18 | sonnet | haiku | 8/10 | Siklus aturan 8 (cek unconnected sesudah autoroute, alat di repo) dan 11 (profil JLCPCB, neck di sela pin), tugas 6 diubah, tugas 9 baru. C: prosedur FootprintLoad tidak ditulis; E: cara hapus ${REFERENCE} dan "teks 0 temuan" tidak ditulis. Soal 4 dan 8 diminta caranya secara eksplisit. SKILL.md: definisi net daya di aturan 11 |
+| 2026-10-18 | sonnet | haiku | 10/10 | Lulus (putaran ke-2 siklus 18 Okt). Di luar rubrik, tidak mengubah SKILL.md: kata "terukur" sekali terselip untuk holder yang belum diukur, ukuran ref ditulis ganda (0,8 / 1 mm), hasil pemeriksa ditulis sebelum dijalankan |
