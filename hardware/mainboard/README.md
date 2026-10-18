@@ -259,10 +259,32 @@ melapor `unconnected`, sambungan itu ditambahkan ke fungsi `rute_*` di
 
 ## Ekspor fabrikasi
 
-Dijalankan setelah semua butir di atas dicek:
+Berkas untuk JLCPCB dibuat dengan pengaturan dari panduan resmi JLCPCB untuk
+KiCad: lapisan F/B.Cu, F/B.Paste, F/B.Silkscreen, F/B.Mask, Edge.Cuts, ekstensi
+Protel, silkscreen dikurangi mask, via di-*tent* (setelan papan
+`(tenting front back)`), zona dituang sebelum plot, drill Excellon mm desimal
+origin absolut dengan PTH dan NPTH terpisah plus peta drill.
 
 ```bash
-cd hardware/mainboard
-kicad-cli pcb export gerbers -o fab/ mainboard.kicad_pcb
-kicad-cli pcb export drill -o fab/ mainboard.kicad_pcb
+hardware/mainboard/ekspor_fab.sh
 ```
+
+Hasil: `hardware/mainboard/fab/mainboard-gerber-jlcpcb.zip` (14 berkas di akar
+zip), yang di-upload di tombol *Add gerber file*. Folder `fab/` tidak
+di-commit karena dibuat ulang oleh perintah di atas.
+
+Pemeriksaan isi zip terhadap papan (Kondisi uji: 18 Okt 2026):
+
+| Yang dicek | Gerber/drill | Papan |
+|---|---|---|
+| Lubang PTH | 101 (0,4 ×3, 0,6 ×2, 0,75 ×2, 0,8 ×2, 1,0 ×80, 1,1 ×12) | sama |
+| Lubang NPTH | 4 × 3,2 mm | sama |
+| Flash F.Cu / B.Cu | 122 / 101 | 117 pad + 5 via / 96 pad THT + 5 via |
+| Bukaan mask depan | 121 tanpa via | 117 pad + 4 lubang baut (via ter-*tent*) |
+| Pad paste depan / belakang | 21 / 0 | 21 pad SMD / 0 |
+| Garis potong | 110,0 × 103,0 mm | sama |
+
+Tampilan visual Gerber dicek di pratinjau JLCPCB setelah upload dan, bila
+memilih *Confirm Production File*, di berkas produksi yang dikirim engineer.
+
+Butir di **Yang belum terverifikasi** dicek sebelum zip di-upload.
