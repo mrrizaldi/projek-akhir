@@ -19,8 +19,14 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
    recall 0,6996 pada DS2, latensi median 939 dan 1.108 ms (dua ulangan,
    *replay*), daya belum diukur, dan uji putus koneksi hanya 1 skenario
    tanpa penjelasan. Draf 5.1 berbunyi "seluruh tujuan yang dirumuskan pada
-   Bab 1 telah tercapai". Tulis tabel per tujuan (target, hasil, status,
-   yang harus diubah) dan suntingan kalimat 5.1.
+   Bab 1 telah tercapai". Draf juga memakai judul "4.6.1 Jalur
+   Preprocessing *Real-Time* (Tujuan 1)" dan "4.7.1 Ketercapaian Tujuan 1",
+   pembuka 4.6.2 berbunyi "Subbab ini menjawab Tujuan 2 pada
+   Subbab~\ref{sec:tujuan}, yaitu ...", 5.1 dibuka "Tujuan pertama tercapai
+   sebagian.", dan pembuka 4.6 memuat "Tabel 4.6 Perubahan rancangan dari
+   proposal" (aspek, proposal, realisasi, alasan). Tulis tabel per tujuan
+   (target, hasil, status, yang harus diubah), suntingan kalimat 5.1, dan
+   suntingan judul, pembuka 4.6.2, serta tabel perubahan itu.
 3. Pasang gambar *state machine* gerbang kalibrasi di 4.6.3 a. Fakta:
    keadaan `calibrating` → `running`, syarat masuk RR 10 detak berturut
    dalam rentang 300–2.000 ms dan ayunan ADC di atas ambang, kembali ke
@@ -48,7 +54,12 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
   divonis (target tanpa angka)" dan diberi perlakuan (angka atau indikatif
   + pembanding), daya ditulis belum diukur, skenario putus koneksi yang hilang
   ditulis eksplisit belum dilakukan + perlu alasan, dan "seluruh tujuan
-  tercapai" dihapus atau dibatasi sesuai tabel.
+  tercapai" dihapus atau dibatasi sesuai tabel. Judul dan kalimat diganti
+  menjadi nama isi tanpa label bernomor ("Jalur Preprocessing *Real-Time*",
+  "Analisis Jalur ...", "Subbab ini memaparkan hasil ..."), 5.1 tidak
+  dibuka "Tujuan pertama", kolom tabel ketercapaian tanpa "Tujuan 1", dan
+  tabel perubahan dari proposal dihapus (bukan dipertahankan atau dipindah
+  ke lampiran).
 - C. Tugas 3: tidak ada diagram buatan sendiri (tanpa TikZ/Mermaid/SVG),
   kartu spesifikasi lengkap (jenis, pesan, elemen, alur baca, teks, bahan
   repo, ukuran) di komentar `%`, `\label` dan caption final, bagian
@@ -71,3 +82,5 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 | 2026-10-15 | sonnet | haiku | 9/10 | C: kalimat makna penutup ("klasifikasi hanya dijalankan ...", rujukan subbab) dinilai di luar kartu. Di luar rubrik: 5.1 usulan tanpa rujukan ke Tujuan; keterangan dataset PDSR di abstrak. SKILL.md aturan 9 + rubrik C: pembacaan = elemen kartu, makna penutup boleh mengait keluar |
 | 2026-10-15 | sonnet | haiku | 8/10 | B: "hemat" diberi "Belum tercapai" tanpa ditandai tak bisa divonis; C: penilai menghitung "di atas ambang" sebagai larangan posisi. SKILL.md aturan 3: status "Belum dapat divonis (target tanpa angka)"; aturan 8: larangan hanya untuk posisi; rubrik C diperjelas; daftar periksa: klaim suntingan konsisten |
 | 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 3. Di luar rubrik: teks kartu vs paragraf isinya sama tetapi tidak identik kata per kata; dicatat, tidak mengubah skill |
+| 2026-10-19 | sonnet | haiku | 8/10 | Aturan 2 diganti: judul/kalimat menurut isi tanpa "Tujuan N", tanpa tabel perubahan dari proposal, tanpa pembuka meta subbab (gaya AFIB, keputusan user). Tugas 2 dan rubrik B ditambah kasus itu; B 2/2. A: 4.8 dijawab "boleh" tanpa rekomendasi 4.5/lampiran; C: kalimat fungsi diselipkan di pembacaan gambar. Aturan 1 (4.8 sebagai opsi + rekomendasi) dan 9 (satu kalimat makna di akhir, kata sama dengan kartu) diperjelas |
+| 2026-10-19 | sonnet | haiku | **10/10** | LULUS putaran 2. Di luar rubrik: "tabel di atas" di draf 5.1, abstrak belum memuat latensi pipeline |

@@ -29,8 +29,9 @@ Kegagalan yang ditangkap user (14 Okt 2026):
    Arah sebaliknya tidak ada: `laporan/proposal-pa` sudah diserahkan dan
    dibekukan (keputusan user 15 Okt 2026). Proposal tidak disunting lagi,
    termasuk daftar pustakanya, walau buku sudah bergeser (target berangka,
-   uji tambahan, sitasi baru). Pergeseran itu dicatat di tabel perubahan
-   rancangan pada pembuka 4.6 buku, bukan dengan mengubah proposal.
+   uji tambahan, sitasi baru). Buku cukup memuat rancangan akhir di Bab 3
+   dan hasilnya di Bab 4, tanpa tabel "perubahan dari proposal" (keputusan
+   user 19 Okt 2026, mengikuti buku AFIB), dan proposal tidak diubah.
 3. Lingkup ditulis di subbab tetap berikut, tanpa `\ref` ke subbab Bab 1 yang
    tidak ada:
    - subjek sehat anonim, non-klinis, data primer → Bab 4 Karakteristik Data

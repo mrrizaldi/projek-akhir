@@ -51,7 +51,9 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
      ambang, target, dan selisih yang dipakai sebagai pembanding. Pilih
      angka tabel yang paling menentukan, dan setiap angka **dibandingkan**
      dengan sesuatu (target, acuan, kondisi lain) atau **dijelaskan**
-     sebabnya. Angka tanpa pembanding adalah transkripsi. Hitung angkanya
+     sebabnya. Angka tanpa pembanding adalah transkripsi, termasuk selisih
+     kecil ("F1 naik 0,0010" saja salah, "F1 naik 0,0010, jauh di bawah
+     ambang 0,02" benar). Angka yang tidak bisa diberi pembanding dibuang. Hitung angkanya
      sebelum menyerahkan, dan tulis jumlahnya dengan benar.
    - Makna: satu kalimat penutup yang mengaitkan ke target, tujuan, atau
      keputusan rancangan.
@@ -100,9 +102,17 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
      Klaim tentang sinyal tubuh tidak boleh berdasar uji *replay*.
    - "Menjamin", "selalu", "pasti", dan "sangat" dihapus kecuali dibuktikan
      di seluruh lingkupnya.
+   - Metrik tanpa target (mis. p95) ditulis "dilaporkan" dan tidak
+     diposisikan terhadap ambang metrik lain ("melampaui batas median").
+     Bila rencana menyebut angka acuan untuknya, bandingkan dengan acuan
+     itu dan sebut sebagai acuan, bukan target: "p95 3.304~ms, di atas acuan
+     2 detik yang tidak dijadikan target".
    - Tidak menambah fakta yang tidak ada di sumber (tabel, artefak, atau
      tugas), misalnya "tertinggi di antara seluruh varian" atau "memenuhi
-     anggaran perangkat" tanpa angkanya. Yang tidak diketahui ditulis `[N]`
+     anggaran perangkat" tanpa angkanya. Ini berlaku juga untuk kerangka
+     kalimat berisi slot: jangan menulis slot klaim peringkat seperti
+     "tertinggi/terendah [N] di antara varian" bila peringkat itu tidak ada
+     di sumber. Yang tidak diketahui ditulis `[N]`
      atau `\PlaceholderData{...}`.
 
 5. **Kalimat 15–30 kata, pecah di atas 35.** Paling banyak satu "sehingga"
@@ -127,7 +137,17 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
    pengantar. Uji cepat: setiap paragraf bisa diberi judul 3–5 kata yang
    jujur. Bila judulnya butuh "dan", pecah.
 
-7. **Kohesi lama → baru.** Kalimat dibuka dengan hal yang sudah dikenal
+7. **Tanpa pembuka meta di subbab dan butir** (keputusan user 19 Okt 2026,
+   gaya buku AFIB). "Bab ini ..." hanya untuk paragraf pembuka bab. Subbab
+   dan butir langsung masuk ke isi: tidak dibuka "Subbab ini memaparkan
+   ...", "Butir ini bertujuan ...", atau "Bagian ini menguraikan ...", dan
+   tidak menyebut tujuan bernomor ("menjawab Tujuan 2"). Tujuan uji ditulis
+   sebagai pernyataan isi: "Kode C di ESP32-S3 harus menghitung hal yang
+   sama dengan Python.", "Kemampuan model diukur pada pasien yang tidak
+   pernah dilihat saat pelatihan." Diperiksa `cek_tabel.py` (N-META,
+   N-TUJUAN).
+
+8. **Kohesi lama → baru.** Kalimat dibuka dengan hal yang sudah dikenal
    pembaca dari kalimat atau paragraf sebelumnya, dan ditutup dengan
    informasi baru. Kata penunjuk selalu punya target yang jelas ("penurunan
    tersebut", bukan "hal ini" atau "pada subbab ini"). Pembuka paragraf
@@ -138,24 +158,24 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
    terakhir subbab menyiapkan subbab berikutnya, dan paragraf yang
    memperkenalkan gambar atau tabel tidak memulai topik baru.
 
-8. **Istilah dan singkatan konsisten.** Satu konsep satu istilah di seluruh
+9. **Istilah dan singkatan konsisten.** Satu konsep satu istilah di seluruh
    buku. Contohnya, setelah memilih "pengujian rekaman resmi", jangan
    bergantian dengan "uji rekaman final". Sebelum memperkenalkan istilah,
    periksa dengan `grep -rn "istilah" laporan/buku-pa/bab`. Singkatan
    didefinisikan saat pertama muncul di setiap bab (PDSR, AUC, p95, ISR).
 
-9. **Benang merah.** Setiap butir hasil 4.6 ditutup dengan kalimat yang
+10. **Benang merah.** Setiap butir hasil 4.6 ditutup dengan kalimat yang
    menyatakan target pada rencana Bab 3 terpenuhi atau tidak. 4.7 menjawab
    "mengapa" dan "apa artinya", tanpa mengulang angka 4.6 kecuali sebagai
    rujukan. Bab 5 tidak memuat angka atau temuan baru. Rantai lengkapnya ada
    di skill `struktur-pa` aturan 3.
 
-10. **Register dan kejujuran.** Bab 3 ditulis sebagai rancangan, Bab 4–5
+11. **Register dan kejujuran.** Bab 3 ditulis sebagai rancangan, Bab 4–5
     sebagai capaian (skill `struktur-pa` aturan 4). Yang belum
     diukur ditulis "belum diukur" atau `\PlaceholderData{...}`, tidak
     pernah dalam bentuk lampau.
 
-11. **Sunting tidak mengubah isi.** Saat menyunting, himpunan angka,
+12. **Sunting tidak mengubah isi.** Saat menyunting, himpunan angka,
     `\cite`, `\ref`, dan `\label` sebelum dan sesudah harus sama, kecuali
     perubahannya disengaja dan disebut ke user. Baris komentar `% sumber:`
     dipertahankan dan dipindah bersama kalimatnya.
@@ -163,7 +183,7 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
 ## Arketipe paragraf per fungsi
 
 Urutan fungsi kalimat yang terbukti di korpus laporan PENS dan tetap dipakai
-di PA ini. Setiap arketipe tunduk pada aturan 1–11 di atas.
+di PA ini. Setiap arketipe tunduk pada aturan 1–12 di atas.
 
 | Tempat | Urutan fungsi kalimat |
 |---|---|
@@ -174,15 +194,15 @@ di PA ini. Setiap arketipe tunduk pada aturan 1–11 di atas.
 | Pemosisian sesudah tabel pembanding | tinjauan tabel → beda dengan kelompok studi offline/simulasi [sitasi] → beda dengan kelompok perangkat komersial/model berat [sitasi] → pilihan rancangan + kesadaran keterbatasan → kontribusi yang terukur dan tidak mengklaim superioritas mutlak |
 | Komponen rancangan (3.2.x) | fungsi → masukan dan keluaran → hubungan ke komponen berikutnya → (alasan teknologi) |
 | Rencana uji (akhir Bab 3) | tujuan uji → metode/alat → metrik + ambang → **alasan ambang** → akibat bila tidak tercapai |
-| Hasil uji (4.6.x) | tujuan uji satu kalimat → setup dan skenario → rujukan bukti → observasi faktual → kondisi awal yang belum ideal + dugaan sebab → perbaikan → hasil sesudahnya → vonis terhadap target → jembatan ke tahap berikut |
+| Hasil uji (4.6.x) | tujuan uji sebagai pernyataan isi, tanpa "Butir ini bertujuan" → setup dan skenario → rujukan bukti → observasi faktual → kondisi awal yang belum ideal + dugaan sebab → perbaikan → hasil sesudahnya → vonis terhadap target → jembatan ke tahap berikut |
 | Analisis (4.7.x) | klaim → bukti angka (rujuk tabel/gambar) → mekanisme → kaitan ke tujuan/standar → batasan. Varian trade-off: kelemahan terukur → sumbernya → mengapa diterima |
 | Keterbatasan (akhir 4.7) | "Walaupun {capaian}, ..." → status prototipe → keterbatasan teknis → keterbatasan metodologis (subjek, lingkungan) → tahap lanjutan |
-| Kesimpulan (5.1) | per tujuan: klaim → bukti angka dari Bab 4, tanpa angka baru |
+| Kesimpulan (5.1) | urut tujuan, dibuka isi ("Preprocessing di ESP32-S3 terbukti ..."), bukan "Tujuan pertama tercapai": klaim → bukti angka dari Bab 4, tanpa angka baru |
 | Saran (5.2) | tiap butir: kondisi sekarang → tindakan yang disarankan → manfaatnya |
 
 ## Mode
 
-- **Tulis**: draf paragraf baru mengikuti aturan 1–10. Angka hanya dari
+- **Tulis**: draf paragraf baru mengikuti aturan 1–12. Angka hanya dari
   artefak repo atau tabel yang sudah ada, dengan komentar `% sumber:`.
 - **Sunting**: tampilkan per paragraf versi sebelum (dikutip apa adanya) →
   sesudah, ditambah satu baris alasan per perubahan yang menyebut nomor

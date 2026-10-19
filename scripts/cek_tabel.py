@@ -355,6 +355,22 @@ def periksa_prosa(lap, berkas, sumber):
                       f"'sehingga' {sehingga} kali ({per_seribu:.1f} per 1.000 kata), variasikan atau pecah kalimat")
 
 
+POLA_META_SUBBAB = re.compile(r"(?:^|(?<=\. ))\s*(?:Subbab|Butir|Bagian) ini\b")
+POLA_LABEL_TUJUAN = re.compile(r"\btujuan\s*([0-9]+|pertama|kedua|ketiga|keempat)\b", re.I)
+
+
+def periksa_label_tujuan(lap, berkas, sumber):
+    for nomor, baris in enumerate(tanpa_komentar(sumber).split("\n"), 1):
+        m = POLA_LABEL_TUJUAN.search(teks_polos(baris))
+        if m:
+            lap.catat(berkas, nomor, "N-TUJUAN", True,
+                      f"label bernomor '{m.group(0)}' di teks tercetak, sebut isi tujuannya (jalur, model, pipeline) seperti buku AFIB")
+        m = POLA_META_SUBBAB.search(teks_polos(baris))
+        if m:
+            lap.catat(berkas, nomor, "N-META", True,
+                      f"pembuka '{m.group(0)} ...' di subbab, langsung ke isi; 'Bab ini ...' hanya di pembuka bab")
+
+
 def uji_mandiri():
     contoh = "\n".join([
         "Hasilnya pada Tabel~\\ref{tab:a}.",
@@ -371,12 +387,16 @@ def uji_mandiri():
         "\\end{table}",
         "",
         "Berdasarkan Tabel~\\ref{tab:a}, nilai 10 dan 20 dan 30; selesai.",
+        "\\subsection{Jalur Preprocessing (Tujuan 1)}",
+        "\\label{subsec:hasil-tujuan1}",
+        "Subbab ini memaparkan hasil uji.",
     ])
     lap = Laporan()
     periksa_tabel(lap, "uji.tex", contoh, LEBAR_TEKS_CM["a4"])
     periksa_prosa(lap, "uji.tex", contoh)
+    periksa_label_tujuan(lap, "uji.tex", contoh)
     kode = {t[2] for t in lap.temuan}
-    harap = {"T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
+    harap = {"N-META", "N-TUJUAN", "T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
     kurang = harap - kode
     if kurang:
         print(f"uji mandiri GAGAL, tidak terdeteksi: {sorted(kurang)}")
@@ -402,6 +422,7 @@ def main():
     for berkas in daftar:
         sumber = berkas.read_text(encoding="utf-8")
         periksa_tabel(lap, berkas, sumber, LEBAR_TEKS_CM[arg.kertas])
+        periksa_label_tujuan(lap, berkas, sumber)
         if not arg.tanpa_prosa:
             periksa_prosa(lap, berkas, sumber)
     lap.cetak(arg.hanya_galat)

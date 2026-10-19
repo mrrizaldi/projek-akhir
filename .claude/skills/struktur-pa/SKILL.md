@@ -25,16 +25,36 @@ skill `tabel-pa`.
    pertama (Bab 2: masalah dalam ranahnya, teori yang dikupas, penelitian
    terkait untuk menegaskan orisinalitas. Bab 4: objek yang divalidasi,
    daftar aspek sesuai urutan subbab, fokus analisis). Subbab tambahan di
-   luar kerangka (mis. 4.8 Dokumentasi) hanya atas permintaan user.
+   luar kerangka (mis. 4.8 Dokumentasi) hanya atas permintaan user, dan
+   permintaan itu dijawab sebagai opsi, bukan langsung dikerjakan: sebut
+   bahwa 4.8 di luar kerangka beku, rekomendasikan foto dokumentasi masuk
+   4.5 Spesifikasi Peralatan Ujicoba atau lampiran, lalu tunggu keputusan
+   user.
 
-2. **4.6 per tujuan, 4.7 per tujuan.** 4.6.1 sampai 4.6.n mengikuti nomor
-   Tujuan di Bab 1, kronologis di dalamnya, dan butirnya memakai
-   `\subsubsection` (bernomor huruf). Pembuka 4.6 memuat tabel perubahan
-   terhadap rancangan Bab 3 (aspek, rancangan, realisasi, alasan dan bukti).
-   4.7 berisi tabel ketercapaian (Tercapai / Sebagian tercapai / Belum
-   tercapai, kosakata `tabel-pa` aturan 7) dan satu subbab per tujuan,
-   subbab perbandingan protokol dengan penelitian terkait, lalu subbab
-   Keterbatasan dan Status *Proof of Concept* sebagai penutup Bab 4.
+2. **4.6 dan 4.7 berurutan seperti tujuan, dinamai menurut isinya.**
+   4.6.1 sampai 4.6.n mengikuti urutan Tujuan di Bab 1, kronologis di
+   dalamnya, dan butirnya memakai `\subsubsection` (bernomor huruf). 4.7
+   berisi tabel ketercapaian (Tercapai / Sebagian tercapai / Belum
+   tercapai, kosakata `tabel-pa` aturan 7), satu subbab analisis per jalur
+   yang sama, subbab perbandingan protokol dengan penelitian terkait, lalu
+   subbab Keterbatasan dan Status *Proof of Concept* sebagai penutup Bab 4.
+   Gaya mengikuti buku AFIB (keputusan user 19 Okt 2026):
+   - Judul subbab dan kalimat menyebut **isi** tujuannya ("Jalur
+     Preprocessing *Real-Time*", "Analisis Jalur Model TinyML
+     *On-Device*"), tidak pernah label bernomor: tanpa "(Tujuan 1)",
+     "Ketercapaian Tujuan 2", "Subbab ini menjawab Tujuan 3", "Tujuan
+     pertama tercapai sebagian". Kolom tabel ketercapaian berisi nama
+     jalur, bukan "Tujuan 1, ...". Diperiksa `cek_tabel.py` (N-TUJUAN).
+   - Paragraf pembuka "Bab ini ..." hanya di awal bab. Subbab dan butir
+     langsung ke isi, tanpa "Subbab ini memaparkan ..." atau "Butir ini
+     bertujuan ..." (skill `narasi-pa` aturan 7, `cek_tabel.py` N-META).
+   - Kaitan ke tujuan cukup dinyatakan sekali di pembuka Bab 4 atau 4.6
+     ("disusun mengikuti tujuan pada Subbab~\ref{sec:tujuan}") dan di
+     pembuka 5.1.
+   - Tidak ada tabel atau paragraf "perubahan rancangan dari proposal"
+     (proposal lawan realisasi). Bab 3 memuat rancangan akhir, dan alasan
+     berbasis ukur muncul wajar di butir hasilnya (ablasi, uji
+     kesetaraan).
 
 3. **Benang merah wajib utuh dan dapat ditelusuri.**
    Permasalahan[i] → Tujuan[i] → 2.1 tantangan[i] → 3.1 fitur[i] → Rencana
@@ -51,13 +71,13 @@ skill `tabel-pa`.
      disebut: beri angka dari rencana, atau tulis "target indikatif" dan
      bandingkan dengan pembanding yang disebut. "Belum tercapai" hanya untuk
      target berangka yang diukur dan tidak terpenuhi.
-   - Minimal satu rujukan balik per bab ke Tujuan atau Permasalahan
-     ("dikaitkan kembali dengan Tujuan 2 pada Subbab~\ref{sec:tujuan}").
+   - Minimal satu rujukan balik per bab ke tujuan atau permasalahan tanpa
+     nomor ("dikaitkan kembali dengan tujuan penelitian pada
+     Subbab~\ref{sec:tujuan}").
 
-4. **Register ditentukan bab, bukan jenis dokumen.** Bab 3 tetap rancangan
-   ("dirancang", "akan") bahkan di buku full. Bab 3 tidak ditulis ulang agar
-   cocok dengan hasil. Perubahan rancangan dicatat di tabel perubahan pada
-   pembuka 4.6. Bab 4–5 ditulis sebagai capaian dengan kondisi uji yang
+4. **Register ditentukan bab, bukan jenis dokumen.** Bab 3 tetap register
+   rancangan ("dirancang") bahkan di buku full, dan isinya rancangan akhir
+   sistem yang diuji di Bab 4. Bab 4–5 ditulis sebagai capaian dengan kondisi uji yang
    menempel pada klaim. Buku full tidak memuat frasa progres ("tahap progres
    ini", "fase berikutnya", "sprint berikutnya", "semester berikutnya") dan
    tidak menyebut "proposal ini". Hal yang belum terjadi ditulis
@@ -103,8 +123,12 @@ skill `tabel-pa`.
    berisi kartu spesifikasi, dan user yang menggambar. Caption, `\label`,
    semua `\ref`, paragraf pengantar, dan paragraf penjelas tetap ditulis
    final. Bagian pembacaan gambar di paragraf penjelas hanya menyebut
-   elemen, label, dan alur yang ada di kartu. Kalimat makna penutupnya
-   boleh mengaitkan gambar ke tujuan atau subbab lain. Plot data
+   elemen, label, dan alur yang ada di kartu, dengan kata yang sama
+   persis dengan kartu (kartu "10 RR" → paragraf "10 RR"). Sesudah seluruh
+   pembacaan selesai, paragraf ditutup tepat **satu** kalimat makna yang
+   boleh mengaitkan gambar ke tujuan atau subbab lain. Kalimat fungsi atau
+   alasan ("syarat ini mencegah ...") tidak diselipkan di tengah pembacaan
+   dan tidak ditambah sebagai kalimat makna kedua. Plot data
    eksperimen dari pipeline repo (confusion matrix, kurva, grafik latensi)
    bukan ilustrasi. Berkas yang sudah di-export dirujuk langsung. Bila belum
    ada, placeholder menyebut skrip penghasilnya, dan skrip plot baru tidak
@@ -186,7 +210,9 @@ yang ada; identitas (nama, NRP, NIP, tahun) dicek ke sumber resmi.
 
 ## Daftar periksa akhir
 
-- [ ] Kerangka Bab 4–5 sama dengan aturan 1, 4.6 dan 4.7 per tujuan.
+- [ ] Kerangka Bab 4–5 sama dengan aturan 1, 4.6 dan 4.7 berurutan seperti
+      tujuan, judul menurut isi, tanpa "Tujuan N" dan tanpa tabel perubahan
+      dari proposal.
 - [ ] Setiap target Rencana Pengujian punya angka di 4.6 dengan metrik yang
       sama dan vonis di 4.7, atau ditulis eksplisit belum dilakukan.
 - [ ] Bab 3 masih rancangan, Bab 4–5 capaian, tanpa frasa progres di buku.

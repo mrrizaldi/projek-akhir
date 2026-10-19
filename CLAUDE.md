@@ -258,8 +258,9 @@ dibahas sama sekali. Buku full =
 `laporan/buku-pa` (dikerjakan), varian progres = `laporan/progres-pa-1`
 (dibekukan, dibahas ulang bersama user). **`laporan/proposal-pa` sudah
 diserahkan dan dibekukan (15 Okt 2026): tidak disunting lagi, termasuk
-`.bib`-nya.** Pergeseran buku terhadap proposal dicatat di tabel perubahan
-rancangan Bab 4 buku.
+`.bib`-nya.** Buku tidak memuat tabel "perubahan dari proposal" dan tidak
+memberi label bernomor "Tujuan N" di judul atau kalimat; gaya mengikuti buku
+AFIB (keputusan user 19 Okt 2026, skill `struktur-pa` aturan 2).
 
 - **Label kerja internal repo TIDAK boleh muncul di teks laporan resmi**
   (`laporan/**/*.tex` yang dicetak): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,

@@ -38,9 +38,9 @@ yang belum diamati tidak ditulis sebagai sudah terjadi ("sukses", "0").
 - A. Kerangka Bab 1 tetap sama dengan proposal; tidak menambah Batasan
   Masalah atau subbab lain (tugas 1); boleh menyebut alasannya. Tugas 5:
   proposal tidak disunting (sudah diserahkan dan dibekukan), termasuk
-  pustakanya; pergeseran buku terhadap proposal diarahkan ke tabel
-  perubahan rancangan Bab 4 buku, dan tidak ada rencana suntingan proposal
-  yang ditulis.
+  pustakanya; buku cukup memuat rancangan akhir (Bab 3) dan hasilnya
+  (Bab 4) tanpa tabel perubahan dari proposal, dan tidak ada rencana
+  suntingan proposal yang ditulis.
 - B. Lingkup ditempatkan di Bab 3/4 dan rujukan ke subbab yang dihapus dibuang
   (tugas 3), dengan pemeriksaan `make pdf` + `undefined` 0.
 - C. Riwayat yang tercatat di repo dipakai tanpa ditanyakan (tugas 2 dan 4a).
@@ -62,3 +62,4 @@ yang belum diamati tidak ditulis sebagai sudah terjadi ("sukses", "0").
 | 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 1 setelah aturan 2 (garis besar) + tugas 5. Di luar rubrik: pesan akhir menyebut "sudah ada di model/CLAUDE.md §Pekerjaan terbuka" tanpa fakta di tugas; rubrik tidak menuntutnya, dicatat saja |
 | 2026-10-15 | -- | -- | belum dijalankan | SKILL.md aturan 2: proposal dibekukan (sudah diserahkan), tidak disunting; tugas 5 dan rubrik A diubah. Wajib eval ulang |
 | 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 1 setelah aturan 2 diubah (proposal dibekukan). Di luar rubrik: pesan tugas 2 menyamakan angka menunggu data dengan butir Pekerjaan terbuka; kalimat tugas 3 ditulis tanpa menyebut narasi-pa. Dicatat |
+| 2026-10-19 | sonnet | haiku | **10/10** | Aturan 2 diganti: tanpa tabel perubahan dari proposal (keputusan user, gaya AFIB); rubrik A diselaraskan. Putaran pertama dibatalkan karena peserta ikut membaca rubrik; diulang dengan berkas tugas saja |

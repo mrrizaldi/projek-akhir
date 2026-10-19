@@ -126,7 +126,7 @@ Desain PCB rev1 disusun oleh rekan, sedangkan revisi rev2 sedang dikerjakan. Pem
 \subsection{Akuisisi dan Preprocessing Sinyal ECG}
 \label{subsec:preprocessing-ecg}
 
-Bagian ini mencakup keseluruhan proses dari pengambilan sinyal ECG hingga sinyal siap diklasifikasi oleh model. Gambar~\ref{fig:alir-preprocessing} menunjukkan flowchart preprocessing pada perangkat.
+Preprocessing mencakup keseluruhan proses dari pengambilan sinyal ECG hingga sinyal siap diklasifikasi oleh model. Gambar~\ref{fig:alir-preprocessing} menunjukkan flowchart preprocessing pada perangkat.
 
 % PLACEHOLDER-GAMBAR fig:alir-preprocessing  REVISI dari gambar_3_2.png
 % Ubah : segmentasi "+-250 sampel di R" -> "256 sampel (128 sebelum, 128 sesudah R)"
@@ -194,7 +194,7 @@ Persamaan~\ref{eq:normalisasi} menunjukkan proses normalisasi, dengan $x$ adalah
 \subsection{Model Klasifikasi Aritmia}
 \label{subsec:model-tinyml}
 
-Bagian ini menguraikan model yang digunakan untuk mengklasifikasikan setiap detak, mulai dari penyiapan data, arsitektur model, hingga proses pelatihan dan kuantisasi.
+Model pengklasifikasi setiap detak disusun melalui penyiapan data, perancangan arsitektur, pelatihan, dan kuantisasi.
 
 \subsubsection{\textit{Dataset} dan Pelabelan}
 
@@ -373,7 +373,7 @@ Setelah dilatih, varian \textit{deploy} model dikuantisasi ke INT8 agar ukuranny
 \subsection{\textit{Pipeline Edge-to-Cloud} yang Resilien}
 \label{subsec:pipeline-edge-cloud}
 
-Bagian ini menjelaskan integrasi seluruh proses ke dalam alur kerja \textit{firmware} sekaligus mekanisme ketahanannya terhadap gangguan koneksi. Gambar~\ref{fig:alir-firmware} menunjukkan flowchart \textit{runtime firmware} beserta jalur penanganan kondisi daring dan luring. Berbeda dari pendekatan berbasis penyimpanan non-volatil (kartu SD atau SPIFFS), resiliensi pada penelitian ini dirancang sepenuhnya di memori volatil (PSRAM) dengan asumsi perangkat \textit{wearable} diisi daya secara rutin, sebagaimana perangkat \textit{smartwatch}. Pendekatan ini menghilangkan kompleksitas manajemen \textit{filesystem embedded} serta menekan konsumsi daya dan ruang PCB. Prinsip yang mendasari rancangan ini adalah mempertahankan kelengkapan data di sisi \textit{edge} selama gangguan berlangsung, alih-alih mengandalkan rekonstruksi data yang hilang di sisi \textit{cloud}. Strategi preventif semacam ini diutamakan karena teknik imputasi sulit memulihkan informasi yang hilang bertepatan dengan kejadian seperti deteksi aritmia~\cite{yaacoub_2020}.
+Seluruh proses diintegrasikan ke dalam alur kerja \textit{firmware} yang sekaligus memuat mekanisme ketahanan terhadap gangguan koneksi. Gambar~\ref{fig:alir-firmware} menunjukkan flowchart \textit{runtime firmware} beserta jalur penanganan kondisi daring dan luring. Berbeda dari pendekatan berbasis penyimpanan non-volatil (kartu SD atau SPIFFS), resiliensi pada penelitian ini dirancang sepenuhnya di memori volatil (PSRAM) dengan asumsi perangkat \textit{wearable} diisi daya secara rutin, sebagaimana perangkat \textit{smartwatch}. Pendekatan ini menghilangkan kompleksitas manajemen \textit{filesystem embedded} serta menekan konsumsi daya dan ruang PCB. Prinsip yang mendasari rancangan ini adalah mempertahankan kelengkapan data di sisi \textit{edge} selama gangguan berlangsung, alih-alih mengandalkan rekonstruksi data yang hilang di sisi \textit{cloud}. Strategi preventif semacam ini diutamakan karena teknik imputasi sulit memulihkan informasi yang hilang bertepatan dengan kejadian seperti deteksi aritmia~\cite{yaacoub_2020}.
 
 % PLACEHOLDER-GAMBAR fig:alir-firmware  REVISI dari gambar_3_5.png
 % Ubah : "Publikasi real-time per-rekaman" + "Baca 50-100 rekaman" -> "semua beat masuk antrean PSRAM, kirim batch <= 50, PUBACK dipungut tanpa blocking"
@@ -592,7 +592,7 @@ Ayunan yang dinilai kedua gerbang adalah ayunan bersih, yaitu ayunan sinyal ters
 \subsection{Antarmuka Pengguna pada Perangkat}
 \label{subsec:antarmuka-perangkat}
 
-Selain mengirim hasil klasifikasi ke \textit{cloud}, perangkat menampilkan hasil pemantauan secara lokal dan dapat dioperasikan sepenuhnya tanpa komputer melalui layar TFT, LED \textit{NeoPixel}, \textit{buzzer}, dan tiga tombol. Antarmuka ini dirancang agar tidak mengganggu jalur utama, yaitu akuisisi, deteksi, inferensi, perekaman, dan publikasi MQTT tetap berjalan ketika pengguna menekan tombol atau membuka menu, karena menu hanya mengganti isi layar dan arti tombol. Bagian ini menguraikan tata letak layar, indikator LED dan \textit{buzzer}, tombol dan menu, sumber sinyal, alur perekaman sinyal mentah, serta konfigurasi jaringan.
+Selain mengirim hasil klasifikasi ke \textit{cloud}, perangkat menampilkan hasil pemantauan secara lokal dan dapat dioperasikan sepenuhnya tanpa komputer melalui layar TFT, LED \textit{NeoPixel}, \textit{buzzer}, dan tiga tombol. Antarmuka ini dirancang agar tidak mengganggu jalur utama, yaitu akuisisi, deteksi, inferensi, perekaman, dan publikasi MQTT tetap berjalan ketika pengguna menekan tombol atau membuka menu, karena menu hanya mengganti isi layar dan arti tombol. Antarmuka tersebut terdiri atas tata letak layar, indikator LED dan \textit{buzzer}, tombol dan menu, sumber sinyal, alur perekaman sinyal mentah, serta konfigurasi jaringan.
 % sumber: firmware/README.md bagian Antarmuka alat dan Pemakaian di perangkat ("Menu hanya mengganti isi layar dan arti tombol. Akuisisi, deteksi, inferensi, rekaman, publikasi MQTT, NeoPixel, dan bip detak tetap berjalan selama menu terbuka")
 
 \subsubsection{Tata Letak Layar Pemantauan}

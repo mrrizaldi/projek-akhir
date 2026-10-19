@@ -22,7 +22,10 @@ Angka keluaran skrip boleh `[N]` karena peserta tidak menjalankan perintah.
    median latensi 939 dan 1.108 ms (target ≤ 2.000 ms), p95 1.404 dan
    3.304 ms (tanpa target). Sumber sinyal *replay*, dua ulangan 180 detik,
    WiFi lokal. User ingin menulis "pipeline terbukti andal untuk pemantauan
-   pasien di rumah".
+   pasien di rumah". Tulis juga kalimat pembuka butir "b. *Streaming*
+   Normal" di subbab Jalur *Pipeline Edge-to-Cloud* Resilien. Draf
+   pembukanya: "Butir ini bertujuan memastikan detak sampai di ThingsBoard
+   secara utuh, sebagai jawaban atas Tujuan 3."
 3. Paragraf 210 kata berisi hasil ablasi (F1 per varian), penjelasan mengapa
    *window* 128 sampel sebelum R membantu kelas S (gelombang P dan interval
    R-R sebelumnya), dan keputusan memakai A6 untuk *deploy*. Jelaskan cara
@@ -47,7 +50,9 @@ Angka keluaran skrip boleh `[N]` karena peserta tidak menjalankan perintah.
 - B. Tugas 2: klaim dibatasi pada kondisi uji (*replay*, dua ulangan, WiFi
   lokal). Menolak atau melunakkan "terbukti andal untuk pemantauan pasien di
   rumah" dengan alasan lingkup bukti. p95 dilaporkan tanpa status
-  terpenuhi atau gagal.
+  terpenuhi atau gagal. Pembuka butir langsung ke isi (mis. "Detak yang
+  lolos gerbang harus sampai di ThingsBoard secara utuh ..."), tanpa
+  "Butir ini bertujuan", "Subbab ini", atau "Tujuan 3".
 - C. Tugas 3: dipecah per fungsi menjadi hasil, mekanisme (atau dirujuk ke
   4.7/Bab 3), dan keputusan, masing-masing ≤ 150 kata, kalimat pertama
   tiap paragraf menyatakan klaim utama paragraf itu (temuan, pernyataan
@@ -71,3 +76,6 @@ Angka keluaran skrip boleh `[N]` karena peserta tidak menjalankan perintah.
 | 2026-10-15 | sonnet | haiku | 9/10 | E: "sudah saya rapikan" padahal kalimat berikutnya "belum ditulis ke bab4.tex". Di luar rubrik: "memenuhi target" untuk satu pengukuran; p95 1.404 tidak disebut. Mode Sunting: pesan memakai "usulan" selama belum ditulis; rubrik E ditambah syarat konsistensi |
 | 2026-10-15 | sonnet | haiku | 8/10 | A: 6 angka (ambang ikut dihitung) dan salah hitung "5 angka"; C: kalimat pertama paragraf mekanisme/keputusan dinilai bukan temuan, fakta dikarang ("F1 tertinggi", "anggaran perangkat"). Di luar rubrik: PDSR tanpa definisi, mode Sunting tidak mengutip teks sebelum. SKILL.md: batas 5 angka termasuk ambang + hitung; larangan mengarang fakta; kalimat pertama = klaim sesuai fungsi; Sunting mengutip teks sebelum. Rubrik A dan C diperjelas |
 | 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 3. Di luar rubrik: PDSR tanpa kepanjangan di jawaban tugas 2; hanya p95 terbesar yang disebut; audit tugas 4 tanpa reverse outline (tugas tidak memberi bab). Dicatat, skill tidak diubah |
+| 2026-10-19 | sonnet | haiku | 9/10 | Aturan 7 baru (tanpa pembuka meta subbab/butir, tanpa "Tujuan N"); tugas 2 dan rubrik B ditambah pembuka butir. B 1/2: p95 diposisikan terhadap "batas median". Aturan 4 ditambah butir metrik tanpa target |
+| 2026-10-19 | sonnet | haiku | 8/10 | B 2/2 (aturan baru lolos). A: selisih F1 0,0010 tanpa pembanding; C: slot "tertinggi/terendah di antara varian". Aturan 1 (selisih kecil tetap berpembanding) dan 4 (slot peringkat) diperjelas |
+| 2026-10-19 | sonnet | haiku | 7/10 | BERHENTI (aturan keras 8: 3 putaran, skor tidak naik). B 2/2 ketiga putaran: aturan baru stabil. Poin hilang berganti tiap putaran pada aturan lama: A angka selisih tanpa pembanding individual, C "varian acuan" diasumsikan, E "sudah saya rapikan sebagai usulan" (frasa terlarang). Skor terbaik 9/10. Usulan ke user: terima 9/10, atau soal tugas 1 dan 3 diberi fakta pembanding eksplisit (varian acuan, ambang per metrik) lalu satu putaran ulang |
