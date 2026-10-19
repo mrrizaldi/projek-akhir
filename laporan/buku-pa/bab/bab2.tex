@@ -16,7 +16,7 @@ Mayoritas penelitian yang mengembangkan model kecerdasan buatan untuk deteksi ar
 \subsection{Aritmia dan Elektrokardiogram (ECG)}
 \label{subsec:aritmia-ecg}
 
-Aritmia merupakan gangguan irama listrik jantung yang menyebabkan detak jantung tidak teratur, terlalu cepat (takikardia), atau terlalu lambat (bradikardia). Kondisi ini dapat dideteksi melalui elektrokardiogram (ECG), yaitu rekaman aktivitas listrik jantung yang menangkap gelombang P, kompleks QRS, dan gelombang T dalam satu siklus detak jantung~\cite{ecg_goldberger}. Penyimpangan morfologi atau durasi pada komponen-komponen tersebut menjadi penanda klinis adanya aritmia. Dalam implementasi \textit{wearable}, sinyal ECG rentan terhadap tiga jenis gangguan utama, yaitu \textit{baseline wander} (frekuensi $< 0{,}5$ Hz), \textit{high-frequency noise} ($> 40$ Hz), dan \textit{motion artifact}. Gangguan terakhir paling sulit ditangani karena spektrum frekuensinya tumpang tindih dengan sinyal ECG ($0{,}5$--$40$ Hz)~\cite{sornmo_laguna_2005}.
+Aritmia merupakan gangguan irama listrik jantung yang menyebabkan detak jantung tidak teratur, terlalu cepat (takikardia), atau terlalu lambat (bradikardia). Kondisi ini dapat dideteksi melalui elektrokardiogram (ECG), yaitu rekaman aktivitas listrik jantung yang menangkap gelombang P, kompleks QRS, dan gelombang T dalam satu siklus detak jantung~\cite{ecg_goldberger}. Penyimpangan morfologi atau durasi pada komponen-komponen tersebut menjadi penanda klinis adanya aritmia. Dalam implementasi \textit{wearable}, sinyal ECG rentan terhadap tiga jenis gangguan utama, yaitu \textit{baseline wander} (frekuensi $< 0{,}5$ Hz), \textit{high-frequency noise} ($> 40$ Hz), serta artefak otot dan gerak~\cite{zambrano_2026, jia_2024}. Artefak otot paling sulit ditangani karena sifatnya tidak stasioner dan spektrum frekuensinya tumpang tindih dengan sinyal ECG ($0{,}5$--$40$ Hz)~\cite{jia_2024}.
 
 Tabel~\ref{tab:perbandingan-irama} merangkum perbedaan karakteristik
 sinyal ECG antara irama sinus normal dan kondisi aritmia yang menjadi
@@ -52,7 +52,7 @@ dasar klasifikasi pada penelitian ini.
     \bottomrule
   \end{tabular}
   \smallskip\\
-  \small\textbf{Sumber: Goldberger~\cite{ecg_goldberger}; S\"{o}rnmo \& Laguna~\cite{sornmo_laguna_2005}}
+  \small\textbf{Sumber: Goldberger~\cite{ecg_goldberger}}
 \end{table}
 
 Dalam penelitian ini, perbedaan karakteristik pada
@@ -63,7 +63,7 @@ diuraikan pada Bab~3.
 \subsection{IoT Edge Computing}
 \label{subsec:iot-edge}
 
-IoT \textit{edge computing} adalah pendekatan arsitektur yang menempatkan kapabilitas komputasi langsung pada perangkat \textit{edge}, alih-alih mengandalkan server terpusat. Dengan paradigma ini, data diproses secara lokal sehingga latensi berkurang, privasi data lebih terjaga, dan sistem dapat beroperasi secara mandiri tanpa ketergantungan penuh pada koneksi internet~\cite{shi_2016}. Arsitektur yang umum digunakan terdiri dari tiga lapisan, yaitu lapisan perangkat (\textit{device layer}) untuk akuisisi dan pemrosesan lokal, lapisan \textit{edge/fog} untuk agregasi, serta lapisan \textit{cloud} untuk penyimpanan dan pemantauan jangka panjang. Dalam konteks monitoring kesehatan, \textit{edge computing} memungkinkan perangkat \textit{wearable} menghasilkan diagnosis secara \textit{real-time} tanpa harus mengirimkan seluruh data mentah ke \textit{cloud}~\cite{tinyml_iot_review}. Dalam penelitian ini, \textit{edge computing} digunakan untuk menempatkan preprocessing dan klasifikasi aritmia pada lapisan perangkat, yaitu ESP32-S3, sedangkan lapisan \textit{cloud} berperan untuk pemantauan dan penyimpanan hasil.
+IoT \textit{edge computing} adalah pendekatan arsitektur yang menempatkan kapabilitas komputasi langsung pada perangkat \textit{edge}, alih-alih mengandalkan server terpusat. Dengan paradigma ini, data diproses secara lokal sehingga latensi berkurang dan privasi data lebih terjaga~\cite{cao_2020}. Data yang diproses di perangkat juga tetap dapat dipertahankan ketika koneksi internet terputus~\cite{yaacoub_2020}. Arsitektur yang umum digunakan terdiri dari tiga lapisan, yaitu lapisan perangkat (\textit{device layer}) untuk akuisisi dan pemrosesan lokal, lapisan \textit{edge/fog} untuk agregasi, serta lapisan \textit{cloud} untuk penyimpanan dan pemantauan jangka panjang. Dalam konteks monitoring kesehatan, \textit{edge computing} memungkinkan perangkat \textit{wearable} menghasilkan diagnosis secara \textit{real-time} tanpa harus mengirimkan seluruh data mentah ke \textit{cloud}~\cite{tinyml_iot_review}. Dalam penelitian ini, \textit{edge computing} digunakan untuk menempatkan preprocessing dan klasifikasi aritmia pada lapisan perangkat, yaitu ESP32-S3, sedangkan lapisan \textit{cloud} berperan untuk pemantauan dan penyimpanan hasil.
 
 \subsection{Tiny Machine Learning (TinyML)}
 \label{subsec:tinyml}
@@ -88,7 +88,7 @@ hierarkis dari data masukan melalui operasi konvolusi, tanpa memerlukan
 rekayasa fitur manual~\cite{kim_2023}. Pada sinyal satu dimensi seperti ECG,
 digunakan varian 1D-CNN yang mengoperasikan \textit{kernel} sepanjang dimensi
 waktu untuk menangkap pola morfologi lokal seperti kompleks QRS, gelombang P,
-dan gelombang T~\cite{kiranyaz_2016}.
+dan gelombang T~\cite{kiranyaz_2021}.
 
 Operasi inti konvolusi 1D pada setiap posisi $t$ dituliskan pada Persamaan~\ref{eq:conv1d}.
 
@@ -229,7 +229,7 @@ andal untuk deteksi R-\textit{peak} menggunakan algoritma Pan-Tompkins.
 \subsection{Protokol MQTT}
 \label{subsec:mqtt}
 
-MQTT (\textit{Message Queuing Telemetry Transport}) adalah protokol komunikasi \textit{publish-subscribe} yang dirancang untuk perangkat IoT dengan \textit{overhead} \textit{header} minimal (2 byte) sehingga efisien dalam penggunaan \textit{bandwidth}~\cite{oasis_mqtt5}. MQTT mendukung tiga tingkat \textit{Quality of Service}, yaitu QoS-0 (\textit{at most once}), QoS-1 (\textit{at least once}), dan QoS-2 (\textit{exactly once}). Untuk data biomedis kritis seperti ECG, QoS-1 atau QoS-2 direkomendasikan agar tidak ada data yang hilang saat transmisi~\cite{lee_2013}. Dalam penelitian ini, MQTT digunakan untuk mengirim hasil klasifikasi per detak dari ESP32-S3 ke \textit{broker} ThingsBoard pada QoS-1, dan duplikat akibat pengiriman ulang dikenali di sisi \textit{cloud}.
+MQTT (\textit{Message Queuing Telemetry Transport}) adalah protokol komunikasi \textit{publish-subscribe} yang dirancang untuk perangkat IoT dengan \textit{overhead} \textit{header} minimal (2 byte) sehingga efisien dalam penggunaan \textit{bandwidth}~\cite{oasis_mqtt5}. MQTT mendukung tiga tingkat \textit{Quality of Service}, yaitu QoS-0 (\textit{at most once}), QoS-1 (\textit{at least once}), dan QoS-2 (\textit{exactly once}). Pada aplikasi kesehatan berbasis MQTT, QoS-1 menjadi kompromi terbaik antara latensi \textit{end-to-end} yang rendah dan variasi latensi yang kecil~\cite{akshatha_2022}. Dalam penelitian ini, MQTT digunakan untuk mengirim hasil klasifikasi per detak dari ESP32-S3 ke \textit{broker} ThingsBoard pada QoS-1, dan duplikat akibat pengiriman ulang dikenali di sisi \textit{cloud}.
 
 \subsection{Platform Dashboard ThingsBoard}
 \label{subsec:thingsboard}

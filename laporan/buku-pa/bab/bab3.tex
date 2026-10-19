@@ -6,7 +6,7 @@ Bab ini menguraikan rancangan sistem pemantauan detak jantung kontinu dengan det
 \section{Deskripsi Solusi}
 \label{sec:deskripsi-solusi}
 
-Sistem pemantauan detak jantung berbasis IoT pada umumnya mengirimkan sinyal mentah secara langsung ke server \textit{cloud} untuk diproses~\cite{shi_2016}. Pendekatan terpusat ini menimbulkan latensi yang tinggi, beban komputasi yang menumpuk pada server, serta ketergantungan besar terhadap kestabilan koneksi internet. Akibatnya, sistem rentan kehilangan data ketika jaringan terganggu~\cite{escobedo_2026}. Padahal, pemantauan kardiovaskular bersifat kontinu dan kritis terhadap waktu, sehingga keterlambatan maupun terputusnya aliran data dapat mengurangi efektivitas deteksi dini aritmia.
+Sistem pemantauan detak jantung berbasis IoT pada umumnya mengirimkan sinyal mentah secara langsung ke server \textit{cloud} untuk diproses~\cite{escobedo_2026, yaacoub_2020}. Pendekatan terpusat ini menimbulkan latensi yang tinggi, beban komputasi yang menumpuk pada server, serta ketergantungan besar terhadap kestabilan koneksi internet. Akibatnya, sistem rentan kehilangan data ketika jaringan terganggu~\cite{escobedo_2026}. Padahal, pemantauan kardiovaskular bersifat kontinu dan kritis terhadap waktu, sehingga keterlambatan maupun terputusnya aliran data dapat mengurangi efektivitas deteksi dini aritmia.
 
 Solusi yang ditawarkan pada penelitian ini adalah sistem pemantauan detak jantung kontinu yang melakukan deteksi dini aritmia secara langsung pada mikrokontroler (\textit{on-device inference}) dengan pendekatan \textit{edge computing}. Sistem ini didukung oleh \textit{pipeline edge-to-cloud} yang tahan terhadap gangguan koneksi. Dengan memindahkan proses inferensi ke perangkat, sistem tidak lagi bergantung sepenuhnya pada \textit{cloud} untuk mengambil keputusan.
 
@@ -149,7 +149,7 @@ Sinyal ECG diperoleh menggunakan modul sensor AD8232 yang dikonfigurasi pada Lea
 
 \subsubsection{Filter Butterworth}
 
-Sinyal ECG mentah mengandung \textit{noise} berupa pergeseran garis dasar (\textit{baseline wander}) pada frekuensi rendah serta \textit{noise} otot dan interferensi listrik pada frekuensi tinggi. Filter Butterworth \textit{bandpass} dengan frekuensi \textit{cutoff} 0,5--40 Hz digunakan untuk membuang kedua jenis \textit{noise} tersebut sambil mempertahankan pita ECG yang berguna~\cite{sornmo_laguna_2005, bui_2021}. Filter dirancang dengan orde 4 dan diimplementasikan sebagai rangkaian empat \textit{second-order section} (\textit{biquad}) yang bersifat kausal. Bentuk ini ringan secara komputasi dan dapat diproses sampel demi sampel secara \textit{real-time} pada mikrokontroler.
+Sinyal ECG mentah mengandung \textit{noise} berupa pergeseran garis dasar (\textit{baseline wander}) pada frekuensi rendah serta \textit{noise} otot dan interferensi listrik pada frekuensi tinggi. Filter Butterworth \textit{bandpass} dengan frekuensi \textit{cutoff} 0,5--40 Hz digunakan untuk membuang kedua jenis \textit{noise} tersebut sambil mempertahankan pita ECG yang berguna~\cite{zambrano_2026, bui_2021}. Filter dirancang dengan orde 4 dan diimplementasikan sebagai rangkaian empat \textit{second-order section} (\textit{biquad}) yang bersifat kausal. Bentuk ini ringan secara komputasi dan dapat diproses sampel demi sampel secara \textit{real-time} pada mikrokontroler.
 % sumber: model/config.py (BANDPASS_ORDER = 4); firmware/include/ecg_preproc.h (ECG_N_SOS 4, "Butterworth bandpass 0.5-40.0 Hz orde 4, 4 second-order section")
 Karena kausal, filter ini menggeser sinyal dengan \textit{group delay} sebesar 4 sampel (sekitar 11 ms). Pergeseran tersebut tidak dikoreksi, melainkan dijaga identik antara data pelatihan di komputer dan pemrosesan di perangkat. Keduanya memakai koefisien filter yang sama, dan model karena itu mempelajari posisi R-\textit{peak} yang sama dengan yang dihasilkan perangkat.
 % sumber: model/CLAUDE.md Fase 1 ("Group delay +4 sampel") dan jebakan "Group delay filter kausal menggeser R-peak +4 sampel"; 4 sampel / 360 Hz = 11,1 ms
@@ -226,7 +226,7 @@ Tidak seluruh rekaman MIT-BIH digunakan. Rekaman 102 dan 104 tidak memiliki kana
 
 Selain MIT-BIH \textit{Arrhythmia Database} sebagai \textit{dataset} utama, dua basis data
 pelengkap digunakan sebagai data uji \textit{held-out} untuk mengevaluasi
-generalisasi model terhadap kondisi akuisisi yang berbeda~\cite{goldberger_2000_physionet}.
+generalisasi model terhadap kondisi akuisisi yang berbeda~\cite{pollard_2026}.
 MIT-BIH \textit{Supraventricular Arrhythmia Database} (SVDB) digunakan sebagai
 data uji karena memperkaya sampel detak supraventrikular (kelas S) dan menguji
 langsung efektivitas cabang ritme. St.~Petersburg INCART 12-\textit{lead
