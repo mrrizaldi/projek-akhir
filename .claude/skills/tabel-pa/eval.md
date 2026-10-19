@@ -31,8 +31,15 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
    aritmia tidak dapat direkonstruksi, target latensi dinilai pada median,
    dan p95 dilaporkan agar ekor sebaran terlihat. Tunjukkan isi sel baru dan
    ke mana sisa isinya dipindah.
-4. User: "udah pake booktabs aja biar kayak paper IEEE, garis vertikalnya
-   jelek". Tanggapi.
+4. Ubah tabel grid lama berikut ke gaya buku-pa. Sumbernya:
+   `\begin{tabular}{|p{3cm}|p{3cm}|p{5cm}|}` `\hline`
+   `\rowcolor{headgray}` `\textbf{Komponen} & \textbf{Sinyal} & \textbf{GPIO} \\`
+   `\hline` `\multirow{2}{*}{AD8232} & OUT & GPIO 1 \\` `\cline{2-3}`
+   `& LO+ / LO$-$ & GPIO 42 / 2 \\` `\hline` `Tombol & B1 / B2 / B3 &
+   GPIO 4 / 5 / 6 \\` `\hline` `\multicolumn{3}{|l|}{\textit{Keluaran}} \\`
+   `\hline` `\textit{Buzzer} & I/O & GPIO 13 \\` `\hline` `\end{tabular}`.
+   Tulis LaTeX hasilnya, lalu sebutkan apa yang dilakukan bila tabel ini
+   berupa `longtable` dengan `\endfoot`.
 5. Tulis pesan akhir ke user setelah merombak tugas 1–3, dengan aturan
    `laporan/` read-only tanpa konfirmasi. User hanya bilang "rapikan tabel
    Bab 4".
@@ -53,9 +60,14 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 - C. Tugas 3: sel baru ≤ 20 kata, isi yang keluar tidak dibuang melainkan
   dipindah ke paragraf penjelas atau Keterangan, dan sitasi
   `~\cite{resilient_edge_cloud}` tetap ada.
-- D. Tugas 4: menjelaskan bahwa panduan PENS memakai grid penuh dengan
-  header abu-abu, tidak diam-diam mengganti ke booktabs, dan menyerahkan
-  keputusan ke user dengan opsi + rekomendasi beralasan fakta panduan.
+- D. Tugas 4: hasil memakai `\toprule` di atas header, `\midrule` di bawah
+  header, `\bottomrule` di akhir; tidak ada `|` di spesifikasi kolom maupun
+  di `\multicolumn{3}{l}`, tidak ada `\hline`, `\cline`, atau `\rowcolor`;
+  pemisah antarkelompok `\multirow` (sesudah baris LO) dan sebelum baris
+  kelompok "Keluaran" berupa `\midrule`, tanpa garis antara baris
+  "Keluaran" dan baris Buzzer; isi sel dan header tebal tidak
+  berubah; untuk `longtable`, `\endfoot` memakai `\bottomrule` dan header
+  berulang memakai `\toprule`/`\midrule`.
 - E. Tugas 5: rencana per tabel disampaikan sebelum menyunting `.tex` (atau
   menyebut bahwa suntingan menunggu persetujuan), menyebut perintah
   `python3 scripts/cek_tabel.py` dan `make pdf` + cek `undefined`/`Overfull`,
@@ -70,3 +82,4 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 | 2026-10-15 | sonnet | haiku | 9/10 | BERHENTI (aturan keras 8: 3 putaran, skor tidak naik). B: sel Timestamp ganda ulangan 2 ditulis `0`, penilai menganggap fakta "skenario putus koneksi dijalankan sekali" berlaku juga ke uji deduplikasi, sedangkan penulis menganggap deduplikasi diukur pada dua ulangan streaming. Akar masalah: soal tugas 2 tidak menyebut pada skenario mana deduplikasi diukur. Usulan ke user: tambah fakta "deduplikasi diukur pada dua ulangan streaming" ke tugas 2 (soal berjawaban pasti), lalu satu putaran ulang; atau terima 9/10 |
 | 2026-10-15 | -- | -- | belum dijalankan | Atas izin user, satu putaran tambahan di luar batas 3. Soal tugas 2 diperjelas: dedup diukur pada kedua ulangan (ulangan kedua 0), skenario putus = baris flush saja. Skill tidak diubah |
 | 2026-10-15 | sonnet | haiku | 9/10 | BERHENTI (putaran tambahan atas izin user). B: target teks "Duplikat QoS 1 dikenali dan diabaikan" ditulis `0` tanpa disebut ke user; penilai sendiri menandai ini "penilaian ketat". Rubrik A, C, D, E 2/2 di keempat putaran. Skor terbaik 9/10 diterima sebagai status skill; bila ingin 10/10, soal tugas 2 perlu menyebut target dedup sebagai angka ("0 duplikat") |
+| 2026-10-19 | sonnet | haiku | 10/10 | Aturan 1 diganti ke gaya tiga garis (keputusan user). Tugas 4 dan rubrik D diganti dari "tanggapi permintaan booktabs" menjadi konversi grid ke tiga garis (multirow, cline, multicolumn kelompok, longtable). Catatan penilai di batas: E menyebut `cek_tabel.py` tanpa `python3 scripts/`; B mengganti teks target dedup jadi `0` |

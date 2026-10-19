@@ -1,4 +1,4 @@
-# Templat tabel PA (grid PENS)
+# Templat tabel PA (gaya tiga garis)
 
 Semua templat memakai blok dasar yang sama dengan tabel yang sudah ada di
 `laporan/buku-pa/bab/bab4.tex`. Contoh angka diambil dari buku-pa per 15 Okt
@@ -18,13 +18,12 @@ Pengantar yang merujuk Tabel~\ref{tab:slug} sebelum tabel muncul.
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\raggedleft\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.4cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\raggedleft\arraybackslash}p{2.2cm}>{\centering\arraybackslash}p{2.4cm}}
+    \toprule
     \textbf{Kolom teks} & \textbf{Angka (satuan)} & \textbf{Status} \\
-    \hline
+    \midrule
     ... & ... & ... \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: singkatan, arti --, kondisi uji.\par}
 \end{table}
@@ -40,7 +39,7 @@ Catatan:
   header.
 - `longtable` tidak bisa memakai `X`. Hitung lebar `p{}` manual (aturan 8),
   ulangi header dengan `\endfirsthead`/`\endhead`, dan `\endfoot` cukup
-  `\hline`.
+  `\bottomrule`.
 
 ---
 
@@ -56,25 +55,18 @@ yang mengulang "Latensi *end-to-end*" dua kali.
 Sesudah:
 
 ```latex
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}p{2.6cm}|>{\raggedleft\arraybackslash}p{1.7cm}|>{\raggedleft\arraybackslash}p{1.7cm}|>{\centering\arraybackslash}p{1.9cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\RaggedRight\arraybackslash}p{2.6cm}>{\raggedleft\arraybackslash}p{1.7cm}>{\raggedleft\arraybackslash}p{1.7cm}>{\centering\arraybackslash}p{1.9cm}}
+    \toprule
     \textbf{Metrik} & \textbf{Target} & \textbf{Ulangan 1} & \textbf{Ulangan 2} & \textbf{Status} \\
-    \hline
+    \midrule
     PDSR (\%) & $\geq$ 95 & 100,0 & 99,2 & Terpenuhi \\
-    \hline
     Latensi median (ms) & $\leq$ 2.000 & 939 & 1.108 & Terpenuhi \\
-    \hline
     Latensi p95 (ms) & acuan $\leq$ 2.000 & 1.404 & 3.304 & Dilaporkan \\
-    \hline
     Kapasitas \textit{ring buffer} (entri) & 27.000 tanpa \textit{overflow} & 27.000 & -- & Terpenuhi \\
-    \hline
     Detak hilang saat putus koneksi & 0 & 0 & -- & Terpenuhi \\
-    \hline
     Durasi \textit{flush} (detik) & $\leq$ 60 & $\leq$ 24,6 & -- & Terpenuhi \\
-    \hline
     \textit{Timestamp} ganda di ThingsBoard & 0 & 0 & 0 & Terpenuhi \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: PDSR dihitung per paket (292 dan 255 paket). Tanda -- berarti skenario kapasitas dan putus koneksi dijalankan sekali pada konfigurasi yang sama. Perilaku antrean penuh diverifikasi pada uji unit.\par}
 ```
@@ -92,13 +84,12 @@ metrik sejenis (rasio 0–1, 4 desimal). Besaran lain seperti ukuran model
 pindah ke tabel sumber daya.
 
 ```latex
-    \rowcolor{headgray}
+    \toprule
     \textbf{Metrik} & \textbf{\textit{Float32}} & \textbf{INT8} & \textbf{Selisih} \\
-    \hline
+    \midrule
     \textit{Recall} & 0,6996 & 0,7105 & $+$0,0108 \\
-    \hline
     \textit{Precision} & 0,6235 & 0,6169 & $-$0,0067 \\
-    \hline
+    \bottomrule
 ```
 
 Urutkan baris dari metrik acuan utama (Recall, F1) ke metrik pelengkap
@@ -110,15 +101,13 @@ Pertanyaan: "Bagaimana sebaran prediksi terhadap label?" Baris = aktual,
 kolom = prediksi, dengan kolom jumlah untuk memeriksa total.
 
 ```latex
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{3.0cm}|>{\raggedleft\arraybackslash}p{2.6cm}|>{\raggedleft\arraybackslash}p{2.6cm}|>{\raggedleft\arraybackslash}p{2.0cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.0cm}>{\raggedleft\arraybackslash}p{2.6cm}>{\raggedleft\arraybackslash}p{2.6cm}>{\raggedleft\arraybackslash}p{2.0cm}}
+    \toprule
     & \textbf{Prediksi Aritmia} & \textbf{Prediksi Normal} & \textbf{Jumlah} \\
-    \hline
+    \midrule
     \textbf{Aktual Aritmia} & 3.813 (TP) & 1.637 (FN) & 5.450 \\
-    \hline
     \textbf{Aktual Normal} & 2.302 (FP) & 41.904 (TN) & 44.206 \\
-    \hline
+    \bottomrule
   \end{tabular}
 ```
 
@@ -135,21 +124,17 @@ dikelompokkan per **pertanyaan ablasi**, bukan per urutan waktu. Baris yang
 dipilih ditebalkan.
 
 ```latex
-    \rowcolor{headgray}
+    \toprule
     \textbf{ID} & \textbf{Perubahan terhadap acuan} & \textbf{\textit{Seed}} & \textbf{F1} & \textbf{\textit{Recall} S} & \textbf{AUC} & \textbf{Keputusan} \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Posisi R dalam window, jitter $\times$2}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Posisi R dalam window, jitter $\times$2}} \\
     A2 & 90/160 & 3 & 0,6354 $\pm$ 0,0428 & 0,2712 & 0,9084 & Acuan \\
-    \hline
     A4 & 112/144 & 3 & 0,5786 $\pm$ 0,0311 & 0,3691 & 0,9069 & Ditolak \\
-    \hline
     \textbf{A6} & \textbf{128/128} & \textbf{3} & \textbf{0,6911 $\pm$ 0,0290} & \textbf{0,4221} & \textbf{0,9373} & \textbf{Dipilih} \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Data latih tambahan pada A6}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Data latih tambahan pada A6}} \\
     A8 & $+$ SVDB & 6 & ... & ... & ... & Ditolak \\
-    \hline
+    \bottomrule
 ```
 
 - Keputusan memakai Acuan / Dipilih / Ditolak. Bila sebuah varian Ditolak
@@ -167,11 +152,11 @@ komponen. Perangkat keras dan perangkat lunak dipisah ke dua tabel (anti-pola
 anti-pola korpus di skill `struktur-pa`).
 
 ```latex
-    \rowcolor{headgray}
+    \toprule
     \textbf{Komponen} & \textbf{Spesifikasi} & \textbf{Kegunaan} \\
-    \hline
+    \midrule
     ESP32-S3 N16R8 & 512 KB SRAM, 8 MB PSRAM, 16 MB \textit{flash} & Akuisisi, preprocessing, inferensi \\
-    \hline
+    \bottomrule
 ```
 
 Spesifikasi berupa frasa angka, bukan kalimat. Riwayat rakitan (breadboard ke
@@ -184,11 +169,11 @@ Justifikasi diganti paragraf per tujuan di subbab berikutnya, sehingga sel
 tetap pendek.
 
 ```latex
-    \rowcolor{headgray}
+    \toprule
     \textbf{Tujuan} & \textbf{Target utama} & \textbf{Hasil kunci} & \textbf{Status} \\
-    \hline
+    \midrule
     Tujuan 2, model INT8 \textit{on-device} & $|\Delta \textit{recall}| < 0{,}02$, model $<$ 25 KB, daya per mode & $+$0,0108, 22,94 KB, daya belum diukur & Sebagian tercapai \\
-    \hline
+    \bottomrule
 ```
 
 Status memakai Tercapai / Sebagian tercapai / Belum tercapai, dan kriteria

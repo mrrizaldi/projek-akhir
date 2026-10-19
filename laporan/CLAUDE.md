@@ -177,8 +177,9 @@ grep -nE "HW-[0-9]|Fase [0-9A-G]|\.md|\.py|walkthrough|Task [0-9]" bab/*.tex | g
 ### Konvensi Tabel & Gambar
 
 Tabel:
+- **Gaya tiga garis di `buku-pa`** (keputusan user 19 Okt 2026, mengikuti tabel riset dan buku AFIB): `\toprule` di atas header, `\midrule` di bawah header, `\bottomrule` di akhir. Tanpa garis vertikal, tanpa `\hline`/`\cline`, tanpa `\rowcolor{headgray}`. Pemisah kelompok di badan cukup `\midrule`. Diperiksa `python3 scripts/cek_tabel.py` (kode T-GRID dan T-HEADER). Aturan lengkap: skill `tabel-pa`.
 - Tabel panjang multi-halaman pakai `longtable` dengan header yang diulang (`\endfirsthead` + `\endhead`).
-- **Tanpa teks "Bersambung ke halaman berikutnya" / "Lanjutan Tabel X.Y"** di footer/header lanjutan — user tidak suka. Cukup `\hline` di `\endfoot`.
+- **Tanpa teks "Bersambung ke halaman berikutnya" / "Lanjutan Tabel X.Y"** di footer/header lanjutan — user tidak suka. Cukup `\bottomrule` di `\endfoot`.
 - Tabel perbandingan padat (banyak kolom) pakai `\scriptsize` + `\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}` untuk kolom rata-kiri yang membungkus. `\newcolumntype{L}` sudah didefinisikan di `shared/preamble.tex`.
 - **Jangan `\clearpage` sebelum tabel** — biarkan `longtable` mengalir mengisi ruang kosong di halaman berjalan.
 - **Pakai `\begin{table}[!ht]`, bukan `[H]`**, untuk tabel float satu halaman. `[H]` (paket `float`) mengunci tabel persis di titik deklarasi; kalau tidak muat di sisa halaman, seluruh blok tabel + teks sesudahnya terdorong ke halaman berikutnya dan meninggalkan whitespace besar. `[!ht]` membuat tabel mengambang (LaTeX menunda float) sehingga paragraf sesudahnya mengisi ruang kosong sementara tabel naik ke atas halaman. Tanda `!` melonggarkan batas fraksi float LaTeX yang sering jadi penyebab tabel lompat halaman lebih dini. Pakai `[H]` hanya kalau memang wajib tepat di posisi itu.
@@ -210,7 +211,7 @@ Acuan: `proposal-pa/Panduan_Proposal_PA_D4TI/` (file A–E, format `.docx`). Set
 
 **Persamaan.** Baris sendiri, masuk 10mm dari kiri (`fleqn`), 1 baris kosong atas-bawah. Nomor rata kanan tebal format "(Persamaan X.Y)". Wajib dirujuk & dibahas di paragraf.
 
-**Tabel.** Rata tengah, 1 baris kosong atas-bawah. Caption (nomor + keterangan) di ATAS tabel, tebal & rata tengah (beda dari gambar yang di bawah). Baris header diberi latar agak gelap (`\rowcolor{headgray}`). Jika kutipan: "Sumber: ..." 10pt rata tengah di bawah tabel. Wajib dirujuk di paragraf. Panduan resmi: 1 tabel ≤ 1 halaman; proyek ini meng-override aturan ini untuk tabel perbandingan panjang dengan `longtable` (lihat Konvensi Tabel & Gambar).
+**Tabel.** Rata tengah, 1 baris kosong atas-bawah. Caption (nomor + keterangan) di ATAS tabel, tebal & rata tengah (beda dari gambar yang di bawah). Panduan memberi latar abu-abu pada header dan grid penuh; gaya ini hanya dipakai `proposal-pa` (beku). `buku-pa` memakai gaya tiga garis (lihat Konvensi Tabel & Gambar). Jika kutipan: "Sumber: ..." 10pt rata tengah di bawah tabel. Wajib dirujuk di paragraf. Panduan resmi: 1 tabel ≤ 1 halaman; proyek ini meng-override aturan ini untuk tabel perbandingan panjang dengan `longtable` (lihat Konvensi Tabel & Gambar).
 
 **Daftar Pustaka.** Bernomor `[n]`, gaya IEEE (`IEEEtran.bst` via `natbib`). Urutan & format per jenis sumber: jurnal (pengarang, judul, nama jurnal, vol/no/hal, penerbit, tahun), seminar, buku (pengarang, judul, penerbit, edisi, tahun), tugas akhir/skripsi/disertasi, media publik, media online (judul, situs, alamat, tanggal akses, tahun).
 

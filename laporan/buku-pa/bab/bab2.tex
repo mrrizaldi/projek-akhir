@@ -28,33 +28,28 @@ dasar klasifikasi pada penelitian ini.
            pada sinyal ECG}
   \label{tab:perbandingan-irama}
   \small
-  \begin{tabular}{|p{3.0cm}|p{4.5cm}|p{4.5cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{p{3.0cm}p{4.5cm}p{4.5cm}}
+    \toprule
     \textbf{Karakteristik} &
     \textbf{Irama Sinus Normal} &
     \textbf{Aritmia} \\
-    \hline
+    \midrule
     Gelombang P &
     Terlihat jelas dan reguler sebelum setiap kompleks QRS &
     Tidak ada, tidak teratur, atau bermorfologi abnormal \\
-    \hline
     Kompleks QRS &
     Sempit ($<$120 ms), morfologi konsisten antardetak &
     Dapat melebar ($>$120 ms) atau bermorfologi bervariasi \\
-    \hline
     Interval R-R &
     Teratur, variasi antardetak kecil &
     Tidak teratur atau menunjukkan fluktuasi besar \\
-    \hline
     Laju jantung &
     60--100 bpm &
     Di bawah 60 bpm (bradikardia) atau di atas 100 bpm (takikardia) \\
-    \hline
     Gelombang T &
     Positif dan konsisten pada sadapan II &
     Dapat terbalik atau berubah bentuk \\
-    \hline
+    \bottomrule
   \end{tabular}
   \smallskip\\
   \small\textbf{Sumber: Goldberger~\cite{ecg_goldberger}; S\"{o}rnmo \& Laguna~\cite{sornmo_laguna_2005}}
@@ -488,49 +483,44 @@ Berdasarkan ulasan kedua belas penelitian tersebut, Tabel~\ref{tab:perbandingan-
 {\scriptsize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.2}
-\begin{longtable}{|c|L{3.5cm}|L{2.0cm}|L{2.0cm}|L{1.8cm}|L{2.8cm}|}
+\begin{longtable}{cL{3.5cm}L{2.0cm}L{2.0cm}L{1.8cm}L{2.8cm}}
 \caption{Perbandingan Penelitian Terkait}\label{tab:perbandingan-penelitian}\\
-\hline
-\rowcolor{headgray}
-\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \hline
+\toprule
+\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \midrule
 \endfirsthead
-
-\hline
-\rowcolor{headgray}
-\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \hline
+\toprule
+\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \midrule
 \endhead
-
-\hline
+\bottomrule
 \endfoot
-
-\hline
+\bottomrule
 \endlastfoot
 
-1 & \textit{A multi-stage denoising framework for ambulatory ECG signal based on domain knowledge and motion artifact detection} (2021) & Preprocessing sinyal ECG (penekanan noise) & FANE+MAD, SVT, CEEMD, wavelet (denoising bertingkat) & PC server (offline) & \textit{Denoising} bertingkat efektif (SNR naik 7--25\%), tetapi hanya dievaluasi di PC server dan belum diuji pada mikrokontroler. \\ \hline
+1 & \textit{A multi-stage denoising framework for ambulatory ECG signal based on domain knowledge and motion artifact detection} (2021) & Preprocessing sinyal ECG (penekanan noise) & FANE+MAD, SVT, CEEMD, wavelet (denoising bertingkat) & PC server (offline) & \textit{Denoising} bertingkat efektif (SNR naik 7--25\%), tetapi hanya dievaluasi di PC server dan belum diuji pada mikrokontroler. \\
 
-2 & \textit{A real-time embedded system to detect QRS-complex and arrhythmia classification using LSTM through hybridized features} (2023) & Aritmia & DWT + Delta-Sigma Modulation + LSTM & Raspberry Pi 4 & Akurasi 99,6\% dan \textit{real-time} di Raspberry Pi 4, yang bukan MCU \textit{low-power}, tanpa integrasi \textit{cloud}. \\ \hline
+2 & \textit{A real-time embedded system to detect QRS-complex and arrhythmia classification using LSTM through hybridized features} (2023) & Aritmia & DWT + Delta-Sigma Modulation + LSTM & Raspberry Pi 4 & Akurasi 99,6\% dan \textit{real-time} di Raspberry Pi 4, yang bukan MCU \textit{low-power}, tanpa integrasi \textit{cloud}. \\
 
-3 & \textit{Real-time fetal arrhythmia detection using deep learning on an embedded fECG monitoring system} (2025) & Aritmia janin (\textit{fetal}) & Bandpass + ICA + 1D-CNN ringan & Raspberry Pi 4 & 1D-CNN ringan dengan transmisi Wi-Fi di Raspberry Pi, ICA belum dievaluasi di MCU dan daya tidak dilaporkan. \\ \hline
+3 & \textit{Real-time fetal arrhythmia detection using deep learning on an embedded fECG monitoring system} (2025) & Aritmia janin (\textit{fetal}) & Bandpass + ICA + 1D-CNN ringan & Raspberry Pi 4 & 1D-CNN ringan dengan transmisi Wi-Fi di Raspberry Pi, ICA belum dievaluasi di MCU dan daya tidak dilaporkan. \\
 
-4 & \textit{TinyML-Based Classification in an ECG Monitoring Embedded System} (2023) & Aritmia (klasifikasi biner normal/\allowbreak abnormal) & 1D-CNN INT8 (TFLM, \textit{Post-Training Quantization}) & Arduino Nano BLE (Cortex-M4) & Inferensi \textit{on-device} INT8 (\textasciitilde27 KB, akurasi \textasciitilde97\%), terdekat dengan pendekatan ini, tetapi tanpa laporan latensi, daya, dan \textit{pipeline} resilien. \\ \hline
+4 & \textit{TinyML-Based Classification in an ECG Monitoring Embedded System} (2023) & Aritmia (klasifikasi biner normal/\allowbreak abnormal) & 1D-CNN INT8 (TFLM, \textit{Post-Training Quantization}) & Arduino Nano BLE (Cortex-M4) & Inferensi \textit{on-device} INT8 (\textasciitilde27 KB, akurasi \textasciitilde97\%), terdekat dengan pendekatan ini, tetapi tanpa laporan latensi, daya, dan \textit{pipeline} resilien. \\
 
-5 & \textit{Designing resilient IoT and Edge Computing with federated TinyML} (2026) & --- (keamanan jaringan IoT) & \textit{Federated Learning} + kuantisasi MLP INT8 & Testbed/\allowbreak simulasi & Kuantisasi float32$\rightarrow$INT8 (kompresi 4$\times$, akurasi turun $<$0,01\%) pada deteksi intrusi jaringan, tanpa \textit{benchmark} MCU fisik. \\ \hline
+5 & \textit{Designing resilient IoT and Edge Computing with federated TinyML} (2026) & --- (keamanan jaringan IoT) & \textit{Federated Learning} + kuantisasi MLP INT8 & Testbed/\allowbreak simulasi & Kuantisasi float32$\rightarrow$INT8 (kompresi 4$\times$, akurasi turun $<$0,01\%) pada deteksi intrusi jaringan, tanpa \textit{benchmark} MCU fisik. \\
 
-6 & \textit{Implementing TinyML in Internet of Things devices: A systematic literature review} (2026) & --- (tinjauan literatur, 114 studi) & SLR (PRISMA) & Berbagai (MCU + SBC) & Tinjauan literatur, bukan eksperimen, memetakan algoritma, \textit{hardware}, dan tantangan TinyML (memori, CPU, standardisasi). \\ \hline
+6 & \textit{Implementing TinyML in Internet of Things devices: A systematic literature review} (2026) & --- (tinjauan literatur, 114 studi) & SLR (PRISMA) & Berbagai (MCU + SBC) & Tinjauan literatur, bukan eksperimen, memetakan algoritma, \textit{hardware}, dan tantangan TinyML (memori, CPU, standardisasi). \\
 
-7 & \textit{Advanced IoT-enabled embedded wearable system for continuous cardiovascular health monitoring using edge intelligence} (2026) & Penyakit kardio\-vaskular / aritmia (4 kelas keparahan) & 1D Depthwise-\allowbreak Separable Conv + Temporal Attention-\allowbreak GRU (INT8 PTQ) & ARM Cortex-M4 (STM32\-F407) & Inferensi \textasciitilde7 ms dengan model \textasciitilde11 KB di Cortex-M4, tetapi dilatih pada data ICU (MIMIC-III) dan tanpa \textit{pipeline} resilien. \\ \hline
+7 & \textit{Advanced IoT-enabled embedded wearable system for continuous cardiovascular health monitoring using edge intelligence} (2026) & Penyakit kardio\-vaskular / aritmia (4 kelas keparahan) & 1D Depthwise-\allowbreak Separable Conv + Temporal Attention-\allowbreak GRU (INT8 PTQ) & ARM Cortex-M4 (STM32\-F407) & Inferensi \textasciitilde7 ms dengan model \textasciitilde11 KB di Cortex-M4, tetapi dilatih pada data ICU (MIMIC-III) dan tanpa \textit{pipeline} resilien. \\
 
-8 & \textit{An on-device machine learning assisted system for unobtrusive cardiac auscultation} (2023) & Kelainan jantung (auskultasi/\allowbreak PCG) & DSP + MFCC + ML \textit{on-device} & Arduino Nano BLE & Berhasil menjalankan ML \textit{on-device}, tetapi memproses sinyal suara jantung (PCG), bukan sinyal ECG. \\ \hline
+8 & \textit{An on-device machine learning assisted system for unobtrusive cardiac auscultation} (2023) & Kelainan jantung (auskultasi/\allowbreak PCG) & DSP + MFCC + ML \textit{on-device} & Arduino Nano BLE & Berhasil menjalankan ML \textit{on-device}, tetapi memproses sinyal suara jantung (PCG), bukan sinyal ECG. \\
 
-9 & \textit{AI-Powered Anomaly Detection and Cybersecurity in Healthcare IoT with Fog/Edge} (2026) & Keamanan siber IoT kesehatan & Kerangka FE-ACS (deteksi anomali \textit{fog-edge}) & Arsitektur \textit{fog/edge} IoT & Latensi \textit{fog-edge} 18,7 ms vs 152,3 ms \textit{cloud-centric}, tetapi berfokus keamanan siber, tanpa resiliensi putus koneksi. \\ \hline
+9 & \textit{AI-Powered Anomaly Detection and Cybersecurity in Healthcare IoT with Fog/Edge} (2026) & Keamanan siber IoT kesehatan & Kerangka FE-ACS (deteksi anomali \textit{fog-edge}) & Arsitektur \textit{fog/edge} IoT & Latensi \textit{fog-edge} 18,7 ms vs 152,3 ms \textit{cloud-centric}, tetapi berfokus keamanan siber, tanpa resiliensi putus koneksi. \\
 
-10 & \textit{Resilient Edge-to-Cloud Architecture with Self-Healing and Self-Correcting Mechanisms for Industrial Data Continuity} (2026) & Kontinuitas data industri & E2C \textit{microservices} + MQTT + \textit{edge buffering} (\textit{self-healing}) & Kubernetes (Rancher, Prometheus, Grafana) & RPO mendekati nol saat saturasi jaringan, tetapi untuk data industri dengan Kubernetes yang terlalu berat bagi MCU. \\ \hline
+10 & \textit{Resilient Edge-to-Cloud Architecture with Self-Healing and Self-Correcting Mechanisms for Industrial Data Continuity} (2026) & Kontinuitas data industri & E2C \textit{microservices} + MQTT + \textit{edge buffering} (\textit{self-healing}) & Kubernetes (Rancher, Prometheus, Grafana) & RPO mendekati nol saat saturasi jaringan, tetapi untuk data industri dengan Kubernetes yang terlalu berat bagi MCU. \\
 
-11 & \textit{Real-Time Cardiac Arrhythmia Classification Using TinyML on Ultra-Low-Cost Microcontrollers} (2026) & Aritmia (3 kelas: N/V/S) & 1D-CNN INT8 (TFLM, PTQ) + AD8232 & Arduino UNO 8-bit (ATmega328P) & Jalur AD8232 ke inferensi INT8 (model $<$22 KB) berjalan di MCU 8-bit, tetapi data dibagi per detak, tanpa \textit{pipeline} resilien. \\ \hline
+11 & \textit{Real-Time Cardiac Arrhythmia Classification Using TinyML on Ultra-Low-Cost Microcontrollers} (2026) & Aritmia (3 kelas: N/V/S) & 1D-CNN INT8 (TFLM, PTQ) + AD8232 & Arduino UNO 8-bit (ATmega328P) & Jalur AD8232 ke inferensi INT8 (model $<$22 KB) berjalan di MCU 8-bit, tetapi data dibagi per detak, tanpa \textit{pipeline} resilien. \\
 
-12 & \textit{Rancang Bangun Smart Wearables Terintegrasi IoT untuk Deteksi Dini Atrial Fibrilasi Menggunakan SVM Berbasis Cloud} (2026) & Atrial fibrilasi & Fitur RR + SVM (RBF) & ESP32 (akuisisi) + SVM di cloud & Pendahulu langsung dengan sensor dan \textit{dashboard} sama, tetapi inferensi di \textit{cloud}, tanpa kuantisasi di MCU maupun resiliensi \textit{pipeline}. \\ \hline
+12 & \textit{Rancang Bangun Smart Wearables Terintegrasi IoT untuk Deteksi Dini Atrial Fibrilasi Menggunakan SVM Berbasis Cloud} (2026) & Atrial fibrilasi & Fitur RR + SVM (RBF) & ESP32 (akuisisi) + SVM di cloud & Pendahulu langsung dengan sensor dan \textit{dashboard} sama, tetapi inferensi di \textit{cloud}, tanpa kuantisasi di MCU maupun resiliensi \textit{pipeline}. \\
 
-13 & \textit{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia} (penelitian ini) & Aritmia (deteksi dini) & Preprocessing di MCU (Butterworth + Pan-Tompkins) + 1D-CNN INT8 + fitur RR (\textit{hybrid}) \textit{on-device} ($\pm$23 KB) & \textit{ESP32-S3 (inferensi on-device)} & Preprocessing \textit{real-time}, inferensi CNN INT8, dan \textit{pipeline} resilien (\textit{ring buffer} lokal + MQTT) menyatu dalam satu ESP32-S3. \\ \hline
+13 & \textit{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia} (penelitian ini) & Aritmia (deteksi dini) & Preprocessing di MCU (Butterworth + Pan-Tompkins) + 1D-CNN INT8 + fitur RR (\textit{hybrid}) \textit{on-device} ($\pm$23 KB) & \textit{ESP32-S3 (inferensi on-device)} & Preprocessing \textit{real-time}, inferensi CNN INT8, dan \textit{pipeline} resilien (\textit{ring buffer} lokal + MQTT) menyatu dalam satu ESP32-S3. \\
 % sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94)
 
 \end{longtable}

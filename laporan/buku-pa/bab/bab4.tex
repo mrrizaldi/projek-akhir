@@ -13,82 +13,58 @@ Parameter eksperimen dikelompokkan ke dalam tujuh kategori yang mengikuti tiga j
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{longtable}{|>{\RaggedRight\arraybackslash}p{6.9cm}|>{\RaggedRight\arraybackslash}p{6.4cm}|}
+  \begin{longtable}{>{\RaggedRight\arraybackslash}p{6.9cm}>{\RaggedRight\arraybackslash}p{6.4cm}}
     \caption{Parameter eksperimen per kategori}
     \label{tab:parameter-eksperimen} \\
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{Metrik} & \textbf{Target} \\
-    \hline
+    \midrule
     \endfirsthead
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{Metrik} & \textbf{Target} \\
-    \hline
+    \midrule
     \endhead
-    \hline
+    \bottomrule
     \endfoot
-    \multicolumn{2}{|l|}{\textit{a. Kualitas klasifikasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    \hline
+    \multicolumn{2}{l}{\textit{a. Kualitas klasifikasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
     \textit{Recall}, \textit{precision}, F1, \textit{specificity}, dan AUC pada DS2 & Dilaporkan pada \textit{threshold} hasil kalibrasi data validasi (F1 maksimum) \\
-    \hline
     \textit{Recall} per kelas AAMI dan per pasien pada DS2 & Dilaporkan \\
-    \hline
     F1 dan \textit{recall} kelas S pada data uji SVDB dan INCART & Dilaporkan sebagai pembanding ablasi \\
-    \hline
-    \multicolumn{2}{|l|}{\textit{b. Dampak kuantisasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    \hline
+    \midrule
+    \multicolumn{2}{l}{\textit{b. Dampak kuantisasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
     Selisih tiap metrik antara \textit{float32} dan INT8 pada DS2 yang identik & $|\Delta \textit{recall}| < 0{,}02$ \\
     % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-model; model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02)
-    \hline
-    \multicolumn{2}{|l|}{\textit{c. Kinerja di perangkat, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    \hline
+    \midrule
+    \multicolumn{2}{l}{\textit{c. Kinerja di perangkat, target dari Tabel~\ref{tab:pengujian-model}}} \\
     Latensi inferensi per detak & Lebih kecil dari interval antardetak \\
-    \hline
     \textit{Tensor arena}, \textit{heap} bebas, pemakaian RAM dan \textit{flash} & Muat di SRAM perangkat \\
-    \hline
     Ukuran model INT8 (KB) & $<$ 25 \\
     % sumber: model/config.py (MAX_MODEL_KB = 25 dan komentarnya); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
-    \hline
-    \multicolumn{2}{|l|}{\textit{d. Preprocessing di mikrokontroler, target dari Tabel~\ref{tab:pengujian-model} dan Subbab~\ref{subsec:preprocessing-ecg}}} \\
-    \hline
+    \midrule
+    \multicolumn{2}{l}{\textit{d. Preprocessing di mikrokontroler, target dari Tabel~\ref{tab:pengujian-model} dan Subbab~\ref{subsec:preprocessing-ecg}}} \\
     Label akhir dan probabilitas kode C terhadap Python per detak acuan & Label identik, selisih probabilitas $\leq$ 0,02 \\
-    \hline
     Selisih keluaran filter dan \textit{z-score} kode C terhadap Python & $\leq 10^{-3}$ \\
-    \hline
     Beban komputasi per sampel dan puncak beban & Rata-rata lebih kecil dari anggaran waktu per sampel \\
-    \hline
     Jumlah sampel hilang & Tidak ada \\
     % sumber: laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); firmware/test/golden_ref.h
-    \hline
-    \multicolumn{2}{|l|}{\textit{e. Akuisisi sinyal tubuh, target dari Subbab~\ref{subsec:pipeline-edge-cloud}}} \\
-    \hline
+    \midrule
+    \multicolumn{2}{l}{\textit{e. Akuisisi sinyal tubuh, target dari Subbab~\ref{subsec:pipeline-edge-cloud}}} \\
     Ayunan sinyal ADC (\textit{count} dan mV) & Ayunan tersaring mencapai 60 \textit{count} \\
-    \hline
     Persentase dengung jala-jala 50 Hz & Dilaporkan \\
-    \hline
     Jumlah R-\textit{peak} terdeteksi dan proporsi BPM dalam rentang wajar & Interval R-R 300--1500 ms dengan $|\Delta \mathrm{RR}| \leq 200$ ms selama 30 detik \\
     % sumber: laporan/buku-pa/bab/bab3.tex gerbang kualitas (AMBANG_AYUN 60, RR 300-1500 ms, |dRR| <= 200 ms, 30 detik); model/CLAUDE.md Jebakan "Telemetri akuisisi bisa berbohong" butir (1)
-    \hline
-    \multicolumn{2}{|l|}{\textit{f. Pipeline edge-to-cloud, target dari Tabel~\ref{tab:pengujian-pipeline}}} \\
-    \hline
+    \midrule
+    \multicolumn{2}{l}{\textit{f. Pipeline edge-to-cloud, target dari Tabel~\ref{tab:pengujian-pipeline}}} \\
     PDSR (\%) & $\geq$ 95 \\
-    \hline
     Latensi \textit{end-to-end} median dan p95 (ms) & Median $\leq$ 2.000, p95 dilaporkan \\
-    \hline
     Jumlah entri \textit{ring buffer} & Tidak \textit{overflow} dalam $\pm$27.000 rekaman \\
-    \hline
     Data hilang saat putus koneksi & Tidak ada \\
-    \hline
     Waktu \textit{flush} (detik) & $\leq$ 60 \\
-    \hline
     Paket ganda & Duplikat QoS 1 dikenali \\
     % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-pipeline
-    \hline
-    \multicolumn{2}{|l|}{\textit{g. Konsumsi daya, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    \hline
+    \midrule
+    \multicolumn{2}{l}{\textit{g. Konsumsi daya, target dari Tabel~\ref{tab:pengujian-model}}} \\
     Arus dan daya rata-rata (mA dan mW) & Dilaporkan per mode operasi \\
-    \hline
   \end{longtable}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: PDSR adalah \textit{packet delivery success rate}, p95 adalah persentil ke-95. Target latensi 2 detik pada rencana pengujian ditulis sebagai 2.000 ms agar satu baris memakai satu satuan.\par}
 \end{center}
@@ -121,21 +97,16 @@ Setiap rekaman DS1 ditumpuk menjadi tiga salinan, yaitu satu salinan bersih dan 
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{1.9cm}|>{\RaggedRight\arraybackslash}p{2.9cm}|>{\RaggedRight\arraybackslash}p{3.2cm}|>{\centering\arraybackslash}p{1.5cm}|>{\RaggedRight\arraybackslash}p{3.0cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{1.9cm}>{\RaggedRight\arraybackslash}p{2.9cm}>{\RaggedRight\arraybackslash}p{3.2cm}>{\centering\arraybackslash}p{1.5cm}>{\RaggedRight\arraybackslash}p{3.0cm}}
+    \toprule
     \textbf{Himpunan} & \textbf{Sumber} & \textbf{Jumlah Data} & \textbf{Aritmia (\%)} & \textbf{Kegunaan} \\
-    \hline
+    \midrule
     DS1 latih & 17 rekaman MIT-BIH & 121.857 baris (40.619 detak $\times$ 3 salinan) & 10,1 & Pelatihan model \\
-    \hline
     VAL & 5 rekaman MIT-BIH (bagian DS1) & 31.047 baris (10.349 detak $\times$ 3 salinan) & 10,1 & Pemilihan \textit{epoch} dan kalibrasi \textit{threshold} \\
-    \hline
     DS2 & 22 rekaman MIT-BIH & 49.656 detak & 11,0 & Pengujian utama \\
-    \hline
     Uji SVDB & 20 rekaman SVDB & 44.704 detak & 15,9 & Uji lintas basis data \\
-    \hline
     Uji INCART & 19 rekaman INCART & 41.108 detak & 12,6 & Uji lintas basis data \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 % sumber: numpy atas model/data/processed/train.npz (152.904 baris, 22 rekaman, 50.968 detak x 3; VAL 31.047 baris = 10.349 x 3; latih 121.857 = 40.619 x 3; aritmia 10,11%), test.npz (49.656, 22 rekaman, 10,98%), test_svdb.npz (44.704, 20 rekaman, 15,88%), test_incartdb.npz (41.108, 19 rekaman, 12,57%)
@@ -217,41 +188,31 @@ Kegiatan eksperimen berlangsung sejak Agustus 2026. Rentang setiap kegiatan pada
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}p{4.4cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\RaggedRight\arraybackslash}p{4.4cm}}
+    \toprule
     \textbf{Kegiatan} & \textbf{Rentang Waktu} \\
-    \hline
+    \midrule
     Pengembangan model, yaitu penyiapan data, pelatihan, evaluasi, kuantisasi, dan ekspor & 24 Agustus -- 10 September 2026 \\
     % sumber: git log 3747551 (2026-08-24, scaffolding pipeline training) sampai ea78eb7 (2026-09-10, Fase 8)
-    \hline
     \textit{Port} preprocessing ke kode C, inferensi di perangkat, alur hidup, dan \textit{firmware} utama & 10 -- 12 September 2026 \\
     % sumber: git log 8eaf44e (2026-09-10, golden reference) sampai 7698c58 (2026-09-12, firmware produksi)
-    \hline
     Perekaman uji coba sinyal tubuh untuk menyusun prosedur akuisisi, pada \textit{breadboard} dan rangkaian berpeta pin PCB & 10 September -- 11 Oktober 2026 \\
     % sumber: model/data/arsip/rekaman-uji-coba/README.md (27 rekaman uji coba 20260910-1938.csv sampai 20261011-1834.csv, bukan hasil)
-    \hline
     Biaya segmentasi di perangkat, ketahanan terhadap \textit{jitter}, dan penguncian \textit{window} & 12 -- 18 September 2026 \\
     % sumber: git log fce7cd1 (2026-09-12, Fase 6b) sampai cf5f5d5 (2026-09-18, retrain window 256)
-    \hline
     Persiapan pengukuran daya dan sumber sinyal \textit{replay} & 16 -- 18 September 2026 \\
     % sumber: git log 50dc8d2 (2026-09-16, desain pengukuran daya) sampai 47ca6e6 (2026-09-18, replay golden_raw)
-    \hline
     \textit{Dashboard} ThingsBoard dan \textit{pipeline} MQTT & 18 -- 19 September 2026 \\
     % sumber: git log b906903 (2026-09-18, dashboard) sampai 6fc426c (2026-09-19, perbaikan jam HW-6)
-    \hline
     Ablasi lintas basis data, fitur, dan regime pelatihan & 19 September 2026 \\
     % sumber: git log 03c77f2 sampai 2acc531 (seluruhnya 2026-09-19)
-    \hline
     Pengukuran ulang segmentasi di perangkat dengan model akhir & 13 Oktober 2026 \\
     % sumber: model/docs/segmentasi-deteksi-walkthrough.md §3 ("kondisi ukur: skrip yang sama, 13 Okt 2026")
-    \hline
     \textit{Firmware} modular dengan antarmuka perangkat, uji perangkat dan uji integrasi di papan, serta jalur pengukuran daya mandiri & 13 Oktober 2026 \\
     % sumber: git log 1fa4235 (2026-10-13, satu main.cpp pin map PCB, test perangkat), 9ba6498 (2026-10-13, main.cpp dipecah per modul), b012fa6 (2026-10-13, tangga ukur daya mandiri), 7476063 dan bca5773 (2026-10-13, menu), f6042b5 (2026-10-13, REC/JEDA di layar, rekam dengan jeda, board 29/29 dan native 23/23)
-    \hline
     Pengujian rekaman sinyal tubuh resmi & \PlaceholderData{tanggal sesi} \\
     % PLACEHOLDER-DATA waktu-rekaman: tanggal setiap sesi pengujian rekaman resmi (mulai 13 Oktober 2026), dari nama berkas model/data/recordings/<tanggal-jam>.csv hasil make pull
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: antarmuka perangkat mencakup layar, menu, dan perekaman berjeda. Kegiatan 13 Oktober 2026 memakai rangkaian uji dengan peta pin PCB.\par}
 \end{table}
@@ -273,33 +234,25 @@ Peralatan yang digunakan terdiri atas perangkat keras dan perangkat lunak. Spesi
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}p{2.4cm}|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}X|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}p{2.4cm}>{\RaggedRight\arraybackslash}X>{\RaggedRight\arraybackslash}X}
+    \toprule
     \textbf{Komponen} & \textbf{Spesifikasi} & \textbf{Kegunaan} \\
-    \hline
+    \midrule
     Mikrokontroler & ESP32-S3 N16R8 (\textit{flash} 16 MB, PSRAM 8 MB), \textit{board} PlatformIO 4d\_systems\_esp32s3\_gen4\_r8n16 & Akuisisi, preprocessing, inferensi, dan pengiriman MQTT \\
     % sumber: firmware/platformio.ini (board, komentar 16MB flash 8MB PSRAM)
-    \hline
     Sensor & Modul AD8232, single-lead Lead II, elektroda \textit{wet-gel} & Akuisisi sinyal tubuh \\
-    \hline
     Perakitan & Rangkaian uji berpeta pin PCB (Tabel~\ref{tab:pin-map}) dengan AD8232, TFT ST7789, \textit{buzzer} A18009, tiga tombol, INA219, dan LED \textit{NeoPixel} & Uji perangkat, uji integrasi, dan perekaman sinyal tubuh \\
     % sumber: firmware/include/perangkat.h (pin map PCB, ADC1_CHANNEL_0 = GPIO 1); firmware/README.md (board di atas PCB rev1, pin map); riwayat pin rangkaian uji coba di model/data/arsip/rekaman-uji-coba/README.md
-    \hline
     Perakitan awal & \textit{Breadboard}, keluaran AD8232 ke GPIO 8, LO+/LO$-$ ke GPIO 17/7 & Uji model di perangkat dan uji \textit{pipeline}, September 2026 \\
     % sumber: riwayat pin breadboard (KANAL_EKG ADC1_CHANNEL_7 = GPIO 8, LO+ 17, LO- 7) di versi lama firmware/src/main.cpp sebelum git 1fa4235; uji test_inference 18 Sep dan uji pipeline 19 Sep 2026 memakai sinyal replay sehingga tidak bergantung pin ADC
-    \hline
     Catu daya & \textit{Powerbank}; USB komputer; sel 18650 melalui TP4056 dan konverter DC-DC & Perekaman sinyal tubuh; uji \textit{pipeline} dan uji perangkat; pengukuran daya \\
     % sumber: model/docs/akuisisi-walkthrough.md §1 (daya powerbank) dan §7 (dengung besar bila USB laptop tertancap)
-    \hline
     Pengukur daya & Modul INA219, \textit{shunt} 0,1 ohm pada sisi baterai & Pengukuran arus dan daya pada sisi baterai \\
     % sumber: firmware/include/ina219.h, firmware/src/ina219.cpp; firmware/src/tampilan.cpp (arus/tegangan INA219 ditampilkan di layar); firmware/test/test_hw_ina219 (I2C terdeteksi di board)
-    \hline
     Komputer & Intel Core i5-12450H (12 \textit{thread}), memori 15 GiB, Debian GNU/Linux 13 & Pelatihan model, ablasi, uji unit kode C, dan \textit{broker} ThingsBoard \\
     % sumber: lscpu (Model name 12th Gen Intel(R) Core(TM) i5-12450H, CPU(s) 12); free -h (Mem total 15Gi); /etc/os-release (Debian GNU/Linux 13 (trixie))
-    \hline
     Jaringan & Titik akses WiFi lokal & Menghubungkan perangkat dengan \textit{broker} \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: tiga catu daya pada baris Catu daya berpasangan urut dengan tiga kegunaannya.\par}
 \end{table}
@@ -337,42 +290,30 @@ Versi perangkat lunak yang digunakan ditunjukkan pada Tabel~\ref{tab:perangkat-l
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{4.4cm}|>{\RaggedRight\arraybackslash}p{3.4cm}|>{\RaggedRight\arraybackslash}p{4.8cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{4.4cm}>{\RaggedRight\arraybackslash}p{3.4cm}>{\RaggedRight\arraybackslash}p{4.8cm}}
+    \toprule
     \textbf{Perangkat Lunak} & \textbf{Versi} & \textbf{Kegunaan} \\
-    \hline
+    \midrule
     Python & 3.11.9 & Pengembangan model \\
-    \hline
     TensorFlow & 2.21.0 & Pelatihan dan kuantisasi INT8 \\
-    \hline
     NumPy & 2.4.6 & Komputasi metrik \\
-    \hline
     SciPy & 1.17.1 & Filter Butterworth \\
-    \hline
     wfdb & 4.3.1 & Membaca basis data PhysioNet \\
     % sumber: model/.venv/bin/python -c "import tensorflow,numpy,scipy,wfdb; print(...)" -> 2.21.0 2.4.6 1.17.1 4.3.1; model/.python-version 3.11.9
-    \hline
     pyserial & 3.5 & Membaca rekaman dan mengukur \textit{pipeline} lewat serial \\
     % sumber: model/.venv/bin/python -c "import serial; print(serial.__version__)" -> 3.5; model/requirements.txt (pyserial); dashboard/ukur_pipeline.py dan model/scripts/pull_recording.py
-    \hline
     PlatformIO Core & 6.2.0 & \textit{Build}, \textit{flash}, dan uji \textit{firmware} \\
     % sumber: pio --version
-    \hline
     Platform espressif32 & 7.0.1 & Platform ESP32-S3 \\
-    \hline
     Arduino-ESP32 & 2.0.17 (paket 3.20017.241212) & \textit{Framework firmware} \\
     % sumber: pio pkg list -e esp32-s3 (espressif32 @ 7.0.1, framework-arduinoespressif32 @ 3.20017.241212); ~/.platformio/packages/framework-arduinoespressif32/cores/esp32/core_version.h (ARDUINO_ESP32_GIT_DESC 2.0.17)
-    \hline
     Chirale\_TensorFLowLite & 2.0.0 & Inferensi TensorFlow Lite Micro \\
     % sumber: pio pkg list -e esp32-s3 (Chirale_TensorFLowLite @ 2.0.0)
-    \hline
     ThingsBoard CE & tb-postgres 4.2.1.1 & \textit{Broker} MQTT, \textit{rule engine}, dan \textit{dashboard} \\
     % sumber: dashboard/docker-compose.yml (image: thingsboard/tb-postgres:4.2.1.1)
-    \hline
     Docker & 29.5.3 & Menjalankan ThingsBoard \\
     % sumber: docker --version
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 
@@ -410,44 +351,33 @@ Hasil eksperimen disusun per tujuan pada Subbab~\ref{sec:tujuan}, bukan per urut
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \footnotesize
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{2.0cm}|>{\RaggedRight\arraybackslash}p{2.9cm}|>{\RaggedRight\arraybackslash}p{3.7cm}|>{\RaggedRight\arraybackslash}p{4.0cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{2.0cm}>{\RaggedRight\arraybackslash}p{2.9cm}>{\RaggedRight\arraybackslash}p{3.7cm}>{\RaggedRight\arraybackslash}p{4.0cm}}
+    \toprule
     \textbf{Aspek} & \textbf{Proposal} & \textbf{Realisasi} & \textbf{Alasan} \\
-    \hline
+    \midrule
     Ukuran \textit{window} & 250 sampel (90 sebelum R, 160 sesudah R) & 256 sampel (128 sebelum R, 128 sesudah R), puncak R di indeks 132 & Ablasi tiga \textit{seed} menunjukkan \textit{recall} kelas S naik seiring bertambahnya konteks sebelum R \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 55; model/config.py (WIN_PRE 128, WIN_POST 128, R_IN_WINDOW = WIN_PRE + 4); model/CLAUDE.md decision "Ukuran window"
-    \hline
     \textit{Threshold} & 0,5 (dapat dikalibrasi) & 0,80, dikalibrasi ulang pada VAL dengan kriteria F1 maksimum (sebelumnya 0,35) & VAL ikut diberi \textit{jitter} sehingga sebaran probabilitas bergeser, sedangkan kriteria kalibrasi tetap \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 202; model/config.py THRESHOLD = 0.80; model/CLAUDE.md decision "Threshold"
-    \hline
     Augmentasi & Tidak ada & \textit{Jitter} empiris dua salinan, hanya pada DS1~\cite{dias_2021} & F1 DS2 naik dari 0,5660 menjadi 0,6354 (tiga \textit{seed}) walaupun DS2 tidak diberi \textit{jitter} \\
     % sumber: model/config.py (JITTER_MODEL "empiris", JITTER_SALINAN 2); model/CLAUDE.md Fase 6c dan decision "Augmentasi jitter" (0,5660 -> 0,6354, 3 seed)
-    \hline
     Ukuran model & $<$ 20 KB & 22,94 KB dengan batas 25 KB & Varian \textit{deploy} yang benar di TensorFlow Lite Micro lebih besar, dan \textit{flash} 16 MB membuat batas ini soal disiplin rancangan \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 212 dan 228; model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/config.py MAX_MODEL_KB = 25; model/CLAUDE.md decision "Batas ukuran model"
-    \hline
     Model \textit{deploy} & GlobalAverage\allowbreak Pooling1D & DepthwiseConv1D(32) berbobot 1/32 dan kepala Conv1D \textit{kernel} 1 & Operasi MEAN di TensorFlow Lite Micro salah hitung tanpa pesan kesalahan (PC 0,973, perangkat 0,336) \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 187; model/src/model.py build_deploy_model() (kernel_size=langkah = panjang sesudah tiga pooling 256->128->64->32, bobot 1.0/langkah, Conv1D(1, 1)); model/artifacts/model_int8.tflite (tensor gap_dw depthwise [1,1,32,32]); "(31)" di model/CLAUDE.md sisa window 250; model/CLAUDE.md decision "Model yang dikuantisasi" (PC 0,973 vs device 0,336), "Pengganti GlobalAveragePooling", "Flatten/Reshape di model deploy"
-    \hline
     \textit{Dropout} & Dense 16 dengan Dropout & Dense 16 tanpa \textit{dropout}, 6.417 parameter & \textit{Dropout} menurunkan \textit{recall} VAL dari 0,700 menjadi 0,274--0,651 \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 190-191; model/artifacts/model_fp32.keras (count_params() = 6417, tanpa lapisan Dropout); model/CLAUDE.md decision "Dropout Dense 16" (0.0 -> 0,700; 0.2 -> 0,274; 0.3 -> 0,359; 0.5 -> 0,651)
-    \hline
     Transmisi & Per rekaman secara \textit{real-time}, \textit{batch} 50--100 rekaman hanya saat \textit{reconnect} & Semua detak lolos gerbang masuk antrean PSRAM dahulu, paket paling banyak 50 detak, PUBACK dipungut tanpa \textit{blocking} & Menunggu PUBACK di dalam \textit{loop} menghilangkan 4.493 sampel ADC dan merusak interval R-R \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 265-285; firmware/include/ecg_mqtt.h (ECG_MQTT_BATCH_N 50); firmware/src/klasifikasi.cpp publikasi() (ecg_mqtt_antre_isi untuk setiap detak); firmware/src/ecg_mqtt.cpp baris 129-133 dan 416-423; model/CLAUDE.md Jebakan "Menunggu jaringan di dalam loop" (4.493 sampel hilang)
-    \hline
     \textit{Ring buffer} & Partisi sekitar 4 MB, sekitar 150 byte per rekaman & 40 byte per entri, 27.000 entri atau sekitar 1,08 MB PSRAM & Yang disimpan adalah struktur biner, sedangkan JSON baru disusun saat dikirim \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 250-252; firmware/include/ecg_mqtt.h (ECG_MQTT_ANTRE_TARGET 27000, ecg_mqtt_beat_t 40 byte, 27.000 x 40 = 1,08 MB)
-    \hline
     Pengukuran daya & INA219 atau \textit{USB power meter} saat inferensi kontinu & INA219 di sisi baterai, enam tingkat beban dijalankan mandiri oleh perangkat & Catu USB ikut mencatu papan sehingga arus di sisi baterai tidak mewakili konsumsi \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 592; firmware/README.md bagian Catu daya dan pengukuran arus dan Ukur daya tanpa laptop; model/docs/firmware-walkthrough.md §5d
-    \hline
     Antarmuka perangkat & Tidak dirinci & Layar, LED kualitas sinyal, \textit{buzzer}, tiga tombol dengan menu, dan perekaman berjeda & Perekaman sinyal tubuh dan pengukuran daya harus dapat dijalankan tanpa komputer \\
     % sumber: laporan/proposal-pa/bab/bab3.tex (tidak memuat layar, buzzer, tombol, atau menu); laporan/buku-pa/bab/bab3.tex subsec:antarmuka-perangkat; firmware/README.md bagian Pemakaian di perangkat
-    \hline
     Lintas basis data & Diarsipkan & SVDB dan INCART dipakai sebagai data uji \textit{held-out} untuk ablasi & Ikut melatih tidak terbukti menaikkan F1 DS2, sedangkan 39 rekaman \textit{held-out} menambah daya pisah ablasi \\
     % sumber: laporan/proposal-pa/bab/bab3.tex baris 108-112 (ARSIP cross-database); model/CLAUDE.md decision "Database LATIH" (svdb -0,065, gabungan +0,005 bukan sinyal, 39 pasien) dan Jebakan "Ambang 0,04" (set uji lebih besar menaikkan daya pisah)
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 
@@ -496,27 +426,19 @@ Butir ini bertujuan membuktikan bahwa kode C di ESP32-S3 menghitung hal yang sam
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{4.2cm}|>{\RaggedRight\arraybackslash}p{3.0cm}|>{\RaggedRight\arraybackslash}p{3.2cm}|>{\centering\arraybackslash}p{2.2cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{4.2cm}>{\RaggedRight\arraybackslash}p{3.0cm}>{\RaggedRight\arraybackslash}p{3.2cm}>{\centering\arraybackslash}p{2.2cm}}
+    \toprule
     \textbf{Tahap} & \textbf{Pembanding (jumlah)} & \textbf{Toleransi} & \textbf{Hasil} \\
-    \hline
+    \midrule
     Filter \textit{bandpass}, sekali jalan & 2.400 sampel & $10^{-3}$ & Lulus \\
-    \hline
     Filter \textit{bandpass}, \textit{streaming} per blok 64 sampel & 2.400 sampel & $10^{-3}$ & Lulus \\
-    \hline
     Segmentasi dan \textit{z-score} & 9 \textit{window} 256 sampel & $10^{-3}$ & Lulus \\
-    \hline
     Rantai utuh dari sinyal mentah ke \textit{z-score} & 9 \textit{window} 256 sampel & $10^{-3}$ & Lulus \\
-    \hline
     Fitur interval R-R & 7 detak & $10^{-4}$ & Lulus \\
-    \hline
     Deteksi R-\textit{peak} Pan-Tompkins & 11 puncak & 1 sampel & Lulus \\
-    \hline
     Penyelarasan puncak R di dalam \textit{window} & Seluruh puncak yang \textit{window}-nya muat & Indeks 132 $\pm$2 sampel & Lulus \\
-    \hline
     Probabilitas model INT8 di perangkat & 7 detak & $\leq$ 0,02 dan label identik & Lulus \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 % sumber: firmware/test/test_preproc/test_preproc.cpp (test_bandpass, test_bandpass_streaming blok 64, test_window_zscore, test_pipeline_utuh, test_rr_features 1e-4 untuk GOLDEN_RR_FIRST 2 sampai 8 = 7 detak, test_detect_r GOLDEN_N_DETEKSI 11 toleransi 1, test_align_r_menaruh_puncak_di_r_idx R_IDX = 128 + 4 toleransi 2); firmware/test/test_inference/test_inference.cpp (test_inferensi_cocok_dengan_pc, GOLDEN_TOL_PROB, label sama); hasil pio test -e native (23 kasus lulus) dan model/CLAUDE.md HW-1 (pio test -e esp32-s3 16/16 pada 18 Sep 2026); git log f6042b5 (13 Okt 2026, board 29/29, native 23/23)
@@ -545,27 +467,19 @@ Hasil pengukuran ditunjukkan pada Tabel~\ref{tab:beban-komputasi}.
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\raggedleft\arraybackslash}p{1.6cm}|>{\RaggedRight\arraybackslash}X|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\raggedleft\arraybackslash}p{1.6cm}>{\RaggedRight\arraybackslash}X}
+    \toprule
     \textbf{Besaran} & \textbf{Nilai} & \textbf{Kondisi Pengukuran} \\
-    \hline
+    \midrule
     Anggaran waktu per sampel ($\mu$s) & 2.778 & 1/360 detik \\
-    \hline
     Beban rata-rata per sampel ($\mu$s) & 82 & \textit{Replay} sinyal acuan 2.400 sampel di perangkat, model \textit{window} 250 \\
-    \hline
     Puncak beban sesaat (ms) & 33,4 & Deteksi R-\textit{peak} dan inferensi bersamaan, model \textit{window} 250 \\
-    \hline
     Kapasitas antrean minimum menurut perhitungan (sampel) & 13 & Dihitung dari puncak beban sesaat \\
-    \hline
     Antrean saat puncak beban (sampel) & 12 & \textit{Firmware} produksi tanpa elektroda, ADC membaca derau, model \textit{window} 250 \\
-    \hline
     Antrean puncak (sampel) & 21 & \textit{Firmware} produksi dengan \textit{replay} sinyal acuan, model \textit{window} 256 \\
-    \hline
     Kapasitas antrean (sampel) & 256 & Antrean ISR pada kedua \textit{firmware} produksi \\
-    \hline
     Sampel hilang & 0 & Kedua pengukuran \textit{firmware} produksi \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: beban rata-rata setara 3,0\% anggaran dan puncak beban sesaat sekitar 12 kali anggaran. ISR adalah \textit{interrupt service routine}.\par}
 \end{table}
@@ -593,29 +507,20 @@ Butir ini bertujuan memastikan setiap komponen perangkat berfungsi dan jalur \te
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{3.0cm}|>{\centering\arraybackslash}p{1.5cm}|>{\RaggedRight\arraybackslash}p{6.6cm}|>{\centering\arraybackslash}p{1.4cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.0cm}>{\centering\arraybackslash}p{1.5cm}>{\RaggedRight\arraybackslash}p{6.6cm}>{\centering\arraybackslash}p{1.4cm}}
+    \toprule
     \textbf{Rangkaian Uji} & \textbf{Kasus} & \textbf{Yang Diverifikasi} & \textbf{Hasil} \\
-    \hline
+    \midrule
     Preprocessing & 11 & Kesetaraan tahap demi tahap terhadap data acuan (Tabel~\ref{tab:uji-kesetaraan-tahap}) & Lulus \\
-    \hline
     Inferensi & 5 & Probabilitas model INT8 sama dengan komputer, latensi, dan \textit{tensor arena} & Lulus \\
-    \hline
     Integrasi & 5 & Jalur \textit{real-time} utuh dengan layar, INA219, dan \textit{buzzer} aktif; sampel hilang 0, laju jantung dalam 3 bpm, label identik & Lulus \\
-    \hline
     Layar & 2 & Inisialisasi TFT dan transfer SPI satu layar penuh & Lulus \\
-    \hline
     ADC dan \textit{lead-off} & 2 & ADC terbaca dan pewaktu menghasilkan 360 sampel per detik & Lulus \\
-    \hline
     Tombol & 2 & Ketiga pin berlogika HIGH saat diam dan uji tombol berakhir tepat pada batas waktunya & Lulus \\
-    \hline
     \textit{Buzzer} & 1 & Pin tersambung ke pembangkit nada setelah SPI layar terpasang, diam pada logika HIGH & Lulus \\
-    \hline
     INA219 & 1 & Modul menjawab di I2C dengan bacaan dalam rentang fisik & Lulus \\
-    \hline
     Jumlah & 29 & & 29 lulus \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 % sumber: firmware/README.md tabel Test dan baris "board 29 (test_preproc 11, test_inference 5, test_hw_integrasi 5, test_hw_tft 2, test_hw_adc 2, test_hw_tombol 2, test_hw_buzzer 1, test_hw_ina219 1)"; jumlah RUN_TEST per suite di firmware/test/test_*/; firmware/test/test_hw_integrasi/ (n_lewat == 0, PUTARAN 3, HR beda <= 3 bpm, label sama PC); git log f6042b5 (board 29/29)
@@ -653,23 +558,17 @@ Detektor tidak melewatkan detak dengan peluang yang sama pada semua kelas, sebag
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{4.2cm}|>{\RaggedRight\arraybackslash}p{4.6cm}|>{\centering\arraybackslash}p{3.0cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{4.2cm}>{\RaggedRight\arraybackslash}p{4.6cm}>{\centering\arraybackslash}p{3.0cm}}
+    \toprule
     \textbf{Kelas} & \textbf{Keterangan} & \textbf{\textit{Sensitivity}} \\
-    \hline
+    \midrule
     N & Normal & 0,9614 \\
-    \hline
     S & Supraventrikular, datang prematur & 0,6494 \\
-    \hline
     V & Ventrikular & 0,9146 \\
-    \hline
     F & Fusi & 0,9820 \\
-    \hline
     S, V, F, dan Q gabungan & Seluruh aritmia & 0,8296 \\
-    \hline
     Seluruh detak & 47.074 terdeteksi dan 2.638 terlewat & 0,9469 \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 % sumber: model/docs/segmentasi-deteksi-walkthrough.md bagian 3 dan 4 (47.074 terdeteksi, 2.638 terlewat, sensitivity 0,9469; per kelas N 0,9614, S 0,6494, V 0,9146, F 0,9820, Normal vs Aritmia 0,9614 vs 0,8296); model/scripts/eval_detected_segmentation.py (aritmia = S V F Q); diukur dengan detektor yang sama sebelum window dikunci 256, perhitungannya hanya dari pasangan deteksi dan anotasi sehingga tidak melibatkan model
@@ -687,19 +586,15 @@ Dampak segmentasi hasil detektor terhadap klasifikasi ditunjukkan pada Tabel~\re
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{3.0cm}|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.2cm}|>{\centering\arraybackslash}p{2.2cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.0cm}>{\centering\arraybackslash}p{2.2cm}>{\centering\arraybackslash}p{2.2cm}>{\centering\arraybackslash}p{2.2cm}>{\centering\arraybackslash}p{2.2cm}}
+    \toprule
     \textbf{Metrik} & \textbf{Acuan, anotasi} & \textbf{Acuan, detektor} & \textbf{Akhir, anotasi} & \textbf{Akhir, detektor} \\
-    \hline
+    \midrule
     \textit{Recall} & 0,6661 & 0,6821 & 0,6996 & 0,7279 \\
-    \hline
     \textit{Precision} & 0,4919 & 0,4794 & 0,6235 & 0,5869 \\
-    \hline
     F1 & 0,5659 & 0,5631 & 0,6594 & 0,6499 \\
-    \hline
     \textit{Recall} sistem & 0,6661 & 0,5656 & 0,6996 & 0,6035 \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 % sumber: model/docs/segmentasi-deteksi-walkthrough.md §3 tabel A (recall, precision, F1 baseline anotasi/deteksi dan berlaku anotasi/deteksi) dan blok B (recall sistem: baseline 3.084 / 5.453 = 0,5656, berlaku 3.291 / 5.453 = 0,6035); model/artifacts/metrics/fase6b_segmentasi_deteksi.csv memuat baris model acuan (f1 0,565903 / 0,563082, recall_sistem 0,666055 / 0,565560)
@@ -730,15 +625,13 @@ Status setiap rekaman ditentukan dari kelima ukuran tersebut. Sebuah rekaman dib
   \setlength{\tabcolsep}{2.5pt}
   \renewcommand{\arraystretch}{1.15}
   \footnotesize
-  \begin{tabular}{|>{\centering\arraybackslash}p{1.5cm}|>{\centering\arraybackslash}p{1.2cm}|>{\centering\arraybackslash}p{1.9cm}|>{\centering\arraybackslash}p{1.5cm}|>{\centering\arraybackslash}p{1.1cm}|>{\centering\arraybackslash}p{1.5cm}|>{\centering\arraybackslash}p{1.2cm}|>{\RaggedRight\arraybackslash}p{2.3cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\centering\arraybackslash}p{1.5cm}>{\centering\arraybackslash}p{1.2cm}>{\centering\arraybackslash}p{1.9cm}>{\centering\arraybackslash}p{1.5cm}>{\centering\arraybackslash}p{1.1cm}>{\centering\arraybackslash}p{1.5cm}>{\centering\arraybackslash}p{1.2cm}>{\RaggedRight\arraybackslash}p{2.3cm}}
+    \toprule
     \textbf{Rekaman} & \textbf{Durasi (detik)} & \textbf{Ayunan (\textit{count} / mV)} & \textbf{Dengung (\%)} & \textbf{R-\textit{peak}} & \textbf{Auto-\newline korelasi} & \textbf{BPM Wajar (\%)} & \textbf{Status} \\
-    \hline
-    \multicolumn{8}{|l|}{\textit{Sesi} \PlaceholderData{tanggal sesi dan rangkaian}} \\
-    \hline
-    \multicolumn{8}{|>{\RaggedRight\arraybackslash}p{13.3cm}|}{\PlaceholderData{satu baris per rekaman resmi berisi jam penarikan, durasi, ayunan dalam \textit{count} dan mV, dengung 50 Hz, jumlah R-\textit{peak}, autokorelasi, BPM wajar, serta status Berhasil, Bersinyal, atau Gagal beserta jumlah sampel jenuh}} \\
-    \hline
+    \midrule
+    \multicolumn{8}{l}{\textit{Sesi} \PlaceholderData{tanggal sesi dan rangkaian}} \\
+    \multicolumn{8}{>{\RaggedRight\arraybackslash}p{13.3cm}}{\PlaceholderData{satu baris per rekaman resmi berisi jam penarikan, durasi, ayunan dalam \textit{count} dan mV, dengung 50 Hz, jumlah R-\textit{peak}, autokorelasi, BPM wajar, serta status Berhasil, Bersinyal, atau Gagal beserta jumlah sampel jenuh}} \\
+    \bottomrule
   \end{tabular}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: nama rekaman memakai jam penarikan berkas. Kriteria status Berhasil, Bersinyal, dan Gagal mengikuti paragraf pengantar.\par}
 \end{table}
@@ -811,23 +704,17 @@ Butir ini bertujuan mengukur kemampuan model pada pasien yang tidak pernah dilih
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{4.4cm}|>{\raggedleft\arraybackslash}p{2.2cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{4.4cm}>{\raggedleft\arraybackslash}p{2.2cm}}
+    \toprule
     \textbf{Metrik} & \textbf{Nilai} \\
-    \hline
+    \midrule
     \textit{Recall} & 0,6996 \\
-    \hline
     \textit{Precision} & 0,6235 \\
-    \hline
     F1 & 0,6594 \\
-    \hline
     \textit{Specificity} & 0,9479 \\
-    \hline
     AUC & 0,9334 \\
-    \hline
     \textit{Accuracy} & 0,9207 \\
-    \hline
+    \bottomrule
   \end{tabular}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: TP 3.813, FN 1.637, FP 2.302, dan TN 41.904 dari 5.450 detak Aritmia dan 44.206 detak Normal. \textit{Accuracy} dilaporkan tetapi bukan acuan.\par}
 \end{table}
@@ -873,51 +760,37 @@ Butir ini bertujuan memastikan setiap perubahan rancangan didukung pengukuran. S
   \setlength{\tabcolsep}{3pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}p{0.9cm}|>{\RaggedRight\arraybackslash}X|>{\centering\arraybackslash}p{0.9cm}|>{\centering\arraybackslash}p{2.6cm}|>{\raggedleft\arraybackslash}p{1.2cm}|>{\raggedleft\arraybackslash}p{1.2cm}|>{\centering\arraybackslash}p{1.9cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}p{0.9cm}>{\RaggedRight\arraybackslash}X>{\centering\arraybackslash}p{0.9cm}>{\centering\arraybackslash}p{2.6cm}>{\raggedleft\arraybackslash}p{1.2cm}>{\raggedleft\arraybackslash}p{1.2cm}>{\centering\arraybackslash}p{1.9cm}}
+    \toprule
     \textbf{ID} & \textbf{Perubahan terhadap Acuan} & \textbf{\textit{Seed}} & \textbf{F1 DS2} & \textbf{\textit{Recall} S} & \textbf{AUC} & \textbf{Keputusan} \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Augmentasi jitter, window 90/160}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Augmentasi jitter, window 90/160}} \\
     A1 & Tanpa augmentasi & 3 & 0,5660 $\pm$0,0202 & 0,2683 & 0,8870 & Acuan \\
-    \hline
     \textbf{A2} & \textbf{\textit{Jitter} $\times$2} & \textbf{3} & \textbf{0,6354 $\pm$0,0428} & \textbf{0,2712} & \textbf{0,9084} & \textbf{Dipilih} \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Posisi R dalam window, jitter $\times$2}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Posisi R dalam window, jitter $\times$2}} \\
     A3 & 128/127 & 3 & 0,6775 $\pm$0,0112 & 0,4871 & 0,9394 & Ditolak \\
-    \hline
     A4 & 112/144 & 3 & 0,5786 $\pm$0,0311 & 0,3691 & 0,9069 & Ditolak \\
-    \hline
     \textbf{A6} & \textbf{128/128} & \textbf{3} & \textbf{0,6911 $\pm$0,0290} & \textbf{0,4221} & \textbf{0,9373} & \textbf{Dipilih} \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Jumlah salinan jitter, window 128/127}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Jumlah salinan jitter, window 128/127}} \\
     A7 & \textit{Jitter} $\times$3 & 3 & 0,6099 $\pm$0,0254 & 0,3807 & 0,9146 & Ditolak \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Fitur HOS, window 90/160, jitter $\times$2}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Fitur HOS, window 90/160, jitter $\times$2}} \\
     A5 & $+$ HOS & 3 & 0,6150 $\pm$0,0509 & 0,3123 & 0,8882 & Ditolak \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Data latih tambahan pada A6}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Data latih tambahan pada A6}} \\
     A8 & $+$ SVDB & 6 & 0,6262 $\pm$0,0626 & 0,4801 & 0,9317 & Ditolak \\
-    \hline
     A9 & $+$ INCART & 3 & 0,6239 $\pm$0,0214 & 0,3312 & 0,8881 & Ditolak \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Fitur ritme tambahan pada A6}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Fitur ritme tambahan pada A6}} \\
     A10 & $+$ SVDB, rasio R-R, lebar QRS & 6 & 0,6960 $\pm$0,0489 & 0,4436 & 0,9352 & Ditolak \\
-    \hline
     A11 & $+$ rasio R-R, lebar QRS & 4 & 0,6882 $\pm$0,0233 & 0,4203 & 0,9228 & Ditolak \\
-    \hline
-    \multicolumn{7}{|l|}{\textit{Learning rate, pengulangan kedua A6}} \\
-    \hline
+    \midrule
+    \multicolumn{7}{l}{\textit{Learning rate, pengulangan kedua A6}} \\
     A12 & LR $10^{-3}$ & 3 & 0,6535 $\pm$0,0280 & 0,4473 & 0,9305 & Acuan \\
-    \hline
     A13 & LR $10^{-4}$ & 3 & 0,6729 $\pm$0,0483 & 0,3126 & 0,9415 & Ditolak \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: angka a/b menyatakan jumlah sampel sebelum dan sesudah R, $\times$2 dan $\times$3 adalah jumlah salinan \textit{jitter}, $\pm$ adalah setengah rentang antar-\textit{seed}, HOS adalah kurtosis dan \textit{skewness}, dan LR adalah \textit{learning rate}. Baris tebal adalah varian yang dipakai. A10 dan A11 Ditolak walaupun F1-nya tidak lebih rendah dari A6, karena selisihnya di bawah ambang 0,04 sedangkan A10 menambah data latih SVDB dan A11 menurunkan \textit{recall} V. A13 Ditolak karena \textit{recall} S turun walaupun AUC naik. Varian dengan F1 lebih rendah atau kurang dari tiga \textit{seed} tidak ditampilkan.\par}
 \end{table}
@@ -952,23 +825,17 @@ Butir ini bertujuan mengukur dampak kuantisasi. Yang dikuantisasi adalah varian 
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{3.4cm}|>{\raggedleft\arraybackslash}p{2.2cm}|>{\raggedleft\arraybackslash}p{2.2cm}|>{\raggedleft\arraybackslash}p{2.2cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.4cm}>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.2cm}}
+    \toprule
     \textbf{Metrik} & \textbf{\textit{Float32}} & \textbf{INT8} & \textbf{Selisih} \\
-    \hline
+    \midrule
     \textit{Recall} & 0,6996 & 0,7105 & $+$0,0108 \\
-    \hline
     F1 & 0,6594 & 0,6604 & $+$0,0010 \\
-    \hline
     \textit{Precision} & 0,6235 & 0,6169 & $-$0,0067 \\
-    \hline
     \textit{Specificity} & 0,9479 & 0,9456 & $-$0,0023 \\
-    \hline
     AUC & 0,9334 & 0,9344 & $+$0,0010 \\
-    \hline
     \textit{Accuracy} & 0,9207 & 0,9198 & $-$0,0009 \\
-    \hline
+    \bottomrule
   \end{tabular}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: kedua model dinilai pada \textit{threshold} 0,80. \textit{Accuracy} dilaporkan tetapi bukan acuan. Ukuran model INT8 22,94 KB dicantumkan pada Tabel~\ref{tab:sumber-daya}.\par}
 \end{table}
@@ -1010,27 +877,19 @@ Butir ini bertujuan memastikan model INT8 memenuhi batas waktu dan memori di ESP
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\raggedleft\arraybackslash}p{1.8cm}|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}p{2.6cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\raggedleft\arraybackslash}p{1.8cm}>{\RaggedRight\arraybackslash}X>{\RaggedRight\arraybackslash}p{2.6cm}}
+    \toprule
     \textbf{Besaran} & \textbf{Nilai} & \textbf{Kondisi Pengukuran} & \textbf{Target} \\
-    \hline
+    \midrule
     Ukuran model INT8 (byte) & 23.488 & Format TensorFlow Lite, \textit{window} 256 & $<$ 25 KB \\
-    \hline
     Latensi inferensi per detak (ms) & 26,6 & Uji perangkat, 240 MHz, \textit{kernel} referensi, \textit{window} 256 & Lebih kecil dari interval antardetak \\
-    \hline
     \textit{Tensor arena} terpakai (byte) & 12.948 & Uji perangkat, alokasi 24.576 byte & Muat di SRAM \\
-    \hline
     \textit{Heap} bebas (byte) & 312.396 & Uji perangkat, \textit{window} 256 & Muat di SRAM \\
-    \hline
     RAM statis tanpa MQTT (byte) & 74.284 & \textit{Firmware} tanpa MQTT, dengan tabel \textit{replay} & Muat di memori \\
-    \hline
     Flash tanpa MQTT (byte) & 430.569 & \textit{Firmware} tanpa MQTT, dengan tabel \textit{replay} & Muat di memori \\
-    \hline
     RAM statis dengan MQTT (byte) & 121.336 & \textit{Firmware} dengan MQTT, kredensial WiFi terisi & Muat di memori \\
-    \hline
     Flash dengan MQTT (byte) & 887.873 & \textit{Firmware} dengan MQTT, kredensial WiFi terisi & Muat di memori \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: 23.488 byte setara 22,94 KB. RAM statis 74.284 dan 121.336 byte setara 22,7\% dan 37,0\% dari RAM 320 KB, sedangkan Flash 430.569 dan 887.873 byte setara 6,6\% dan 13,5\% dari partisi aplikasi 6,25 MB.\par}
 \end{table}
@@ -1077,25 +936,18 @@ Butir ini bertujuan memastikan detak yang lolos gerbang sampai di ThingsBoard se
   \setlength{\tabcolsep}{3pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}p{2.8cm}|>{\raggedleft\arraybackslash}p{1.7cm}|>{\raggedleft\arraybackslash}p{1.7cm}|>{\centering\arraybackslash}p{1.9cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\RaggedRight\arraybackslash}p{2.8cm}>{\raggedleft\arraybackslash}p{1.7cm}>{\raggedleft\arraybackslash}p{1.7cm}>{\centering\arraybackslash}p{1.9cm}}
+    \toprule
     \textbf{Metrik} & \textbf{Target} & \textbf{Ulangan 1} & \textbf{Ulangan 2} & \textbf{Status} \\
-    \hline
+    \midrule
     PDSR (\%) & $\geq$ 95 & 100,0 & 99,2 & Terpenuhi \\
-    \hline
     Latensi \textit{end-to-end} median (ms) & $\leq$ 2.000 & 939 & 1.108 & Terpenuhi \\
-    \hline
     Latensi \textit{end-to-end} p95 (ms) & acuan $\leq$ 2.000 & 1.404 & 3.304 & Dilaporkan \\
-    \hline
     Kapasitas \textit{ring buffer} (entri) & $\pm$27.000 tanpa \textit{overflow} & 27.000 & -- & Terpenuhi \\
-    \hline
     Data hilang saat putus koneksi (detak) & 0 & 0 & -- & Terpenuhi \\
-    \hline
     Durasi \textit{flush} (detik) & $\leq$ 60 & $\leq$ 24,6 & -- & Terpenuhi \\
-    \hline
     \textit{Timestamp} ganda di ThingsBoard & Duplikat QoS 1 diabaikan & 0 & 0 & Terpenuhi \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: PDSR dihitung per paket, yaitu 292 dari 292 dan 253 dari 255 paket. Target latensi 2 detik ditulis sebagai 2.000 ms. Tanda -- berarti skenario kapasitas dan putus koneksi dijalankan sekali pada konfigurasi yang sama (butir c), dan perilaku antrean penuh diverifikasi pada uji unit.\par}
 \end{table}
@@ -1154,19 +1006,15 @@ Pengukuran awal memberi median 1.907~ms karena basis waktu perangkat semula bera
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}X|>{\raggedleft\arraybackslash}p{1.8cm}|>{\raggedleft\arraybackslash}p{1.6cm}|>{\RaggedRight\arraybackslash}X|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}X>{\raggedleft\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.6cm}>{\RaggedRight\arraybackslash}X}
+    \toprule
     \textbf{Komponen} & \textbf{Nilai (ms)} & \textbf{Porsi (\%)} & \textbf{Cara Ukur} \\
-    \hline
+    \midrule
     Sisi perangkat, dari R-\textit{peak} sampai detak masuk antrean pengiriman & 869 & 87 & Rerata yang dicacah \textit{firmware} \\
-    \hline
     Jaringan dan \textit{cloud}, dari antrean sampai terbaca di REST & $\approx$ 130 & 13 & Selisih terhadap total \\
-    \hline
     Di dalamnya, \textit{broker} (RTT PUBACK) & 1,1 & $<$ 1 & Median 60 pesan, langsung dari komputer ke \textit{broker} \\
-    \hline
     Total & $\approx$ 1.000 & 100 & Dibulatkan dari median dua ulangan \\
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: rerata sisi perangkat 869--887 ms pada 7 pengukuran dengan maksimum 1.353 ms, pada kadens deteksi 1 detik dan jeda 356~ms sesudah R. Bagian jaringan dan \textit{cloud} memuat pengiriman, WiFi, \textit{broker}, \textit{rule engine}, penyimpanan, dan bias \textit{polling}. Total dibulatkan dari median 939 dan 1.108 ms, dan porsi sisi perangkat bergeser antara 78\% dan 93\% menurut ulangan. RTT adalah \textit{round-trip time}.\par}
 \end{table}
@@ -1220,41 +1068,30 @@ Subbab ini menilai hasil pada Subbab~\ref{sec:hasil-eksperimen} terhadap ketiga 
   \setlength{\tabcolsep}{3pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabularx}{\linewidth}{|>{\RaggedRight\arraybackslash}p{2.6cm}|>{\RaggedRight\arraybackslash}X|>{\RaggedRight\arraybackslash}X|>{\centering\arraybackslash}p{2.1cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}p{2.6cm}>{\RaggedRight\arraybackslash}X>{\RaggedRight\arraybackslash}X>{\centering\arraybackslash}p{2.1cm}}
+    \toprule
     \textbf{Tujuan} & \textbf{Target} & \textbf{Hasil} & \textbf{Status} \\
-    \hline
+    \midrule
     \multirow{3}{=}{Tujuan 1, preprocessing \textit{real-time}} & Setara dengan Python dalam toleransi data acuan & Seluruh tahap uji data acuan lulus & \multirow{3}{=}{\centering Sebagian tercapai} \\
-    \cline{2-3}
     & Tanpa sampel hilang & Sampel hilang 0, beban 3,0\% anggaran & \\
-    \cline{2-3}
     & Sinyal tubuh memenuhi kriteria kualitas & \PlaceholderData{jumlah rekaman Berhasil dari jumlah sesi} & \\
     % PLACEHOLDER-DATA ketercapaian-tujuan1: kolom Hasil dan Status diisi ulang dari tab:kualitas-rekaman setelah pengujian rekaman resmi
     % sumber: bab4 tab:uji-kesetaraan-tahap, tab:beban-komputasi, tab:kualitas-rekaman; target dari bab3 tab:pengujian-model dan bab4 tab:parameter-eksperimen baris d dan e
-    \hline
+    \midrule
     \multirow{5}{=}{Tujuan 2, model INT8 \textit{on-device}} & $|\Delta \textit{recall}| < 0{,}02$ & $+$0,0108 & \multirow{5}{=}{\centering Sebagian tercapai} \\
-    \cline{2-3}
     & Model $<$ 25~KB & 22,94~KB & \\
-    \cline{2-3}
     & Latensi di bawah interval antardetak & 26,6~ms per detak & \\
-    \cline{2-3}
     & Muat di SRAM & \textit{Arena} 12.948 dari 24.576 byte & \\
-    \cline{2-3}
     & Daya per mode operasi & Belum diukur & \\
     % sumber: bab4 tab:delta-int8, tab:sumber-daya, subsec:hasil-tujuan2 butir Konsumsi Daya; target dari bab3 tab:pengujian-model
-    \hline
+    \midrule
     \multirow{5}{=}{Tujuan 3, \textit{pipeline} MQTT resilien} & PDSR $\geq$ 95\% & 100,0 dan 99,2 & \multirow{5}{=}{\centering Tercapai} \\
-    \cline{2-3}
     & Median latensi $\leq$ 2.000~ms & 939 dan 1.108 & \\
-    \cline{2-3}
     & Tanpa \textit{overflow} dan data hilang & Hilang 0 pada uji putus koneksi & \\
-    \cline{2-3}
     & \textit{Flush} $\leq$ 60 detik & $\leq$ 24,6 & \\
-    \cline{2-3}
     & Duplikat dikenali & \textit{Timestamp} ganda 0 & \\
     % sumber: bab4 tab:target-pipeline (seluruh baris Terpenuhi; hilang 0 dan flush <= 24,6 detik dari satu uji putus koneksi, p95 tidak stabil dan bukan target); target dari bab3 tab:pengujian-pipeline dan bab4 tab:parameter-eksperimen baris f
-    \hline
+    \bottomrule
   \end{tabularx}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: satuan Hasil mengikuti satuan Target pada baris yang sama, dan target latensi 2 detik ditulis sebagai 2.000 ms. F1 INT8 0,6604 dilaporkan tanpa target, dan p95 latensi di luar target tidak stabil.\par}
 \end{table}
@@ -1302,32 +1139,29 @@ Perbandingan dibatasi pada penelitian yang skema evaluasinya diuraikan pada Subb
   \setlength{\tabcolsep}{3pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{2.3cm}|>{\RaggedRight\arraybackslash}p{2.0cm}|>{\RaggedRight\arraybackslash}p{2.5cm}|>{\RaggedRight\arraybackslash}p{2.4cm}|>{\RaggedRight\arraybackslash}p{3.5cm}|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{2.3cm}>{\RaggedRight\arraybackslash}p{2.0cm}>{\RaggedRight\arraybackslash}p{2.5cm}>{\RaggedRight\arraybackslash}p{2.4cm}>{\RaggedRight\arraybackslash}p{3.5cm}}
+    \toprule
     \textbf{Penelitian} & \textbf{Kelas} & \textbf{Pembagian Data} & \textbf{Lokasi Inferensi} & \textbf{Hasil yang Dilaporkan} \\
-    \hline
+    \midrule
     Zambrano-de la Torre et al.~\cite{zambrano_2026} &
     Tiga kelas, yaitu N, V, dan S &
     Per detak tanpa pemisahan antarpasien pada MIT-BIH &
     Arduino UNO 8-bit, 1D-CNN INT8 &
     \textit{Accuracy}, degradasi kuantisasi $<$ 0,7\%, model $<$ 22~KB, latensi sekitar 200~ms per detak \\
     % sumber: bab2 subsec:related-zambrano2026 dan tab:perbandingan-penelitian baris 11
-    \hline
     Penelitian pendahulu~\cite{mulyawan_2026} &
     Atrial fibrilasi &
     Pengujian \textit{offline}, dilatih pada MIT-BIH &
     SVM di \textit{backend cloud}, ESP32 untuk akuisisi dan fitur R-R &
     \textit{Accuracy} tinggi pada pengujian \textit{offline} \\
     % sumber: bab2 subsec:related-mulyawan2026 dan tab:perbandingan-penelitian baris 12 (tanpa angka akurasi)
-    \hline
     Penelitian ini &
     Biner, yaitu Normal dan Aritmia &
     \textit{Inter-patient} DS1/DS2, DS2 berisi 22 pasien &
     ESP32-S3, model \textit{hybrid} INT8 \textit{on-device} &
     INT8 pada DS2 \textit{recall} 0,7105, F1 0,6604, AUC 0,9344, \textit{accuracy} 0,9198, model 22,94~KB, latensi 26,6~ms per detak \\
     % sumber: bab4 tab:delta-int8 (INT8), tab:sumber-daya (26,6 ms), subsec:hasil-tujuan2 butir Evaluasi DS2 (22 pasien)
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 

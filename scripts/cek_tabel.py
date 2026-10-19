@@ -239,13 +239,15 @@ def periksa_tabel(lap, berkas, sumber, lebar_teks):
         baris_awal = nomor_baris(polos, m.start())
         if Path(berkas).name in BAB_TANPA_TABEL:
             lap.catat(berkas, baris_awal, "T-BAB", True, "Bab 1 dan Bab 5 tidak memuat tabel")
-        if re.search(r"\\(toprule|midrule|bottomrule)", blok):
-            lap.catat(berkas, baris_awal, "T-GRID", True, "booktabs dipakai, panduan PENS memakai grid penuh (\\hline dan |)")
-        if "\\rowcolor{headgray}" not in blok:
-            lap.catat(berkas, baris_awal, "T-HEADER", True, "header tanpa \\rowcolor{headgray}")
+        if re.search(r"\\(hline|cline)|\\rowcolor", blok):
+            lap.catat(berkas, baris_awal, "T-GRID", True, "gaya tiga garis: \\toprule, \\midrule, \\bottomrule, tanpa \\hline, \\cline, dan \\rowcolor")
+        if not all(f"\\{garis}" in blok for garis in ("toprule", "midrule", "bottomrule")):
+            lap.catat(berkas, baris_awal, "T-HEADER", True, "tabel tanpa pasangan lengkap \\toprule, \\midrule, \\bottomrule")
         if lingkungan == "table" and re.match(r"\s*\[H\]", blok):
             lap.catat(berkas, baris_awal, "T-FLOAT", False, "[H] mengunci posisi, pakai [!ht]")
         jenis, lebar_x, spek, akhir_spek = cari_tabular(blok, lingkungan)
+        if spek and "|" in spek:
+            lap.catat(berkas, baris_awal, "T-GRID", True, "garis vertikal | di spesifikasi kolom, gaya tiga garis tanpa garis vertikal")
         cap = re.search(r"\\caption\{", blok)
         if not cap:
             lap.catat(berkas, baris_awal, "T-CAPTION", True, "tabel tanpa \\caption")
@@ -374,7 +376,7 @@ def uji_mandiri():
     periksa_tabel(lap, "uji.tex", contoh, LEBAR_TEKS_CM["a4"])
     periksa_prosa(lap, "uji.tex", contoh)
     kode = {t[2] for t in lap.temuan}
-    harap = {"T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
+    harap = {"T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
     kurang = harap - kode
     if kurang:
         print(f"uji mandiri GAGAL, tidak terdeteksi: {sorted(kurang)}")

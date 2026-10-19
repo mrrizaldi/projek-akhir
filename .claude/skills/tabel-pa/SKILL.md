@@ -1,6 +1,6 @@
 ---
 name: tabel-pa
-description: Wajib dipakai saat membuat, merombak, atau meninjau tabel LaTeX di laporan PA (laporan/buku-pa, progres, proposal), termasuk tabel hasil Bab 4, spesifikasi, ablasi, ketercapaian, dan pembanding penelitian terkait. Format grid PENS, satu tabel satu pertanyaan, angka rapi, dan paragraf pengapitnya.
+description: Wajib dipakai saat membuat, merombak, atau meninjau tabel LaTeX di laporan PA (laporan/buku-pa, progres, proposal), termasuk tabel hasil Bab 4, spesifikasi, ablasi, ketercapaian, dan pembanding penelitian terkait. Gaya tiga garis (booktabs, tanpa garis vertikal), satu tabel satu pertanyaan, angka rapi, dan paragraf pengapitnya.
 ---
 
 # Tabel PA
@@ -13,9 +13,14 @@ Acuan"), satuan `ms` diulang di setiap sel pada 7 kolom, isian samar "Sama",
 bercampur 2 dan 4 desimal karena baris ukuran model ikut masuk tabel metrik,
 dan `tab:hasil-ds2` menjajarkan sel *confusion matrix* (TP, FN, FP, TN) dengan
 metrik (Recall, Precision) di baris yang sama padahal keduanya tidak
-berhubungan. Format PENS sudah benar. Yang busuk adalah **isi dan susunan**:
+berhubungan. Format sudah benar. Yang busuk adalah **isi dan susunan**:
 tabel dipakai sebagai wadah paragraf, dan tiap baris tidak menjawab pertanyaan
 yang sama.
+
+Keputusan gaya (user, 19 Okt 2026): tabel buku-pa memakai **gaya tiga garis**,
+bukan grid penuh. Alasan user: tabel riset jarang berborder lengkap, dan buku
+AFIB (Mulyawan 2026, pembimbing sama) memakai tiga garis pada Tabel 2.1 dan
+4.1. Proposal yang sudah diserahkan tetap grid dan tidak disunting.
 
 Asal aturan: diadaptasi dari skill berbahasa Inggris `table-generation`
 (lingzhi227/claude-skills), `academic-writing` (David-Saeteros/claude-skills),
@@ -25,7 +30,7 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
 
 | Saran skill Inggris | Keputusan | Alasan |
 |---|---|---|
-| `booktabs` tanpa garis vertikal | ditolak | Panduan PENS memakai grid penuh (gaya `TableGrid`) dengan header abu-abu D9D9D9 |
+| `booktabs` tanpa garis vertikal | diambil (19 Okt 2026) | Keputusan user mengikuti gaya tabel riset dan buku AFIB. Panduan PENS (grid `TableGrid`, header D9D9D9) hanya dipakai proposal yang sudah dibekukan |
 | tebalkan nilai terbaik di setiap kolom | dibatasi | Bab 4 menilai hasil terhadap **target**, bukan lomba. Pakai kolom Status. Tebal hanya untuk baris varian terpilih di tabel ablasi |
 | baris "Ours" | diganti | baris terakhir "Penelitian ini" pada tabel pembanding (6/6 korpus) |
 | `table*`, dua kolom | tidak relevan | laporan satu kolom |
@@ -33,8 +38,16 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
 
 ## Aturan
 
-1. **Format PENS tidak ditawar.** Grid penuh (`|` dan `\hline`), baris header
-   `\rowcolor{headgray}` dengan teks tebal, caption di ATAS tabel (tebal, rata
+1. **Gaya tiga garis.** `\toprule` di atas header, `\midrule` di bawah
+   header, `\bottomrule` di akhir tabel. Tanpa garis vertikal `|`, tanpa
+   `\hline`/`\cline`, tanpa `\rowcolor`. Header tetap teks tebal. Garis
+   tambahan di badan hanya `\midrule` pemisah kelompok: (a) tepat sebelum
+   baris `\multicolumn` nama kelompok, tanpa garis sesudah baris itu, dan
+   (b) pada tabel yang memuat `\multirow`, setiap `\hline` penuh di badan
+   menjadi `\midrule` agar batas kelompok terlihat, sedangkan `\cline`
+   dihapus. Selain itu `\hline` di badan dihapus tanpa pengganti. Di `longtable`,
+   header berulang memakai `\toprule`/`\midrule` dan `\endfoot` memakai
+   `\bottomrule`. Caption di ATAS tabel (tebal, rata
    tengah, otomatis dari `preamble.tex`), `\begin{table}[!ht]` (bukan `[H]`),
    dan "Sumber: ..." 10pt rata tengah di bawah tabel pinjaman. Bab 1 dan Bab 5
    tanpa tabel. Satu tabel tidak lebih dari satu halaman. Pengecualiannya
@@ -87,7 +100,7 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
      dijalankan diganti `--` + Keterangan.
    - Nilai sama di beberapa baris berturut-turut pada kolom pertama →
      `\multirow` (paket sudah dimuat), atau baris kelompok
-     `\multicolumn{k}{|l|}{\textit{Nama kelompok}}`.
+     `\midrule` lalu `\multicolumn{k}{l}{\textit{Nama kelompok}}`.
    - Kolom yang isinya sama di semua baris dihapus, lalu nilainya ditulis di
      caption atau Keterangan (mis. "model *window* 250").
 
@@ -172,7 +185,8 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
 - [ ] `cek_tabel.py`: 0 galat. Saran `T-SEL`, `T-SATUAN`, `T-DESIMAL`,
       `T-ISIAN`, dan `T-CATATAN` untuk tabel yang disentuh sudah 0, atau ada
       alasan tertulis untuk tiap saran yang dibiarkan.
-- [ ] Grid penuh, header `headgray`, caption di atas, `[!ht]`.
+- [ ] Tiga garis (`\toprule`, `\midrule`, `\bottomrule`), tanpa `|`,
+      `\hline`, dan `\rowcolor`. Caption di atas, `[!ht]`.
 - [ ] Satuan di header, desimal seragam, kolom angka rata kanan.
 - [ ] Tidak ada "Sama"/"idem"/"Tidak diulang". Ada `--` + Keterangan.
 - [ ] Status memakai kosakata aturan 7.
