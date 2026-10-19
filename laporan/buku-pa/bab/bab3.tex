@@ -224,22 +224,6 @@ Tabel~\ref{tab:pemetaan-label} menunjukkan bahwa kelas Normal mencakup detak sin
 Tidak seluruh rekaman MIT-BIH digunakan. Rekaman 102 dan 104 tidak memiliki kanal MLII, sedangkan rekaman 107 dan 217 berisi detak dari alat pacu jantung (\textit{paced}). Keempatnya dikeluarkan dan tersisa 44 rekaman. Rekaman yang tersisa dibagi menjadi DS1 untuk pelatihan dan DS2 untuk pengujian mengikuti pembagian \textit{inter-patient} de Chazal~\cite{dechazal_2004}. Dari DS1, lima rekaman, yaitu 101, 114, 201, 220, dan 223, dipisahkan sebagai data validasi yang digunakan untuk memilih \textit{epoch} terbaik dan mengalibrasi \textit{threshold} klasifikasi. Dengan pemisahan ini, pemilihan \textit{epoch} dan penetapan \textit{threshold} tidak melibatkan DS2.
 % sumber: model/config.py (PACED_EXCLUDED = [102, 104, 107, 217], VAL_RECORDS = [101, 114, 201, 220, 223]); model/CLAUDE.md decision "Record dibuang", "Validation set", Fase 2 (44 record)
 
-Selain MIT-BIH \textit{Arrhythmia Database} sebagai \textit{dataset} utama, dua basis data
-pelengkap digunakan sebagai data uji \textit{held-out} untuk mengevaluasi
-generalisasi model terhadap kondisi akuisisi yang berbeda~\cite{pollard_2026}.
-MIT-BIH \textit{Supraventricular Arrhythmia Database} (SVDB) digunakan sebagai
-data uji karena memperkaya sampel detak supraventrikular (kelas S) dan menguji
-langsung efektivitas cabang ritme. St.~Petersburg INCART 12-\textit{lead
-Arrhythmia Database} digunakan sebagai data uji karena memuat proporsi detak ventrikular
-jauh lebih besar dan menguji ketahanan deteksi kelas ventrikular. Ketiga basis data memiliki frekuensi \textit{sampling} yang berbeda
-(MIT-BIH 360 Hz, INCART 257 Hz, SVDB 128 Hz). Rekaman SVDB dan INCART karena itu
-terlebih dahulu diselaraskan (\emph{resample}) ke 360 Hz agar konsisten dengan
-ukuran \emph{window} 256 sampel dan \textit{pipeline} Pan-Tompkins. Pemetaan anotasi
-mengikuti standar AAMI yang sama pada ketiga basis data, dan skema
-klasifikasi biner tetap berlaku. Kedua basis data tersebut hanya digunakan untuk
-ablasi dan evaluasi generalisasi, dan tidak digunakan untuk melatih model yang dikuantisasi dan dijalankan di perangkat.
-% sumber: model/config.py DATASETS (mitdb fs 360, svdb fs 128, incartdb fs 257); model/CLAUDE.md decision "Database LATIH" (svdb dan incartdb held-out sebagai TEST-B/TEST-C, latih mitdb saja); model/artifacts/metrics/ablasi/lintas_db.csv (set TEST-B svdb, TEST-C incartdb)
-
 Selain segmen \textit{window} 256 sampel, pada tahap penyiapan data juga dihitung fitur interval RR per-detak berupa RR\_prev, rasio RR, dan $\Delta$RR dari lokasi R-\textit{peak} keluaran algoritma Pan-Tompkins, untuk menjadi masukan cabang ritme pada model.
 
 \subsubsection{Perancangan Arsitektur Model}
@@ -821,14 +805,6 @@ Pengujian model dilakukan secara \textit{offline} menggunakan partisi data uji D
 
 Karena model bersifat \textit{hybrid} dua cabang, setiap detak pada DS2 dievaluasi dengan kedua masukan secara bersamaan, yaitu \textit{window} ECG untuk cabang morfologi dan fitur interval RR (RR\_prev, rasio RR, $\Delta$RR) untuk cabang ritme. Evaluasi dilakukan dalam dua tahap. Pertama, model hasil pelatihan dalam format \textit{float32} diuji pada seluruh detak dalam DS2 untuk menghasilkan \textit{confusion matrix} beserta nilai \textit{accuracy}, \textit{precision}, \textit{recall}, dan F1-\textit{score}. \textit{Recall} kelas Aritmia menjadi indikator utama karena berkaitan langsung dengan tujuan deteksi dini. Kedua, model yang sama dikuantisasi ke INT8 melalui \textit{post-training quantization}, kemudian diuji ulang pada partisi data uji yang identik. Kedua hasil pengujian ini dibandingkan secara berpasangan untuk mengukur selisih (\textit{delta}) tiap metrik agar dampak kuantisasi terhadap kualitas deteksi terkuantifikasi secara langsung, bukan diasumsikan.
 
-Selain evaluasi pada DS2, model diuji pada data \textit{held-out} SVDB dan
-INCART, yang selanjutnya disebut data uji SVDB dan data uji INCART. Keduanya dievaluasi setelah \emph{resample} ke 360 Hz dengan \textit{window} 256 sampel yang
-sama, untuk mengukur generalisasi terhadap kondisi akuisisi dan distribusi kelas yang
-berbeda. SVDB secara khusus digunakan untuk menilai \emph{recall} kelas
-supraventrikular sebagai pembuktian manfaat cabang ritme RR. Hasil kedua basis data ini
-dilaporkan sebagai pembanding ablasi dan tidak digunakan untuk memilih \textit{epoch} maupun menetapkan \textit{threshold}.
-% sumber: model/CLAUDE.md decision "Database LATIH"; model/artifacts/metrics/ablasi/lintas_db.csv; model/config.py (VAL_RECORDS dari DS1 untuk epoch dan threshold)
-
 Selain metrik klasifikasi, performa perangkat keras diukur pada model INT8 yang telah di-\textit{deploy} ke ESP32-S3. Pengukuran meliputi latensi inferensi per detak dari \textit{timestamp} internal MCU, serta penggunaan RAM dari alokasi \textit{tensor arena} TensorFlow Lite Micro dan \textit{heap} bebas. Ukuran berkas model hasil kuantisasi dan konsumsi daya rata-rata dari modul INA219 pada sisi baterai ikut diukur. Pengukuran ini memastikan model yang telah teruji akurat secara \textit{offline} juga layak dijalankan dalam batasan sumber daya perangkat \textit{edge}.
 
 Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujian model, mulai dari kualitas klasifikasi dan dampak kuantisasi hingga performa perangkat keras, beserta metrik, cara pengukuran, dan target indikatif masing-masing.
@@ -860,10 +836,6 @@ Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujia
     \textit{Post-training quantization} lalu uji ulang pada DS2 yang identik &
     $|\Delta \textit{recall}| < 0{,}02$ \\
     % sumber: model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02)
-    Generalisasi lintas basis data &
-    F1 dan \textit{recall} kelas S &
-    Evaluasi \textit{held-out} pada SVDB dan INCART setelah \textit{resample} 360 Hz &
-    Dilaporkan sebagai pembanding ablasi \\
     Kesetaraan preprocessing dan inferensi &
     Selisih keluaran perangkat terhadap Python &
     Data acuan keluaran Python diputar ulang di perangkat &
@@ -959,8 +931,8 @@ Tabel~\ref{tab:pengujian-pipeline} merangkum rencana pengukuran pada jalur pengu
 
 Target pada Tabel~\ref{tab:pengujian-pipeline} berpasangan dengan mekanisme ketahanan pada Subbab~\ref{subsec:pipeline-edge-cloud}. Kapasitas \textit{ring buffer} jauh melebihi durasi putus koneksi yang diuji, dan pengiriman \textit{batch} menekan jumlah \textit{round-trip} PUBACK saat pengurasan, yang menjadi dasar target waktu pemulihan bufer. Bila keberhasilan pengiriman atau integritas data tidak terpenuhi, antrean tunggal atau konfirmasi PUBACK tidak bekerja sebagaimana dirancang dan \textit{pipeline} tidak dapat dinyatakan resilien.
 
-Pada pemetaan kebutuhan QoS layanan kesehatan jarak jauh (\textit{e-health}), aliran ECG dituntut tanpa kehilangan paket~\cite{skorinkapov_2010}. Syarat itu dipenuhi oleh pengiriman ulang QoS 1 pada target integritas data, sedangkan PDSR mengukur keberhasilan percobaan pertama. Ambang PDSR 95\% adalah ambang rancangan, yaitu paling banyak satu dari 20 paket memerlukan pengiriman ulang. Setiap paket tanpa PUBACK membebani perangkat satu siklus tunggu 5 detik dan penyambungan ulang. Pada laju satu sampai dua paket per detik, ambang itu membatasi siklus tunggu tersebut paling banyak satu kali tiap 10--20 detik.
-% sumber: Skorin-Kapov dan Matijasevic 2010 Tabel 3 (ECG: maximum delay approx. 1 s, packet loss Zero); firmware/src/ecg_mqtt.cpp ecg_mqtt_layani() (PUBACK timeout 5000 ms lalu putus(), paket_ack dan paket_kirim per paket PUBLISH); model/docs/mqtt-walkthrough.md §7 (laju beat replay 1,60 per detik, PDSR per paket); 1/20 = 5%, pada 1-2 paket/detik gagal paling banyak tiap 10-20 detik
+Pada kebutuhan teknis jaringan sensor untuk pemantauan kesehatan, aliran ECG menuntut laju kesalahan bit di bawah $10^{-10}$, sehingga praktis tidak boleh ada data yang hilang~\cite{zhong_2022}. Syarat itu dipenuhi oleh pengiriman ulang QoS 1 pada target integritas data, sedangkan PDSR mengukur keberhasilan percobaan pertama. Ambang PDSR 95\% adalah ambang rancangan, yaitu paling banyak satu dari 20 paket memerlukan pengiriman ulang. Setiap paket tanpa PUBACK membebani perangkat satu siklus tunggu 5 detik dan penyambungan ulang. Pada laju satu sampai dua paket per detik, ambang itu membatasi siklus tunggu tersebut paling banyak satu kali tiap 10--20 detik.
+% sumber: Zhong dkk. 2022 Tabel 3 (ECG: BER < 10^-10, P2P latency < 250 ms); Skorin-Kapov dan Matijasevic 2010 Tabel 3 (ECG: maximum delay approx. 1 s), dipakai untuk paragraf anggaran latensi; firmware/src/ecg_mqtt.cpp ecg_mqtt_layani() (PUBACK timeout 5000 ms lalu putus(), paket_ack dan paket_kirim per paket PUBLISH); model/docs/mqtt-walkthrough.md §7 (laju beat replay 1,60 per detik, PDSR per paket); 1/20 = 5%, pada 1-2 paket/detik gagal paling banyak tiap 10-20 detik
 
 Ambang latensi 2 detik adalah ambang rancangan dari anggaran sisi perangkat. Deteksi R-\textit{peak} berjalan tiap 1 detik dan detak baru dikeluarkan 128 sampel atau 0,36 detik sesudah puncak R, jadi penundaan di perangkat berkisar 0,36--1,36 detik dengan rerata sekitar 0,86 detik. Sisa anggaran untuk jaringan lokal, \textit{broker}, dan \textit{dashboard} karena itu masih di atas 1 detik, yaitu batas RTT PUBACK yang dicatat perangkat sebagai lambat. Anggaran 2 detik ini lebih longgar daripada batas sekitar 1 detik untuk transmisi ECG darurat, dan sejalan dengan penggolongan pemantauan jarak jauh (\textit{telemonitoring}) sebagai layanan yang toleran terhadap \textit{delay}~\cite{skorinkapov_2010}.
 % sumber: firmware/include/ecg_live.h (ECG_LIVE_TIAP = ECG_FS = 1 detik, ECG_LIVE_RING = 4 detik, beat keluar ECG_WIN_POST = 128 sampel sesudah R; 128/360 = 0,356 s; rerata 0,356 + 0,5 = 0,856 s; 2 - 0,86 = 1,14 s); firmware/src/ecg_mqtt.cpp (rtt > 1000 ms dihitung rtt_lambat); Skorin-Kapov dan Matijasevic 2010 Tabel 1 (tele-monitoring: small delay No) dan Tabel 3 (ECG maximum delay approx. 1 s)
