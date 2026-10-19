@@ -254,7 +254,11 @@ aturannya sudah diarsipkan di `docs/arsip/2026-10-10-pola-laporan-pa/` dan
 tidak dijadikan acuan lagi. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
 Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim
 (kode S01, S02, ...), tempat uji laboratorium, TLS/keamanan transport tidak
-dibahas sama sekali. Buku full =
+dibahas sama sekali. Buku hanya membahas MIT-BIH: SVDB/INCART dan uji
+lintas basis data tidak ditulis walau hasilnya ada di repo (19 Okt 2026).
+Pustaka diutamakan terbitan 2020 ke atas, kecuali sumber asli metode/data
+dan standar yang masih berlaku (arahan dosen; rasional per entri di
+`docs/arsip/2026-10-19-referensi-pra-2020.md`). Buku full =
 `laporan/buku-pa` (dikerjakan), varian progres = `laporan/progres-pa-1`
 (dibekukan, dibahas ulang bersama user). **`laporan/proposal-pa` sudah
 diserahkan dan dibekukan (15 Okt 2026): tidak disunting lagi, termasuk
