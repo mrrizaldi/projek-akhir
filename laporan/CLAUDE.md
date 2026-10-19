@@ -132,6 +132,9 @@ termasuk caption, sel tabel, dan argumen `\PlaceholderGambar`). Yang dilarang:
 - Nama env PlatformIO dan perintah (`esp32-s3`, `native`, `pio test ...`),
   nama variabel/konstanta/knob (`PA_WIN_PRE`, `AMBANG_AYUN`, `golden_raw`, `ECG_*`),
   nama state firmware (`calibrating`), pesan serial, toggle serial (`y`, `m`, `k`).
+- Riwayat revisi perangkat keras: `rev1`, `rev2`, "PCB revisi kedua", siapa
+  yang mendesain PCB, dan apa yang diperbaiki antarrevisi. Buku memuat
+  rancangan akhir saja (keputusan user 19 Okt 2026).
 - Jargon kerja: "walkthrough", "golden ref", tag ablasi (`w128b`, `fb_svdb`,
   `t8_lr1e3`), nama himpunan internal (`TEST-B`, `TEST-C`).
 

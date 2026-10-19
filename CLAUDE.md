@@ -264,6 +264,7 @@ AFIB (keputusan user 19 Okt 2026, skill `struktur-pa` aturan 2).
 
 - **Label kerja internal repo TIDAK boleh muncul di teks laporan resmi**
   (`laporan/**/*.tex` yang dicetak): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,
+  revisi PCB (rev1, rev2, "PCB revisi kedua"),
   path berkas, nama skrip, nama env/knob (`PA_*`, env PlatformIO), dan kata
   "walkthrough". Label itu hanya untuk dokumen internal repo (`model/docs/`,
   `CLAUDE.md`, README). Di laporan, sebut isinya dengan istilah umum

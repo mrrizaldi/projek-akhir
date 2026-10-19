@@ -37,6 +37,9 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
    prototipe monitoring aritmia berbasis TinyML di ESP32-S3 yang hemat daya
    dan andal. Pengujian direncanakan pada data MIT-BIH dan sinyal tubuh."
    Bab 1.4 draf: "Manfaat yang diharapkan dari proposal ini adalah ...".
+   Bab 3.2 draf: "Desain PCB rev1 disusun oleh rekan, sedangkan revisi rev2
+   sedang dikerjakan. Revisi rev2 memindahkan buzzer ke GPIO 13 dan
+   mencatu semua modul GPIO dari 3V3." 
    Fakta Bab 4: F1 0,6594 dan AUC 0,9334 pada DS2 *inter-patient*, INT8
    22,94 KB, 26,6 ms per detak, PDSR 100% dan 99,2%, daya belum diukur.
    Sebutkan yang harus diubah dan tulis ulang abstraknya.
@@ -70,7 +73,10 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 - D. Tugas 4: abstrak ditulis ulang sebagai hasil dengan angka yang sama
   persis dengan fakta Bab 4, "diharapkan"/"direncanakan" dan "proposal ini"
   dihapus, daya ditulis belum diukur (tidak diklaim hemat), dan disebut
-  bahwa *Abstract* Inggris harus memuat angka yang sama.
+  bahwa *Abstract* Inggris harus memuat angka yang sama. Draf Bab 3.2 diganti
+  rancangan akhir tanpa rev1/rev2 dan tanpa "disusun oleh rekan"
+  (mis. "Seluruh komponen yang menyentuh GPIO dicatu dari 3V3 ..."), dan
+  informasi pin akhir (buzzer GPIO 13) tetap ada.
 - E. Tugas 5: menyebut `make pdf` + `undefined`, grep frasa progres dan
   "proposal ini", grep placeholder, `cek_tabel.py`, dan tidak menulis
   hasil yang belum dijalankan sebagai sukses atau 0.
@@ -84,3 +90,5 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 | 2026-10-15 | sonnet | haiku | **10/10** | LULUS putaran 3. Di luar rubrik: teks kartu vs paragraf isinya sama tetapi tidak identik kata per kata; dicatat, tidak mengubah skill |
 | 2026-10-19 | sonnet | haiku | 8/10 | Aturan 2 diganti: judul/kalimat menurut isi tanpa "Tujuan N", tanpa tabel perubahan dari proposal, tanpa pembuka meta subbab (gaya AFIB, keputusan user). Tugas 2 dan rubrik B ditambah kasus itu; B 2/2. A: 4.8 dijawab "boleh" tanpa rekomendasi 4.5/lampiran; C: kalimat fungsi diselipkan di pembacaan gambar. Aturan 1 (4.8 sebagai opsi + rekomendasi) dan 9 (satu kalimat makna di akhir, kata sama dengan kartu) diperjelas |
 | 2026-10-19 | sonnet | haiku | **10/10** | LULUS putaran 2. Di luar rubrik: "tabel di atas" di draf 5.1, abstrak belum memuat latensi pipeline |
+| 2026-10-19 | sonnet | haiku | 9/10 | Aturan 4 ditambah larangan riwayat revisi (rev1/rev2, "disusun oleh rekan"), N-REVISI. Tugas 4 dan rubrik D ditambah draf Bab 3.2; D 2/2. C: kartu tanpa baris Ukuran; templat aturan 9 memang tanpa baris Lokasi/Ukuran, ditambahkan |
+| 2026-10-19 | sonnet | haiku | 9/10 | BERHENTI (skor tidak naik). D 2/2 kedua putaran: aturan baru stabil. B: pembanding "target indikatif" tidak dinamai, padahal soal tugas 2 tidak memberi nama pembanding. Akar masalah di soal, bukan skill. Usulan: tambah fakta pembanding ke tugas 2 lalu satu putaran ulang, atau terima 9/10 |

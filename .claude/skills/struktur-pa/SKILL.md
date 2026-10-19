@@ -77,7 +77,9 @@ skill `tabel-pa`.
 
 4. **Register ditentukan bab, bukan jenis dokumen.** Bab 3 tetap register
    rancangan ("dirancang") bahkan di buku full, dan isinya rancangan akhir
-   sistem yang diuji di Bab 4. Bab 4–5 ditulis sebagai capaian dengan kondisi uji yang
+   sistem yang diuji di Bab 4, tanpa riwayat revisi internal (rev1, rev2,
+   "PCB revisi kedua", siapa yang mendesain). Diperiksa `cek_tabel.py`
+   (N-REVISI). Bab 4–5 ditulis sebagai capaian dengan kondisi uji yang
    menempel pada klaim. Buku full tidak memuat frasa progres ("tahap progres
    ini", "fase berikutnya", "sprint berikutnya", "semester berikutnya") dan
    tidak menyebut "proposal ini". Hal yang belum terjadi ditulis
@@ -145,12 +147,14 @@ skill `tabel-pa`.
 
    ```latex
    % PLACEHOLDER-GAMBAR fig:3-arsitektur  (digambar user, bukan Claude)
+   % Lokasi     : {subbab tempat gambar}
    % Jenis      : arsitektur sistem, landscape
    % Pesan      : {satu kalimat}
    % Elemen     : {elemen 1}, {elemen 2}, {elemen 3}
    % Alur baca  : {urutan}
    % Teks       : {label persis}
    % Bahan repo : {path}
+   % Ukuran     : width=\linewidth (landscape) atau height=0.6\textheight (vertikal)
    \begin{figure}[!ht]
      \centering
      \fbox{\parbox[c][5cm][c]{0.85\linewidth}{\centering\small
