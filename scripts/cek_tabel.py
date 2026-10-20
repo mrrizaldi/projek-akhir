@@ -364,6 +364,7 @@ def periksa_prosa(lap, berkas, sumber):
 POLA_REVISI_PCB = re.compile(r"\brev\s?[0-9]+\b|\brevisi\s+(?:pertama|kedua|ketiga)\b|\bPCB\s+revisi\b", re.I)
 POLA_META_SUBBAB = re.compile(r"(?:^|(?<=\. ))\s*(?:Subbab|Butir|Bagian) ini\b")
 POLA_LABEL_TUJUAN = re.compile(r"\btujuan\s*([0-9]+|pertama|kedua|ketiga|keempat)\b", re.I)
+POLA_PAPAN = re.compile(r"\b[Pp]apan\b")
 POLA_PUSTAKA = re.compile(r"(?<!Kajian )(?<!KAJIAN )(?<!Daftar )(?<!DAFTAR )(?<!daftar )\b[Pp]ustaka\b")
 POLA_PENUNJUK = re.compile(r"(?:Sub)?[Bb]ab~?\\ref\{|\b(?:Sub)?[Bb]ab~?\s?[0-9]\b|(?:diuraikan|dibahas|dijelaskan) pada (?:sub-?bagian|butir [a-z]\b)")
 
@@ -378,10 +379,10 @@ def periksa_label_tujuan(lap, berkas, sumber):
         if m:
             lap.catat(berkas, nomor, "N-REVISI", True,
                       f"label revisi internal '{m.group(0)}' di teks tercetak, tulis rancangan akhirnya saja")
-        m = POLA_PUSTAKA.search(teks_polos(baris))
+        m = POLA_PUSTAKA.search(teks_polos(baris)) or POLA_PAPAN.search(teks_polos(baris))
         if m:
             lap.catat(berkas, nomor, "N-ISTILAH", True,
-                      "'pustaka' untuk library, tulis \\textit{library} (laporan/CLAUDE.md, Istilah Asing)")
+                      f"'{m.group(0)}' untuk istilah elektronik/perangkat lunak, tulis \\textit{{library}} atau \\textit{{board}} (laporan/CLAUDE.md, Istilah Asing)")
         m = POLA_PENUNJUK.search(baris)
         if m:
             lap.catat(berkas, nomor, "N-PENUNJUK", True,
