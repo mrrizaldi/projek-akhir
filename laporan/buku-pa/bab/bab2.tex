@@ -251,31 +251,6 @@ Dalam penelitian ini, INA219 dengan resistor \textit{shunt} 0,1 ohm digunakan un
 
 Dalam penelitian ini, modul \textit{buzzer} pasif tiga pin dengan transistor penggerak digunakan sebagai indikator bunyi. \textit{Buzzer} pasif dipilih karena gelombang kotaknya dapat dibangkitkan periferal PWM ESP32-S3, sehingga nada dapat diatur dan satu bip dapat dibunyikan untuk setiap detak.
 
-\subsection{Rangkaian Catu Daya Baterai}
-\label{subsec:catu-baterai}
-
-Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga komponen yang ditunjukkan pada Gambar~\ref{fig:catu-baterai}. Sel litium-ion 18650 menjadi sumber energi dan diisi hingga tegangan penuh 4,2 V~\cite{toppower_tp4056}. Modul TP4056 adalah pengisi linear satu sel dengan profil arus konstan dan tegangan konstan (CC/CV)~\cite{toppower_tp4056}, dan modul yang dipakai memisahkan terminal sel dari terminal beban sehingga rangkaian proteksi sel berada di jalur beban. MT3608 adalah konverter \textit{boost} berfrekuensi pensaklaran 1,2 MHz dengan masukan 2--24 V dan tegangan keluaran yang dapat diatur~\cite{aerosemi_mt3608}.
-
-\begin{figure}[!ht]
-  \centering
-  \begin{minipage}[b]{0.22\linewidth}\centering
-    \includegraphics[width=\linewidth,keepaspectratio]{gambar/sel_18650.jpg}\\(a)
-  \end{minipage}\hfill
-  \begin{minipage}[b]{0.36\linewidth}\centering
-    \includegraphics[width=\linewidth,keepaspectratio]{gambar/modul_tp4056.jpg}\\(b)
-  \end{minipage}\hfill
-  \begin{minipage}[b]{0.36\linewidth}\centering
-    \includegraphics[width=\linewidth,keepaspectratio]{gambar/modul_mt3608.jpg}\\(c)
-  \end{minipage}\\[2pt]
-  {\footnotesize Sumber: Wikimedia Commons, (a) Lead holder, CC BY-SA 3.0, (b) -stk, CC BY-SA 4.0, (c) Ogidya, CC BY-SA 4.0, dipotong\par}
-  \caption{Komponen rangkaian catu daya baterai, yaitu (a) sel litium-ion 18650, (b) modul pengisi TP4056, dan (c) modul konverter \textit{boost} MT3608}
-  \label{fig:catu-baterai}
-\end{figure}
-% sumber gambar: (a) https://commons.wikimedia.org/wiki/File:LiIon-18650-match.jpg (b) https://commons.wikimedia.org/wiki/File:TP4056_board_P1089957.jpg (dipotong) (c) https://commons.wikimedia.org/wiki/File:Voltage_Boost_Converters.jpg (dipotong)
-
-Dalam penelitian ini, rangkaian tersebut mencatu perangkat secara portabel. Konverter \textit{boost} diperlukan karena tegangan sel turun dari 4,2 V menuju sekitar 3,0 V selama pemakaian, lebih rendah daripada masukan 5 V \textit{board} ESP32-S3. INA219 disisipkan di antara keluaran TP4056 dan masukan MT3608 agar konsumsi daya seluruh perangkat, termasuk rugi konverter, ikut terukur.
-% sumber: firmware/README.md bagian Rangkaian catu baterai (18650 -> TP4056 OUT+ -> INA219 -> konverter -> pin 5V; GND dari OUT- agar proteksi modul tetap di jalur; V bus 3,0-4,2 V); hardware/mainboard/README.md (TP4056 + boost MT3608, header B+/B-, OUT+/OUT-); datasheet TP4056 REV_2.4 hlm. 2, 5; MT3608 Rev1.1 hlm. 1; INA219 SBOS448G hlm. 1, 19-21; ST7789V3 V0.1 hlm. 8-9
-
 \subsection{Protokol MQTT}
 \label{subsec:mqtt}
 
@@ -399,34 +374,10 @@ Akurasi yang tinggi dengan demikian belum menunjukkan kemampuan mendeteksi aritm
 \subsection{Simulasi \textit{Error} Deteksi R-\textit{peak} dengan \textit{Jitter}}
 \label{subsec:augmentasi-jitter}
 
-Klasifikasi per detak memotong sinyal ECG menjadi \textit{window} di sekitar posisi puncak R. Pada basis data MIT-BIH, posisi tersebut berasal dari anotasi kardiolog, sedangkan pada perangkat posisi itu dihasilkan detektor R-\textit{peak}. \textit{Jitter} adalah pergeseran acak posisi puncak R sebelum segmentasi yang dipakai untuk meniru ketidaktepatan detektor tersebut~\cite{dias_2021}.
-
-\subsubsection{\textit{Error} Segmentasi pada Detektor R-\textit{peak}}
-
-Detektor R-\textit{peak} menemukan puncak R dengan \textit{error} tertentu, sehingga \textit{window} yang dipotong dari posisi deteksi bergeser terhadap \textit{window} yang dipotong dari posisi anotasi. Karena itu, evaluasi yang memakai posisi anotasi belum mewakili kondisi pemakaian nyata~\cite{dias_2021}. Studi kinerja detektor QRS umumnya masih menerima \textit{error} posisi hingga 50 ms atau 100 ms, yang pada frekuensi cuplik 360 Hz setara dengan 18 dan 36 sampel~\cite{dias_2021}.
-
-\subsubsection{Algoritma \textit{Jitter} Seragam}
-
-Dias et al.~\cite{dias_2021} memodelkan \textit{error} detektor sebagai pergeseran acak bersebaran seragam dan memakainya untuk menguji ketahanan model klasifikasi aritmia \textit{inter-patient}. Langkah algoritmanya diuraikan pada butir berikut.
-\begin{enumerate}
-  \item Untuk setiap detak ke-$i$ dengan posisi anotasi $r_i$, sebuah bilangan acak $u_i$ diambil dari sebaran seragam pada rentang $-\delta$ sampai $+\delta$ sampel.
-  \item Posisi puncak R digeser sesuai Persamaan~\ref{eq:jitter}.
-  \item \textit{Window} sepanjang 256 sampel dipotong dari posisi baru, yaitu 128 sampel sebelum dan 127 sampel sesudah $r'_i$.
-  \item Fitur interval R-R dihitung dari posisi baru, sehingga fitur ritme ikut menanggung \textit{error} segmentasi.
-  \item Model dievaluasi untuk $\delta = 0, 1, \ldots, 18$ sampel, dan setiap nilai $\delta$ diulang 33 kali lalu hasilnya dirata-ratakan.
-\end{enumerate}
-
-\begin{equation}
-\label{eq:jitter}
-r'_i = r_i + u_i, \qquad u_i \sim \mathcal{U}\{-\delta, \ldots, +\delta\}
-\end{equation}
-
-\noindent di mana $r_i$ adalah posisi anotasi puncak R detak ke-$i$, $u_i$ adalah pergeseran acak, $\delta$ adalah batas pergeseran dalam sampel, dan $r'_i$ adalah posisi puncak R setelah \textit{jitter}. Batas $\delta = 18$ sampel dipilih karena setara dengan toleransi \textit{error} 50 ms pada studi kinerja detektor QRS. Pada batas tersebut, sensitivitas kelas N, S, dan V hanya turun dari 94,5\%, 92,5\%, dan 88,6\% menjadi 93,7\%, 89,7\%, dan 87,9\%~\cite{dias_2021}. Dias et al.\ memakai \textit{jitter} sebagai uji ketahanan, bukan sebagai penambah data latih.
+Klasifikasi per detak memotong sinyal ECG menjadi \textit{window} di sekitar puncak R. Pada MIT-BIH posisi tersebut berasal dari anotasi kardiolog, sedangkan pada perangkat posisi itu dihasilkan detektor R-\textit{peak} yang dapat meleset, sehingga evaluasi dengan posisi anotasi belum mewakili pemakaian nyata~\cite{dias_2021}. Dias et al.~\cite{dias_2021} mensimulasikan \textit{error} tersebut dengan \textit{jitter}, yaitu menggeser setiap puncak R menjadi $r'_i = r_i + u_i$ dengan $u_i$ diambil acak dari sebaran seragam pada rentang $\pm\delta$ sampel, lalu memotong \textit{window} dan menghitung fitur R-R dari posisi baru. Batas $\delta = 18$ sampel setara dengan toleransi \textit{error} 50 ms pada studi kinerja detektor QRS. Pada batas tersebut, sensitivitas kelas N, S, dan V hanya turun dari 94,5\%, 92,5\%, dan 88,6\% menjadi 93,7\%, 89,7\%, dan 87,9\%~\cite{dias_2021}.
 % sumber: Dias 2021 (CMPB 202:105948) sec. 4.2 hlm. 3 (uniform -delta..+delta, delta 0..18, 18 sampel = 50 ms, 128+127 sampel), sec. 4.3.1 (RR dari posisi tersegmentasi), sec. 5.2 hlm. 6 (33 ulangan), Tabel 3 hlm. 5 (Se N/S/V delta 0: 94,5/92,5/88,6; delta 18: 93,7/89,7/87,9)
 
-\subsubsection{Augmentasi \textit{Jitter} pada Data Latih}
-
-Dalam penelitian ini, gagasan \textit{jitter} tersebut dipakai sebagai augmentasi data latih dengan dua penyesuaian. Penyesuaian pertama, besar pergeseran tidak diambil dari sebaran seragam, melainkan diambil ulang dari sebaran \textit{error} detektor R-\textit{peak} yang diukur sendiri pada data latih DS1. Sebaran tersebut berbeda dari sebaran seragam, karena sekitar 80\% deteksi hanya berselisih satu sampel atau kurang dari anotasi, sedangkan sebagian kecil lainnya menyimpang hingga puluhan sampel. Penyesuaian kedua, setiap detak DS1 disertai salinan ber-\textit{jitter} di samping salinan bersihnya agar model terbiasa melihat kompleks QRS pada posisi yang tidak persis sama di dalam \textit{window}, sedangkan DS2 dibiarkan bersih sebagai data uji.
+Dias et al.\ memakai \textit{jitter} sebagai uji ketahanan. Dalam penelitian ini, \textit{jitter} dipakai sebagai augmentasi data latih dengan dua penyesuaian. Besar pergeseran diambil ulang dari sebaran \textit{error} detektor yang diukur sendiri pada DS1, karena sekitar 80\% deteksi hanya berselisih satu sampel atau kurang dari anotasi, sedangkan sebagian kecil lainnya menyimpang hingga puluhan sampel. Selain itu, setiap detak DS1 disertai salinan ber-\textit{jitter} di samping salinan bersihnya, sedangkan DS2 dibiarkan bersih sebagai data uji.
 % sumber: model/docs/jitter-walkthrough.md bagian 2 (DS1 50.601 pasangan, 79,85% <=1 sampel, |p99| 26, maks 54); model/config.py (JITTER_MODEL = "empiris", JITTER_SALINAN = 2); model/scripts/prep_beats.py (1 bersih + 2 jitter, hanya DS1 mitdb)
 
 \section{Penelitian Terkait}
