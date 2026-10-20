@@ -12,7 +12,8 @@ Metode monitoring jantung konvensional, seperti perangkat Holter monitor, memili
 
 Perkembangan teknologi Internet of Things (IoT) dan perangkat \textit{wearable} membuka peluang baru untuk monitoring kesehatan yang lebih terjangkau dan aksesibel. Integrasi dengan paradigma \textit{edge computing} memungkinkan pemrosesan data dilakukan langsung di perangkat (\textit{on-device}), mengurangi ketergantungan pada infrastruktur \textit{cloud} dan meminimalkan latensi respons~\cite{tinyml_iot_review, yahyati_2025}.
 
-Namun demikian, mayoritas sistem IoT untuk monitoring kesehatan saat ini masih menganut arsitektur \textit{cloud-centric}, di mana seluruh data sensor dikirim ke server \textit{cloud} untuk diproses. Pendekatan ini berlatensi tinggi untuk aplikasi deteksi aritmia \textit{real-time} dan bergantung pada konektivitas internet yang stabil. Pendekatan yang sama juga membawa potensi masalah privasi data kesehatan serta konsumsi daya dan \textit{bandwidth} yang tinggi. Selain itu, model kecerdasan buatan untuk deteksi aritmia umumnya dievaluasi pada lingkungan PC server tanpa mempertimbangkan batasan yang ada pada mikrokontroler. \textit{Pipeline} data dari \textit{edge} ke \textit{cloud} juga belum dirancang dengan mekanisme resiliensi terhadap gangguan jaringan~\cite{escobedo_2026, yaacoub_2020}.
+Namun demikian, sistem IoT untuk monitoring kesehatan umumnya masih menganut arsitektur \textit{cloud-centric}, yaitu data sensor dikirim ke server untuk diklasifikasi~\cite{kim_2023, al_quayed_2026}. Pendekatan ini menambah latensi komunikasi~\cite{al_quayed_2026} dan bergantung pada konektivitas internet yang stabil~\cite{kim_2023, yaacoub_2020}. Pengiriman data secara terus-menerus juga membebani \textit{bandwidth} dan baterai serta membawa risiko terhadap privasi data kesehatan~\cite{al_quayed_2026, kim_2023}. Selain itu, model kecerdasan buatan untuk deteksi aritmia umumnya dijalankan pada komputer desktop atau server, dan baru sedikit yang dibuktikan mampu melakukan inferensi \textit{real-time} pada mikrokontroler~\cite{zambrano_2026}. Pada sisi pengiriman data, platform yang mengalirkan sinyal ECG mentah langsung ke server masih menempatkan bufer lokal saat jaringan terputus sebagai pengembangan lanjutan~\cite{escobedo_2026}.
+% sumber: laporan/pustaka/kim_2023.pdf hlm. 1751 ("usually delivered to the gateway or the server where the classification is performed", "continuously consumes battery and network resources"), hlm. 1755 (stable resources); al_quayed_2026.pdf hlm. 2 (centralized cloud, latency, bandwidth, privacy); yaacoub_2020.pdf hlm. 226 (without continuous Internet connectivity); zambrano_2026.pdf hlm. 18-19 (desktop or server hardware, only a few on embedded); escobedo_2026.pdf hlm. 15 (local buffering = future work)
 
 Berdasarkan permasalahan tersebut, penelitian ini mengajukan solusi berupa implementasi sistem monitoring detak jantung kontinu berbasis IoT \textit{edge computing} menggunakan pendekatan Tiny Machine Learning (TinyML). Sistem ini menjalankan preprocessing sinyal ECG dan inferensi model deteksi aritmia secara langsung pada mikrokontroler ESP32-S3, serta membangun \textit{pipeline} \textit{edge-to-cloud} yang resilien dengan mekanisme bufer lokal menggunakan protokol MQTT. Dengan pendekatan ini, keputusan deteksi dihasilkan di perangkat tanpa menunggu \textit{cloud}, dan data monitoring tetap tersimpan ketika koneksi terputus.
 
@@ -36,8 +37,6 @@ Penelitian ini mengajukan pendekatan baru untuk deteksi dini aritmia dengan menj
   \item Membangun \textit{pipeline} \textit{edge-to-cloud} yang resilien menggunakan protokol MQTT dengan mekanisme bufer lokal untuk menjaga kontinuitas data monitoring saat koneksi terputus.
 \end{enumerate}
 
-Kriteria keberhasilan setiap tujuan dirumuskan secara terukur pada rencana pengujian di Subbab~\ref{sec:rencana-pengujian}, dan ketercapaiannya dianalisis per tujuan pada Bab~\ref{chap:eksperimen}.
-
 \section{Manfaat}
 \label{sec:manfaat}
 
@@ -59,7 +58,7 @@ Sistematika penulisan laporan ini disusun sebagai berikut.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 2}KAJIAN PUSTAKA}\\
-\hspace*{1.5cm} Bab ini menguraikan teori-teori dasar dan literatur yang relevan dengan topik penelitian, meliputi aritmia dan sinyal ECG, IoT \textit{edge computing}, Tiny Machine Learning (TinyML), 1D-CNN dan kuantisasi model, mikrokontroler ESP32-S3, sensor ECG AD8232, protokol MQTT, platform ThingsBoard, basis data MIT-BIH, serta evaluasi \textit{inter-patient} dan augmentasi data. Selain itu, dibahas pula penelitian terdahulu yang menjadi pembanding untuk menegaskan posisi penelitian ini.
+\hspace*{1.5cm} Bab ini menguraikan teori-teori dasar dan literatur yang relevan dengan topik penelitian, meliputi aritmia dan sinyal ECG, IoT \textit{edge computing}, Tiny Machine Learning (TinyML), 1D-CNN dan kuantisasi model, mikrokontroler ESP32-S3, sensor ECG AD8232, layar TFT ST7789, sensor arus INA219, modul \textit{buzzer} pasif, rangkaian catu daya baterai, protokol MQTT, platform ThingsBoard, basis data MIT-BIH, evaluasi dan metrik klasifikasi, serta \textit{jitter} posisi R-\textit{peak}. Selain itu, dibahas pula penelitian terdahulu yang menjadi pembanding untuk menegaskan posisi penelitian ini.
 
 \noindent
 \textbf{\makebox[1.5cm][l]{BAB 3}DESKRIPSI SISTEM}\\

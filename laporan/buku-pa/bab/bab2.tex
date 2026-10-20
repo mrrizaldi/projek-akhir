@@ -1,14 +1,12 @@
 \chapter{Kajian Pustaka}
 \label{chap:kajian-pustaka}
 
-Deteksi dini aritmia pada sistem monitoring detak jantung berbasis IoT masih menjadi kendala. Pemrosesannya bertumpu pada \textit{cloud}, model kecerdasan buatannya umumnya dievaluasi pada PC dan bukan pada mikrokontroler, dan \textit{pipeline} pengiriman datanya belum dilengkapi mekanisme resiliensi. Bab ini menguraikan permasalahan tersebut, kemudian membahas teori penunjang yang mendasari komponen solusi, mulai dari sinyal ECG, TinyML, 1D-CNN, dan kuantisasi hingga mikrokontroler, protokol MQTT, dan metode evaluasi model. Setelah itu, penelitian terkait ditinjau untuk menegaskan posisi dan keunikan penelitian ini.
-
 \section{Deskripsi Permasalahan}
 \label{sec:deskripsi-permasalahan}
 
 Sistem monitoring detak jantung berbasis IoT yang ada saat ini umumnya mengadopsi paradigma \textit{cloud-centric}, di mana perangkat sensor hanya bertugas mengumpulkan data fisiologis mentah untuk kemudian dikirimkan ke server pusat guna diproses dan dianalisis. Kondisi ini menyebabkan dua permasalahan mendasar, yaitu latensi sistem yang tinggi akibat \textit{round-trip} data ke server yang dapat mencapai 152,3 ms~\cite{al_quayed_2026}, serta ketidakmampuan sistem untuk beroperasi secara mandiri ketika koneksi jaringan terganggu atau terputus.
 
-Mayoritas penelitian yang mengembangkan model kecerdasan buatan untuk deteksi aritmia masih mengevaluasi algoritmanya pada PC server, bukan pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{tinyml_iot_review}. \textit{Pipeline} pengiriman data dari perangkat ke \textit{cloud} juga belum dilengkapi mekanisme resiliensi yang memastikan data ECG tetap tersimpan secara lokal dan dapat diteruskan ketika koneksi kembali tersedia~\cite{yaacoub_2020, escobedo_2026}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
+Model kecerdasan buatan untuk deteksi aritmia umumnya dijalankan pada perangkat keras desktop atau server, dan baru sedikit yang dibuktikan mampu melakukan inferensi \textit{real-time} pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{zambrano_2026}. Pada sisi pengiriman, platform yang mengalirkan sinyal ECG mentah langsung ke server belum menyimpan data secara lokal ketika koneksi terputus, dan mekanisme tersebut masih ditempatkan sebagai pengembangan lanjutan~\cite{escobedo_2026}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
 
 \section{Teori Penunjang}
 \label{sec:teori-penunjang}
@@ -16,7 +14,8 @@ Mayoritas penelitian yang mengembangkan model kecerdasan buatan untuk deteksi ar
 \subsection{Aritmia dan Elektrokardiogram (ECG)}
 \label{subsec:aritmia-ecg}
 
-Aritmia merupakan gangguan irama listrik jantung yang menyebabkan detak jantung tidak teratur, terlalu cepat (takikardia), atau terlalu lambat (bradikardia). Kondisi ini dapat dideteksi melalui elektrokardiogram (ECG), yaitu rekaman aktivitas listrik jantung yang menangkap gelombang P, kompleks QRS, dan gelombang T dalam satu siklus detak jantung~\cite{ecg_goldberger}. Penyimpangan morfologi atau durasi pada komponen-komponen tersebut menjadi penanda klinis adanya aritmia. Dalam implementasi \textit{wearable}, sinyal ECG rentan terhadap tiga jenis gangguan utama, yaitu \textit{baseline wander} (frekuensi $< 0{,}5$ Hz), \textit{high-frequency noise} ($> 40$ Hz), serta artefak otot dan gerak~\cite{zambrano_2026, jia_2024}. Artefak otot paling sulit ditangani karena sifatnya tidak stasioner dan spektrum frekuensinya tumpang tindih dengan sinyal ECG ($0{,}5$--$40$ Hz)~\cite{jia_2024}.
+Aritmia merupakan gangguan irama listrik jantung yang menyebabkan detak jantung tidak teratur, terlalu cepat (takikardia), atau terlalu lambat (bradikardia)~\cite{ecg_goldberger}. Kondisi ini dapat dideteksi melalui elektrokardiogram (ECG), yaitu rekaman aktivitas listrik jantung yang menangkap gelombang P, kompleks QRS, dan gelombang T dalam satu siklus detak jantung~\cite{ecg_goldberger}. Penyimpangan morfologi atau durasi pada komponen-komponen tersebut menjadi penanda klinis adanya aritmia. Dalam implementasi \textit{wearable}, sinyal ECG rentan terhadap tiga jenis gangguan utama, yaitu \textit{baseline wander} (frekuensi $< 0{,}5$ Hz), \textit{high-frequency noise} ($> 40$ Hz), serta \textit{muscle artifact} dan \textit{motion artifact}~\cite{zambrano_2026, jia_2024}. \textit{Muscle artifact} yang berasal dari aktivitas listrik otot paling sulit ditangani karena sifatnya tidak stasioner dan spektrum frekuensinya tumpang tindih dengan sinyal ECG ($0{,}5$--$40$ Hz)~\cite{jia_2024}.
+% sumber: jia_2024 (PMC11591354) "The identification of EMG noise presents a greater challenge compared to PLI and BW noises, given its non-stationary nature and substantial overlaps across entire frequency bands with ECG data"; daftar singkatan: MAs = Muscle Artifacts, EMs = Electrode Motion Artifacts
 
 Tabel~\ref{tab:perbandingan-irama} merangkum perbedaan karakteristik
 sinyal ECG antara irama sinus normal dan kondisi aritmia yang menjadi
@@ -57,8 +56,7 @@ dasar klasifikasi pada penelitian ini.
 
 Dalam penelitian ini, perbedaan karakteristik pada
 Tabel~\ref{tab:perbandingan-irama} digunakan sebagai landasan klasifikasi
-biner Normal dan Aritmia pada pemetaan anotasi dataset MIT-BIH yang
-diuraikan pada Bab~3.
+biner Normal dan Aritmia pada pemetaan anotasi dataset MIT-BIH.
 
 \subsection{IoT Edge Computing}
 \label{subsec:iot-edge}
@@ -70,8 +68,9 @@ IoT \textit{edge computing} adalah pendekatan arsitektur yang menempatkan kapabi
 
 TinyML adalah subdisiplin \textit{machine learning} yang berfokus pada
 \textit{deployment} model inferensi pada perangkat dengan sumber daya
-terbatas, umumnya dengan konsumsi daya di bawah 1 mW dan RAM di bawah
-1 MB~\cite{tinyml_iot_review}. TinyML memungkinkan model kecerdasan buatan
+terbatas, yaitu mikrokontroler dengan konsumsi daya sekitar 1 mW serta RAM,
+prosesor, dan catu daya yang terbatas~\cite{tinyml_iot_review}.
+% sumber: laporan/pustaka/tinyml_iot_review.pdf ("typically, these devices consume around one mW"; "limitations of volatile memory (RAM), processing capacity (CPU), and power requirements of microcontrollers") TinyML memungkinkan model kecerdasan buatan
 dijalankan langsung pada perangkat \textit{edge} tanpa membutuhkan koneksi ke
 server, sehingga mendukung pengambilan keputusan secara \textit{real-time} dan
 mandiri. \textit{Framework} yang umum digunakan meliputi TensorFlow Lite for
@@ -106,15 +105,14 @@ morfologi sekaligus.
 
 Keunggulan utama 1D-CNN untuk klasifikasi ECG dibandingkan metode
 berbasis ekstraksi fitur manual (seperti SVM berbasis HRV) adalah
-kemampuannya belajar langsung dari sinyal mentah tanpa memerlukan domain
-knowledge yang eksplisit~\cite{mekhfioui_2025}. Selain itu, arsitektur yang menggunakan \textit{Global Average Pooling} (GAP) sebagai pengganti
+kemampuannya belajar langsung dari sinyal mentah tanpa memerlukan pengetahuan
+pakar untuk merancang fitur secara manual~\cite{mekhfioui_2025}. Selain itu, arsitektur yang menggunakan \textit{Global Average Pooling} (GAP) sebagai pengganti
 lapisan \textit{flatten} dapat menekan jumlah parameter secara berarti~\cite{mekhfioui_2025},
 menjadikan model berukuran kecil. Ukuran model yang ringkas inilah yang
 memungkinkan inferensi 1D-CNN terkuantisasi dijalankan langsung pada mikrokontroler
 berdaya rendah~\cite{kim_2023}. Pada tahap penerapan di perangkat, operasi GAP dapat
 diwujudkan oleh operasi lain yang setara secara matematis apabila \textit{runtime}
-mikrokontroler tidak menghitungnya dengan benar, sebagaimana dibahas pada
-Bab~\ref{chap:deskripsi-sistem}. Dalam penelitian ini, 1D-CNN digunakan sebagai
+mikrokontroler tidak menghitungnya dengan benar. Dalam penelitian ini, 1D-CNN digunakan sebagai
 cabang morfologi model deteksi aritmia yang membaca segmen ECG di sekitar puncak R,
 dan dilengkapi cabang ritme berbasis interval R-R.
 
@@ -211,7 +209,7 @@ Secara internal, AD8232 mengintegrasikan penguat instrumentasi (\textit{in-amp})
 deteksi lepasnya elektroda (\textit{lead-off detection}), tetapi fitur ini belum
 cukup sebagai jaminan bahwa sinyal benar-benar ada karena syaratnya dapat dipenuhi oleh
 satu jalur impedansi rendah saja. Oleh karena itu, pada penelitian ini kualitas sinyal
-dinilai dari ayunan sinyal ADC, sebagaimana diuraikan pada Bab~\ref{chap:deskripsi-sistem}. Modul AD8232 beserta elektrodanya ditunjukkan pada Gambar~\ref{fig:ad8232}.
+dinilai dari ayunan sinyal ADC. Modul AD8232 beserta elektrodanya ditunjukkan pada Gambar~\ref{fig:ad8232}.
 % sumber: model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (LO melapor 0% tanpa sinyal)
 
 \begin{figure}[H]
@@ -225,6 +223,62 @@ Dalam penelitian ini, AD8232 dikonfigurasi pada sadapan \textit{Modified Lead II
 (MLII) karena vektor listrik jantung sejajar dengan sudut pandang sadapan
 tersebut. Konfigurasi ini menghasilkan gelombang R yang paling tinggi dan paling
 andal untuk deteksi R-\textit{peak} menggunakan algoritma Pan-Tompkins.
+
+\subsection{Layar TFT ST7789}
+\label{subsec:tft-st7789}
+
+ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar TFT LCD 262 ribu warna. Chip ini memiliki memori bingkai (\textit{frame memory}) internal berukuran 240$\times$320 piksel dengan kedalaman 18 bit per piksel~\cite{sitronix_st7789v3}. Karena gambar disimpan di memori tersebut, mikrokontroler hanya perlu mengirim data piksel untuk area yang berubah, sedangkan penyegaran panel ditangani chip sendiri. ST7789 menerima data melalui antarmuka paralel 8 atau 9 bit, antarmuka RGB, maupun antarmuka serial SPI tiga atau empat jalur~\cite{sitronix_st7789v3}. Antarmuka SPI membutuhkan jumlah pin paling sedikit, sehingga sesuai untuk mikrokontroler yang pinnya juga dipakai sensor dan tombol.
+
+Dalam penelitian ini, layar TFT 1,47 inci beresolusi 172$\times$320 piksel dengan \textit{driver} ST7789 digunakan melalui antarmuka SPI untuk menampilkan laju jantung, gelombang ECG tersaring, pembacaan daya, waktu, status perekaman, dan halaman menu pada perangkat.
+
+\subsection{Sensor Arus dan Tegangan INA219}
+\label{subsec:ina219}
+
+INA219 adalah pemantau arus dan daya dua arah berantarmuka I2C. Chip ini mengukur jatuh tegangan pada resistor \textit{shunt} yang dipasang seri dengan beban, sekaligus mengukur tegangan bus pada rentang 0--26 V~\cite{ti_ina219}. Arus dan daya diperoleh dari kedua besaran tersebut sesuai Persamaan~\ref{eq:ina219}.
+
+\begin{align}
+I &= \frac{V_\text{shunt}}{R_\text{shunt}} \nonumber \\
+P &= I \cdot V_\text{bus}
+\label{eq:ina219}
+\end{align}
+
+\noindent di mana $V_\text{shunt}$ adalah jatuh tegangan pada resistor \textit{shunt}, $R_\text{shunt}$ adalah resistansi \textit{shunt}, $V_\text{bus}$ adalah tegangan bus terhadap \textit{ground}, $I$ adalah arus beban, dan $P$ adalah daya beban. Rentang ukur tegangan \textit{shunt} diatur oleh penguat terprogram (PGA) pada $\pm$40, $\pm$80, $\pm$160, atau $\pm$320 mV. Konversinya memakai ADC 12 bit yang dapat merata-ratakan hingga 128 sampel per pembacaan~\cite{ti_ina219}. Perata-rataan ini meredam fluktuasi ketika arus beban berdenyut mengikuti aktivitas prosesor dan radio.
+
+Dalam penelitian ini, INA219 digunakan untuk mengukur arus, tegangan, dan daya yang ditarik perangkat dari sel baterai, dengan resistor \textit{shunt} 0,1 ohm dan pembacaan melalui I2C oleh ESP32-S3.
+
+\subsection{Modul \textit{Buzzer} Pasif}
+\label{subsec:buzzer-pasif}
+
+\textit{Buzzer} adalah transduser yang mengubah sinyal listrik menjadi bunyi. Berdasarkan rangkaian penggeraknya, \textit{buzzer} dibedakan menjadi \textit{buzzer} indikator dan \textit{buzzer} transduser~\cite{cui_buzzer_basics}. \textit{Buzzer} indikator, yang umum disebut \textit{buzzer} aktif, sudah memiliki rangkaian penggerak internal sehingga berbunyi pada satu frekuensi tetap begitu diberi tegangan searah. \textit{Buzzer} transduser, yang umum disebut \textit{buzzer} pasif, tidak memiliki rangkaian penggerak tersebut. Elemen ini harus digerakkan gelombang kotak dari luar, dan frekuensi bunyinya mengikuti frekuensi gelombang penggerak~\cite{cui_buzzer_basics}. \textit{Buzzer} magnetik menarik arus yang lebih besar daripada kemampuan pin mikrokontroler, sehingga umumnya digerakkan melalui transistor~\cite{cui_buzzer_basics}.
+
+Dalam penelitian ini, modul \textit{buzzer} pasif yang sudah dilengkapi transistor penggerak digunakan sebagai indikator bunyi. Gelombang kotak dibangkitkan oleh periferal PWM ESP32-S3 sehingga nada dapat diatur dari \textit{firmware} dan satu bip dapat dibunyikan untuk setiap detak.
+
+\subsection{Rangkaian Catu Daya Baterai}
+\label{subsec:catu-baterai}
+
+Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ulang. Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga bagian, yaitu sel litium-ion 18650 sebagai sumber energi, modul pengisi TP4056 untuk mengisi sel, dan konverter \textit{boost} MT3608 untuk menaikkan tegangan sel ke tegangan kerja papan.
+
+\subsubsection{Sel Litium-Ion 18650}
+
+Sel 18650 adalah sel litium-ion silinder berdiameter 18 mm dan panjang 65 mm. Sel litium-ion tunggal diisi hingga tegangan penuh 4,2 V, dan sel yang tegangannya turun di bawah 2,9 V dianggap terkuras dalam sehingga harus diisi dengan arus kecil terlebih dahulu~\cite{toppower_tp4056}. Selama pemakaian, tegangan sel turun dari sekitar 4,2 V menuju 3,0 V. Tegangan ini lebih rendah daripada masukan 5 V papan mikrokontroler, sehingga sel tidak dapat dihubungkan langsung ke jalur 5 V.
+
+\subsubsection{Modul Pengisi TP4056}
+
+TP4056 adalah pengisi linear untuk satu sel litium-ion dengan profil arus konstan dan tegangan konstan (CC/CV)~\cite{toppower_tp4056}. Sel yang terkuras dalam diisi dengan arus kecil (\textit{trickle charge}) sampai tegangannya melewati 2,9 V. Pengisian kemudian berlanjut dengan arus konstan, lalu beralih ke tegangan konstan 4,2 V dan berhenti ketika arus turun hingga sepersepuluh arus pengisian. Besar arus pengisian ditentukan oleh resistor pemrogram sesuai hubungan $I_\text{BAT} = 1100 / R_\text{PROG}$, dan chip menurunkan arus secara otomatis bila suhunya terlalu tinggi~\cite{toppower_tp4056}. Modul TP4056 yang dipakai juga memisahkan terminal sel (B+ dan B$-$) dari terminal beban (OUT+ dan OUT$-$), sehingga rangkaian proteksi sel pada modul berada di antara sel dan beban.
+
+\subsubsection{Konverter \textit{Boost} MT3608}
+
+Konverter \textit{boost} adalah konverter DC-DC yang menghasilkan tegangan keluaran lebih tinggi daripada tegangan masukannya. MT3608 bekerja dengan mode arus pada frekuensi pensaklaran tetap 1,2 MHz, menerima masukan 2--24 V, dan beralih ke mode PFM pada beban ringan untuk menjaga efisiensi~\cite{aerosemi_mt3608}. Tegangan keluarannya ditentukan oleh pembagi tegangan umpan balik sesuai Persamaan~\ref{eq:mt3608}~\cite{aerosemi_mt3608}.
+
+\begin{equation}
+\label{eq:mt3608}
+V_\text{OUT} = 0{,}6 \left(1 + \frac{R_1}{R_2}\right)
+\end{equation}
+
+\noindent di mana $V_\text{OUT}$ adalah tegangan keluaran konverter, 0,6 V adalah tegangan referensi umpan balik, serta $R_1$ dan $R_2$ adalah resistor pembagi tegangan dari keluaran ke pin umpan balik dan dari pin umpan balik ke \textit{ground}.
+
+Dalam penelitian ini, rangkaian catu daya baterai digunakan untuk mencatu perangkat secara portabel. Sel 18650 diisi melalui TP4056, lalu tegangannya dinaikkan MT3608 ke jalur 5 V papan ESP32-S3, dan INA219 disisipkan di antara keluaran TP4056 dan masukan MT3608 untuk mengukur konsumsi daya seluruh perangkat.
+% sumber: firmware/README.md bagian Rangkaian catu baterai (18650 -> TP4056 OUT+ -> INA219 -> konverter -> pin 5V; GND dari OUT- agar proteksi modul tetap di jalur; V bus 3,0-4,2 V); hardware/mainboard/README.md (TP4056 + boost MT3608, header B+/B-, OUT+/OUT-); datasheet TP4056 REV_2.4 hlm. 2, 5, 7, 9; MT3608 Rev1.1 hlm. 1, 3; INA219 SBOS448G hlm. 1, 19-21; ST7789V3 V0.1 hlm. 8-9, bagian 8.3.4-8.3.5
 
 \subsection{Protokol MQTT}
 \label{subsec:mqtt}
@@ -312,15 +366,19 @@ pembagian \textit{inter-patient}.
 Strategi ini memastikan bahwa performa model yang diukur mencerminkan
 kemampuan generalisasi terhadap pasien baru yang tidak pernah dilihat
 selama pelatihan, dan bukan sekadar hafalan pola dari pasien yang sama.
-Detail pemetaan anotasi menjadi label biner Normal/Aritmia diuraikan
-pada Bab 3.
 
-\subsection{Evaluasi \textit{Inter-Patient} dan Metrik Klasifikasi}
+\subsection{Evaluasi dan Metrik Klasifikasi}
 \label{subsec:evaluasi-metrik}
 
-Evaluasi \textit{inter-patient} adalah skema pembagian data yang memisahkan rekaman berdasarkan pasien, sehingga detak dari satu pasien tidak muncul di himpunan latih dan himpunan uji sekaligus. De Chazal et al.~\cite{dechazal_2004} membagi rekaman MIT-BIH menjadi dua kelompok pasien yang saling lepas, yaitu DS1 untuk pelatihan dan DS2 untuk pengujian. Pemisahan ini diperlukan karena pada pembagian per detak, detak dari pasien yang sama tersebar di kedua himpunan sehingga model dapat menghafal morfologi khas pasien dan metrik yang diperoleh menjadi optimistis~\cite{xiao_2023, bahrami_2025}. Pembagian antarpasien mengukur kemampuan model pada pasien yang belum pernah dilihat, yaitu kondisi yang sesungguhnya dihadapi ketika perangkat dipakai oleh pengguna baru.
+Kinerja model deteksi aritmia ditentukan oleh dua hal, yaitu cara data dibagi antara pelatihan dan pengujian, serta metrik yang dipakai untuk menilai prediksi.
 
-Kinerja klasifikasi dinilai dari hasil perbandingan prediksi dan label sebenarnya, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), dengan kelas Aritmia sebagai kelas positif. Dari keempat nilai tersebut, \textit{recall}, \textit{precision}, \textit{specificity}, dan F1 dirumuskan pada Persamaan~\ref{eq:metrik}.
+\subsubsection{Pembagian Data \textit{Inter-Patient}}
+
+Evaluasi \textit{inter-patient} adalah skema pembagian data yang memisahkan rekaman berdasarkan pasien, sehingga detak dari satu pasien tidak muncul di himpunan latih dan himpunan uji sekaligus. De Chazal et al.~\cite{dechazal_2004} membagi rekaman MIT-BIH menjadi dua kelompok pasien yang saling lepas, yaitu DS1 untuk pelatihan dan DS2 untuk pengujian. Pemisahan ini diperlukan karena pada pembagian per detak, detak dari pasien yang sama tersebar di kedua himpunan. Model kemudian dapat menghafal morfologi khas pasien, dan metrik yang diperoleh menjadi optimistis~\cite{xiao_2023, bahrami_2025}. Pembagian antarpasien mengukur kemampuan model pada pasien yang belum pernah dilihat, yaitu kondisi yang sesungguhnya dihadapi ketika perangkat dipakai oleh pengguna baru.
+
+\subsubsection{\textit{Confusion Matrix} dan Metrik Turunannya}
+
+Kinerja klasifikasi dinilai dari hasil perbandingan prediksi dan label sebenarnya, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), dengan kelas Aritmia sebagai kelas positif. Keempat nilai tersebut membentuk \textit{confusion matrix} berukuran 2$\times$2. Dari keempat nilai tersebut, \textit{recall}, \textit{precision}, \textit{specificity}, dan F1 dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
 
 \begin{align}
 \text{Recall} &= \frac{\text{TP}}{\text{TP} + \text{FN}} \nonumber \\
@@ -330,20 +388,50 @@ Kinerja klasifikasi dinilai dari hasil perbandingan prediksi dan label sebenarny
 \label{eq:metrik}
 \end{align}
 
-\noindent di mana TP adalah jumlah detak aritmia yang diprediksi sebagai aritmia dan FP adalah jumlah detak normal yang salah diprediksi sebagai aritmia. TN adalah jumlah detak normal yang diprediksi sebagai normal, sedangkan FN adalah jumlah detak aritmia yang terlewat. \textit{Recall} menyatakan proporsi detak aritmia yang berhasil terdeteksi, \textit{precision} menyatakan proporsi prediksi aritmia yang benar, \textit{specificity} menyatakan proporsi detak normal yang dikenali dengan benar, dan F1 adalah rerata harmonik \textit{precision} dan \textit{recall}. Selain keempat metrik tersebut, \textit{Area Under the Curve} (AUC) adalah luas di bawah kurva \textit{Receiver Operating Characteristic} (ROC) yang mengukur kemampuan model memisahkan kedua kelas dan tidak bergantung pada satu \textit{threshold}.
+\noindent di mana TP adalah jumlah detak aritmia yang diprediksi sebagai aritmia dan FP adalah jumlah detak normal yang salah diprediksi sebagai aritmia. TN adalah jumlah detak normal yang diprediksi sebagai normal, sedangkan FN adalah jumlah detak aritmia yang terlewat. \textit{Recall} menyatakan proporsi detak aritmia yang berhasil terdeteksi, \textit{precision} menyatakan proporsi prediksi aritmia yang benar, \textit{specificity} menyatakan proporsi detak normal yang dikenali dengan benar, dan F1 adalah rerata harmonik \textit{precision} dan \textit{recall}.
 
-Akurasi tidak dipakai sebagai metrik utama karena proporsi kelasnya sangat timpang. Pada DS2, sekitar 89\% detak berkelas Normal, sehingga model yang selalu memprediksi Normal sudah memperoleh akurasi sekitar 0,89 tanpa mendeteksi satu pun aritmia.
+\subsubsection{Kurva ROC dan AUC}
+
+Model keluaran probabilitas menghasilkan prediksi biner setelah probabilitasnya dibandingkan dengan sebuah \textit{threshold}, sehingga keempat metrik tersebut berubah bila \textit{threshold} digeser. Kurva \textit{Receiver Operating Characteristic} (ROC) menggambarkan pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh kemungkinan \textit{threshold}. \textit{Area Under the Curve} (AUC) adalah luas di bawah kurva tersebut, dan dipakai sebagai ukuran kinerja ketika belum ada satu \textit{threshold} yang ditetapkan~\cite{chicco_2020}. Nilai AUC 1 berarti kedua kelas terpisah sempurna, sedangkan nilai 0,5 setara dengan tebakan acak.
+
+\subsubsection{Keterbatasan Akurasi pada Kelas Timpang}
+
+Akurasi, yaitu proporsi seluruh prediksi yang benar, memberi estimasi yang terlalu optimistis ketika jumlah sampel satu kelas jauh melebihi kelas lainnya~\cite{chicco_2020}. Pada DS2, sekitar 89\% detak berkelas Normal, sehingga model yang selalu memprediksi Normal sudah memperoleh akurasi sekitar 0,89 tanpa mendeteksi satu pun aritmia.
 % sumber: model/CLAUDE.md Fase 6 (lama), akurasi tebak-Normal 0,8903 pada DS2
-Akurasi yang tinggi dengan demikian belum menunjukkan kemampuan mendeteksi aritmia. Dalam penelitian ini, seluruh evaluasi model memakai pembagian DS1/DS2 dan kinerja dilaporkan melalui \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan AUC, sehingga kemampuan menemukan aritmia dan beban alarm palsu dapat dinilai secara terpisah.
+Akurasi yang tinggi dengan demikian belum menunjukkan kemampuan mendeteksi aritmia. Dalam penelitian ini, seluruh evaluasi model memakai pembagian DS1/DS2 dan kinerja dilaporkan melalui \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan AUC. Dengan metrik tersebut, kemampuan menemukan aritmia dan beban alarm palsu dapat dinilai secara terpisah.
 
-\subsection{Augmentasi Data Berbasis \textit{Error} Segmentasi}
+\subsection{\textit{Jitter} Posisi R-\textit{peak}}
 \label{subsec:augmentasi-jitter}
 
-Pada perangkat, posisi puncak R ditentukan oleh detektor R-\textit{peak} sehingga tidak selalu berimpit dengan posisi anotasi yang dipakai saat menyiapkan data latih. Akibatnya, \textit{window} yang diumpankan ke model bergeser dari posisi yang dilihat model selama pelatihan. Pada data latih DS1, sekitar 80\% deteksi hanya berselisih satu sampel atau kurang dari anotasi, tetapi sebagian kecil lainnya menyimpang hingga puluhan sampel. Model yang hanya dilatih pada segmentasi yang presisi karena itu berisiko kurang tahan terhadap pergeseran tersebut.
-% sumber: model/CLAUDE.md Fase 6c (DS1 50.601 pasangan, 80% <=1 sampel, |p99| 26, maks 54)
+Klasifikasi per detak memotong sinyal ECG menjadi \textit{window} di sekitar posisi puncak R. Pada basis data MIT-BIH, posisi tersebut berasal dari anotasi kardiolog, sedangkan pada perangkat posisi itu dihasilkan detektor R-\textit{peak}. \textit{Jitter} adalah pergeseran acak posisi puncak R sebelum segmentasi yang dipakai untuk meniru ketidaktepatan detektor tersebut~\cite{dias_2021}.
 
-Augmentasi \textit{jitter} menggeser posisi segmentasi data latih secara acak sehingga model terbiasa melihat kompleks QRS pada posisi yang tidak persis sama di dalam \textit{window}, dan menjadi lebih tahan terhadap \textit{error} segmentasi~\cite{dias_2021, safdar_2023}. Penelitian ini mengadopsi gagasan tersebut, tetapi besar pergeserannya diambil dari sebaran \textit{error} detektor R-\textit{peak} yang diukur sendiri, bukan dari sebaran seragam yang dipakai pada penelitian tersebut. Dalam penelitian ini, augmentasi \textit{jitter} digunakan hanya pada data latih DS1 agar model dilatih menghadapi \textit{error} yang benar-benar dihasilkan detektor, sedangkan DS2 dibiarkan bersih.
-% sumber: model/CLAUDE.md Fase 2 (DS1 diaugmentasi jitter empiris, DS2 tetap bersih)
+\subsubsection{\textit{Error} Segmentasi pada Detektor R-\textit{peak}}
+
+Detektor R-\textit{peak} menemukan puncak R dengan \textit{error} tertentu, sehingga \textit{window} yang dipotong dari posisi deteksi bergeser terhadap \textit{window} yang dipotong dari posisi anotasi. Karena itu, evaluasi yang memakai posisi anotasi belum mewakili kondisi pemakaian nyata~\cite{dias_2021}. Studi kinerja detektor QRS umumnya masih menerima \textit{error} posisi hingga 50 ms atau 100 ms, yang pada frekuensi cuplik 360 Hz setara dengan 18 dan 36 sampel~\cite{dias_2021}.
+
+\subsubsection{Algoritma \textit{Jitter} Seragam}
+
+Dias et al.~\cite{dias_2021} memodelkan \textit{error} detektor sebagai pergeseran acak bersebaran seragam dan memakainya untuk menguji ketahanan model klasifikasi aritmia \textit{inter-patient}. Langkah algoritmanya diuraikan pada butir berikut.
+\begin{enumerate}
+  \item Untuk setiap detak ke-$i$ dengan posisi anotasi $r_i$, sebuah bilangan acak $u_i$ diambil dari sebaran seragam pada rentang $-\delta$ sampai $+\delta$ sampel.
+  \item Posisi puncak R digeser sesuai Persamaan~\ref{eq:jitter}.
+  \item \textit{Window} sepanjang 256 sampel dipotong dari posisi baru, yaitu 128 sampel sebelum dan 127 sampel sesudah $r'_i$.
+  \item Fitur interval R-R dihitung dari posisi baru, sehingga fitur ritme ikut menanggung \textit{error} segmentasi.
+  \item Model dievaluasi untuk $\delta = 0, 1, \ldots, 18$ sampel, dan setiap nilai $\delta$ diulang 33 kali lalu hasilnya dirata-ratakan.
+\end{enumerate}
+
+\begin{equation}
+\label{eq:jitter}
+r'_i = r_i + u_i, \qquad u_i \sim \mathcal{U}\{-\delta, \ldots, +\delta\}
+\end{equation}
+
+\noindent di mana $r_i$ adalah posisi anotasi puncak R detak ke-$i$, $u_i$ adalah pergeseran acak, $\delta$ adalah batas pergeseran dalam sampel, dan $r'_i$ adalah posisi puncak R setelah \textit{jitter}. Batas $\delta = 18$ sampel dipilih karena setara dengan toleransi \textit{error} 50 ms pada studi kinerja detektor QRS. Pada batas tersebut, sensitivitas kelas N, S, dan V hanya turun dari 94,5\%, 92,5\%, dan 88,6\% menjadi 93,7\%, 89,7\%, dan 87,9\%~\cite{dias_2021}. Dias et al.\ memakai \textit{jitter} sebagai uji ketahanan, bukan sebagai penambah data latih.
+% sumber: Dias 2021 (CMPB 202:105948) sec. 4.2 hlm. 3 (uniform -delta..+delta, delta 0..18, 18 sampel = 50 ms, 128+127 sampel), sec. 4.3.1 (RR dari posisi tersegmentasi), sec. 5.2 hlm. 6 (33 ulangan), Tabel 3 hlm. 5 (Se N/S/V delta 0: 94,5/92,5/88,6; delta 18: 93,7/89,7/87,9)
+
+\subsubsection{Augmentasi \textit{Jitter} pada Data Latih}
+
+Dalam penelitian ini, gagasan \textit{jitter} tersebut dipakai sebagai augmentasi data latih dengan dua penyesuaian. Penyesuaian pertama, besar pergeseran tidak diambil dari sebaran seragam, melainkan diambil ulang dari sebaran \textit{error} detektor R-\textit{peak} yang diukur sendiri pada data latih DS1. Sebaran tersebut berbeda dari sebaran seragam, karena sekitar 80\% deteksi hanya berselisih satu sampel atau kurang dari anotasi, sedangkan sebagian kecil lainnya menyimpang hingga puluhan sampel. Penyesuaian kedua, setiap detak DS1 disertai salinan ber-\textit{jitter} di samping salinan bersihnya agar model terbiasa melihat kompleks QRS pada posisi yang tidak persis sama di dalam \textit{window}, sedangkan DS2 dibiarkan bersih sebagai data uji.
+% sumber: model/docs/jitter-walkthrough.md bagian 2 (DS1 50.601 pasangan, 79,85% <=1 sampel, |p99| 26, maks 54); model/config.py (JITTER_MODEL = "empiris", JITTER_SALINAN = 2); model/scripts/prep_beats.py (1 bersih + 2 jitter, hanya DS1 mitdb)
 
 \section{Penelitian Terkait}
 \label{sec:penelitian-terkait}
@@ -483,44 +571,42 @@ Berdasarkan ulasan kedua belas penelitian tersebut, Tabel~\ref{tab:perbandingan-
 {\scriptsize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.2}
-\begin{longtable}{cL{3.5cm}L{2.0cm}L{2.0cm}L{1.8cm}L{2.8cm}}
+\begin{longtable}{|c|L{3.5cm}|L{2.0cm}|L{2.0cm}|L{1.8cm}|L{2.8cm}|}
 \caption{Perbandingan Penelitian Terkait}\label{tab:perbandingan-penelitian}\\
-\toprule
-\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \midrule
+\hline
+\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \hline
 \endfirsthead
-\toprule
-\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \midrule
+\hline
+\textbf{No} & \textbf{Judul (Tahun)} & \textbf{Penyakit / Domain} & \textbf{Metode (Model)} & \textbf{Platform Komputasi} & \textbf{Perbedaan} \\ \hline
 \endhead
-\bottomrule
 \endfoot
-\bottomrule
 \endlastfoot
 
-1 & \textit{A multi-stage denoising framework for ambulatory ECG signal based on domain knowledge and motion artifact detection} (2021) & Preprocessing sinyal ECG (penekanan noise) & FANE+MAD, SVT, CEEMD, wavelet (denoising bertingkat) & PC server (offline) & \textit{Denoising} bertingkat efektif (SNR naik 7--25\%), tetapi hanya dievaluasi di PC server dan belum diuji pada mikrokontroler. \\
+1 & \textit{A multi-stage denoising framework for ambulatory ECG signal based on domain knowledge and motion artifact detection} (2021) & Preprocessing sinyal ECG (penekanan noise) & FANE+MAD, SVT, CEEMD, wavelet (denoising bertingkat) & PC server (offline) & \textit{Denoising} bertingkat efektif (SNR naik 7--25\%), tetapi hanya dievaluasi di PC server dan belum diuji pada mikrokontroler. \\ \hline
 
-2 & \textit{A real-time embedded system to detect QRS-complex and arrhythmia classification using LSTM through hybridized features} (2023) & Aritmia & DWT + Delta-Sigma Modulation + LSTM & Raspberry Pi 4 & Akurasi 99,6\% dan \textit{real-time} di Raspberry Pi 4, yang bukan MCU \textit{low-power}, tanpa integrasi \textit{cloud}. \\
+2 & \textit{A real-time embedded system to detect QRS-complex and arrhythmia classification using LSTM through hybridized features} (2023) & Aritmia & DWT + Delta-Sigma Modulation + LSTM & Raspberry Pi 4 & Akurasi 99,6\% dan \textit{real-time} di Raspberry Pi 4, yang bukan MCU \textit{low-power}, tanpa integrasi \textit{cloud}. \\ \hline
 
-3 & \textit{Real-time fetal arrhythmia detection using deep learning on an embedded fECG monitoring system} (2025) & Aritmia janin (\textit{fetal}) & Bandpass + ICA + 1D-CNN ringan & Raspberry Pi 4 & 1D-CNN ringan dengan transmisi Wi-Fi di Raspberry Pi, ICA belum dievaluasi di MCU dan daya tidak dilaporkan. \\
+3 & \textit{Real-time fetal arrhythmia detection using deep learning on an embedded fECG monitoring system} (2025) & Aritmia janin (\textit{fetal}) & Bandpass + ICA + 1D-CNN ringan & Raspberry Pi 4 & 1D-CNN ringan dengan transmisi Wi-Fi di Raspberry Pi, ICA belum dievaluasi di MCU dan daya tidak dilaporkan. \\ \hline
 
-4 & \textit{TinyML-Based Classification in an ECG Monitoring Embedded System} (2023) & Aritmia (klasifikasi biner normal/\allowbreak abnormal) & 1D-CNN INT8 (TFLM, \textit{Post-Training Quantization}) & Arduino Nano BLE (Cortex-M4) & Inferensi \textit{on-device} INT8 (\textasciitilde27 KB, akurasi \textasciitilde97\%), terdekat dengan pendekatan ini, tetapi tanpa laporan latensi, daya, dan \textit{pipeline} resilien. \\
+4 & \textit{TinyML-Based Classification in an ECG Monitoring Embedded System} (2023) & Aritmia (klasifikasi biner normal/\allowbreak abnormal) & 1D-CNN INT8 (TFLM, \textit{Post-Training Quantization}) & Arduino Nano BLE (Cortex-M4) & Inferensi \textit{on-device} INT8 (\textasciitilde27 KB, akurasi \textasciitilde97\%), terdekat dengan pendekatan ini, tetapi tanpa laporan latensi, daya, dan \textit{pipeline} resilien. \\ \hline
 
-5 & \textit{Designing resilient IoT and Edge Computing with federated TinyML} (2026) & --- (keamanan jaringan IoT) & \textit{Federated Learning} + kuantisasi MLP INT8 & Testbed/\allowbreak simulasi & Kuantisasi float32$\rightarrow$INT8 (kompresi 4$\times$, akurasi turun $<$0,01\%) pada deteksi intrusi jaringan, tanpa \textit{benchmark} MCU fisik. \\
+5 & \textit{Designing resilient IoT and Edge Computing with federated TinyML} (2026) & --- (keamanan jaringan IoT) & \textit{Federated Learning} + kuantisasi MLP INT8 & Testbed/\allowbreak simulasi & Kuantisasi float32$\rightarrow$INT8 (kompresi 4$\times$, akurasi turun $<$0,01\%) pada deteksi intrusi jaringan, tanpa \textit{benchmark} MCU fisik. \\ \hline
 
-6 & \textit{Implementing TinyML in Internet of Things devices: A systematic literature review} (2026) & --- (tinjauan literatur, 114 studi) & SLR (PRISMA) & Berbagai (MCU + SBC) & Tinjauan literatur, bukan eksperimen, memetakan algoritma, \textit{hardware}, dan tantangan TinyML (memori, CPU, standardisasi). \\
+6 & \textit{Implementing TinyML in Internet of Things devices: A systematic literature review} (2026) & --- (tinjauan literatur, 114 studi) & SLR (PRISMA) & Berbagai (MCU + SBC) & Tinjauan literatur, bukan eksperimen, memetakan algoritma, \textit{hardware}, dan tantangan TinyML (memori, CPU, standardisasi). \\ \hline
 
-7 & \textit{Advanced IoT-enabled embedded wearable system for continuous cardiovascular health monitoring using edge intelligence} (2026) & Penyakit kardio\-vaskular / aritmia (4 kelas keparahan) & 1D Depthwise-\allowbreak Separable Conv + Temporal Attention-\allowbreak GRU (INT8 PTQ) & ARM Cortex-M4 (STM32\-F407) & Inferensi \textasciitilde7 ms dengan model \textasciitilde11 KB di Cortex-M4, tetapi dilatih pada data ICU (MIMIC-III) dan tanpa \textit{pipeline} resilien. \\
+7 & \textit{Advanced IoT-enabled embedded wearable system for continuous cardiovascular health monitoring using edge intelligence} (2026) & Penyakit kardio\-vaskular / aritmia (4 kelas keparahan) & 1D Depthwise-\allowbreak Separable Conv + Temporal Attention-\allowbreak GRU (INT8 PTQ) & ARM Cortex-M4 (STM32\-F407) & Inferensi \textasciitilde7 ms dengan model \textasciitilde11 KB di Cortex-M4, tetapi dilatih pada data ICU (MIMIC-III) dan tanpa \textit{pipeline} resilien. \\ \hline
 
-8 & \textit{An on-device machine learning assisted system for unobtrusive cardiac auscultation} (2023) & Kelainan jantung (auskultasi/\allowbreak PCG) & DSP + MFCC + ML \textit{on-device} & Arduino Nano BLE & Berhasil menjalankan ML \textit{on-device}, tetapi memproses sinyal suara jantung (PCG), bukan sinyal ECG. \\
+8 & \textit{An on-device machine learning assisted system for unobtrusive cardiac auscultation} (2023) & Kelainan jantung (auskultasi/\allowbreak PCG) & DSP + MFCC + ML \textit{on-device} & Arduino Nano BLE & Berhasil menjalankan ML \textit{on-device}, tetapi memproses sinyal suara jantung (PCG), bukan sinyal ECG. \\ \hline
 
-9 & \textit{AI-Powered Anomaly Detection and Cybersecurity in Healthcare IoT with Fog/Edge} (2026) & Keamanan siber IoT kesehatan & Kerangka FE-ACS (deteksi anomali \textit{fog-edge}) & Arsitektur \textit{fog/edge} IoT & Latensi \textit{fog-edge} 18,7 ms vs 152,3 ms \textit{cloud-centric}, tetapi berfokus keamanan siber, tanpa resiliensi putus koneksi. \\
+9 & \textit{AI-Powered Anomaly Detection and Cybersecurity in Healthcare IoT with Fog/Edge} (2026) & Keamanan siber IoT kesehatan & Kerangka FE-ACS (deteksi anomali \textit{fog-edge}) & Arsitektur \textit{fog/edge} IoT & Latensi \textit{fog-edge} 18,7 ms vs 152,3 ms \textit{cloud-centric}, tetapi berfokus keamanan siber, tanpa resiliensi putus koneksi. \\ \hline
 
-10 & \textit{Resilient Edge-to-Cloud Architecture with Self-Healing and Self-Correcting Mechanisms for Industrial Data Continuity} (2026) & Kontinuitas data industri & E2C \textit{microservices} + MQTT + \textit{edge buffering} (\textit{self-healing}) & Kubernetes (Rancher, Prometheus, Grafana) & RPO mendekati nol saat saturasi jaringan, tetapi untuk data industri dengan Kubernetes yang terlalu berat bagi MCU. \\
+10 & \textit{Resilient Edge-to-Cloud Architecture with Self-Healing and Self-Correcting Mechanisms for Industrial Data Continuity} (2026) & Kontinuitas data industri & E2C \textit{microservices} + MQTT + \textit{edge buffering} (\textit{self-healing}) & Kubernetes (Rancher, Prometheus, Grafana) & RPO mendekati nol saat saturasi jaringan, tetapi untuk data industri dengan Kubernetes yang terlalu berat bagi MCU. \\ \hline
 
-11 & \textit{Real-Time Cardiac Arrhythmia Classification Using TinyML on Ultra-Low-Cost Microcontrollers} (2026) & Aritmia (3 kelas: N/V/S) & 1D-CNN INT8 (TFLM, PTQ) + AD8232 & Arduino UNO 8-bit (ATmega328P) & Jalur AD8232 ke inferensi INT8 (model $<$22 KB) berjalan di MCU 8-bit, tetapi data dibagi per detak, tanpa \textit{pipeline} resilien. \\
+11 & \textit{Real-Time Cardiac Arrhythmia Classification Using TinyML on Ultra-Low-Cost Microcontrollers} (2026) & Aritmia (3 kelas: N/V/S) & 1D-CNN INT8 (TFLM, PTQ) + AD8232 & Arduino UNO 8-bit (ATmega328P) & Jalur AD8232 ke inferensi INT8 (model $<$22 KB) berjalan di MCU 8-bit, tetapi data dibagi per detak, tanpa \textit{pipeline} resilien. \\ \hline
 
-12 & \textit{Rancang Bangun Smart Wearables Terintegrasi IoT untuk Deteksi Dini Atrial Fibrilasi Menggunakan SVM Berbasis Cloud} (2026) & Atrial fibrilasi & Fitur RR + SVM (RBF) & ESP32 (akuisisi) + SVM di cloud & Pendahulu langsung dengan sensor dan \textit{dashboard} sama, tetapi inferensi di \textit{cloud}, tanpa kuantisasi di MCU maupun resiliensi \textit{pipeline}. \\
+12 & \textit{Rancang Bangun Smart Wearables Terintegrasi IoT untuk Deteksi Dini Atrial Fibrilasi Menggunakan SVM Berbasis Cloud} (2026) & Atrial fibrilasi & Fitur RR + SVM (RBF) & ESP32 (akuisisi) + SVM di cloud & Pendahulu langsung dengan sensor dan \textit{dashboard} sama, tetapi inferensi di \textit{cloud}, tanpa kuantisasi di MCU maupun resiliensi \textit{pipeline}. \\ \hline
 
-13 & \textit{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia} (penelitian ini) & Aritmia (deteksi dini) & Preprocessing di MCU (Butterworth + Pan-Tompkins) + 1D-CNN INT8 + fitur RR (\textit{hybrid}) \textit{on-device} ($\pm$23 KB) & \textit{ESP32-S3 (inferensi on-device)} & Preprocessing \textit{real-time}, inferensi CNN INT8, dan \textit{pipeline} resilien (\textit{ring buffer} lokal + MQTT) menyatu dalam satu ESP32-S3. \\
+13 & \textit{Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia} (penelitian ini) & Aritmia (deteksi dini) & Preprocessing di MCU (Butterworth + Pan-Tompkins) + 1D-CNN INT8 + fitur RR (\textit{hybrid}) \textit{on-device} ($\pm$23 KB) & \textit{ESP32-S3 (inferensi on-device)} & Preprocessing \textit{real-time}, inferensi CNN INT8, dan \textit{pipeline} resilien (\textit{ring buffer} lokal + MQTT) menyatu dalam satu ESP32-S3. \\ \hline
 % sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94)
 
 \end{longtable}
@@ -528,4 +614,4 @@ Berdasarkan ulasan kedua belas penelitian tersebut, Tabel~\ref{tab:perbandingan-
 
 Tabel~\ref{tab:perbandingan-penelitian} memperlihatkan bahwa belum ada penelitian yang menyatukan ketiga aspek sekaligus. Ketiga aspek itu adalah preprocessing ECG yang divalidasi di MCU \textit{low-power}, inferensi TinyML \textit{on-device}, serta \textit{pipeline} \textit{edge-to-cloud} dengan resiliensi berbasis MQTT dan bufer lokal. Kelompok pertama mengevaluasi metodenya di PC server atau secara simulasi, yaitu kerangka \textit{denoising} multi-tahap~\cite{xie_2021} dan kuantisasi pada deteksi intrusi~\cite{laiu_2026}, sehingga beban komputasi dan memorinya di mikrokontroler belum diketahui. Kelompok kedua sudah berjalan di perangkat \textit{embedded}, tetapi memakai Raspberry Pi~\cite{karri_2023} atau infrastruktur Kubernetes~\cite{resilient_edge_cloud} yang jauh lebih berat daripada MCU, atau berhenti pada inferensi di MCU tanpa \textit{pipeline} \textit{edge-to-cloud} yang resilien~\cite{kim_2023}.
 
-Penelitian ini memilih ESP32-S3 sebagai satu perangkat yang menjalankan preprocessing, inferensi CNN INT8, dan bufer lokal MQTT. Pilihan itu disadari membawa keterbatasan, yaitu klasifikasi biner, uji \textit{pipeline} dengan sumber sinyal \textit{replay}, dan subjek sehat non-klinis. Angka akurasi pada sebagian penelitian tersebut juga tidak dapat dibandingkan secara langsung dengan hasil penelitian ini. Zambrano-de la Torre et al.\ membagi data per detak tanpa pemisahan antarpasien sehingga metriknya berpotensi optimistis~\cite{zambrano_2026, xiao_2023}, sedangkan penelitian pendahulu menyasar deteksi atrial fibrilasi dan melaporkan akurasi pada pengujian \textit{offline}~\cite{mulyawan_2026}. Penelitian ini menggunakan skema \textit{inter-patient} dengan metrik yang diuraikan pada Subbab~\ref{subsec:evaluasi-metrik}. Kontribusinya karena itu bukan akurasi yang lebih unggul, melainkan evaluasi yang lebih ketat terhadap generalisasi pada pasien baru beserta kinerja yang terukur di perangkat.
+Penelitian ini memilih ESP32-S3 sebagai satu perangkat yang menjalankan preprocessing, inferensi CNN INT8, dan bufer lokal MQTT. Pilihan itu disadari membawa keterbatasan, yaitu klasifikasi biner, uji \textit{pipeline} dengan sumber sinyal \textit{replay}, dan subjek sehat non-klinis. Angka akurasi pada sebagian penelitian tersebut juga tidak dapat dibandingkan secara langsung dengan hasil penelitian ini. Zambrano-de la Torre et al.\ membagi data per detak tanpa pemisahan antarpasien sehingga metriknya berpotensi optimistis~\cite{zambrano_2026, xiao_2023}, sedangkan penelitian pendahulu menyasar deteksi atrial fibrilasi dan melaporkan akurasi pada pengujian \textit{offline}~\cite{mulyawan_2026}. Penelitian ini menggunakan skema \textit{inter-patient} dengan metrik \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan AUC. Kontribusinya karena itu bukan akurasi yang lebih unggul, melainkan evaluasi yang lebih ketat terhadap generalisasi pada pasien baru beserta kinerja yang terukur di perangkat.

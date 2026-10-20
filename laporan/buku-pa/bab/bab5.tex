@@ -1,12 +1,10 @@
 \chapter{Penutup}
 \label{chap:penutup}
 
-Bab ini menyimpulkan hasil penelitian terhadap tujuan pada Subbab~\ref{sec:tujuan} beserta temuan teknis utamanya, kemudian memberikan saran pengembangan di luar lingkup penelitian ini.
-
 \section{Kesimpulan}
 \label{sec:kesimpulan}
 
-Penelitian ini membangun sistem monitoring detak jantung single-lead berbasis \textit{edge computing} dengan model CNN \textit{hybrid} INT8 yang berjalan \textit{on-device} pada ESP32-S3. Preprocessing sinyal ECG dan klasifikasi aritmia dijalankan di perangkat, lalu hasil klasifikasi per detak dikirim melalui \textit{pipeline} MQTT dengan bufer lokal di PSRAM. Berdasarkan perancangan, implementasi, dan eksperimen pada Bab~\ref{chap:eksperimen}, kesimpulan terhadap ketiga tujuan penelitian diuraikan sebagai berikut.
+Penelitian ini membangun sistem monitoring detak jantung single-lead berbasis \textit{edge computing} dengan model CNN \textit{hybrid} INT8 yang berjalan \textit{on-device} pada ESP32-S3. Preprocessing sinyal ECG dan klasifikasi aritmia dijalankan di perangkat, lalu hasil klasifikasi per detak dikirim melalui \textit{pipeline} MQTT dengan bufer lokal di PSRAM. Berdasarkan perancangan, implementasi, dan eksperimen yang telah dilakukan, kesimpulan terhadap ketiga tujuan penelitian diuraikan sebagai berikut.
 
 Preprocessing di ESP32-S3 terbukti setara dengan Python, yaitu seluruh tahap uji data acuan lulus, termasuk 11 R-\textit{peak} yang sama dalam toleransi 1 sampel dan keputusan akhir yang identik pada tujuh detak acuan. Beban rata-rata hanya 82~$\mu$s per sampel atau 3,0\% anggaran waktu tanpa sampel yang hilang, sedangkan puncak beban sesaat 33,4~ms diserap oleh ADC yang dibaca di dalam rutin interupsi (ISR) beserta antreannya. Segmentasi hasil detektor di perangkat memberi F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi. Target jalur komputasi karena itu terpenuhi, sedangkan kelayakan sinyal tubuh menunggu pengujian rekaman resmi, yaitu \PlaceholderData{jumlah rekaman yang memenuhi kriteria kualitas dari jumlah sesi perekaman}.
 % PLACEHOLDER-DATA kesimpulan-tujuan1: kalimat status dan hasil akuisisi diisi ulang dari bab4 tab:kualitas-rekaman dan tab:ketercapaian setelah pengujian rekaman resmi
@@ -32,12 +30,12 @@ Keempat, telemetri akuisisi dapat menyesatkan, sehingga kualitas sinyal tidak bo
 % PLACEHOLDER-DATA temuan-telemetri: contoh angka dari rekaman Gagal pengujian resmi (bab4 kalimat PLACEHOLDER-DATA rekaman-gagal-rpeak); hapus kalimat bila tidak ada rekaman Gagal
 % sumber: bab4 subsec:hasil-tujuan1 butir Akuisisi Sinyal Tubuh (perangkat tanpa elektroda sekitar 2 detak per detik, 57% Aritmia, ambang sekitar 150 count, ayunan absolut sebagai gerbang kualitas); bab2 subbab AD8232 (lead-off cukup dipenuhi satu jalur impedansi rendah); model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia\"
 
-Secara keseluruhan, tujuan membangun \textit{pipeline} resilien tercapai, sedangkan tujuan preprocessing \textit{real-time} dan model \textit{on-device} tercapai sebagian (Tabel~\ref{tab:ketercapaian}). Preprocessing tercapai pada jalur komputasi, sedangkan akuisisi sinyal tubuh menunggu pengujian rekaman resmi. Model tercapai pada seluruh target model dan kinerja di perangkat kecuali konsumsi daya yang belum diukur. Sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis, dengan keterbatasan yang diuraikan pada Subbab~\ref{subsec:analisis-keterbatasan}.
+Secara keseluruhan, tujuan membangun \textit{pipeline} resilien tercapai, sedangkan tujuan preprocessing \textit{real-time} dan model \textit{on-device} tercapai sebagian (Tabel~\ref{tab:ketercapaian}). Preprocessing tercapai pada jalur komputasi, sedangkan akuisisi sinyal tubuh menunggu pengujian rekaman resmi. Model tercapai pada seluruh target model dan kinerja di perangkat kecuali konsumsi daya yang belum diukur. Sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis.
 
 \section{Saran}
 \label{sec:saran}
 
-Berdasarkan keterbatasan pada Subbab~\ref{subsec:analisis-keterbatasan}, saran pengembangan selanjutnya diuraikan pada butir berikut.
+Berdasarkan keterbatasan sistem, saran pengembangan selanjutnya diuraikan pada butir berikut.
 \begin{enumerate}
   \item \textbf{Pengukuran dan optimasi konsumsi daya.} INA219 perlu dirakit pada sisi baterai, yaitu di antara modul pengisi TP4056 dan konverter DC-DC. Dengan rakitan itu, enam tingkat beban yang sudah tersedia di \textit{firmware} dapat dijalankan dari baterai dengan beban \textit{replay} yang identik dan menghasilkan arus per mode operasi. Pengukuran tingkat dengan WiFi aktif perlu tetap memakai setelan radio tanpa mode tidur seperti pada pengujian \textit{pipeline}, karena setelan itu diperkirakan menambah arus sekitar 30~mA. Karena \textit{loop} utama tidak pernah tidur, mode tidur CPU di antara detak menjadi kandidat optimasi pertama. Bila daya menjadi kendala, \textit{kernel} ESP-NN dapat dipertimbangkan dengan syarat keluarannya diuji ulang terhadap data acuan, karena kesalahan diam-diam seperti pada temuan pertama dapat terulang.
   % sumber: bab4 subsec:hasil-tujuan2 butir Konsumsi Daya (jalur ukur siap di firmware, INA219 belum dirakit di sisi baterai; sekitar 30 mA); bab3 Rencana Pengujian butir Pengukuran Konsumsi Daya (loop tidak pernah tidur, CPU aktif penuh di semua tingkat); model/docs/firmware-walkthrough.md §5d, tab:sumber-daya (kernel referensi tanpa ESP-NN), butir Port ke Bahasa C (MEAN hanya terungkap oleh data acuan)
