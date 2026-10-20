@@ -148,7 +148,7 @@ dapat dikompilasi bersama \textit{firmware} ESP32-S3 menggunakan TFLite Micro.
 
 ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \textit{dual-core} Xtensa LX7 dan konektivitas WiFi serta Bluetooth LE terintegrasi~\cite{espressif_esp32s3_datasheet}. Prosesor ini dilengkapi perluasan instruksi vektor 128 bit (SIMD) yang ditujukan untuk mempercepat algoritma kecerdasan buatan dan pengolahan sinyal digital~\cite{espressif_esp32s3_datasheet}. \textit{Library} ESP-NN dari Espressif memanfaatkan instruksi vektor tersebut untuk mempercepat operasi jaringan saraf seperti konvolusi~\cite{espressif_espnn}. ESP32-S3 juga memiliki dua ADC SAR 12 bit sehingga sinyal analog dari sensor dapat dicuplik langsung tanpa ADC eksternal. ADC kedua tidak dapat dipakai bersamaan dengan WiFi, sehingga sinyal yang dicuplik selama WiFi aktif harus masuk melalui kanal ADC pertama~\cite{espressif_esp32s3_datasheet}.
 
-Papan yang digunakan adalah papan kompatibel ESP32-S3-DevKitC-1 yang memakai modul ESP32-S3-WROOM-1-N16R8. Kode N16R8 menyatakan memori Flash 16 MB dan PSRAM 8 MB di dalam modul~\cite{espressif_esp32s3_wroom1}. Spesifikasi utama modul tersebut dirangkum pada Tabel~\ref{tab:spesifikasi-esp32}.
+\textit{Board} yang digunakan adalah \textit{board} kompatibel ESP32-S3-DevKitC-1 yang memakai modul ESP32-S3-WROOM-1-N16R8. Kode N16R8 menyatakan memori Flash 16 MB dan PSRAM 8 MB di dalam modul~\cite{espressif_esp32s3_wroom1}. Spesifikasi utama modul tersebut dirangkum pada Tabel~\ref{tab:spesifikasi-esp32}.
 
 \begin{table}[!ht]
   \centering
@@ -190,13 +190,13 @@ STM32F407 (Cortex-M4, SRAM 192 KB). Zambrano-de la Torre et
 al.~\cite{zambrano_2026} bahkan menjalankannya pada Arduino UNO 8-bit yang hanya memiliki SRAM 2 KB dengan
 sensor AD8232 dan dataset MIT-BIH yang sama. Dikarenakan SRAM internal ESP32-S3 (512 KB)
 jauh lebih besar daripada seluruh platform tersebut, kelayakan inferensi \emph{on-device}
-pada penelitian ini memiliki batas kritis yang longgar. Papan ESP32-S3 yang digunakan ditunjukkan pada Gambar~\ref{fig:esp32}.
+pada penelitian ini memiliki batas kritis yang longgar. \textit{Board} ESP32-S3 yang digunakan ditunjukkan pada Gambar~\ref{fig:esp32}.
 
 \begin{figure}[!ht]
   \centering
   \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/esp32s3_devkitc1.png}\\[2pt]
   {\footnotesize Sumber: Espressif Systems~\cite{espressif_devkitc1}\par}
-  \caption{Papan ESP32-S3-DevKitC-1}
+  \caption{\textit{Board} ESP32-S3-DevKitC-1}
   \label{fig:esp32}
 \end{figure}
 % sumber gambar: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/_images/esp32-s3-devkitc-1-v1.1-isometric.png (CC BY-SA 4.0 repositori esp-dev-kits)
@@ -301,7 +301,7 @@ Dalam penelitian ini, modul \textit{buzzer} pasif yang sudah dilengkapi transist
 \subsection{Rangkaian Catu Daya Baterai}
 \label{subsec:catu-baterai}
 
-Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ulang. Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga bagian, yaitu sel litium-ion 18650 sebagai sumber energi, modul pengisi TP4056 untuk mengisi sel, dan konverter \textit{boost} MT3608 untuk menaikkan tegangan sel ke tegangan kerja papan. Ketiga komponen tersebut ditunjukkan pada Gambar~\ref{fig:catu-baterai}, yaitu sel 18650 pada panel (a), modul TP4056 pada panel (b), dan modul MT3608 pada panel (c).
+Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ulang. Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga bagian, yaitu sel litium-ion 18650 sebagai sumber energi, modul pengisi TP4056 untuk mengisi sel, dan konverter \textit{boost} MT3608 untuk menaikkan tegangan sel ke tegangan kerja \textit{board}. Ketiga komponen tersebut ditunjukkan pada Gambar~\ref{fig:catu-baterai}, yaitu sel 18650 pada panel (a), modul TP4056 pada panel (b), dan modul MT3608 pada panel (c).
 
 \begin{figure}[!ht]
   \centering
@@ -322,7 +322,7 @@ Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ula
 
 \subsubsection{Sel Litium-Ion 18650}
 
-Sel 18650 adalah sel litium-ion silinder berdiameter 18 mm dan panjang 65 mm. Sel litium-ion tunggal diisi hingga tegangan penuh 4,2 V, dan sel yang tegangannya turun di bawah 2,9 V dianggap terkuras dalam sehingga harus diisi dengan arus kecil terlebih dahulu~\cite{toppower_tp4056}. Selama pemakaian, tegangan sel turun dari sekitar 4,2 V menuju 3,0 V. Tegangan ini lebih rendah daripada masukan 5 V papan mikrokontroler, sehingga sel tidak dapat dihubungkan langsung ke jalur 5 V.
+Sel 18650 adalah sel litium-ion silinder berdiameter 18 mm dan panjang 65 mm. Sel litium-ion tunggal diisi hingga tegangan penuh 4,2 V, dan sel yang tegangannya turun di bawah 2,9 V dianggap terkuras dalam sehingga harus diisi dengan arus kecil terlebih dahulu~\cite{toppower_tp4056}. Selama pemakaian, tegangan sel turun dari sekitar 4,2 V menuju 3,0 V. Tegangan ini lebih rendah daripada masukan 5 V \textit{board} mikrokontroler, sehingga sel tidak dapat dihubungkan langsung ke jalur 5 V.
 
 \subsubsection{Modul Pengisi TP4056}
 
@@ -339,7 +339,7 @@ V_\text{OUT} = 0{,}6 \left(1 + \frac{R_1}{R_2}\right)
 
 \noindent di mana $V_\text{OUT}$ adalah tegangan keluaran konverter, 0,6 V adalah tegangan referensi umpan balik, serta $R_1$ dan $R_2$ adalah resistor pembagi tegangan dari keluaran ke pin umpan balik dan dari pin umpan balik ke \textit{ground}.
 
-Dalam penelitian ini, rangkaian catu daya baterai digunakan untuk mencatu perangkat secara portabel. Sel 18650 diisi melalui TP4056, lalu tegangannya dinaikkan MT3608 ke jalur 5 V papan ESP32-S3, dan INA219 disisipkan di antara keluaran TP4056 dan masukan MT3608 untuk mengukur konsumsi daya seluruh perangkat.
+Dalam penelitian ini, rangkaian catu daya baterai digunakan untuk mencatu perangkat secara portabel. Sel 18650 diisi melalui TP4056, lalu tegangannya dinaikkan MT3608 ke jalur 5 V \textit{board} ESP32-S3, dan INA219 disisipkan di antara keluaran TP4056 dan masukan MT3608 untuk mengukur konsumsi daya seluruh perangkat.
 % sumber: firmware/README.md bagian Rangkaian catu baterai (18650 -> TP4056 OUT+ -> INA219 -> konverter -> pin 5V; GND dari OUT- agar proteksi modul tetap di jalur; V bus 3,0-4,2 V); hardware/mainboard/README.md (TP4056 + boost MT3608, header B+/B-, OUT+/OUT-); datasheet TP4056 REV_2.4 hlm. 2, 5, 7, 9; MT3608 Rev1.1 hlm. 1, 3; INA219 SBOS448G hlm. 1, 19-21; ST7789V3 V0.1 hlm. 8-9, bagian 8.3.4-8.3.5
 
 \subsection{Protokol MQTT}
