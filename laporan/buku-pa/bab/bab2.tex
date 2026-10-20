@@ -400,7 +400,7 @@ Akurasi, yaitu proporsi seluruh prediksi yang benar, memberi estimasi yang terla
 % sumber: model/CLAUDE.md Fase 6 (lama), akurasi tebak-Normal 0,8903 pada DS2
 Akurasi yang tinggi dengan demikian belum menunjukkan kemampuan mendeteksi aritmia. Dalam penelitian ini, seluruh evaluasi model memakai pembagian DS1/DS2 dan kinerja dilaporkan melalui \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan AUC. Dengan metrik tersebut, kemampuan menemukan aritmia dan beban alarm palsu dapat dinilai secara terpisah.
 
-\subsection{\textit{Jitter} Posisi R-\textit{peak}}
+\subsection{Simulasi \textit{Error} Deteksi R-\textit{peak} dengan \textit{Jitter}}
 \label{subsec:augmentasi-jitter}
 
 Klasifikasi per detak memotong sinyal ECG menjadi \textit{window} di sekitar posisi puncak R. Pada basis data MIT-BIH, posisi tersebut berasal dari anotasi kardiolog, sedangkan pada perangkat posisi itu dihasilkan detektor R-\textit{peak}. \textit{Jitter} adalah pergeseran acak posisi puncak R sebelum segmentasi yang dipakai untuk meniru ketidaktepatan detektor tersebut~\cite{dias_2021}.
