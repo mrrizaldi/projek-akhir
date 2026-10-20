@@ -364,6 +364,7 @@ def periksa_prosa(lap, berkas, sumber):
 POLA_REVISI_PCB = re.compile(r"\brev\s?[0-9]+\b|\brevisi\s+(?:pertama|kedua|ketiga)\b|\bPCB\s+revisi\b", re.I)
 POLA_META_SUBBAB = re.compile(r"(?:^|(?<=\. ))\s*(?:Subbab|Butir|Bagian) ini\b")
 POLA_LABEL_TUJUAN = re.compile(r"\btujuan\s*([0-9]+|pertama|kedua|ketiga|keempat)\b", re.I)
+POLA_PUSTAKA = re.compile(r"(?<!Kajian )(?<!KAJIAN )(?<!Daftar )(?<!DAFTAR )(?<!daftar )\b[Pp]ustaka\b")
 POLA_PENUNJUK = re.compile(r"(?:Sub)?[Bb]ab~?\\ref\{|\b(?:Sub)?[Bb]ab~?\s?[0-9]\b|(?:diuraikan|dibahas|dijelaskan) pada (?:sub-?bagian|butir [a-z]\b)")
 
 
@@ -377,6 +378,10 @@ def periksa_label_tujuan(lap, berkas, sumber):
         if m:
             lap.catat(berkas, nomor, "N-REVISI", True,
                       f"label revisi internal '{m.group(0)}' di teks tercetak, tulis rancangan akhirnya saja")
+        m = POLA_PUSTAKA.search(teks_polos(baris))
+        if m:
+            lap.catat(berkas, nomor, "N-ISTILAH", True,
+                      "'pustaka' untuk library, tulis \\textit{library} (laporan/CLAUDE.md, Istilah Asing)")
         m = POLA_PENUNJUK.search(baris)
         if m:
             lap.catat(berkas, nomor, "N-PENUNJUK", True,
@@ -425,6 +430,7 @@ def uji_mandiri():
         "Subbab ini memaparkan hasil uji.",
         "Desain PCB rev1 disusun rekan.",
         "Pemetaan label diuraikan pada Subbab~\\ref{subsec:x}.",
+        "Pustaka pyserial dipakai pada Kajian Pustaka.",
     ])
     lap = Laporan()
     periksa_tabel(lap, "uji.tex", contoh, LEBAR_TEKS_CM["a4"])
@@ -432,7 +438,7 @@ def uji_mandiri():
     periksa_label_tujuan(lap, "uji.tex", contoh)
     periksa_pembuka_bab(lap, "uji.tex", contoh)
     kode = {t[2] for t in lap.temuan}
-    harap = {"N-PEMBUKA-BAB", "N-PENUNJUK", "N-REVISI", "N-META", "N-TUJUAN", "T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
+    harap = {"N-ISTILAH", "N-PEMBUKA-BAB", "N-PENUNJUK", "N-REVISI", "N-META", "N-TUJUAN", "T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
     grid = Laporan()
     periksa_tabel(grid, "uji.tex", "Lihat Tabel~\\ref{tab:perbandingan-penelitian}.\n\\begin{longtable}{|c|c|}\n\\caption{Perbandingan Penelitian Terkait}\\label{tab:perbandingan-penelitian}\\\\\n\\toprule\na & b \\\\\n\\bottomrule\n\\end{longtable}\n", LEBAR_TEKS_CM["a4"])
     if "T-GRID" not in {t[2] for t in grid.temuan}:
