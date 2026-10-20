@@ -21,10 +21,11 @@ skill `tabel-pa`.
    Data, 4.3 Tempat Ujicoba, 4.4 Waktu Ujicoba, 4.5 Spesifikasi Peralatan
    Ujicoba, 4.6 Hasil Eksperimen, 4.7 Analisis Hasil Eksperimen, lalu 5.1
    Kesimpulan dan 5.2 Saran. Urutan dan judul tidak diubah ("Ujicoba", bukan
-   "Uji Coba"). Bab 2, 3, dan 4 dibuka satu paragraf pembuka sebelum subbab
-   pertama (Bab 2: masalah dalam ranahnya, teori yang dikupas, penelitian
-   terkait untuk menegaskan orisinalitas. Bab 4: objek yang divalidasi,
-   daftar aspek sesuai urutan subbab, fokus analisis). Subbab tambahan di
+   "Uji Coba"). Tidak ada bab yang memiliki paragraf pembuka: judul bab
+   langsung diikuti subbab pertama (2.1 Deskripsi Permasalahan, 3.1
+   Deskripsi Solusi, 4.1 Parameter Eksperimen, 5.1 Kesimpulan), mengikuti
+   proposal (keputusan user 20 Okt 2026, "itu untuk semuanya"). Diperiksa
+   `cek_tabel.py` (N-PEMBUKA-BAB). Subbab tambahan di
    luar kerangka (mis. 4.8 Dokumentasi) hanya atas permintaan user, dan
    permintaan itu dijawab sebagai opsi, bukan langsung dikerjakan: sebut
    bahwa 4.8 di luar kerangka beku, rekomendasikan foto dokumentasi masuk
@@ -45,12 +46,12 @@ skill `tabel-pa`.
      "Ketercapaian Tujuan 2", "Subbab ini menjawab Tujuan 3", "Tujuan
      pertama tercapai sebagian". Kolom tabel ketercapaian berisi nama
      jalur, bukan "Tujuan 1, ...". Diperiksa `cek_tabel.py` (N-TUJUAN).
-   - Paragraf pembuka "Bab ini ..." hanya di awal bab. Subbab dan butir
+   - Tidak ada paragraf "Bab ini ..." (aturan 1). Subbab dan butir
      langsung ke isi, tanpa "Subbab ini memaparkan ..." atau "Butir ini
      bertujuan ..." (skill `narasi-pa` aturan 7, `cek_tabel.py` N-META).
-   - Kaitan ke tujuan cukup dinyatakan sekali di pembuka Bab 4 atau 4.6
-     ("disusun mengikuti tujuan pada Subbab~\ref{sec:tujuan}") dan di
-     pembuka 5.1.
+   - Kaitan ke tujuan cukup dinyatakan sekali di pembuka 4.6
+     ("disusun mengikuti tujuan penelitian") dan di awal 5.1, tanpa
+     `\ref` ke subbab (aturan 11).
    - Tidak ada tabel atau paragraf "perubahan rancangan dari proposal"
      (proposal lawan realisasi). Bab 3 memuat rancangan akhir, dan alasan
      berbasis ukur muncul wajar di butir hasilnya (ablasi, uji
@@ -72,8 +73,8 @@ skill `tabel-pa`.
      bandingkan dengan pembanding yang disebut. "Belum tercapai" hanya untuk
      target berangka yang diukur dan tidak terpenuhi.
    - Minimal satu rujukan balik per bab ke tujuan atau permasalahan tanpa
-     nomor ("dikaitkan kembali dengan tujuan penelitian pada
-     Subbab~\ref{sec:tujuan}").
+     nomor dan tanpa penunjuk subbab ("dikaitkan kembali dengan tujuan
+     penelitian").
 
 4. **Register ditentukan bab, bukan jenis dokumen.** Bab 3 tetap register
    rancangan ("dirancang") bahkan di buku full, dan isinya rancangan akhir
@@ -128,7 +129,7 @@ skill `tabel-pa`.
    elemen, label, dan alur yang ada di kartu, dengan kata yang sama
    persis dengan kartu (kartu "10 RR" → paragraf "10 RR"). Sesudah seluruh
    pembacaan selesai, paragraf ditutup tepat **satu** kalimat makna yang
-   boleh mengaitkan gambar ke tujuan atau subbab lain. Kalimat fungsi atau
+   boleh mengaitkan gambar ke tujuan, tanpa penunjuk subbab (aturan 11). Kalimat fungsi atau
    alasan ("syarat ini mencegah ...") tidak diselipkan di tengah pembacaan
    dan tidak ditambah sebagai kalimat makna kedua. Plot data
    eksperimen dari pipeline repo (confusion matrix, kurva, grafik latensi)
@@ -186,6 +187,19 @@ skill `tabel-pa`.
     *inter-patient*, kesetaraan preprocessing, ketahanan putus koneksi,
     ukuran model) punya angka di Bab 4.
 
+11. **Tanpa penunjuk bab, subbab, dan butir** (keputusan user 20 Okt
+    2026: "ini dijelaskan pada subbab, ini dijelaskan pada bab ...
+    gausah, hapus semua"). Teks tercetak tidak memuat "sebagaimana
+    diuraikan pada Bab~\ref{..}", "(Subbab~\ref{..})", "pada Bab 3",
+    "dibahas pada butir d", atau "dijelaskan pada sub-bagian berikut".
+    Kalimat menyebut isinya langsung ("metrik \textit{recall},
+    \textit{precision}, ...", "di antara modul pengisi baterai dan
+    konverter"), atau penunjuknya dibuang bila kalimat tetap utuh. Yang
+    tetap boleh: rujukan Tabel, Gambar, dan Persamaan, dan "... pada
+    butir berikut" yang langsung diikuti daftar. Subbab Tujuan di Bab 1 berakhir
+    pada daftar tujuan, tanpa kalimat sesudahnya, karena proposal tidak
+    memilikinya. Diperiksa `cek_tabel.py` (N-PENUNJUK).
+
 ## Anti-pola korpus yang diperiksa
 
 | Kelompok | Kesalahan nyata di korpus | Pencegahan |
@@ -221,6 +235,9 @@ yang ada; identitas (nama, NRP, NIP, tahun) dicek ke sumber resmi.
       sama dan vonis di 4.7, atau ditulis eksplisit belum dilakukan.
 - [ ] Bab 3 masih rancangan, Bab 4–5 capaian, tanpa frasa progres di buku.
 - [ ] Bab 1 dan Bab 5 tanpa gambar dan tabel, Bab 5 tanpa angka baru.
+- [ ] Semua bab tanpa paragraf pembuka (N-PEMBUKA-BAB 0). Tidak ada penunjuk bab, subbab, atau
+      butir di teks tercetak (`cek_tabel.py` N-PENUNJUK 0), dan Tujuan
+      Bab 1 berakhir pada daftar.
 - [ ] Setiap gambar baru berupa placeholder dengan kartu lengkap, bukan
       gambar buatan Claude, dan penjelasnya hanya menyebut elemen kartu.
 - [ ] Perintah pada daftar periksa sebelum kumpul dijalankan, dan angkanya

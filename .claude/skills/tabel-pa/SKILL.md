@@ -38,7 +38,13 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
 
 ## Aturan
 
-1. **Gaya tiga garis.** `\toprule` di atas header, `\midrule` di bawah
+1. **Gaya tiga garis**, dengan satu pengecualian: tabel Perbandingan
+   Penelitian Terkait di Bab 2 (`tab:perbandingan-penelitian`) memakai
+   grid tertutup polos, yaitu garis vertikal `|` di spesifikasi kolom dan
+   `\hline` sesudah header dan setiap baris, tanpa booktabs, `\rowcolor`,
+   atau warna apa pun (keputusan user 20 Okt 2026: "pake tabel tertutup
+   aja bukan terbuka, tapi plain"). Daftar pengecualian ada di
+   `TABEL_GRID_PENUH` pada `scripts/cek_tabel.py`. Tabel lain: `\toprule` di atas header, `\midrule` di bawah
    header, `\bottomrule` di akhir tabel. Tanpa garis vertikal `|`, tanpa
    `\hline`/`\cline`, tanpa `\rowcolor`. Header tetap teks tebal. Garis
    tambahan di badan hanya `\midrule` pemisah kelompok: (a) tepat sebelum

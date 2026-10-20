@@ -18,15 +18,26 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
    median ≤ 2 detik, dan uji putus koneksi 3 skenario. Bab 4 melaporkan
    recall 0,6996 pada DS2, latensi median 939 dan 1.108 ms (dua ulangan,
    *replay*), daya belum diukur, dan uji putus koneksi hanya 1 skenario
-   tanpa penjelasan. Draf 5.1 berbunyi "seluruh tujuan yang dirumuskan pada
+   tanpa penjelasan. Pembanding yang tersedia untuk target indikatif:
+   recall kelas aritmia *inter-patient* biner pada penelitian terkait tidak
+   ada, sedangkan untuk daya ada arus puncak 8,6 mA (28,38 mW) pada
+   Chowdhury dan Chattopadhyay 2023. Draf 5.1 berbunyi "seluruh tujuan yang dirumuskan pada
    Bab 1 telah tercapai". Draf juga memakai judul "4.6.1 Jalur
    Preprocessing *Real-Time* (Tujuan 1)" dan "4.7.1 Ketercapaian Tujuan 1",
    pembuka 4.6.2 berbunyi "Subbab ini menjawab Tujuan 2 pada
    Subbab~\ref{sec:tujuan}, yaitu ...", 5.1 dibuka "Tujuan pertama tercapai
    sebagian.", dan pembuka 4.6 memuat "Tabel 4.6 Perubahan rancangan dari
-   proposal" (aspek, proposal, realisasi, alasan). Tulis tabel per tujuan
+   proposal" (aspek, proposal, realisasi, alasan). Draf Bab 4 dibuka
+   paragraf "Bab ini memaparkan eksperimen untuk memvalidasi tiga jalur
+   yang dirancang pada Bab~\ref{chap:deskripsi-sistem}, ..." sebelum 4.1,
+   subbab Tujuan Bab 1 ditutup kalimat "Kriteria keberhasilan setiap tujuan
+   dirumuskan pada Subbab~\ref{sec:rencana-pengujian}, dan ketercapaiannya
+   dianalisis pada Bab~\ref{chap:eksperimen}." sesudah daftar tujuan, dan
+   4.6.1 memuat "Sumber \textit{replay} dipilih dari menu Sumber sinyal
+   (Subbab~\ref{subsec:antarmuka-perangkat})." Tulis tabel per tujuan
    (target, hasil, status, yang harus diubah), suntingan kalimat 5.1, dan
-   suntingan judul, pembuka 4.6.2, serta tabel perubahan itu.
+   suntingan judul, pembuka 4.6.2, tabel perubahan itu, pembuka Bab 4,
+   penutup Tujuan, dan kalimat 4.6.1.
 3. Pasang gambar *state machine* gerbang kalibrasi di 4.6.3 a. Fakta:
    keadaan `calibrating` → `running`, syarat masuk RR 10 detak berturut
    dalam rentang 300–2.000 ms dan ayunan ADC di atas ambang, kembali ke
@@ -62,12 +73,16 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
   "Analisis Jalur ...", "Subbab ini memaparkan hasil ..."), 5.1 tidak
   dibuka "Tujuan pertama", kolom tabel ketercapaian tanpa "Tujuan 1", dan
   tabel perubahan dari proposal dihapus (bukan dipertahankan atau dipindah
-  ke lampiran).
+  ke lampiran). Paragraf pembuka Bab 4 dihapus seluruhnya (bab langsung ke
+  4.1, tidak diganti paragraf pembuka lain), kalimat sesudah daftar Tujuan
+  dihapus, dan "(Subbab~\ref{...})" dibuang dari 4.6.1 tanpa menyisakan
+  penunjuk bab/subbab lain di kalimat laporan (`.tex`) yang ditulis.
+  Pesan, rencana, dan catatan ke user boleh menyebut nomor bab dan subbab.
 - C. Tugas 3: tidak ada diagram buatan sendiri (tanpa TikZ/Mermaid/SVG),
   kartu spesifikasi lengkap (jenis, pesan, elemen, alur baca, teks, bahan
   repo, ukuran) di komentar `%`, `\label` dan caption final, bagian
   pembacaan gambar di penjelas hanya menyebut elemen/label/alur yang ada
-  di kartu (kalimat makna penutup boleh merujuk tujuan atau subbab lain),
+  di kartu (kalimat makna penutup boleh mengaitkan ke tujuan, tanpa penunjuk subbab),
   dan posisi gambar tidak disebut
   "di atas/di bawah" ("di atas ambang" untuk besaran tidak dihitung).
 - D. Tugas 4: abstrak ditulis ulang sebagai hasil dengan angka yang sama
@@ -92,3 +107,5 @@ hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 | 2026-10-19 | sonnet | haiku | **10/10** | LULUS putaran 2. Di luar rubrik: "tabel di atas" di draf 5.1, abstrak belum memuat latensi pipeline |
 | 2026-10-19 | sonnet | haiku | 9/10 | Aturan 4 ditambah larangan riwayat revisi (rev1/rev2, "disusun oleh rekan"), N-REVISI. Tugas 4 dan rubrik D ditambah draf Bab 3.2; D 2/2. C: kartu tanpa baris Ukuran; templat aturan 9 memang tanpa baris Lokasi/Ukuran, ditambahkan |
 | 2026-10-19 | sonnet | haiku | 9/10 | BERHENTI (skor tidak naik). D 2/2 kedua putaran: aturan baru stabil. B: pembanding "target indikatif" tidak dinamai, padahal soal tugas 2 tidak memberi nama pembanding. Akar masalah di soal, bukan skill. Usulan: tambah fakta pembanding ke tugas 2 lalu satu putaran ulang, atau terima 9/10 |
+| 2026-10-20 | sonnet | haiku | 9/10 | Aturan 1 (tanpa paragraf pembuka di semua bab) dan aturan 11 (tanpa penunjuk bab/subbab/butir, Tujuan berakhir di daftar) ditambah; tugas 2 dan rubrik B ditambah kasusnya. Ketiga suntingan baru benar. B: penilai menghitung nomor bab di pesan ke user sebagai penunjuk (rubrik terlalu luas, aturan hanya untuk teks tercetak), dan pembanding target indikatif tidak dinamai karena soal tidak memberinya. Rubrik B dipersempit ke `.tex`, tugas 2 diberi fakta pembanding |
+| 2026-10-20 | sonnet | haiku | **10/10** | LULUS putaran 2. Ketiga suntingan baru (pembuka Bab 4, penutup Tujuan, ref 4.6.1) benar dan .tex tanpa penunjuk. Di luar rubrik: kartu Ukuran vs kotak placeholder tidak sama, abstrak tanpa kondisi PDSR dan tanpa latensi |

@@ -40,6 +40,13 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
    `\hline` `\textit{Buzzer} & I/O & GPIO 13 \\` `\hline` `\end{tabular}`.
    Tulis LaTeX hasilnya, lalu sebutkan apa yang dilakukan bila tabel ini
    berupa `longtable` dengan `\endfoot`.
+   Lalu tabel kedua di Bab 2, `\label{tab:perbandingan-penelitian}`, berupa
+   `longtable` dengan spesifikasi `{cL{3.5cm}L{2.0cm}L{2.0cm}L{1.8cm}L{2.8cm}}`,
+   `\toprule`/`\midrule` di header berulang, `\rowcolor{headgray}` di
+   header, dan `\bottomrule` di `\endfoot`. User: "untuk tabel penelitian
+   terkait, pake tabel tertutup aja bukan terbuka, tapi plain gausah ada
+   style atau filling color". Tulis spesifikasi kolom, header berulang,
+   akhir satu baris data, dan `\endfoot` hasilnya.
 5. Tulis pesan akhir ke user setelah merombak tugas 1–3, dengan aturan
    `laporan/` read-only tanpa konfirmasi. User hanya bilang "rapikan tabel
    Bab 4".
@@ -67,7 +74,11 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
   kelompok "Keluaran" berupa `\midrule`, tanpa garis antara baris
   "Keluaran" dan baris Buzzer; isi sel dan header tebal tidak
   berubah; untuk `longtable`, `\endfoot` memakai `\bottomrule` dan header
-  berulang memakai `\toprule`/`\midrule`.
+  berulang memakai `\toprule`/`\midrule`. Tabel `tab:perbandingan-penelitian` menjadi
+  grid tertutup polos: `|` di setiap batas kolom, `\hline` sesudah header
+  (di `\endfirsthead` dan `\endhead`) dan sesudah setiap baris data,
+  tanpa `\toprule`/`\midrule`/`\bottomrule` dan tanpa `\rowcolor`, dan
+  pengecualian ini hanya untuk tabel itu (tabel komponen tetap tiga garis).
 - E. Tugas 5: rencana per tabel disampaikan sebelum menyunting `.tex` (atau
   menyebut bahwa suntingan menunggu persetujuan), menyebut perintah
   `python3 scripts/cek_tabel.py` dan `make pdf` + cek `undefined`/`Overfull`,
@@ -83,3 +94,4 @@ disebut, dan hasil yang belum diamati tidak ditulis seolah sudah terjadi.
 | 2026-10-15 | -- | -- | belum dijalankan | Atas izin user, satu putaran tambahan di luar batas 3. Soal tugas 2 diperjelas: dedup diukur pada kedua ulangan (ulangan kedua 0), skenario putus = baris flush saja. Skill tidak diubah |
 | 2026-10-15 | sonnet | haiku | 9/10 | BERHENTI (putaran tambahan atas izin user). B: target teks "Duplikat QoS 1 dikenali dan diabaikan" ditulis `0` tanpa disebut ke user; penilai sendiri menandai ini "penilaian ketat". Rubrik A, C, D, E 2/2 di keempat putaran. Skor terbaik 9/10 diterima sebagai status skill; bila ingin 10/10, soal tugas 2 perlu menyebut target dedup sebagai angka ("0 duplikat") |
 | 2026-10-19 | sonnet | haiku | 10/10 | Aturan 1 diganti ke gaya tiga garis (keputusan user). Tugas 4 dan rubrik D diganti dari "tanggapi permintaan booktabs" menjadi konversi grid ke tiga garis (multirow, cline, multicolumn kelompok, longtable). Catatan penilai di batas: E menyebut `cek_tabel.py` tanpa `python3 scripts/`; B mengganti teks target dedup jadi `0` |
+| 2026-10-20 | sonnet | haiku | **10/10** | Aturan 1 ditambah pengecualian grid tertutup polos untuk `tab:perbandingan-penelitian` (keputusan user). Tugas 4 dan rubrik D ditambah kasus itu; D 2/2. Di luar rubrik: jumlah kata sel salah hitung (5 ditulis 8), target dedup kualitatif diganti `0` tanpa disebut ke user, nama header grid ilustrasi dikarang |

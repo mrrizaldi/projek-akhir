@@ -16,6 +16,7 @@ ULANG_MIN_ANGKA = 5
 SATUAN_MIN_SEL = 3
 BERDASARKAN_MAKS_PER_BAB = 3
 BAB_TANPA_TABEL = ("bab1.tex", "bab5.tex")
+TABEL_GRID_PENUH = {"tab:perbandingan-penelitian"}
 ISIAN_SAMAR = {"sama", "idem", "konfigurasi sama", "tidak diulang", "dst", "dst.", "ditto"}
 SATUAN = r"(?:ms|\$\\mu\$s|µs|KB|MB|byte|detik|mV|mA|mW|Hz|\\%|sampel|entri)"
 POLA_BLOK = re.compile(r"\\begin\{(table|longtable)\}(.*?)\\end\{\1\}", re.S)
@@ -239,14 +240,19 @@ def periksa_tabel(lap, berkas, sumber, lebar_teks):
         baris_awal = nomor_baris(polos, m.start())
         if Path(berkas).name in BAB_TANPA_TABEL:
             lap.catat(berkas, baris_awal, "T-BAB", True, "Bab 1 dan Bab 5 tidak memuat tabel")
-        if re.search(r"\\(hline|cline)|\\rowcolor", blok):
+        lab_grid = re.search(r"\\label\{([^}]*)\}", blok)
+        grid_penuh = bool(lab_grid) and lab_grid.group(1) in TABEL_GRID_PENUH
+        if grid_penuh:
+            if re.search(r"\\(toprule|midrule|bottomrule|rowcolor|cellcolor)", blok) or "\\hline" not in blok:
+                lap.catat(berkas, baris_awal, "T-GRID", True, "tabel penelitian terkait: grid penuh polos, \\hline dan garis vertikal, tanpa booktabs dan warna")
+        elif re.search(r"\\(hline|cline)|\\rowcolor", blok):
             lap.catat(berkas, baris_awal, "T-GRID", True, "gaya tiga garis: \\toprule, \\midrule, \\bottomrule, tanpa \\hline, \\cline, dan \\rowcolor")
-        if not all(f"\\{garis}" in blok for garis in ("toprule", "midrule", "bottomrule")):
+        if not grid_penuh and not all(f"\\{garis}" in blok for garis in ("toprule", "midrule", "bottomrule")):
             lap.catat(berkas, baris_awal, "T-HEADER", True, "tabel tanpa pasangan lengkap \\toprule, \\midrule, \\bottomrule")
         if lingkungan == "table" and re.match(r"\s*\[H\]", blok):
             lap.catat(berkas, baris_awal, "T-FLOAT", False, "[H] mengunci posisi, pakai [!ht]")
         jenis, lebar_x, spek, akhir_spek = cari_tabular(blok, lingkungan)
-        if spek and "|" in spek:
+        if spek and "|" in spek and not grid_penuh:
             lap.catat(berkas, baris_awal, "T-GRID", True, "garis vertikal | di spesifikasi kolom, gaya tiga garis tanpa garis vertikal")
         cap = re.search(r"\\caption\{", blok)
         if not cap:
@@ -358,6 +364,7 @@ def periksa_prosa(lap, berkas, sumber):
 POLA_REVISI_PCB = re.compile(r"\brev\s?[0-9]+\b|\brevisi\s+(?:pertama|kedua|ketiga)\b|\bPCB\s+revisi\b", re.I)
 POLA_META_SUBBAB = re.compile(r"(?:^|(?<=\. ))\s*(?:Subbab|Butir|Bagian) ini\b")
 POLA_LABEL_TUJUAN = re.compile(r"\btujuan\s*([0-9]+|pertama|kedua|ketiga|keempat)\b", re.I)
+POLA_PENUNJUK = re.compile(r"(?:Sub)?[Bb]ab~?\\ref\{|\b(?:Sub)?[Bb]ab~?\s?[0-9]\b|(?:diuraikan|dibahas|dijelaskan) pada (?:sub-?bagian|butir [a-z]\b)")
 
 
 def periksa_label_tujuan(lap, berkas, sumber):
@@ -370,14 +377,35 @@ def periksa_label_tujuan(lap, berkas, sumber):
         if m:
             lap.catat(berkas, nomor, "N-REVISI", True,
                       f"label revisi internal '{m.group(0)}' di teks tercetak, tulis rancangan akhirnya saja")
+        m = POLA_PENUNJUK.search(baris)
+        if m:
+            lap.catat(berkas, nomor, "N-PENUNJUK", True,
+                      f"penunjuk '{m.group(0)}' ke bab, subbab, atau butir lain, sebut isinya langsung")
         m = POLA_META_SUBBAB.search(teks_polos(baris))
         if m:
             lap.catat(berkas, nomor, "N-META", True,
                       f"pembuka '{m.group(0)} ...' di subbab, langsung ke isi; 'Bab ini ...' hanya di pembuka bab")
 
 
+def periksa_pembuka_bab(lap, berkas, sumber):
+    polos = tanpa_komentar(sumber)
+    bab = re.search(r"\\chapter\{", polos)
+    if not bab:
+        return
+    sesudah = re.search(r"\\(?:section|subsection)\{", polos[bab.end():])
+    antara = polos[bab.end():bab.end() + sesudah.start()] if sesudah else polos[bab.end():]
+    antara = re.sub(r"^[^\n]*\}\s*", "", antara, count=1)
+    antara = re.sub(r"\\label\{[^}]*\}", "", antara)
+    if antara.strip():
+        lap.catat(berkas, nomor_baris(polos, bab.start()), "N-PEMBUKA-BAB", True,
+                  "paragraf pembuka sebelum subbab pertama, langsung ke subbab pertama seperti proposal")
+
+
 def uji_mandiri():
     contoh = "\n".join([
+        "\\chapter{Uji}",
+        "Bab ini memaparkan uji.",
+        "\\section{Hasil}",
         "Hasilnya pada Tabel~\\ref{tab:a}.",
         "",
         "\\begin{table}[H]",
@@ -396,13 +424,19 @@ def uji_mandiri():
         "\\label{subsec:hasil-tujuan1}",
         "Subbab ini memaparkan hasil uji.",
         "Desain PCB rev1 disusun rekan.",
+        "Pemetaan label diuraikan pada Subbab~\\ref{subsec:x}.",
     ])
     lap = Laporan()
     periksa_tabel(lap, "uji.tex", contoh, LEBAR_TEKS_CM["a4"])
     periksa_prosa(lap, "uji.tex", contoh)
     periksa_label_tujuan(lap, "uji.tex", contoh)
+    periksa_pembuka_bab(lap, "uji.tex", contoh)
     kode = {t[2] for t in lap.temuan}
-    harap = {"N-REVISI", "N-META", "N-TUJUAN", "T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
+    harap = {"N-PEMBUKA-BAB", "N-PENUNJUK", "N-REVISI", "N-META", "N-TUJUAN", "T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
+    grid = Laporan()
+    periksa_tabel(grid, "uji.tex", "Lihat Tabel~\\ref{tab:perbandingan-penelitian}.\n\\begin{longtable}{|c|c|}\n\\caption{Perbandingan Penelitian Terkait}\\label{tab:perbandingan-penelitian}\\\\\n\\toprule\na & b \\\\\n\\bottomrule\n\\end{longtable}\n", LEBAR_TEKS_CM["a4"])
+    if "T-GRID" not in {t[2] for t in grid.temuan}:
+        kode.discard("T-GRID")
     kurang = harap - kode
     if kurang:
         print(f"uji mandiri GAGAL, tidak terdeteksi: {sorted(kurang)}")
@@ -429,6 +463,7 @@ def main():
         sumber = berkas.read_text(encoding="utf-8")
         periksa_tabel(lap, berkas, sumber, LEBAR_TEKS_CM[arg.kertas])
         periksa_label_tujuan(lap, berkas, sumber)
+        periksa_pembuka_bab(lap, berkas, sumber)
         if not arg.tanpa_prosa:
             periksa_prosa(lap, berkas, sumber)
     lap.cetak(arg.hanya_galat)

@@ -138,7 +138,8 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
    jujur. Bila judulnya butuh "dan", pecah.
 
 7. **Tanpa pembuka meta di subbab dan butir** (keputusan user 19 Okt 2026,
-   gaya buku AFIB). "Bab ini ..." hanya untuk paragraf pembuka bab. Subbab
+   gaya buku AFIB). Bab tidak memiliki paragraf pembuka "Bab ini ..."
+   (keputusan user 20 Okt 2026, skill `struktur-pa` aturan 1). Subbab
    dan butir langsung masuk ke isi: tidak dibuka "Subbab ini memaparkan
    ...", "Butir ini bertujuan ...", atau "Bagian ini menguraikan ...", dan
    tidak menyebut tujuan bernomor ("menjawab Tujuan 2"). Tujuan uji ditulis
@@ -150,7 +151,10 @@ asing, desimal, `~\cite`, label kerja internal) maupun kerangka bab di skill
 8. **Kohesi lama → baru.** Kalimat dibuka dengan hal yang sudah dikenal
    pembaca dari kalimat atau paragraf sebelumnya, dan ditutup dengan
    informasi baru. Kata penunjuk selalu punya target yang jelas ("penurunan
-   tersebut", bukan "hal ini" atau "pada subbab ini"). Pembuka paragraf
+   tersebut", bukan "hal ini" atau "pada subbab ini"). Kalimat tidak
+   menunjuk ke bab, subbab, atau butir lain ("sebagaimana diuraikan pada
+   Bab~\ref{..}", "(Subbab~\ref{..})", "dibahas pada butir d"), tetapi
+   menyebut isinya langsung (skill `struktur-pa` aturan 11, N-PENUNJUK). Pembuka paragraf
    yang menjahit ke paragraf sebelumnya dirotasi dari lima jenis: anafora
    ("Penurunan tersebut ..."), urutan ("Pertama, ... Kedua, ..."), kontras
    ("Namun, ..." / "Sebaliknya, ..."), penambahan ("Selain itu, ..."), dan

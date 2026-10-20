@@ -17,7 +17,9 @@ Kegagalan yang ditangkap user (14 Okt 2026):
 1. Kerangka Bab 1 `laporan/buku-pa/bab/bab1.tex` = kerangka
    `laporan/proposal-pa/bab/bab1.tex`: Latar Belakang, Permasalahan (3 butir
    "Bagaimana ...?"), Tujuan (3 butir), Manfaat (3 butir), Sistematika
-   Penulisan. Jumlah butir Permasalahan dan Tujuan tetap 3.
+   Penulisan. Jumlah butir Permasalahan dan Tujuan tetap 3. Subbab Tujuan
+   berakhir pada daftar tujuan, tanpa kalimat sesudahnya (proposal tidak
+   memilikinya, keputusan user 20 Okt 2026).
 2. Jangan menambah subbab Bab 1 yang tidak ada di proposal (Batasan Masalah,
    Ruang Lingkup, Kontribusi, dll.), walau laporan acuan (AFIB) memilikinya.
    Keputusan user 14 Okt 2026: Bab 1 buku mengikuti proposal. Isi subbab
@@ -40,7 +42,8 @@ Kegagalan yang ditangkap user (14 Okt 2026):
      Keterbatasan (`subsec:analisis-keterbatasan`);
    - data latih mitdb inter-patient DS1/DS2 → Bab 3 Dataset dan Pelabelan.
    Rujukan ke subbab yang dihapus diganti kalimat utuh yang berdiri sendiri
-   (hapus klausa "sesuai ..."), atau `\ref` ke label yang ADA di daftar atas.
+   (hapus klausa "sesuai ..."). Penunjuk `\ref` ke bab atau subbab tidak
+   dipakai sama sekali (skill `struktur-pa` aturan 11).
    Dilarang penunjuk tanpa target seperti "pada subbab ini" / "seperti di
    atas". Setelah menyunting, jalankan
    `cd /home/mrrizaldi/dev/projek-akhir/laporan/buku-pa && make pdf` dan
@@ -78,8 +81,8 @@ Kegagalan yang ditangkap user (14 Okt 2026):
       yang belum dijalankan ditulis "belum dijalankan".
 - [ ] Tidak ada sel/kalimat yang menyebut keadaan yang belum terjadi (PCB final,
       rekaman resmi) sebagai fakta; pakai `\PlaceholderData`.
-- [ ] Teks pengganti rujukan: kalimat utuh atau `\ref` ke label yang ada; tanpa
-      "pada subbab ini".
+- [ ] Teks pengganti rujukan: kalimat utuh, tanpa `\ref` ke bab atau subbab,
+      dan tanpa "pada subbab ini".
 - [ ] Setiap pertanyaan ke user lolos pemilahan aturan 4; yang tercatat di repo,
       menunggu data, atau menunggu peristiwa tidak ditanyakan; keputusan milik
       user yang belum pernah diambil ditanyakan dengan opsi + rekomendasi.
