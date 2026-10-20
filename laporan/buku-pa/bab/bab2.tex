@@ -146,26 +146,41 @@ dapat dikompilasi bersama \textit{firmware} ESP32-S3 menggunakan TFLite Micro.
 \subsection{Mikrokontroler ESP32-S3}
 \label{subsec:esp32}
 
-ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems yang dirancang khusus
-untuk aplikasi kecerdasan buatan pada perangkat \emph{edge} (edge AI). Berbeda dari
-ESP32 generasi sebelumnya yang bersifat serba-guna, ESP32-S3 menggunakan prosesor
-\emph{dual-core} Xtensa LX7 hingga 240 MHz yang dilengkapi instruksi vektor (SIMD).
-Instruksi ini dimanfaatkan oleh pustaka kernel terakselerasi ESP-NN untuk mempercepat
-operasi konvolusi dan perkalian matriks pada inferensi jaringan saraf. Varian
-ESP32-S3 N16R8 memiliki Flash 16 MB, PSRAM 8 MB, dan
-SRAM internal 512 KB, serta dukungan konektivitas WiFi 802.11 b/g/n dan Bluetooth LE
-5.0. Sinyal ECG analog dari AD8232 dapat dicuplik oleh ADC internal 12-bit, dan
-model TinyML dijalankan melalui TensorFlow Lite for Microcontrollers (TFLite Micro)
-yang telah diporting untuk platform ESP32.
+ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \textit{dual-core} Xtensa LX7 dan konektivitas WiFi serta Bluetooth LE terintegrasi~\cite{espressif_esp32s3_datasheet}. Prosesor ini dilengkapi perluasan instruksi vektor 128 bit (SIMD) yang ditujukan untuk mempercepat algoritma kecerdasan buatan dan pengolahan sinyal digital~\cite{espressif_esp32s3_datasheet}. Pustaka ESP-NN dari Espressif memanfaatkan instruksi vektor tersebut untuk mempercepat operasi jaringan saraf seperti konvolusi~\cite{espressif_espnn}. ESP32-S3 juga memiliki dua ADC SAR 12 bit sehingga sinyal analog dari sensor dapat dicuplik langsung tanpa ADC eksternal. ADC kedua tidak dapat dipakai bersamaan dengan WiFi, sehingga sinyal yang dicuplik selama WiFi aktif harus masuk melalui kanal ADC pertama~\cite{espressif_esp32s3_datasheet}.
 
-Perlu ditekankan bahwa bobot model terkuantisasi INT8 disimpan sebagai array konstan di
-Flash, bukan di SRAM. SRAM hanya digunakan untuk \emph{tensor arena} berisi bufer
-aktivasi selama inferensi. Dengan model INT8 berukuran sekitar 23 KB dan \textit{tensor arena} sekitar 13 KB,
-kebutuhan memori model jauh di bawah kapasitas SRAM
-internal 512 KB. PSRAM 8 MB menyediakan cadangan memori yang menghilangkan
-risiko fragmentasi ketika tensor arena, bufer sinyal ECG, dan bufer MQTT aktif
-bersamaan.
-% sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/CLAUDE.md HW-1 (arena 12.948 B)
+Papan yang digunakan adalah papan kompatibel ESP32-S3-DevKitC-1 yang memakai modul ESP32-S3-WROOM-1-N16R8. Kode N16R8 menyatakan memori Flash 16 MB dan PSRAM 8 MB di dalam modul~\cite{espressif_esp32s3_wroom1}. Spesifikasi utama modul tersebut dirangkum pada Tabel~\ref{tab:spesifikasi-esp32}.
+
+\begin{table}[!ht]
+  \centering
+  \caption{Spesifikasi Modul ESP32-S3-WROOM-1-N16R8}
+  \label{tab:spesifikasi-esp32}
+  \small
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}p{3.6cm}>{\RaggedRight\arraybackslash}X}
+    \toprule
+    \textbf{Parameter} & \textbf{Spesifikasi} \\
+    \midrule
+    Prosesor & Xtensa LX7 32-bit \textit{dual-core}, hingga 240 MHz, dengan FPU \\
+    Akselerasi & Instruksi vektor (SIMD) 128 bit \\
+    Memori internal & ROM 384 KB, SRAM 512 KB, RTC SRAM 16 KB \\
+    Flash & 16 MB, Quad SPI \\
+    PSRAM & 8 MB, Octal SPI \\
+    WiFi & IEEE 802.11 b/g/n, 2,4 GHz \\
+    Bluetooth & Bluetooth LE 5 \\
+    ADC & 2 ADC SAR 12 bit, hingga 20 kanal \\
+    GPIO & 36 pin pada modul, 33 dapat dipakai \\
+    Antarmuka & UART, I2C, I2S, SPI, LED PWM 8 kanal, RMT, USB OTG, USB Serial/JTAG \\
+    Tegangan kerja modul & 3,0--3,6 V \\
+    Suhu operasi & $-$40 sampai 65~$^{\circ}$C \\
+    \bottomrule
+  \end{tabularx}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: tiga pin GPIO dipakai PSRAM Octal SPI, sehingga dari 36 pin modul tersisa 33 pin.\par}
+  \smallskip
+  {\footnotesize Sumber: Espressif Systems~\cite{espressif_esp32s3_datasheet, espressif_esp32s3_wroom1}\par}
+\end{table}
+% sumber: ESP32-S3 Series Datasheet v2.2 hlm. 3-5, 36-39, 58-59 (LX7 240 MHz, SIMD 128-bit PIE, ROM 384/SRAM 512/RTC 16 KB, 2x SAR 12-bit 20 kanal, ADC2 tidak bersama Wi-Fi, antarmuka); ESP32-S3-WROOM-1 Datasheet v1.8 Tabel 1-1 hlm. 3 (N16R8: 16 MB Quad SPI flash, 8 MB Octal SPI PSRAM, -40..65 C), hlm. 2 dan 12 (36 GPIO, IO35-37 untuk PSRAM octal), Tabel 6-2 hlm. 27 (VDD33 3,0-3,6 V)
+
+Pada Tabel~\ref{tab:spesifikasi-esp32}, kapasitas yang paling menentukan bagi inferensi adalah SRAM internal 512 KB, karena bobot model INT8 disimpan sebagai array konstan di Flash dan SRAM hanya menampung \textit{tensor arena} berisi bufer aktivasi selama inferensi. Model INT8 berukuran sekitar 23 KB dengan \textit{tensor arena} sekitar 13 KB, sehingga kebutuhan memori model jauh di bawah kapasitas tersebut. PSRAM 8 MB menampung bufer berukuran besar di luar SRAM, seperti antrean data yang ditahan selama koneksi terputus.
+% sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/CLAUDE.md HW-1 (arena 12.948 B), HW-6 (backlog 27.000 beat di PSRAM)
 
 Kelayakan inferensi 1D-CNN terkuantisasi pada mikrokontroler sekelas ini
 telah dibuktikan pada perangkat yang bahkan jauh lebih terbatas. Kim et
@@ -175,20 +190,23 @@ STM32F407 (Cortex-M4, SRAM 192 KB). Zambrano-de la Torre et
 al.~\cite{zambrano_2026} bahkan menjalankannya pada Arduino UNO 8-bit yang hanya memiliki SRAM 2 KB dengan
 sensor AD8232 dan dataset MIT-BIH yang sama. Dikarenakan SRAM internal ESP32-S3 (512 KB)
 jauh lebih besar daripada seluruh platform tersebut, kelayakan inferensi \emph{on-device}
-pada penelitian ini memiliki batas kritis yang longgar. Modul ESP32-S3 yang digunakan ditunjukkan pada Gambar~\ref{fig:esp32}.
+pada penelitian ini memiliki batas kritis yang longgar. Papan ESP32-S3 yang digunakan ditunjukkan pada Gambar~\ref{fig:esp32}.
 
-\begin{figure}[H]
+\begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.45\linewidth,keepaspectratio]{gambar/gambar_2_1.png}
-  \caption{Modul mikrokontroler ESP32-S3}
+  \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/esp32s3_devkitc1.png}\\[2pt]
+  {\footnotesize Sumber: Espressif Systems~\cite{espressif_devkitc1}\par}
+  \caption{Papan ESP32-S3-DevKitC-1}
   \label{fig:esp32}
 \end{figure}
+% sumber gambar: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/_images/esp32-s3-devkitc-1-v1.1-isometric.png (CC BY-SA 4.0 repositori esp-dev-kits)
 
 Dalam penelitian ini, ESP32-S3 N16R8 digunakan sebagai perangkat \emph{edge}
-tunggal yang menjalankan akuisisi sinyal AD8232 melalui ADC internal,
-preprocessing, inferensi model INT8, dan pengiriman MQTT. Inferensi memakai
-kernel referensi TFLite Micro, sedangkan ESP-NN menjadi opsi optimasi pada
-pengembangan selanjutnya.
+tunggal yang menjalankan akuisisi sinyal AD8232 melalui kanal ADC pertama,
+preprocessing, inferensi model INT8 melalui TensorFlow Lite for Microcontrollers,
+dan pengiriman MQTT. Inferensi memakai kernel referensi TensorFlow Lite for
+Microcontrollers, sedangkan ESP-NN menjadi opsi optimasi pada pengembangan selanjutnya.
+% sumber: firmware/include/perangkat.h (KANAL_EKG = ADC1_CHANNEL_0); firmware/README.md (kernel referensi, belum ESP-NN)
 
 \subsection{Modul Sensor AD8232}
 \label{subsec:ad8232}
@@ -227,7 +245,16 @@ andal untuk deteksi R-\textit{peak} menggunakan algoritma Pan-Tompkins.
 \subsection{Layar TFT ST7789}
 \label{subsec:tft-st7789}
 
-ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar TFT LCD 262 ribu warna. Chip ini memiliki memori bingkai (\textit{frame memory}) internal berukuran 240$\times$320 piksel dengan kedalaman 18 bit per piksel~\cite{sitronix_st7789v3}. Karena gambar disimpan di memori tersebut, mikrokontroler hanya perlu mengirim data piksel untuk area yang berubah, sedangkan penyegaran panel ditangani chip sendiri. ST7789 menerima data melalui antarmuka paralel 8 atau 9 bit, antarmuka RGB, maupun antarmuka serial SPI tiga atau empat jalur~\cite{sitronix_st7789v3}. Antarmuka SPI membutuhkan jumlah pin paling sedikit, sehingga sesuai untuk mikrokontroler yang pinnya juga dipakai sensor dan tombol.
+ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar TFT LCD 262 ribu warna. Chip ini memiliki memori bingkai (\textit{frame memory}) internal berukuran 240$\times$320 piksel dengan kedalaman 18 bit per piksel~\cite{sitronix_st7789v3}. Karena gambar disimpan di memori tersebut, mikrokontroler hanya perlu mengirim data piksel untuk area yang berubah, sedangkan penyegaran panel ditangani chip sendiri. ST7789 menerima data melalui antarmuka paralel 8 atau 9 bit, antarmuka RGB, maupun antarmuka serial SPI tiga atau empat jalur~\cite{sitronix_st7789v3}. Antarmuka SPI membutuhkan jumlah pin paling sedikit, sehingga sesuai untuk mikrokontroler yang pinnya juga dipakai sensor dan tombol. Contoh modul layar TFT 1,47 inci dengan \textit{driver} ST7789 ditunjukkan pada Gambar~\ref{fig:tft-st7789}.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.3\linewidth,keepaspectratio]{gambar/modul_tft_st7789.jpg}\\[2pt]
+  {\footnotesize Sumber: Waveshare (www.waveshare.com)\par}
+  \caption{Modul layar TFT 1,47 inci dengan \textit{driver} ST7789}
+  \label{fig:tft-st7789}
+\end{figure}
+% sumber gambar: https://www.waveshare.com/1.47inch-lcd-module.htm (foto produk Waveshare, dipotong tepinya)
 
 Dalam penelitian ini, layar TFT 1,47 inci beresolusi 172$\times$320 piksel dengan \textit{driver} ST7789 digunakan melalui antarmuka SPI untuk menampilkan laju jantung, gelombang ECG tersaring, pembacaan daya, waktu, status perekaman, dan halaman menu pada perangkat.
 
@@ -242,21 +269,56 @@ P &= I \cdot V_\text{bus}
 \label{eq:ina219}
 \end{align}
 
-\noindent di mana $V_\text{shunt}$ adalah jatuh tegangan pada resistor \textit{shunt}, $R_\text{shunt}$ adalah resistansi \textit{shunt}, $V_\text{bus}$ adalah tegangan bus terhadap \textit{ground}, $I$ adalah arus beban, dan $P$ adalah daya beban. Rentang ukur tegangan \textit{shunt} diatur oleh penguat terprogram (PGA) pada $\pm$40, $\pm$80, $\pm$160, atau $\pm$320 mV. Konversinya memakai ADC 12 bit yang dapat merata-ratakan hingga 128 sampel per pembacaan~\cite{ti_ina219}. Perata-rataan ini meredam fluktuasi ketika arus beban berdenyut mengikuti aktivitas prosesor dan radio.
+\noindent di mana $V_\text{shunt}$ adalah jatuh tegangan pada resistor \textit{shunt}, $R_\text{shunt}$ adalah resistansi \textit{shunt}, $V_\text{bus}$ adalah tegangan bus terhadap \textit{ground}, $I$ adalah arus beban, dan $P$ adalah daya beban. Rentang ukur tegangan \textit{shunt} diatur oleh penguat terprogram (PGA) pada $\pm$40, $\pm$80, $\pm$160, atau $\pm$320 mV. Konversinya memakai ADC 12 bit yang dapat merata-ratakan hingga 128 sampel per pembacaan~\cite{ti_ina219}. Perata-rataan ini meredam fluktuasi ketika arus beban berdenyut mengikuti aktivitas prosesor dan radio. Contoh modul INA219 beserta resistor \textit{shunt}-nya ditunjukkan pada Gambar~\ref{fig:ina219}.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/modul_ina219.jpg}\\[2pt]
+  {\footnotesize Sumber: Adafruit (learn.adafruit.com)\par}
+  \caption{Modul sensor arus dan tegangan INA219}
+  \label{fig:ina219}
+\end{figure}
+% sumber gambar: https://learn.adafruit.com/adafruit-ina219-current-sensor-breakout (foto produk Adafruit #904, dipotong tepinya)
 
 Dalam penelitian ini, INA219 digunakan untuk mengukur arus, tegangan, dan daya yang ditarik perangkat dari sel baterai, dengan resistor \textit{shunt} 0,1 ohm dan pembacaan melalui I2C oleh ESP32-S3.
 
 \subsection{Modul \textit{Buzzer} Pasif}
 \label{subsec:buzzer-pasif}
 
-\textit{Buzzer} adalah transduser yang mengubah sinyal listrik menjadi bunyi. Berdasarkan rangkaian penggeraknya, \textit{buzzer} dibedakan menjadi \textit{buzzer} indikator dan \textit{buzzer} transduser~\cite{cui_buzzer_basics}. \textit{Buzzer} indikator, yang umum disebut \textit{buzzer} aktif, sudah memiliki rangkaian penggerak internal sehingga berbunyi pada satu frekuensi tetap begitu diberi tegangan searah. \textit{Buzzer} transduser, yang umum disebut \textit{buzzer} pasif, tidak memiliki rangkaian penggerak tersebut. Elemen ini harus digerakkan gelombang kotak dari luar, dan frekuensi bunyinya mengikuti frekuensi gelombang penggerak~\cite{cui_buzzer_basics}. \textit{Buzzer} magnetik menarik arus yang lebih besar daripada kemampuan pin mikrokontroler, sehingga umumnya digerakkan melalui transistor~\cite{cui_buzzer_basics}.
+\textit{Buzzer} adalah transduser yang mengubah sinyal listrik menjadi bunyi. Berdasarkan rangkaian penggeraknya, \textit{buzzer} dibedakan menjadi \textit{buzzer} indikator dan \textit{buzzer} transduser~\cite{cui_buzzer_basics}. \textit{Buzzer} indikator, yang umum disebut \textit{buzzer} aktif, sudah memiliki rangkaian penggerak internal sehingga berbunyi pada satu frekuensi tetap begitu diberi tegangan searah. \textit{Buzzer} transduser, yang umum disebut \textit{buzzer} pasif, tidak memiliki rangkaian penggerak tersebut. Elemen ini harus digerakkan gelombang kotak dari luar, dan frekuensi bunyinya mengikuti frekuensi gelombang penggerak~\cite{cui_buzzer_basics}. \textit{Buzzer} magnetik menarik arus yang lebih besar daripada kemampuan pin mikrokontroler, sehingga umumnya digerakkan melalui transistor~\cite{cui_buzzer_basics}. Contoh modul \textit{buzzer} pasif tiga pin dengan transistor penggerak ditunjukkan pada Gambar~\ref{fig:buzzer-pasif}.
+
+\begin{figure}[!ht]
+  \centering
+  \includegraphics[width=0.45\linewidth,keepaspectratio]{gambar/modul_buzzer_pasif.jpg}\\[2pt]
+  {\footnotesize Sumber: Keyestudio (wiki.keyestudio.com)\par}
+  \caption{Modul \textit{buzzer} pasif tiga pin}
+  \label{fig:buzzer-pasif}
+\end{figure}
+% sumber gambar: https://wiki.keyestudio.com/Ks0019_keyestudio_Passive_Buzzer_module (foto produk Keyestudio KS0019, dipotong tepinya)
 
 Dalam penelitian ini, modul \textit{buzzer} pasif yang sudah dilengkapi transistor penggerak digunakan sebagai indikator bunyi. Gelombang kotak dibangkitkan oleh periferal PWM ESP32-S3 sehingga nada dapat diatur dari \textit{firmware} dan satu bip dapat dibunyikan untuk setiap detak.
 
 \subsection{Rangkaian Catu Daya Baterai}
 \label{subsec:catu-baterai}
 
-Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ulang. Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga bagian, yaitu sel litium-ion 18650 sebagai sumber energi, modul pengisi TP4056 untuk mengisi sel, dan konverter \textit{boost} MT3608 untuk menaikkan tegangan sel ke tegangan kerja papan.
+Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ulang. Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga bagian, yaitu sel litium-ion 18650 sebagai sumber energi, modul pengisi TP4056 untuk mengisi sel, dan konverter \textit{boost} MT3608 untuk menaikkan tegangan sel ke tegangan kerja papan. Ketiga komponen tersebut ditunjukkan pada Gambar~\ref{fig:catu-baterai}, yaitu sel 18650 pada panel (a), modul TP4056 pada panel (b), dan modul MT3608 pada panel (c).
+
+\begin{figure}[!ht]
+  \centering
+  \begin{minipage}[b]{0.22\linewidth}\centering
+    \includegraphics[width=\linewidth,keepaspectratio]{gambar/sel_18650.jpg}\\(a)
+  \end{minipage}\hfill
+  \begin{minipage}[b]{0.36\linewidth}\centering
+    \includegraphics[width=\linewidth,keepaspectratio]{gambar/modul_tp4056.jpg}\\(b)
+  \end{minipage}\hfill
+  \begin{minipage}[b]{0.36\linewidth}\centering
+    \includegraphics[width=\linewidth,keepaspectratio]{gambar/modul_mt3608.jpg}\\(c)
+  \end{minipage}\\[2pt]
+  {\footnotesize Sumber: Wikimedia Commons, (a) Lead holder, CC BY-SA 3.0, (b) -stk, CC BY-SA 4.0, (c) Ogidya, CC BY-SA 4.0, dipotong\par}
+  \caption{Komponen rangkaian catu daya baterai, yaitu (a) sel litium-ion 18650, (b) modul pengisi TP4056, dan (c) modul konverter \textit{boost} MT3608}
+  \label{fig:catu-baterai}
+\end{figure}
+% sumber gambar: (a) https://commons.wikimedia.org/wiki/File:LiIon-18650-match.jpg (b) https://commons.wikimedia.org/wiki/File:TP4056_board_P1089957.jpg (dipotong) (c) https://commons.wikimedia.org/wiki/File:Voltage_Boost_Converters.jpg (dipotong)
 
 \subsubsection{Sel Litium-Ion 18650}
 
