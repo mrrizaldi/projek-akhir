@@ -312,7 +312,7 @@ Versi perangkat lunak yang digunakan ditunjukkan pada Tabel~\ref{tab:perangkat-l
   \end{tabular}
 \end{table}
 
-Tabel~\ref{tab:perangkat-lunak-uji} mencantumkan versi setiap perangkat lunak secara persis karena berkas kebutuhan Python pada repositori tidak mematok versi pustaka. Dengan versi tersebut, eksperimen dapat diulang pada lingkungan yang sama.
+Tabel~\ref{tab:perangkat-lunak-uji} mencantumkan versi setiap perangkat lunak secara persis karena berkas kebutuhan Python pada repositori tidak mematok versi \textit{library}. Dengan versi tersebut, eksperimen dapat diulang pada lingkungan yang sama.
 % sumber: model/requirements.txt (numpy, scipy, wfdb, tensorflow tanpa nomor versi)
 
 \subsection{Validitas Pengukuran}
@@ -320,7 +320,7 @@ Tabel~\ref{tab:perangkat-lunak-uji} mencantumkan versi setiap perangkat lunak se
 
 Beberapa alat ukur pada eksperimen ini terbukti dapat memberi angka yang salah tanpa pesan kesalahan apa pun. Empat sumber \textit{error} pengukuran yang ditemukan selama pengembangan beserta penanganannya diuraikan pada butir berikut, agar angka pada hasil eksperimen dapat dinilai keabsahannya.
 \begin{enumerate}
-  \item Membuka \textit{port} serial me-\textit{reset} perangkat. Pustaka pyserial menegaskan sinyal DTR dan RTS saat \textit{port} dibuka, ESP32-S3 pun \textit{reset}, dan pengaturan yang sudah dikirim seperti \textit{replay} ikut hilang. Penanganannya adalah menonaktifkan DTR dan RTS sebelum \textit{port} dibuka, lalu memverifikasi keadaan perangkat dari balasannya dan dari ayunan sinyal, bukan mengasumsikannya.
+  \item Membuka \textit{port} serial me-\textit{reset} perangkat. \textit{Library} pyserial menegaskan sinyal DTR dan RTS saat \textit{port} dibuka, ESP32-S3 pun \textit{reset}, dan pengaturan yang sudah dikirim seperti \textit{replay} ikut hilang. Penanganannya adalah menonaktifkan DTR dan RTS sebelum \textit{port} dibuka, lalu memverifikasi keadaan perangkat dari balasannya dan dari ayunan sinyal, bukan mengasumsikannya.
   % sumber: model/CLAUDE.md Jebakan "Membuka port serial me-reset board"; dashboard/ukur_pipeline.py (s.dtr = s.rts = False sebelum s.open())
   \item Jam beresolusi satu detik menyamar sebagai latensi. Basis waktu semula dihitung dari fungsi time() yang beresolusi satu detik. Akibatnya, \textit{error} pembulatan hingga satu detik masuk ke setiap ts dan berubah setiap kali perangkat dinyalakan ulang. Penanganannya adalah mengganti sumber waktu dengan gettimeofday() yang beresolusi milidetik, sedangkan alat ukur di komputer mengoreksi selisih jam antara perangkat dan komputer.
   % sumber: model/CLAUDE.md Jebakan "time() beresolusi 1 detik"; git log 6fc426c
