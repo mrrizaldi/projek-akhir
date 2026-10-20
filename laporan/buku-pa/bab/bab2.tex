@@ -146,9 +146,7 @@ dapat dikompilasi bersama \textit{firmware} ESP32-S3 menggunakan TFLite Micro.
 \subsection{Mikrokontroler ESP32-S3}
 \label{subsec:esp32}
 
-ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \textit{dual-core} Xtensa LX7 dan konektivitas WiFi serta Bluetooth LE terintegrasi~\cite{espressif_esp32s3_datasheet}. Prosesor ini dilengkapi perluasan instruksi vektor 128 bit (SIMD) yang ditujukan untuk mempercepat algoritma kecerdasan buatan dan pengolahan sinyal digital~\cite{espressif_esp32s3_datasheet}. \textit{Library} ESP-NN dari Espressif memanfaatkan instruksi vektor tersebut untuk mempercepat operasi jaringan saraf seperti konvolusi~\cite{espressif_espnn}. ESP32-S3 juga memiliki dua ADC SAR 12 bit sehingga sinyal analog dari sensor dapat dicuplik langsung tanpa ADC eksternal. ADC kedua tidak dapat dipakai bersamaan dengan WiFi, sehingga sinyal yang dicuplik selama WiFi aktif harus masuk melalui kanal ADC pertama~\cite{espressif_esp32s3_datasheet}.
-
-\textit{Board} yang digunakan adalah \textit{board} kompatibel ESP32-S3-DevKitC-1 yang memakai modul ESP32-S3-WROOM-1-N16R8. Kode N16R8 menyatakan memori Flash 16 MB dan PSRAM 8 MB di dalam modul~\cite{espressif_esp32s3_wroom1}. Spesifikasi utama modul tersebut dirangkum pada Tabel~\ref{tab:spesifikasi-esp32}.
+ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \textit{dual-core} Xtensa LX7, instruksi vektor (SIMD) untuk mempercepat algoritma kecerdasan buatan, serta WiFi dan Bluetooth LE terintegrasi~\cite{espressif_esp32s3_datasheet}. \textit{Board} yang digunakan adalah \textit{board} kompatibel ESP32-S3-DevKitC-1 dengan modul ESP32-S3-WROOM-1-N16R8, yaitu modul dengan memori Flash 16 MB dan PSRAM 8 MB~\cite{espressif_esp32s3_wroom1}. Spesifikasi modul tersebut dirangkum pada Tabel~\ref{tab:spesifikasi-esp32}, dan \textit{board}-nya ditunjukkan pada Gambar~\ref{fig:esp32}.
 
 \begin{table}[!ht]
   \centering
@@ -179,19 +177,6 @@ ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \te
 \end{table}
 % sumber: ESP32-S3 Series Datasheet v2.2 hlm. 3-5, 36-39, 58-59 (LX7 240 MHz, SIMD 128-bit PIE, ROM 384/SRAM 512/RTC 16 KB, 2x SAR 12-bit 20 kanal, ADC2 tidak bersama Wi-Fi, antarmuka); ESP32-S3-WROOM-1 Datasheet v1.8 Tabel 1-1 hlm. 3 (N16R8: 16 MB Quad SPI flash, 8 MB Octal SPI PSRAM, -40..65 C), hlm. 2 dan 12 (36 GPIO, IO35-37 untuk PSRAM octal), Tabel 6-2 hlm. 27 (VDD33 3,0-3,6 V)
 
-Pada Tabel~\ref{tab:spesifikasi-esp32}, kapasitas yang paling menentukan bagi inferensi adalah SRAM internal 512 KB, karena bobot model INT8 disimpan sebagai array konstan di Flash dan SRAM hanya menampung \textit{tensor arena} berisi bufer aktivasi selama inferensi. Model INT8 berukuran sekitar 23 KB dengan \textit{tensor arena} sekitar 13 KB, sehingga kebutuhan memori model jauh di bawah kapasitas tersebut. PSRAM 8 MB menampung bufer berukuran besar di luar SRAM, seperti antrean data yang ditahan selama koneksi terputus.
-% sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/CLAUDE.md HW-1 (arena 12.948 B), HW-6 (backlog 27.000 beat di PSRAM)
-
-Kelayakan inferensi 1D-CNN terkuantisasi pada mikrokontroler sekelas ini
-telah dibuktikan pada perangkat yang bahkan jauh lebih terbatas. Kim et
-al.~\cite{kim_2023} menjalankan 1D-CNN INT8 berukuran 27 KB pada Arduino Nano BLE
-Sense (ARM Cortex-M4, SRAM 256 KB), dan Sheeba Rani et al.~\cite{sheeba_rani_2026} pada
-STM32F407 (Cortex-M4, SRAM 192 KB). Zambrano-de la Torre et
-al.~\cite{zambrano_2026} bahkan menjalankannya pada Arduino UNO 8-bit yang hanya memiliki SRAM 2 KB dengan
-sensor AD8232 dan dataset MIT-BIH yang sama. Dikarenakan SRAM internal ESP32-S3 (512 KB)
-jauh lebih besar daripada seluruh platform tersebut, kelayakan inferensi \emph{on-device}
-pada penelitian ini memiliki batas kritis yang longgar. \textit{Board} ESP32-S3 yang digunakan ditunjukkan pada Gambar~\ref{fig:esp32}.
-
 \begin{figure}[!ht]
   \centering
   \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/esp32s3_devkitc1.png}\\[2pt]
@@ -201,51 +186,27 @@ pada penelitian ini memiliki batas kritis yang longgar. \textit{Board} ESP32-S3 
 \end{figure}
 % sumber gambar: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/_images/esp32-s3-devkitc-1-v1.1-isometric.png (CC BY-SA 4.0 repositori esp-dev-kits)
 
-Dalam penelitian ini, ESP32-S3 N16R8 digunakan sebagai perangkat \emph{edge}
-tunggal yang menjalankan akuisisi sinyal AD8232 melalui kanal ADC pertama,
-preprocessing, inferensi model INT8 melalui TensorFlow Lite for Microcontrollers,
-dan pengiriman MQTT. Inferensi memakai kernel referensi TensorFlow Lite for
-Microcontrollers, sedangkan ESP-NN menjadi opsi optimasi pada pengembangan selanjutnya.
-% sumber: firmware/include/perangkat.h (KANAL_EKG = ADC1_CHANNEL_0); firmware/README.md (kernel referensi, belum ESP-NN)
+Dalam penelitian ini, ESP32-S3 berfungsi sebagai perangkat \textit{edge} tunggal yang menjalankan akuisisi sinyal AD8232, preprocessing, inferensi model INT8 melalui TensorFlow Lite for Microcontrollers, dan pengiriman MQTT. ESP32-S3 dipilih karena SRAM 512 KB jauh melebihi kebutuhan model INT8 sekitar 23 KB beserta \textit{tensor arena} sekitar 13 KB, PSRAM 8 MB dapat menampung antrean data selama koneksi terputus, dan WiFi sudah terintegrasi. Inferensi 1D-CNN INT8 bahkan telah berjalan pada mikrokontroler yang SRAM-nya jauh lebih kecil, seperti ARM Cortex-M4~\cite{kim_2023, sheeba_rani_2026} dan Arduino UNO 8-bit~\cite{zambrano_2026}. Sinyal AD8232 dicuplik melalui kanal ADC pertama karena ADC kedua tidak dapat dipakai bersamaan dengan WiFi~\cite{espressif_esp32s3_datasheet}.
+% sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/CLAUDE.md HW-1 (arena 12.948 B), HW-6 (backlog 27.000 beat di PSRAM); firmware/include/perangkat.h (KANAL_EKG = ADC1_CHANNEL_0)
 
 \subsection{Modul Sensor AD8232}
 \label{subsec:ad8232}
 
-AD8232 adalah modul sensor elektrokardiogram (single-lead ECG)
-yang berfungsi sebagai \textit{front-end} analog terintegrasi untuk akuisisi
-sinyal biopotensial jantung. Modul ini menangkap sinyal listrik lemah dari
-aktivitas jantung melalui elektroda yang ditempelkan pada tubuh pengguna.
-Sinyal tersebut kemudian diperkuat dan disaring sehingga menghasilkan
-keluaran analog yang bersih dan siap dicuplik oleh ADC pada
-mikrokontroler~\cite{analog_ad8232}.
+AD8232 adalah \textit{front-end} analog terintegrasi untuk akuisisi sinyal ECG \textit{single-lead}. Chip ini memuat penguat instrumentasi \textit{low-noise}, filter \textit{high-pass} untuk meredam \textit{baseline wander}, filter \textit{low-pass} untuk meredam \textit{high-frequency noise}, serta deteksi lepasnya elektroda (\textit{lead-off detection})~\cite{analog_ad8232}. Keluarannya berupa sinyal analog yang dapat dicuplik langsung oleh ADC mikrokontroler. Modul AD8232 beserta elektrodanya ditunjukkan pada Gambar~\ref{fig:ad8232}.
 
-Secara internal, AD8232 mengintegrasikan penguat instrumentasi (\textit{in-amp})
-\textit{low-noise}, filter \textit{high-pass} untuk menghilangkan
-\textit{baseline wander}, serta filter \textit{low-pass} untuk meredam
-\textit{high-frequency noise}. Hasilnya adalah sinyal ECG analog dalam rentang
-0--3,3 V yang sesuai dengan level ADC ESP32-S3. Modul ini juga dilengkapi fitur
-deteksi lepasnya elektroda (\textit{lead-off detection}), tetapi fitur ini belum
-cukup sebagai jaminan bahwa sinyal benar-benar ada karena syaratnya dapat dipenuhi oleh
-satu jalur impedansi rendah saja. Oleh karena itu, pada penelitian ini kualitas sinyal
-dinilai dari ayunan sinyal ADC. Modul AD8232 beserta elektrodanya ditunjukkan pada Gambar~\ref{fig:ad8232}.
-% sumber: model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (LO melapor 0% tanpa sinyal)
-
-\begin{figure}[H]
+\begin{figure}[!ht]
   \centering
   \includegraphics[width=0.55\linewidth,keepaspectratio]{gambar/gambar_2_2.png}
   \caption{Modul sensor AD8232 beserta elektroda \textit{wet-gel} tiga sadapan}
   \label{fig:ad8232}
 \end{figure}
 
-Dalam penelitian ini, AD8232 dikonfigurasi pada sadapan \textit{Modified Lead II}
-(MLII) karena vektor listrik jantung sejajar dengan sudut pandang sadapan
-tersebut. Konfigurasi ini menghasilkan gelombang R yang paling tinggi dan paling
-andal untuk deteksi R-\textit{peak} menggunakan algoritma Pan-Tompkins.
+Dalam penelitian ini, AD8232 digunakan untuk menangkap sinyal ECG melalui tiga elektroda pada sadapan \textit{Modified Lead II} (MLII), karena gelombang R pada sadapan ini paling tinggi sehingga andal untuk deteksi R-\textit{peak}. Modul ini dipilih karena penguatan dan penyaringan sinyalnya sudah terintegrasi, keluarannya dapat langsung dicuplik ADC ESP32-S3, dan modul yang sama dipakai pada penelitian terkait yang menjadi pembanding~\cite{zambrano_2026, mulyawan_2026}.
 
 \subsection{Layar TFT ST7789}
 \label{subsec:tft-st7789}
 
-ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar TFT LCD 262 ribu warna. Chip ini memiliki memori bingkai (\textit{frame memory}) internal berukuran 240$\times$320 piksel dengan kedalaman 18 bit per piksel~\cite{sitronix_st7789v3}. Karena gambar disimpan di memori tersebut, mikrokontroler hanya perlu mengirim data piksel untuk area yang berubah, sedangkan penyegaran panel ditangani chip sendiri. ST7789 menerima data melalui antarmuka paralel 8 atau 9 bit, antarmuka RGB, maupun antarmuka serial SPI tiga atau empat jalur~\cite{sitronix_st7789v3}. Antarmuka SPI membutuhkan jumlah pin paling sedikit, sehingga sesuai untuk mikrokontroler yang pinnya juga dipakai sensor dan tombol. Contoh modul layar TFT 1,47 inci dengan \textit{driver} ST7789 ditunjukkan pada Gambar~\ref{fig:tft-st7789}.
+ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar TFT LCD 262 ribu warna dengan memori bingkai (\textit{frame memory}) internal berukuran 240$\times$320 piksel, sehingga mikrokontroler hanya perlu mengirim data piksel untuk area yang berubah. Chip ini menerima data melalui antarmuka paralel, RGB, maupun SPI tiga atau empat jalur~\cite{sitronix_st7789v3}. Contoh modul layar TFT 1,47 inci dengan \textit{driver} ST7789 ditunjukkan pada Gambar~\ref{fig:tft-st7789}.
 
 \begin{figure}[!ht]
   \centering
@@ -256,20 +217,12 @@ ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar 
 \end{figure}
 % sumber gambar: https://www.waveshare.com/1.47inch-lcd-module.htm (foto produk Waveshare, dipotong tepinya)
 
-Dalam penelitian ini, layar TFT 1,47 inci beresolusi 172$\times$320 piksel dengan \textit{driver} ST7789 digunakan melalui antarmuka SPI untuk menampilkan laju jantung, gelombang ECG tersaring, pembacaan daya, waktu, status perekaman, dan halaman menu pada perangkat.
+Dalam penelitian ini, layar TFT 1,47 inci beresolusi 172$\times$320 piksel dengan \textit{driver} ST7789 digunakan untuk menampilkan laju jantung, gelombang ECG, pembacaan daya, waktu, status perekaman, dan menu. Layar ini dipilih karena ukurannya ringkas untuk perangkat yang dikenakan, resolusinya cukup untuk menampilkan gelombang ECG, dan antarmuka SPI hanya membutuhkan sedikit pin.
 
 \subsection{Sensor Arus dan Tegangan INA219}
 \label{subsec:ina219}
 
-INA219 adalah pemantau arus dan daya dua arah berantarmuka I2C. Chip ini mengukur jatuh tegangan pada resistor \textit{shunt} yang dipasang seri dengan beban, sekaligus mengukur tegangan bus pada rentang 0--26 V~\cite{ti_ina219}. Arus dan daya diperoleh dari kedua besaran tersebut sesuai Persamaan~\ref{eq:ina219}.
-
-\begin{align}
-I &= \frac{V_\text{shunt}}{R_\text{shunt}} \nonumber \\
-P &= I \cdot V_\text{bus}
-\label{eq:ina219}
-\end{align}
-
-\noindent di mana $V_\text{shunt}$ adalah jatuh tegangan pada resistor \textit{shunt}, $R_\text{shunt}$ adalah resistansi \textit{shunt}, $V_\text{bus}$ adalah tegangan bus terhadap \textit{ground}, $I$ adalah arus beban, dan $P$ adalah daya beban. Rentang ukur tegangan \textit{shunt} diatur oleh penguat terprogram (PGA) pada $\pm$40, $\pm$80, $\pm$160, atau $\pm$320 mV. Konversinya memakai ADC 12 bit yang dapat merata-ratakan hingga 128 sampel per pembacaan~\cite{ti_ina219}. Perata-rataan ini meredam fluktuasi ketika arus beban berdenyut mengikuti aktivitas prosesor dan radio. Contoh modul INA219 beserta resistor \textit{shunt}-nya ditunjukkan pada Gambar~\ref{fig:ina219}.
+INA219 adalah pemantau arus dan daya dua arah berantarmuka I2C. Chip ini mengukur jatuh tegangan pada resistor \textit{shunt} hingga $\pm$320 mV dan tegangan bus 0--26 V, lalu menghitung arus dan daya dari kedua besaran tersebut. Konversinya memakai ADC 12 bit yang dapat merata-ratakan hingga 128 sampel~\cite{ti_ina219}. Contoh modul INA219 beserta resistor \textit{shunt}-nya ditunjukkan pada Gambar~\ref{fig:ina219}.
 
 \begin{figure}[!ht]
   \centering
@@ -280,12 +233,12 @@ P &= I \cdot V_\text{bus}
 \end{figure}
 % sumber gambar: https://learn.adafruit.com/adafruit-ina219-current-sensor-breakout (foto produk Adafruit #904, dipotong tepinya)
 
-Dalam penelitian ini, INA219 digunakan untuk mengukur arus, tegangan, dan daya yang ditarik perangkat dari sel baterai, dengan resistor \textit{shunt} 0,1 ohm dan pembacaan melalui I2C oleh ESP32-S3.
+Dalam penelitian ini, INA219 dengan resistor \textit{shunt} 0,1 ohm digunakan untuk mengukur arus, tegangan, dan daya yang ditarik perangkat dari baterai. INA219 dipilih karena hasil ukurnya dapat dibaca langsung oleh ESP32-S3 melalui I2C, sehingga konsumsi daya dapat diukur oleh perangkat itu sendiri tanpa alat ukur eksternal.
 
 \subsection{Modul \textit{Buzzer} Pasif}
 \label{subsec:buzzer-pasif}
 
-\textit{Buzzer} adalah transduser yang mengubah sinyal listrik menjadi bunyi. Berdasarkan rangkaian penggeraknya, \textit{buzzer} dibedakan menjadi \textit{buzzer} indikator dan \textit{buzzer} transduser~\cite{cui_buzzer_basics}. \textit{Buzzer} indikator, yang umum disebut \textit{buzzer} aktif, sudah memiliki rangkaian penggerak internal sehingga berbunyi pada satu frekuensi tetap begitu diberi tegangan searah. \textit{Buzzer} transduser, yang umum disebut \textit{buzzer} pasif, tidak memiliki rangkaian penggerak tersebut. Elemen ini harus digerakkan gelombang kotak dari luar, dan frekuensi bunyinya mengikuti frekuensi gelombang penggerak~\cite{cui_buzzer_basics}. \textit{Buzzer} magnetik menarik arus yang lebih besar daripada kemampuan pin mikrokontroler, sehingga umumnya digerakkan melalui transistor~\cite{cui_buzzer_basics}. Contoh modul \textit{buzzer} pasif tiga pin dengan transistor penggerak ditunjukkan pada Gambar~\ref{fig:buzzer-pasif}.
+\textit{Buzzer} pasif, atau \textit{buzzer} transduser, tidak memiliki rangkaian penggerak internal sehingga harus digerakkan gelombang kotak dari luar, dan frekuensi bunyinya mengikuti frekuensi gelombang tersebut. Sebaliknya, \textit{buzzer} aktif atau \textit{buzzer} indikator berbunyi pada satu frekuensi tetap begitu diberi tegangan searah~\cite{cui_buzzer_basics}. Contoh modul \textit{buzzer} pasif tiga pin dengan transistor penggerak ditunjukkan pada Gambar~\ref{fig:buzzer-pasif}.
 
 \begin{figure}[!ht]
   \centering
@@ -296,12 +249,12 @@ Dalam penelitian ini, INA219 digunakan untuk mengukur arus, tegangan, dan daya y
 \end{figure}
 % sumber gambar: https://wiki.keyestudio.com/Ks0019_keyestudio_Passive_Buzzer_module (foto produk Keyestudio KS0019, dipotong tepinya)
 
-Dalam penelitian ini, modul \textit{buzzer} pasif yang sudah dilengkapi transistor penggerak digunakan sebagai indikator bunyi. Gelombang kotak dibangkitkan oleh periferal PWM ESP32-S3 sehingga nada dapat diatur dari \textit{firmware} dan satu bip dapat dibunyikan untuk setiap detak.
+Dalam penelitian ini, modul \textit{buzzer} pasif tiga pin dengan transistor penggerak digunakan sebagai indikator bunyi. \textit{Buzzer} pasif dipilih karena gelombang kotaknya dapat dibangkitkan periferal PWM ESP32-S3, sehingga nada dapat diatur dan satu bip dapat dibunyikan untuk setiap detak.
 
 \subsection{Rangkaian Catu Daya Baterai}
 \label{subsec:catu-baterai}
 
-Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ulang. Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga bagian, yaitu sel litium-ion 18650 sebagai sumber energi, modul pengisi TP4056 untuk mengisi sel, dan konverter \textit{boost} MT3608 untuk menaikkan tegangan sel ke tegangan kerja \textit{board}. Ketiga komponen tersebut ditunjukkan pada Gambar~\ref{fig:catu-baterai}, yaitu sel 18650 pada panel (a), modul TP4056 pada panel (b), dan modul MT3608 pada panel (c).
+Rangkaian catu daya baterai pada penelitian ini dirakit dari tiga komponen yang ditunjukkan pada Gambar~\ref{fig:catu-baterai}. Sel litium-ion 18650 menjadi sumber energi dan diisi hingga tegangan penuh 4,2 V~\cite{toppower_tp4056}. Modul TP4056 adalah pengisi linear satu sel dengan profil arus konstan dan tegangan konstan (CC/CV)~\cite{toppower_tp4056}, dan modul yang dipakai memisahkan terminal sel dari terminal beban sehingga rangkaian proteksi sel berada di jalur beban. MT3608 adalah konverter \textit{boost} berfrekuensi pensaklaran 1,2 MHz dengan masukan 2--24 V dan tegangan keluaran yang dapat diatur~\cite{aerosemi_mt3608}.
 
 \begin{figure}[!ht]
   \centering
@@ -320,27 +273,8 @@ Perangkat \textit{wearable} memerlukan sumber daya portabel yang dapat diisi ula
 \end{figure}
 % sumber gambar: (a) https://commons.wikimedia.org/wiki/File:LiIon-18650-match.jpg (b) https://commons.wikimedia.org/wiki/File:TP4056_board_P1089957.jpg (dipotong) (c) https://commons.wikimedia.org/wiki/File:Voltage_Boost_Converters.jpg (dipotong)
 
-\subsubsection{Sel Litium-Ion 18650}
-
-Sel 18650 adalah sel litium-ion silinder berdiameter 18 mm dan panjang 65 mm. Sel litium-ion tunggal diisi hingga tegangan penuh 4,2 V, dan sel yang tegangannya turun di bawah 2,9 V dianggap terkuras dalam sehingga harus diisi dengan arus kecil terlebih dahulu~\cite{toppower_tp4056}. Selama pemakaian, tegangan sel turun dari sekitar 4,2 V menuju 3,0 V. Tegangan ini lebih rendah daripada masukan 5 V \textit{board} mikrokontroler, sehingga sel tidak dapat dihubungkan langsung ke jalur 5 V.
-
-\subsubsection{Modul Pengisi TP4056}
-
-TP4056 adalah pengisi linear untuk satu sel litium-ion dengan profil arus konstan dan tegangan konstan (CC/CV)~\cite{toppower_tp4056}. Sel yang terkuras dalam diisi dengan arus kecil (\textit{trickle charge}) sampai tegangannya melewati 2,9 V. Pengisian kemudian berlanjut dengan arus konstan, lalu beralih ke tegangan konstan 4,2 V dan berhenti ketika arus turun hingga sepersepuluh arus pengisian. Besar arus pengisian ditentukan oleh resistor pemrogram sesuai hubungan $I_\text{BAT} = 1100 / R_\text{PROG}$, dan chip menurunkan arus secara otomatis bila suhunya terlalu tinggi~\cite{toppower_tp4056}. Modul TP4056 yang dipakai juga memisahkan terminal sel (B+ dan B$-$) dari terminal beban (OUT+ dan OUT$-$), sehingga rangkaian proteksi sel pada modul berada di antara sel dan beban.
-
-\subsubsection{Konverter \textit{Boost} MT3608}
-
-Konverter \textit{boost} adalah konverter DC-DC yang menghasilkan tegangan keluaran lebih tinggi daripada tegangan masukannya. MT3608 bekerja dengan mode arus pada frekuensi pensaklaran tetap 1,2 MHz, menerima masukan 2--24 V, dan beralih ke mode PFM pada beban ringan untuk menjaga efisiensi~\cite{aerosemi_mt3608}. Tegangan keluarannya ditentukan oleh pembagi tegangan umpan balik sesuai Persamaan~\ref{eq:mt3608}~\cite{aerosemi_mt3608}.
-
-\begin{equation}
-\label{eq:mt3608}
-V_\text{OUT} = 0{,}6 \left(1 + \frac{R_1}{R_2}\right)
-\end{equation}
-
-\noindent di mana $V_\text{OUT}$ adalah tegangan keluaran konverter, 0,6 V adalah tegangan referensi umpan balik, serta $R_1$ dan $R_2$ adalah resistor pembagi tegangan dari keluaran ke pin umpan balik dan dari pin umpan balik ke \textit{ground}.
-
-Dalam penelitian ini, rangkaian catu daya baterai digunakan untuk mencatu perangkat secara portabel. Sel 18650 diisi melalui TP4056, lalu tegangannya dinaikkan MT3608 ke jalur 5 V \textit{board} ESP32-S3, dan INA219 disisipkan di antara keluaran TP4056 dan masukan MT3608 untuk mengukur konsumsi daya seluruh perangkat.
-% sumber: firmware/README.md bagian Rangkaian catu baterai (18650 -> TP4056 OUT+ -> INA219 -> konverter -> pin 5V; GND dari OUT- agar proteksi modul tetap di jalur; V bus 3,0-4,2 V); hardware/mainboard/README.md (TP4056 + boost MT3608, header B+/B-, OUT+/OUT-); datasheet TP4056 REV_2.4 hlm. 2, 5, 7, 9; MT3608 Rev1.1 hlm. 1, 3; INA219 SBOS448G hlm. 1, 19-21; ST7789V3 V0.1 hlm. 8-9, bagian 8.3.4-8.3.5
+Dalam penelitian ini, rangkaian tersebut mencatu perangkat secara portabel. Konverter \textit{boost} diperlukan karena tegangan sel turun dari 4,2 V menuju sekitar 3,0 V selama pemakaian, lebih rendah daripada masukan 5 V \textit{board} ESP32-S3. INA219 disisipkan di antara keluaran TP4056 dan masukan MT3608 agar konsumsi daya seluruh perangkat, termasuk rugi konverter, ikut terukur.
+% sumber: firmware/README.md bagian Rangkaian catu baterai (18650 -> TP4056 OUT+ -> INA219 -> konverter -> pin 5V; GND dari OUT- agar proteksi modul tetap di jalur; V bus 3,0-4,2 V); hardware/mainboard/README.md (TP4056 + boost MT3608, header B+/B-, OUT+/OUT-); datasheet TP4056 REV_2.4 hlm. 2, 5; MT3608 Rev1.1 hlm. 1; INA219 SBOS448G hlm. 1, 19-21; ST7789V3 V0.1 hlm. 8-9
 
 \subsection{Protokol MQTT}
 \label{subsec:mqtt}
