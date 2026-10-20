@@ -179,12 +179,11 @@ ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \te
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/esp32s3_devkitc1.png}\\[2pt]
-  {\footnotesize Sumber: Espressif Systems~\cite{espressif_devkitc1}\par}
-  \caption{\textit{Board} ESP32-S3-DevKitC-1}
+  \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/esp32s3_devkitc1.png}
+  \caption[\textit{Board} ESP32-S3-DevKitC-1]{\textit{Board} ESP32-S3-DevKitC-1~\cite{espressif_devkitc1}}
   \label{fig:esp32}
 \end{figure}
-% sumber gambar: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/_images/esp32-s3-devkitc-1-v1.1-isometric.png (CC BY-SA 4.0 repositori esp-dev-kits)
+% sumber gambar: https://docs.espressif.com/projects/esp-dev-kits/en/latest/esp32s3/_images/esp32-s3-devkitc-1-v1.1-isometric.png
 
 Dalam penelitian ini, ESP32-S3 berfungsi sebagai perangkat \textit{edge} tunggal yang menjalankan akuisisi sinyal AD8232, preprocessing, inferensi model INT8 melalui TensorFlow Lite for Microcontrollers, dan pengiriman MQTT. ESP32-S3 dipilih karena SRAM 512 KB jauh melebihi kebutuhan model INT8 sekitar 23 KB beserta \textit{tensor arena} sekitar 13 KB, PSRAM 8 MB dapat menampung antrean data selama koneksi terputus, dan WiFi sudah terintegrasi. Inferensi 1D-CNN INT8 bahkan telah berjalan pada mikrokontroler yang SRAM-nya jauh lebih kecil, seperti ARM Cortex-M4~\cite{kim_2023, sheeba_rani_2026} dan Arduino UNO 8-bit~\cite{zambrano_2026}. Sinyal AD8232 dicuplik melalui kanal ADC pertama karena ADC kedua tidak dapat dipakai bersamaan dengan WiFi~\cite{espressif_esp32s3_datasheet}.
 % sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/CLAUDE.md HW-1 (arena 12.948 B), HW-6 (backlog 27.000 beat di PSRAM); firmware/include/perangkat.h (KANAL_EKG = ADC1_CHANNEL_0)
@@ -210,12 +209,11 @@ ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar 
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.6\linewidth,keepaspectratio]{gambar/modul_tft_st7789_depan_belakang.png}\\[2pt]
-  {\footnotesize Sumber: YourCee, dipotong\par}
-  \caption{Modul layar TFT 1,47 inci dengan \textit{driver} ST7789, tampak depan dan belakang}
+  \includegraphics[width=0.4\linewidth,keepaspectratio]{gambar/modul_tft_st7789_mulyawan.png}
+  \caption[Modul layar TFT 1,47 inci dengan \textit{driver} ST7789]{Modul layar TFT 1,47 inci dengan \textit{driver} ST7789~\cite{mulyawan_2026}}
   \label{fig:tft-st7789}
 \end{figure}
-% sumber gambar: foto produk toko YourCee (berkas dari user, ~/Downloads/images (1).jpeg), dipotong agar tulisan merek hilang; modul ZJY147S0800TG01 172x320 driver ST7789
+% sumber gambar: Gambar 2.6 buku PA Mulyawan 2026 (pdfimages hlm. 43, 472x472 px)
 
 Dalam penelitian ini, layar TFT 1,47 inci beresolusi 172$\times$320 piksel dengan \textit{driver} ST7789 digunakan untuk menampilkan laju jantung, gelombang ECG, pembacaan daya, waktu, status perekaman, dan menu. Layar ini dipilih karena ukurannya ringkas untuk perangkat yang dikenakan, resolusinya cukup untuk menampilkan gelombang ECG, dan antarmuka SPI hanya membutuhkan sedikit pin.
 
@@ -226,12 +224,11 @@ INA219 adalah pemantau arus dan daya dua arah berantarmuka I2C. Chip ini menguku
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/modul_ina219.jpg}\\[2pt]
-  {\footnotesize Sumber: Adafruit (learn.adafruit.com)\par}
-  \caption{Modul sensor arus dan tegangan INA219}
+  \includegraphics[width=0.5\linewidth,keepaspectratio]{gambar/modul_ina219.jpg}
+  \caption[Modul sensor arus dan tegangan INA219]{Modul sensor arus dan tegangan INA219~\cite{adafruit_ina219}}
   \label{fig:ina219}
 \end{figure}
-% sumber gambar: https://learn.adafruit.com/adafruit-ina219-current-sensor-breakout (foto produk Adafruit #904, dipotong tepinya)
+% sumber gambar: https://cdn-learn.adafruit.com/assets/assets/000/002/452/original/adafruit_products_ID904_LRG.jpg (dipotong tepinya)
 
 Dalam penelitian ini, INA219 dengan resistor \textit{shunt} 0,1 ohm digunakan untuk mengukur arus, tegangan, dan daya yang ditarik perangkat dari baterai. INA219 dipilih karena hasil ukurnya dapat dibaca langsung oleh ESP32-S3 melalui I2C, sehingga konsumsi daya dapat diukur oleh perangkat itu sendiri tanpa alat ukur eksternal.
 
@@ -242,12 +239,11 @@ Dalam penelitian ini, INA219 dengan resistor \textit{shunt} 0,1 ohm digunakan un
 
 \begin{figure}[!ht]
   \centering
-  \includegraphics[width=0.45\linewidth,keepaspectratio]{gambar/modul_buzzer_pasif.jpg}\\[2pt]
-  {\footnotesize Sumber: Keyestudio (wiki.keyestudio.com)\par}
-  \caption{Modul \textit{buzzer} pasif tiga pin}
+  \includegraphics[width=0.45\linewidth,keepaspectratio]{gambar/modul_buzzer_pasif.jpg}
+  \caption[Modul \textit{buzzer} pasif tiga pin]{Modul \textit{buzzer} pasif tiga pin~\cite{keyestudio_ks0019}}
   \label{fig:buzzer-pasif}
 \end{figure}
-% sumber gambar: https://wiki.keyestudio.com/Ks0019_keyestudio_Passive_Buzzer_module (foto produk Keyestudio KS0019, dipotong tepinya)
+% sumber gambar: https://wiki.keyestudio.com/images/a/af/KS0019_%284%29.jpg (dipotong tepinya)
 
 Dalam penelitian ini, modul \textit{buzzer} pasif tiga pin dengan transistor penggerak digunakan sebagai indikator bunyi. \textit{Buzzer} pasif dipilih karena gelombang kotaknya dapat dibangkitkan periferal PWM ESP32-S3, sehingga nada dapat diatur dan satu bip dapat dibunyikan untuk setiap detak.
 
@@ -337,39 +333,6 @@ pembagian \textit{inter-patient}.
 Strategi ini memastikan bahwa performa model yang diukur mencerminkan
 kemampuan generalisasi terhadap pasien baru yang tidak pernah dilihat
 selama pelatihan, dan bukan sekadar hafalan pola dari pasien yang sama.
-
-\subsection{Evaluasi dan Metrik Klasifikasi}
-\label{subsec:evaluasi-metrik}
-
-Kinerja model deteksi aritmia ditentukan oleh dua hal, yaitu cara data dibagi antara pelatihan dan pengujian, serta metrik yang dipakai untuk menilai prediksi.
-
-\subsubsection{Pembagian Data \textit{Inter-Patient}}
-
-Evaluasi \textit{inter-patient} adalah skema pembagian data yang memisahkan rekaman berdasarkan pasien, sehingga detak dari satu pasien tidak muncul di himpunan latih dan himpunan uji sekaligus. De Chazal et al.~\cite{dechazal_2004} membagi rekaman MIT-BIH menjadi dua kelompok pasien yang saling lepas, yaitu DS1 untuk pelatihan dan DS2 untuk pengujian. Pemisahan ini diperlukan karena pada pembagian per detak, detak dari pasien yang sama tersebar di kedua himpunan. Model kemudian dapat menghafal morfologi khas pasien, dan metrik yang diperoleh menjadi optimistis~\cite{xiao_2023, bahrami_2025}. Pembagian antarpasien mengukur kemampuan model pada pasien yang belum pernah dilihat, yaitu kondisi yang sesungguhnya dihadapi ketika perangkat dipakai oleh pengguna baru.
-
-\subsubsection{\textit{Confusion Matrix} dan Metrik Turunannya}
-
-Kinerja klasifikasi dinilai dari hasil perbandingan prediksi dan label sebenarnya, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), dengan kelas Aritmia sebagai kelas positif. Keempat nilai tersebut membentuk \textit{confusion matrix} berukuran 2$\times$2. Dari keempat nilai tersebut, \textit{recall}, \textit{precision}, \textit{specificity}, dan F1 dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
-
-\begin{align}
-\text{Recall} &= \frac{\text{TP}}{\text{TP} + \text{FN}} \nonumber \\
-\text{Precision} &= \frac{\text{TP}}{\text{TP} + \text{FP}} \nonumber \\
-\text{Specificity} &= \frac{\text{TN}}{\text{TN} + \text{FP}} \nonumber \\
-\text{F1} &= \frac{2 \cdot \text{Precision} \cdot \text{Recall}}{\text{Precision} + \text{Recall}}
-\label{eq:metrik}
-\end{align}
-
-\noindent di mana TP adalah jumlah detak aritmia yang diprediksi sebagai aritmia dan FP adalah jumlah detak normal yang salah diprediksi sebagai aritmia. TN adalah jumlah detak normal yang diprediksi sebagai normal, sedangkan FN adalah jumlah detak aritmia yang terlewat. \textit{Recall} menyatakan proporsi detak aritmia yang berhasil terdeteksi, \textit{precision} menyatakan proporsi prediksi aritmia yang benar, \textit{specificity} menyatakan proporsi detak normal yang dikenali dengan benar, dan F1 adalah rerata harmonik \textit{precision} dan \textit{recall}.
-
-\subsubsection{Kurva ROC dan AUC}
-
-Model keluaran probabilitas menghasilkan prediksi biner setelah probabilitasnya dibandingkan dengan sebuah \textit{threshold}, sehingga keempat metrik tersebut berubah bila \textit{threshold} digeser. Kurva \textit{Receiver Operating Characteristic} (ROC) menggambarkan pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh kemungkinan \textit{threshold}. \textit{Area Under the Curve} (AUC) adalah luas di bawah kurva tersebut, dan dipakai sebagai ukuran kinerja ketika belum ada satu \textit{threshold} yang ditetapkan~\cite{chicco_2020}. Nilai AUC 1 berarti kedua kelas terpisah sempurna, sedangkan nilai 0,5 setara dengan tebakan acak.
-
-\subsubsection{Keterbatasan Akurasi pada Kelas Timpang}
-
-Akurasi, yaitu proporsi seluruh prediksi yang benar, memberi estimasi yang terlalu optimistis ketika jumlah sampel satu kelas jauh melebihi kelas lainnya~\cite{chicco_2020}. Pada DS2, sekitar 89\% detak berkelas Normal, sehingga model yang selalu memprediksi Normal sudah memperoleh akurasi sekitar 0,89 tanpa mendeteksi satu pun aritmia.
-% sumber: model/CLAUDE.md Fase 6 (lama), akurasi tebak-Normal 0,8903 pada DS2
-Akurasi yang tinggi dengan demikian belum menunjukkan kemampuan mendeteksi aritmia. Dalam penelitian ini, seluruh evaluasi model memakai pembagian DS1/DS2 dan kinerja dilaporkan melalui \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan AUC. Dengan metrik tersebut, kemampuan menemukan aritmia dan beban alarm palsu dapat dinilai secara terpisah.
 
 \subsection{Simulasi \textit{Error} Deteksi R-\textit{peak} dengan \textit{Jitter}}
 \label{subsec:augmentasi-jitter}
