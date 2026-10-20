@@ -227,7 +227,7 @@ membaca bentuk gelombang pada posisi tertentu, dan tiga `MaxPooling1D(2)`
 membuat geseran 4 sampel = setengah bin pooling.
 
 Itu juga menjelaskan Tabel 6-8 paper: kelompok RR dan HOS mereka datar terhadap
-jitter, kelompok morfologi yang rontok (SeS 79,1 → ~70). Cabang morfologi kita
+jitter, kelompok morfologi yang rontok (SeS 79,1 → 68,0, Tabel 7). Cabang morfologi kita
 adalah keseluruhan modelnya.
 
 ### Satu jebakan penafsiran: sebagian besar kerusakan itu soal threshold
@@ -420,7 +420,7 @@ tetapi tidak benar**. Yang memutuskan eksperimen, bukan argumen yang enak dibaca
 
 Paper memakai kurtosis dan skewness (Pers. 12-13). Sendirian fitur ini **payah**:
 sensitivitas kelas S cuma 2,2% (Tabel 8). Yang menarik bukan kekuatannya,
-melainkan bahwa ia **datar terhadap jitter** — 2,2 → 13 dari δ=0 ke δ=18, naik,
+melainkan bahwa ia **datar terhadap jitter** — 2,2 → 17,0 dari δ=0 ke δ=18, naik,
 bukan turun. Momen statistik tidak peduli jendela bergeser sedikit.
 
 Di repo ini ongkosnya hampir nol, karena window yang masuk **sudah ter-z-score**:
