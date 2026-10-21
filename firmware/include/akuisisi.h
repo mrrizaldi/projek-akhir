@@ -10,6 +10,7 @@ void akuisisi_mulai(void);
 bool akuisisi_ambil(uint16_t *sampel);
 size_t akuisisi_isi(void);
 uint32_t akuisisi_lewat(void);
+uint32_t akuisisi_tick_hilang(void);
 void akuisisi_nol_lewat(void);
 void akuisisi_timer(bool jalan);
 

@@ -208,14 +208,19 @@ Padanan serial: `r` = mulai, atau berhenti dan simpan (juga saat dijeda);
 `j` = jeda / lanjut. Serial `s` menampilkan `rekam 1` selama sesi rekaman
 terbuka (termasuk saat dijeda) dan `jeda 0/1`.
 
-Rekaman disangga di PSRAM selama merekam, lalu ditulis ke LittleFS saat
-disimpan, sehingga bertahan walau board mati. Satu berkas memuat paling banyak
-5 menit sinyal (`REKAM_SAMPEL_MAKS` = 360 × 300 sampel; waktu jeda tidak
-dihitung). Rekaman yang lebih panjang otomatis lanjut ke berkas berikutnya
-tanpa celah sampel; header berkas lanjutan memuat `lanjutan=NNN celah=0`, dan
-layar menampilkan waktu total sesi beserta `bagian <k>`. LittleFS memuat ±6
-berkas 5 menit, jadi tarik data sesudah tiap subjek (`firmware/README.md`
-bagian Merekam, Rekaman panjang).
+Seluruh sesi disangga di PSRAM selama merekam dan baru ditulis ke LittleFS
+sesudah berhenti; berkas yang sudah tertulis bertahan walau board mati, tetapi
+sesi yang belum dihentikan hilang bila daya putus. Penulisan flash ditunda
+karena setiap tulis flash menahan interrupt akuisisi dan membuang sampel
+(`firmware/README.md` §Jebakan, Akuisisi). Sesudah berhenti, sesi dipecah
+menjadi berkas per 5 menit sinyal (`REKAM_SAMPEL_MAKS` = 360 × 300 sampel;
+waktu jeda tidak dihitung); header berkas lanjutan memuat `lanjutan=NNN
+celah=0`, dan selama merekam layar menampilkan waktu total sesi beserta
+`bagian <k>`. Panjang sesi maksimum dicetak saat mulai (`REKAM mulai (maks 5
+bagian = 1500 detik)` dengan LittleFS kosong), jadi tarik data sesudah tiap
+subjek (`firmware/README.md` bagian Merekam, Rekaman panjang). Bila `lewat=`
+di header lebih dari 0, ada sampel yang tidak terambil di berkas itu dan RR di
+sekitarnya tidak sahih.
 Tiap rekaman disimpan sebagai berkas bernomor baru (`/rekam/001.csv`, `002`,
 ...); daftarnya dilihat dengan serial `l` dan berkas lama dihapus dengan `h<n>`.
 Rekaman yang tersimpan dapat diputar ulang di board lewat menu **Sumber sinyal

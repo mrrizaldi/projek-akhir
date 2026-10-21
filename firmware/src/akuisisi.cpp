@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include "driver/adc.h"
+#include "esp_cpu.h"
 
 #include "gerbang.h"
 #include "klasifikasi.h"
@@ -13,7 +14,10 @@
 
 static volatile uint16_t antre[ANTRE_N];
 static volatile size_t tulis, baca;
-static volatile uint32_t n_lewat;
+static volatile uint32_t n_lewat, n_tick_hilang;
+static uint32_t siklus_per_sampel, siklus_lalu;
+constexpr uint32_t HZ_PER_MHZ = 1000000UL;
+constexpr uint32_t PEMBAGI_SETENGAH_PERIODE = 2;
 static hw_timer_t *timer;
 
 static int sumber, sumber_rekam;
@@ -27,8 +31,19 @@ constexpr float OFFSET_REPLAY = 2048.0f;
 
 static uint16_t sim_counts[GOLDEN_N];
 
+static void IRAM_ATTR hitung_tick_hilang()
+{
+    const uint32_t kini = esp_cpu_get_ccount();
+    const uint32_t selang = kini - siklus_lalu;
+    siklus_lalu = kini;
+    const uint32_t setengah = siklus_per_sampel / PEMBAGI_SETENGAH_PERIODE;
+    if (selang > siklus_per_sampel + setengah)
+        n_tick_hilang += (selang + setengah) / siklus_per_sampel - 1;
+}
+
 static void IRAM_ATTR on_timer()
 {
+    hitung_tick_hilang();
     const size_t berikut = (tulis + 1) % ANTRE_N;
     if (berikut == baca) { n_lewat++; return; }
     if (rp_data) {
@@ -52,6 +67,8 @@ void akuisisi_mulai(void)
     timerAttachInterrupt(timer, &on_timer, true);
     timerAlarmWrite(timer, 1000000 / ECG_FS, true);
     if (!pasang(konfig_sumber(), konfig_sumber_rekam())) pasang(SUMBER_ADC, 0);
+    siklus_per_sampel = getCpuFrequencyMhz() * HZ_PER_MHZ / ECG_FS;
+    siklus_lalu = esp_cpu_get_ccount();
     timerAlarmEnable(timer);
 }
 
@@ -64,16 +81,18 @@ bool akuisisi_ambil(uint16_t *sampel)
 }
 
 size_t akuisisi_isi(void) { return (tulis - baca + ANTRE_N) % ANTRE_N; }
-uint32_t akuisisi_lewat(void) { return n_lewat; }
-void akuisisi_nol_lewat(void) { n_lewat = 0; }
+uint32_t akuisisi_lewat(void) { return n_lewat + n_tick_hilang; }
+uint32_t akuisisi_tick_hilang(void) { return n_tick_hilang; }
+void akuisisi_nol_lewat(void) { n_lewat = n_tick_hilang = 0; }
 bool akuisisi_replay(void) { return sumber != SUMBER_ADC; }
 int akuisisi_sumber(void) { return sumber; }
 int akuisisi_sumber_rekam(void) { return sumber_rekam; }
 
 void akuisisi_timer(bool jalan)
 {
-    if (jalan) timerAlarmEnable(timer);
-    else       timerAlarmDisable(timer);
+    if (!jalan) { timerAlarmDisable(timer); return; }
+    siklus_lalu = esp_cpu_get_ccount();
+    timerAlarmEnable(timer);
 }
 
 static bool pasang(int s, int nomor)

@@ -235,6 +235,10 @@ static void gambar_kanan()
         w = ST77XX_ORANGE;
         snprintf(t, sizeof t, "%s", pesan_besar);
         snprintf(kecil, sizeof kecil, "%s", pesan_kecil);
+    } else if (rekam_aktif() && !rekam_dijeda() && akuisisi_lewat()) {
+        w = ST77XX_RED;
+        snprintf(t, sizeof t, "HILANG");
+        snprintf(kecil, sizeof kecil, "%u sampel", (unsigned)akuisisi_lewat());
     } else if (rekam_aktif() && !rekam_dijeda()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);

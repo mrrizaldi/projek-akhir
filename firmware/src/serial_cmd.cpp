@@ -38,7 +38,7 @@ static void status()
     const gerbang_kualitas_t &q = gerbang_kualitas();
     const klasifikasi_hitung_t &h = klasifikasi_hitung();
     Serial.printf("status: rekam=%d n=%u | replay=%d | kualitas %s | beat %d "
-                  "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u | "
+                  "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u (tick %u) | "
                   "LO %d %d | mentah %d..%d ayun %d clipping %d\n"
                   "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
                   "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
@@ -47,7 +47,7 @@ static void status()
                   "sumber %s %d | menu %d | jeda %d\n",
                   (int)rekam_aktif(), (unsigned)rekam_n(), (int)akuisisi_replay(),
                   gerbang_nama_fase(), h.total, h.aritmia, h.ditahan,
-                  (unsigned)akuisisi_isi(), (unsigned)akuisisi_lewat(),
+                  (unsigned)akuisisi_isi(), (unsigned)akuisisi_lewat(), (unsigned)akuisisi_tick_hilang(),
                   digitalRead(PIN_LOP), digitalRead(PIN_LON),
                   q.mentah_min, q.mentah_maks, q.ayun_bersih, (int)q.clipping,
                   ecg_mqtt_status(), (unsigned)ecg_mqtt_terkirim(),

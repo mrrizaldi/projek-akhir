@@ -16,6 +16,10 @@ constexpr int REKAM_NOMOR_MAKS = REKAM_NOMOR;
 #endif
 constexpr size_t REKAM_DETIK_MAKS = REKAM_DETIK;
 constexpr size_t REKAM_SAMPEL_MAKS = (size_t)ECG_FS * REKAM_DETIK_MAKS;
+#ifndef REKAM_BAGIAN
+#define REKAM_BAGIAN 6
+#endif
+constexpr int REKAM_BAGIAN_MAKS = REKAM_BAGIAN;
 
 void rekam_siapkan(void);
 
