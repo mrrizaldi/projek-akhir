@@ -60,9 +60,16 @@ Jalur akuisisi dapat diperiksa tanpa elektroda dengan
 `pio test -e esp32-s3 -f test_hw_adc` (ADC terbaca, timer tepat 360 sampel per
 detik, status LO dicetak).
 
-Sumbu merah→kuning meniru **MLII**, lead yang dipakai MIT-BIH. Kalau kuning
-ditaruh di dada kiri atas (seperti diagram 3-lead klinis), yang terukur jadi
-Lead I — morfologi QRS-nya berbeda dari data latih model.
+Sumbu merah→kuning meniru **MLII**, lead yang dipakai MIT-BIH ("In most
+records, the upper signal is a modified limb lead II (MLII), obtained by
+placing the electrodes on the chest", PhysioNet `mitdbdir/intro.htm`). AD8232
+mengukur beda tegangan pad RA dan pad LA; menurut segitiga Einthoven, sumbu
+RA→LA adalah Lead I dan RA→kaki kiri adalah Lead II, sehingga pad kuning (LA)
+ditaruh di bawah rusuk kiri sebagai wakil kaki kiri. Penempatan dada pada
+panduan SparkFun *AD8232 Heart Rate Monitor Hookup Guide* (LA di dada kiri
+dekat lengan) dan diagram 3-lead klinis menaruh kuning di dada kiri atas; yang
+terukur dengan cara itu adalah Lead I, yang morfologi QRS-nya berbeda dari data
+latih model. Panduan SparkFun tidak menyebut lead yang dihasilkan.
 
 **Daya: powerbank.** Selama USB laptop tertancap saat merekam, dengung 50 Hz
 menang. Contoh dari rekaman uji coba (arsip, `20260910-1938` vs `-1948`): 266%
