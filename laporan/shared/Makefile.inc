@@ -11,15 +11,16 @@
 ##
 ## Targets:
 ##   make pdf     — compile PDF
-##   make docx    — konversi ke DOCX via pandoc
+##   make docx    — konversi ke DOCX via WordCraft (wordcraft-cli; format dari ../wordcraft.toml)
 ##   make view    — buka PDF
 ##   make clean   — hapus folder output
 ##   make rebuild — clean + pdf
 ##   make check   — cek tool tersedia
 ## ============================================================
 
-MAIN   ?= main
-OUTDIR ?= output
+MAIN      ?= main
+OUTDIR    ?= output
+WORDCRAFT ?= wordcraft-cli
 
 PDFLATEX = pdflatex -jobname=$(MAIN) -output-directory=$(OUTDIR) -interaction=nonstopmode
 
@@ -35,16 +36,8 @@ pdf:
 
 docx:
 	mkdir -p $(OUTDIR)
-	pandoc $(MAIN).tex \
-	  --from=latex \
-	  --to=docx \
-	  --bibliography=referensi.bib \
-	  --output=$(OUTDIR)/$(MAIN).docx 2>/dev/null || \
-	pandoc $(MAIN).tex \
-	  --from=latex \
-	  --to=docx \
-	  --output=$(OUTDIR)/$(MAIN).docx
-	@echo "DOCX tersimpan di $(OUTDIR)/$(MAIN).docx"
+	$(WORDCRAFT) convert $(MAIN).tex $(OUTDIR)/$(MAIN).docx
+	@echo "DOCX tersimpan di $(OUTDIR)/$(MAIN).docx (jalankan make pdf dulu agar output/$(MAIN).bbl ada)"
 
 view: pdf
 	xdg-open $(OUTDIR)/$(MAIN).pdf &
@@ -58,4 +51,4 @@ rebuild: clean pdf
 check:
 	@pdflatex --version > /dev/null 2>&1 && echo "pdflatex OK" || echo "pdflatex tidak ditemukan"
 	@bibtex --version > /dev/null 2>&1 && echo "bibtex OK" || echo "bibtex tidak ditemukan"
-	@pandoc --version > /dev/null 2>&1 && echo "pandoc OK" || echo "pandoc tidak ditemukan"
+	@$(WORDCRAFT) --version > /dev/null 2>&1 && echo "wordcraft-cli OK" || echo "wordcraft-cli tidak ditemukan (WORDCRAFT=/path/ke/wordcraft-cli)"

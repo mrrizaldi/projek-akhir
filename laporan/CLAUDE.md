@@ -220,4 +220,9 @@ Acuan: `proposal-pa/Panduan_Proposal_PA_D4TI/` (file A–E, format `.docx`). Set
 
 ### DOCX Notes
 
-LaTeX -> DOCX via pandoc is imperfect. Plain text, headings, and paragraphs convert well; complex tables and math equations may need manual adjustment. Use DOCX for review only; submit via PDF.
+DOCX dibuat oleh WordCraft dari proyek LaTeX (`make pdf docx`; `make pdf` dulu supaya
+`output/main.bbl` ada untuk nomor sitasi). Formatnya (heading BAB, caption, margin, spasi,
+daftar isi, pustaka) datang dari `laporan/wordcraft.toml`, bukan dari preamble: kalau
+`shared/preamble.tex` / `size-a4.tex` berubah, sesuaikan `wordcraft.toml` juga. Page break
+bisa geser 1–2 halaman dari PDF. DOCX untuk dibaca/review; submit tetap PDF. Fitur sync
+balik dari WordCraft ke `.tex` (dan aturan penanda `% MANUAL`) menyusul.
