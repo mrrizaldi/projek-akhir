@@ -518,6 +518,25 @@ build itu terlihat sama-sama "SUCCESS" dan bedanya tidak diumumkan di mana pun.
 Akuntansi `beat − ditahan = terkirim + backlog + hilang` cocok di setiap
 pengambilan status. Contoh: `beat 148 = terkirim 147 + backlog 1 + hilang 0`.
 
+### Uji ulang dengan gerbang kontak (22 Okt 2026)
+
+Kondisi uji: board N16R8 dicolok USB laptop, firmware gerbang kontak dan
+perekam sesi PSRAM, WiFi `HIFIAIR_9351` (RSSI −31 dBm), broker ThingsBoard CE
+4.2.1.1 di laptop yang sama (`192.168.1.199:1883`), sumber replay acuan
+(`y`), ±5,5 menit (18.40–18.45 WIB).
+
+| Hal | Angka |
+|---|---|
+| Beat / terkirim / backlog / hilang / gagal | 536 / 536 / 0 / 0 / 0 |
+| Paket di-ACK | 518 / 518, PDSR **100,0%** |
+| Tunda di alat (deteksi → kirim) | rata-rata 849 ms, maksimum 1.402 ms |
+| RTT PUBACK maksimum | 3.329 ms (9 kejadian lambat) |
+| `sampel hilang` | 0 (tick 0) |
+
+Dashboard *Pemantauan EKG* menampilkan BPM, klasifikasi, confidence, kualitas
+sinyal, grafik BPM dan RR, serta riwayat per detak secara langsung; tangkapan
+layar `artifacts/metrics/mqtt/20261022-1845-dashboard-replay.png`.
+
 ### Uji resiliensi — `docker pause` 24 detik
 
 ```
