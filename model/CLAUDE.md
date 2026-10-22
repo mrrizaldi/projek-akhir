@@ -337,13 +337,20 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   **Gejala turunannya lebih menipu dari crash-nya**: board reboot diam-diam →
   `replay` kembali `false` → pengukuran berikutnya melaporkan angka yang masuk
   akal (2 beat/detik) tapi dari objek yang salah (derau ADC, bukan replay).
-- **Membuka port serial me-reset board, dan itu merusak pengukuran.** Gejala:
-  pencacah beat di board tidak cocok dengan jumlah baris yang diterima; toggle
-  `y` yang "sudah ditekan" tidak aktif. Sebab: pyserial menegaskan
-  DTR/RTS saat `Serial()` dibuka → ESP32-S3 reset. Hindari: `s.dtr = s.rts =
-  False` SEBELUM `s.open()`, lalu **verifikasi state** dari balasan board
-  (`replay ON`) dan dari ayunan sinyal di `s` (replay ~2700 counts vs derau ~15),
-  jangan diasumsikan.
+- **Cara membuka port serial menentukan apakah board reset.** Gejala: board
+  boot ulang (`=== MONITOR ARITMIA SIAP ===`) begitu skrip membuka port, toggle
+  yang "sudah ditekan" hilang, dan **sesi rekam yang sedang berjalan hilang
+  seluruhnya** (disangga di PSRAM sampai berhenti). Terukur 22 Okt 2026 di
+  `/dev/ttyACM0` (USB-Serial-JTAG ESP32-S3): pola `s.dtr = s.rts = False`
+  sebelum `s.open()` me-reset board 5 dari 5 kali, termasuk sesi rekam
+  `rekam=1 n=1803` yang hilang; `serial.Serial(port, baud)` bawaan tanpa
+  menyentuh DTR/RTS tidak me-reset 3 dari 3 kali dan sesi rekam bertahan
+  (n 1.450 → 3.461 antar dua pembukaan). `make pull` memakai pola bawaan, jadi
+  aman. Pola DTR/RTS False dipakai hanya bila boot bersih memang diinginkan
+  (`measure_power.py` menunggu `MONITOR ARITMIA SIAP`; `pull_daya.py` dan
+  `uji_alur_rekam.py` menunggu board menjawab). Setelah membuka port,
+  **verifikasi state** dari balasan board (`replay ON`, `rekam=1`, ayunan di
+  `s`), jangan diasumsikan.
 - **Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% "ARITMIA".**
   Sebab: ambang Pan-Tompkins adaptif relatif terhadap sinyal yang ada, jadi
   "tidak ada sinyal" bukan kondisi yang ia kenali — derau 15 counts pun punya

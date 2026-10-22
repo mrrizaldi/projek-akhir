@@ -477,9 +477,12 @@ Board menerima satu huruf lewat serial 115200 (`pio device monitor`):
 
 Huruf `y` dan `m` diuraikan di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §4.
 Serial berguna bila tombol sulit dijangkau, atau untuk memastikan board tidak
-sedang merekam. Skrip Python yang membuka port serial dapat me-reset board
-(pyserial menegaskan DTR/RTS); setel `s.dtr = s.rts = False` sebelum
-`s.open()` dan verifikasi state dari balasan board, jangan diasumsikan.
+sedang merekam. Skrip Python yang menyetel `s.dtr = s.rts = False` sebelum
+`s.open()` me-reset board, dan reset di tengah sesi rekam menghilangkan
+seluruh sesi. Buka port dengan `serial.Serial(port, 115200)` bawaan tanpa
+menyentuh DTR/RTS (seperti `make pull`) bila board mungkin sedang merekam, lalu
+verifikasi state dari balasan board (`s`), jangan diasumsikan (`model/CLAUDE.md`
+§Jebakan).
 
 ---
 
