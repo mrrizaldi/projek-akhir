@@ -12,11 +12,12 @@ aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
 
 **Pekerjaan terbuka** (bertanggal, jangan sampai lupa): daftar tunggal di
 [`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka) —
-rekaman sinyal tubuh resmi (belum; data sebelum 13 Okt 2026 = uji coba, arsip),
-gerbang kalibrasi opsi C, konsumsi daya, dan **WiFi board sengaja OFF
-(darurat sejak 14 Okt 2026, kembalikan ke ON setelah konverter baterai disetel
-5 V)**, lalu rencana rekaman mentah langsung ke server lewat WiFi. Angka laporan yang menunggu data
-resmi: `grep -rn PLACEHOLDER-DATA laporan/buku-pa`.
+konsumsi daya, **WiFi board sengaja OFF (darurat sejak 14 Okt 2026, kembalikan
+ke ON setelah konverter baterai disetel 5 V)**, lalu rencana rekaman mentah
+langsung ke server lewat WiFi, serta PCB rev2. Data resmi sinyal tubuh = sesi
+22 Okt 2026 siang (`model/data/recordings/README.md`); data sebelum 13 Okt 2026
+= uji coba (arsip). Angka laporan yang menunggu data: `grep -rn
+PLACEHOLDER-DATA laporan/buku-pa` (tinggal daya).
 
 ## Aturan keras (STRICT, ditetapkan user 13 Okt 2026)
 

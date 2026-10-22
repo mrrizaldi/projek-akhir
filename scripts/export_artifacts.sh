@@ -15,6 +15,7 @@ if [[ "${1:-}" == "--laporan" ]]; then
   for f in fase0_100 fase1_100 fase1_segment_100 pantompkins_100 \
            fase5_training fase6_confusion_fp32 fase7_confusion_int8 \
            jitter/jitter_residu jitter/sweep_jitter_dasar \
+           akuisisi/akuisisi_20261022-1256-rekam-001 \
            ${AKUISISI:-}; do
     src="$MODEL_DIR/artifacts/metrics/$f.png"
     [[ -f "$src" ]] && cp -v "$src" "$DEST/" || echo "    lewat: $f.png belum ada"

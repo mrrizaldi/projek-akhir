@@ -64,7 +64,7 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | HW-2 Deteksi R di C | selesai | Pan-Tompkins (`ecg_detect_r`, `ecg_align_r`) cocok Python 11/11 puncak di golden |
 | HW-3 Alur hidup | selesai | `src/ecg_live.cpp`: beban rata-rata 3,0% anggaran, burst puncak 33,4 ms → ADC wajib lewat ISR + antrean |
 | HW-4 Firmware produksi | selesai | timer ISR 360 Hz → antrean 256 → `ecg_live` → inferensi → LED + serial; sampel hilang 0 |
-| HW-5 Sinyal tubuh | pipeline siap, **pengujian resmi belum** | rantai ADC → `make pull` → `make analisis` siap dipakai per 13 Okt 2026. Rekaman 10 Sep–11 Okt 2026 = uji coba, diarsipkan di `data/arsip/rekaman-uji-coba/` (bukan hasil). Lihat **Pekerjaan terbuka** |
+| HW-5 Sinyal tubuh | selesai | data resmi = sesi 22 Okt 2026 siang (R1–R4, 927,1 s, MLII, satu subjek), keempatnya Berhasil; buku-pa Tabel kualitas rekaman. Gerbang kalibrasi berbasis kontak (LO±, ayunan 60, dengung 500, pemanasan 60 s) dari tiga sesi ±15 menit 21–22 Okt. Rekaman 10 Sep–11 Okt 2026 = uji coba (arsip). Detail: `data/recordings/README.md`, `docs/mqtt-walkthrough.md` §3.1 |
 | HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang ayunan, backlog 27.000 beat di PSRAM. PDSR 100% / 99,2%, latensi median 939 / 1.108 ms (2 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
 | HW-7 Replay | selesai | sumber sinyal replay (menu Sumber sinyal: replay acuan 208 atau replay rekaman `/rekam/NNN.csv`; serial `y` = ADC ⇄ acuan) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
 
@@ -85,36 +85,6 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 Daftar hal yang BELUM selesai dan mudah terlupa. Butir bertanggal; hapus butir
 hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
 
-- **(13 Okt 2026) Pengujian rekaman sinyal tubuh resmi belum dilakukan.**
-  Pipeline akuisisi dinyatakan siap dipakai per 13 Okt 2026. Semua rekaman
-  sebelum tanggal itu = uji coba, diarsipkan di
-  [`data/arsip/rekaman-uji-coba/`](data/arsip/rekaman-uji-coba/README.md)
-  (grafik: `artifacts/arsip/akuisisi-uji-coba/`) — **jangan dipakai sebagai
-  hasil**. Rekaman resmi masuk `data/recordings/` lewat `make pull`, dinilai
-  dengan `make analisis`. Setelah ada rekaman resmi, isi semua penanda
-  `grep -rn PLACEHOLDER-DATA ../laporan/buku-pa` (tabel kualitas rekaman,
-  grafik rekaman, tempat/waktu perekaman, status Tujuan 1, abstrak, Bab 5).
-  Prosedur: [`docs/akuisisi-walkthrough.md`](docs/akuisisi-walkthrough.md) §3–§6.
-- **(13 Okt 2026) Gerbang kalibrasi: ganti timer 10 menit (opsi C).**
-  1. Waktu stabil sinyal sungguhan sudah diukur: tiga sesi ±15 menit
-     (21 Okt Lead I, 22 Okt dua sesi MLII; `data/recordings/README.md` §Catatan
-     per sesi), dinilai `scripts/tren_kualitas.py` (tabel per detik di
-     `artifacts/metrics/kualitas/`). Ketiganya: `ayun_bersih` ≥ 60 sejak detik
-     0 dan RR tenang 30 s tercapai di detik 30. Dengung 50 Hz tidak punya kurva
-     pemanasan yang konsisten (turun 45 → 10, lonjakan bertangga sampai 2.800
-     saat kontak memburuk, naik pelan 150 → 350); yang menandai kontak buruk
-     adalah LO± (lepas 14–62% per berkas pada sesi 22 Okt pagi) dan dengung,
-     sementara ayunan dan RR tetap lolos.
-  2. `STABIL_MS` diganti **pemanasan sejak kontak** `PEMANASAN_MS` 60 detik +
-     **penilaian kontak tiap detik** (LO±, `AMBANG_AYUN` 60, `AMBANG_DENGUNG`
-     500); kontak memburuk → fase BURUK lalu pulih tanpa pemanasan ulang
-     (keputusan user 22 Okt 2026; `docs/mqtt-walkthrough.md` §3.1, uji §3.1c).
-     Belum ada log serial transisi `gerbang penuh` dan `good -> poor` dengan
-     sinyal tubuh; diamati subjek di layar dengan catu powerbank.
-  3. Revisi Bab 3 buku-pa bagian gerbang kualitas (stabilisasi 10–15 menit)
-     dan butir Gerbang Kalibrasi di Bab 4 sesuai rancangan baru.
-  Perilaku gerbang saat ini (bypass otomatis selama replay, `k` = override
-  bench): [`docs/akuisisi-walkthrough.md`](docs/akuisisi-walkthrough.md) §2.
 - **(13 Okt 2026) Konsumsi daya per mode operasi.** Pengukuran daya per mode
   (idle, inferensi, WiFi/MQTT): rancangan di
   [`docs/arsip/2026-09-16-daya-design.md`](docs/arsip/2026-09-16-daya-design.md).

@@ -50,7 +50,7 @@ Perangkat \textit{edge} tersusun atas mikrokontroler ESP32-S3 sebagai pusat pemr
   % sumber: firmware/README.md bagian Catu daya dan pengukuran arus (INA219 di sisi baterai antara TP4056 OUT+ dan masukan konverter; PGA /8, +-320 mV pada shunt 0,1 ohm = +-3,2 A, resolusi 0,1 mA; rerata 128 sampel; VCC modul 3V3); firmware/include/ina219.h (INA219_CONFIG 0x3FFF); firmware/include/perangkat.h (R_SHUNT 0.1f)
   \item \textbf{Catu daya baterai.} Perangkat dapat dicatu sel litium 18650 melalui modul pengisi TP4056 dan konverter DC-DC yang keluarannya masuk ke pin 5 V \textit{board}. Jalur baterai ini dipakai ketika konsumsi daya diukur, karena kabel USB yang tetap tersambung ikut mencatu \textit{board} dan arus di sisi baterai tidak lagi mewakili konsumsi perangkat. Tegangan yang dibaca INA219 pada jalur ini adalah tegangan sel, yaitu 3,0--4,2 V.
   % sumber: firmware/README.md bagian Rangkaian catu baterai (18650 -> TP4056 -> INA219 -> konverter -> pin 5V) dan Syarat (USB board dicabut; V 3,0-4,2 V)
-  \item \textbf{LED \textit{NeoPixel}.} LED RGB bawaan \textit{board} pada GPIO 48 ini hanya menjadi indikator kualitas sinyal. Warnanya biru selama fase kalibrasi, hijau ketika ayunan sinyal mencapai ambang, dan oranye ketika ayunan sinyal di bawah ambang. Warnanya tidak berubah ketika perekaman berlangsung, karena status perekaman ditampilkan di layar.
+  \item \textbf{LED \textit{NeoPixel}.} LED RGB bawaan \textit{board} pada GPIO 48 ini hanya menjadi indikator kualitas sinyal. Warnanya biru selama fase kalibrasi, hijau ketika kontak elektroda dinilai baik, dan oranye ketika kontak elektroda dinilai buruk. Warnanya tidak berubah ketika perekaman berlangsung, karena status perekaman ditampilkan di layar.
   % sumber: firmware/src/tampilan.cpp perbarui_led() (arti LED = kualitas sinyal saja, status rekaman di layar kanan atas); model/docs/akuisisi-walkthrough.md §2
 \end{enumerate}
 
@@ -360,15 +360,15 @@ Seluruh proses diintegrasikan ke dalam alur kerja \textit{firmware} yang sekalig
 
 % PLACEHOLDER-GAMBAR fig:alir-firmware  REVISI dari gambar_3_5.png
 % Ubah : "Publikasi real-time per-rekaman" + "Baca 50-100 rekaman" -> "semua beat masuk antrean PSRAM, kirim batch <= 50, PUBACK dipungut tanpa blocking"
-% Ubah : tambah fase "calibrating" dan gerbang ayunan sebelum publikasi
+% Ubah : tambah fase kalibrasi (kontak baik 60 detik + R-R tenang 30 detik) dan penilaian kontak elektroda tiap detik (lead-off, ayunan, dengung) sebelum publikasi
 \begin{figure}[H]
   \centering
-  \PlaceholderGambar{Revisi gambar}{fase kalibrasi dan gerbang ayunan, semua detak masuk antrean PSRAM, kirim \textit{batch} $\leq$ 50, PUBACK dipungut tanpa \textit{blocking}}
+  \PlaceholderGambar{Revisi gambar}{fase kalibrasi dan penilaian kontak elektroda, semua detak masuk antrean PSRAM, kirim \textit{batch} $\leq$ 50, PUBACK dipungut tanpa \textit{blocking}}
   \caption{Flowchart \textit{runtime firmware} dan jalur resilien (bufer PSRAM, \textit{batch offload}, deteksi \textit{half-open})}
   \label{fig:alir-firmware}
 \end{figure}
 
-Gambar~\ref{fig:alir-firmware} dibaca dari atas ke bawah. Setiap detak yang terdeteksi lebih dulu dinilai oleh fase kalibrasi dan gerbang ayunan sinyal, dan hanya detak yang lolos kedua gerbang tersebut yang rekamannya dimasukkan ke antrean PSRAM. Dari antrean itu perangkat mengirim rekaman tertua dalam paket \textit{batch} berisi paling banyak 50 rekaman melalui MQTT, memungut PUBACK tanpa menahan putaran \textit{loop} utama, dan baru menghapus rekaman dari antrean setelah konfirmasi diterima. Apabila konfirmasi berhenti datang, perangkat memutus lalu membentuk ulang sambungan, dan rekaman yang sama dikirim kembali dari antrean.
+Gambar~\ref{fig:alir-firmware} dibaca dari atas ke bawah. Setiap detak yang terdeteksi lebih dulu dinilai oleh fase kalibrasi dan penilaian kontak elektroda, dan hanya detak yang lolos kedua gerbang tersebut yang rekamannya dimasukkan ke antrean PSRAM. Dari antrean itu perangkat mengirim rekaman tertua dalam paket \textit{batch} berisi paling banyak 50 rekaman melalui MQTT, memungut PUBACK tanpa menahan putaran \textit{loop} utama, dan baru menghapus rekaman dari antrean setelah konfirmasi diterima. Apabila konfirmasi berhenti datang, perangkat memutus lalu membentuk ulang sambungan, dan rekaman yang sama dikirim kembali dari antrean.
 % sumber: firmware/include/ecg_mqtt.h (ECG_MQTT_BATCH_N 50); firmware/src/gerbang.cpp gerbang_nilai_fase() dan publikasi() (gerbang sebelum ecg_mqtt_antre_isi); firmware/src/ecg_mqtt.cpp ecg_mqtt_layani()
 
 \subsubsection{\textit{Ring Buffer} FIFO di PSRAM}
@@ -530,7 +530,7 @@ yang dikirimkan beserta tipe data dan fungsinya.
     % sumber: firmware/src/klasifikasi.cpp publikasi() (t.confidence = aritmia ? p : 1.0f - p)
     signal\_quality &
     string &
-    Status gerbang ayunan sinyal per detak, ``good'' atau ``poor'' \\
+    Status kontak elektroda saat detak dinilai, ``good'' atau ``poor'' \\
     % sumber: firmware/src/klasifikasi.cpp publikasi() (quality_ok = 1 setelah fase BAIK, beat di luar fase BAIK ditahan); firmware/src/ecg_mqtt.cpp satu() (quality_ok ? "good" : "poor")
     ecg\_snippet &
     int[] &
@@ -553,24 +553,41 @@ signal\_quality menyertakan status kualitas pada setiap rekaman agar
 % sumber: firmware/src/ecg_mqtt.cpp ecg_mqtt_payload (diukur di PC: satu rekaman 200 byte tipikal, 215 byte terburuk) dan baris 147 (paket_buf dialokasikan 320 byte per rekaman); 2 KB adalah perkiraan 256 nilai bilangan bulat berpemisah koma; firmware/src/klasifikasi.cpp publikasi() (quality_ok = 1 setelah fase BAIK)
 
 Rekaman hanya dihasilkan dan dimasukkan ke antrean setelah sinyal melewati dua
-gerbang kualitas. Gerbang pertama adalah fase kalibrasi di awal sesi, yaitu
-inferensi CNN belum dijalankan dan tidak ada rekaman yang dikirim sampai tiga
-syarat terpenuhi bersamaan. Ketiga syarat tersebut meliputi waktu stabilisasi
-elektroda selama 10 menit, interval R-R yang berada dalam rentang 300--1500 ms
-dengan $|\Delta \mathrm{RR}| \leq 200$ ms secara stabil selama 30 detik, dan
-ayunan sinyal yang cukup. Kriteria R-R ini hanya berfungsi sebagai gerbang masuk
-dan tidak ditegakkan terus-menerus, karena detak aritmia justru datang dengan
-perubahan interval yang besar dan penegakan terus-menerus akan membungkam
-aritmia yang ingin dideteksi. Gerbang kedua adalah gerbang ayunan sinyal per
-detak, yaitu detak hanya dikirim apabila ayunan sinyal tersaring dalam satu detik
-terakhir mencapai ambang 60 \textit{count} ADC. Gerbang
-kedua ini diperlukan karena \textit{threshold} adaptif Pan-Tompkins tetap
-menemukan puncak pada derau ketika elektroda terlepas. Tanpa gerbang ini,
-elektroda yang lepas akan menghasilkan alarm aritmia palsu.
-% sumber: firmware/src/gerbang.cpp (RR_MIN_S 0,300, RR_MAKS_S 1,500, DRR_MAKS_S 0,200) dan gerbang_nilai_fase(); firmware/include/gerbang.h (AMBANG_AYUN 60, STABIL_MS 10 menit, RR_TENANG_MS 30 s); model/CLAUDE.md HW-6 dan jebakan "Tanpa elektroda, alat mengarang aritmia"
+gerbang kualitas yang sama-sama bertumpu pada penilaian kontak elektroda.
+Kontak dinilai setiap detik dan dinyatakan baik bila tiga syarat terpenuhi
+bersamaan. Pertama, kedua pin \textit{lead-off} AD8232 tidak menandai elektroda
+lepas pada satu sampel pun di detik tersebut. Kedua, ayunan bersih mencapai 60
+\textit{count} ADC. Ketiga, dengung 50 Hz puncak-ke-puncak tidak melebihi 500
+\textit{count}. Ketiga syarat dipakai bersama karena masing-masing menutup
+kelemahan syarat lain. Pin \textit{lead-off} dapat menyatakan elektroda menempel
+walaupun biopotensial tidak terbaca, sedangkan ayunan sinyal ECG yang kuat tetap
+tinggi ketika kontak salah satu elektroda memburuk dan dengungnya naik.
+% sumber: firmware/src/gerbang.cpp nilai_kontak() (q.lepas = n_lepas > 0 per jendela 1 detik, ayun_bersih >= AMBANG_AYUN, hum50 <= AMBANG_DENGUNG); firmware/include/gerbang.h (AMBANG_AYUN 60, AMBANG_DENGUNG 500); model/docs/akuisisi-walkthrough.md §2 dan §3 (LO 0% bukan jaminan ada sinyal); model/docs/mqtt-walkthrough.md §3.1 (ayunan tetap tinggi saat kontak memburuk)
 
-Ayunan yang dinilai kedua gerbang adalah ayunan bersih, yaitu ayunan sinyal tersaring dikurangi kontribusi dengung jala-jala 50 Hz yang masih lolos filter \textit{bandpass} dengan redaman sekitar 9,3 dB. Amplitudo dengung tersebut diukur per detik dengan algoritma Goertzel agar kabel yang hanya menangkap dengung tidak terbaca sebagai sinyal yang kuat. Syarat waktu stabilisasi dan syarat R-R pada fase kalibrasi dilewati secara otomatis selama sumber sinyal adalah \textit{replay}. Sinyal yang diputar ulang bukan kontak elektroda yang sedang menstabil, sedangkan rekaman acuan bersifat aritmik dan tidak akan memenuhi kriteria R-R. Pelewatan ini melekat pada sumber \textit{replay} dan berhenti begitu sumber kembali ke sensor, dan karena itu tidak dapat terbawa ke pemantauan sinyal tubuh. Syarat ayunan tidak pernah dilewati.
-% sumber: firmware/src/gerbang.cpp (GAIN_50HZ 0,342 = -9,3 dB, Goertzel 50 Hz per 1 detik, ayun_bersih; gerbang_nilai_fase(): lewati_kalibrasi || replay || (stabil && rr_tenang), selalu && ayun_ok); model/docs/akuisisi-walkthrough.md §2 (tabel siapa yang boleh melewati syarat waktu-stabil dan RR-tenang, bypass hilang begitu sumber kembali ke Sensor)
+Gerbang pertama adalah fase kalibrasi di awal sesi. Selama fase ini inferensi
+CNN belum dijalankan dan tidak ada rekaman yang dikirim. Fase kalibrasi berakhir
+apabila kontak baik bertahan tanpa putus selama 60 detik dan interval R-R berada
+dalam rentang 300--1500 ms dengan $|\Delta \mathrm{RR}| \leq 200$ ms secara
+stabil selama 30 detik. Waktu 60 detik dihitung sejak kontak terbentuk, bukan
+sejak perangkat dinyalakan, dan kontak yang putus mengulang hitungan dari nol.
+Kriteria R-R hanya berfungsi sebagai gerbang masuk dan tidak ditegakkan
+terus-menerus, karena detak aritmia justru datang dengan perubahan interval yang
+besar. Penegakan terus-menerus akan membungkam aritmia yang ingin dideteksi.
+% sumber: firmware/src/gerbang.cpp gerbang_nilai_fase() (gerbang_kontak_ms() >= PEMANASAN_MS && rr_tenang && q.kontak); firmware/include/gerbang.h (PEMANASAN_MS 60 s, RR_TENANG_MS 30 s); firmware/src/gerbang.cpp (RR_MIN_S 0,300, RR_MAKS_S 1,500, DRR_MAKS_S 0,200)
+
+Gerbang kedua adalah penilaian kontak yang terus berjalan setelah fase
+kalibrasi berakhir. Kontak yang memburuk memindahkan perangkat ke fase buruk dan
+detak ditahan, lalu perangkat kembali ke fase pemantauan begitu kontak pulih
+tanpa mengulang waktu 60 detik. Penilaian ini berjalan per detik dan tidak
+menunggu detak berikutnya, jadi elektroda yang lepas seluruhnya tetap terdeteksi
+walaupun detektor berhenti menemukan detak. Gerbang ini diperlukan karena
+\textit{threshold} adaptif Pan-Tompkins tetap menemukan puncak pada derau ketika
+elektroda terlepas. Tanpa gerbang ini, elektroda yang lepas akan menghasilkan
+alarm aritmia palsu.
+% sumber: firmware/src/gerbang.cpp nilai_kontak() (fase BAIK/BURUK tiap detik sesudah kalibrasi, tanpa pemanasan ulang); model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia"
+
+Ayunan yang dinilai pada kontak elektroda adalah ayunan bersih, yaitu ayunan sinyal tersaring dikurangi kontribusi dengung jala-jala 50 Hz yang masih lolos filter \textit{bandpass} dengan redaman sekitar 9,3 dB. Amplitudo dengung tersebut diukur per detik dengan algoritma Goertzel agar kabel yang hanya menangkap dengung tidak terbaca sebagai sinyal yang kuat. Syarat lama kontak, syarat R-R, dan status \textit{lead-off} dilewati secara otomatis selama sumber sinyal adalah \textit{replay}. Sinyal yang diputar ulang tidak berasal dari elektroda, sedangkan rekaman acuan bersifat aritmik dan tidak akan memenuhi kriteria R-R. Pelewatan ini melekat pada sumber \textit{replay} dan berhenti begitu sumber kembali ke sensor, dan karena itu tidak dapat terbawa ke pemantauan sinyal tubuh. Syarat ayunan dan dengung tidak pernah dilewati.
+% sumber: firmware/src/gerbang.cpp (GAIN_50HZ 0,342 = -9,3 dB, Goertzel 50 Hz per 1 detik, ayun_bersih; nilai_kontak(): akuisisi_replay() || !q.lepas; gerbang_nilai_fase(): lewati_kalibrasi || replay || (hangat && rr_tenang), selalu && q.kontak); model/docs/akuisisi-walkthrough.md §2 (tabel pelewatan, bypass hilang begitu sumber kembali ke Sensor)
 
 \subsection{Antarmuka Pengguna pada Perangkat}
 \label{subsec:antarmuka-perangkat}
@@ -599,7 +616,7 @@ Layar pemantauan dibagi menjadi tiga pita, yaitu pita atas untuk angka dan statu
   \label{fig:3-tata-letak-layar}
 \end{figure}
 
-Pada Gambar~\ref{fig:3-tata-letak-layar}, area HR di kiri atas menampilkan laju jantung dari interval R-R detak terakhir yang lolos gerbang ayunan. Angkanya berwarna merah bila detak terakhir diklasifikasi Aritmia dan berganti menjadi tanda strip bila tidak ada detak selama 3 detik. Area tengah atas berganti setiap 3 detik antara pembacaan INA219, yaitu arus dalam mA beserta tegangan dan daya, dan waktu. Waktu ditampilkan sebagai jam WIB beserta tanggal setelah jam perangkat tersinkron melalui SNTP, sedangkan sebelum itu yang tampil adalah \textit{uptime} perangkat. Area status rekaman di kanan atas menampilkan tulisan REC berwarna merah beserta panjang sinyal yang sudah tersimpan selama perekaman dan JEDA berwarna kuning selama perekaman dijeda. Setelah rekaman tersimpan, area ini menampilkan SIMPAN berwarna hijau beserta nomor berkas selama 3 detik. Bila sumber sinyal adalah \textit{replay}, area ini menampilkan label sumber berwarna kuning, dan bila sebuah perintah ditolak, area ini menampilkan pesan penolakan berwarna oranye selama 2 detik. Kualitas sinyal sengaja tidak ditulis di layar, karena LED menjadi satu-satunya indikatornya.
+Pada Gambar~\ref{fig:3-tata-letak-layar}, area HR di kiri atas menampilkan laju jantung dari interval R-R detak terakhir yang ayunan bersihnya mencapai 60 \textit{count}. Angkanya berwarna merah bila detak terakhir diklasifikasi Aritmia dan berganti menjadi tanda strip bila tidak ada detak selama 3 detik. Area tengah atas berganti setiap 3 detik antara pembacaan INA219, yaitu arus dalam mA beserta tegangan dan daya, dan waktu. Waktu ditampilkan sebagai jam WIB beserta tanggal setelah jam perangkat tersinkron melalui SNTP, sedangkan sebelum itu yang tampil adalah \textit{uptime} perangkat. Area status rekaman di kanan atas menampilkan tulisan REC berwarna merah beserta panjang sinyal yang sudah tersimpan selama perekaman dan JEDA berwarna kuning selama perekaman dijeda. Setelah rekaman tersimpan, area ini menampilkan SIMPAN berwarna hijau beserta nomor berkas selama 3 detik. Bila sumber sinyal adalah \textit{replay}, area ini menampilkan label sumber berwarna kuning, dan bila sebuah perintah ditolak, area ini menampilkan pesan penolakan berwarna oranye selama 2 detik. Kualitas sinyal sengaja tidak ditulis di layar, karena LED menjadi satu-satunya indikatornya.
 
 Pita tengah dan pita bawah pada Gambar~\ref{fig:3-tata-letak-layar} melayani gelombang dan tombol. Area gelombang ECG menampilkan sinyal tersaring 0,5--40 Hz dengan skala otomatis per sapuan. Tiga kotak di bawahnya memuat label B1, B2, dan B3 sesuai keadaan saat itu, misalnya BISU atau BUNYI, agar arti setiap tombol terbaca dari layar.
 % sumber: firmware/README.md bagian Antarmuka alat (HR merah bila aritmia, "--" bila tidak ada detak 3 detik; tengah atas bergantian tiap 3 detik INA219 dan waktu WIB/uptime; kanan atas RECmm:ss merah, JEDAm:ss kuning, SIMPAN hijau 3 detik, RP 208 dan RP#NNN kuning; gelombang 0,5-40 Hz skala otomatis; kotak tombol berlabel keadaan); firmware/src/tampilan.cpp (HR_BASI_MS 3000, tampilan_pesan oranye PESAN_MS 2000)
@@ -609,8 +626,8 @@ Gelombang dan bip detak sengaja ditunda sama rata sekitar 1,46 detik dari posisi
 
 \subsubsection{Indikator LED dan \textit{Buzzer}}
 
-LED \textit{NeoPixel} hanya menyatakan kualitas sinyal dengan tiga warna tanpa kedip, yaitu biru selama fase kalibrasi, oranye ketika ayunan bersih di bawah ambang 60 \textit{count}, dan hijau ketika ayunan bersih mencapai ambang tersebut. Sinyal yang terpotong di batas ADC tidak memiliki warna tersendiri agar satu warna tidak menanggung dua arti. Pemotongan sinyal karena itu diperiksa melalui laporan kualitas.
-% sumber: firmware/src/tampilan.cpp perbarui_led() (biru kalibrasi, oranye ayun < AMBANG_AYUN, hijau; tanpa kedip; clipping tanpa pola LED); model/docs/akuisisi-walkthrough.md §2
+LED \textit{NeoPixel} hanya menyatakan kualitas sinyal dengan tiga warna tanpa kedip, yaitu biru selama fase kalibrasi, oranye ketika kontak elektroda dinilai buruk, dan hijau ketika kontak elektroda dinilai baik. Sinyal yang terpotong di batas ADC tidak memiliki warna tersendiri agar satu warna tidak menanggung dua arti. Pemotongan sinyal karena itu diperiksa melalui laporan kualitas.
+% sumber: firmware/src/tampilan.cpp perbarui_led() (biru kalibrasi, oranye fase BURUK, hijau; tanpa kedip; clipping tanpa pola LED); model/docs/akuisisi-walkthrough.md §2
 
 \textit{Buzzer} berbunyi 50 ms untuk setiap detak dan 250 ms untuk detak yang diklasifikasi Aritmia agar irama dan kejadian aritmia dapat dikenali tanpa melihat layar. Bip detak hanya muncul bila ayunan sinyal mencapai ambang, yaitu gerbang yang sama dengan publikasi MQTT, dan senyap selama fase kalibrasi karena inferensi belum dijalankan. Bunyi panjang 600 ms menandai dimulainya fase kalibrasi, baik saat perangkat dinyalakan, saat sumber sinyal diganti, maupun saat kalibrasi dimulai ulang dari menu, dan menandai berakhirnya fase kalibrasi ketika perangkat masuk ke fase pemantauan. Selain itu, setiap tekanan tombol berbunyi klik 20 ms, tercapainya tekan lama ditandai bip 60 ms, dan berkas rekaman yang sudah tertulis ditandai bip 400 ms.
 % sumber: firmware/src/tampilan.cpp (BIP_MS 50, BIP_ARITMIA_MS 250, bip hanya bila fase != KALIBRASI); firmware/src/gerbang.cpp (BIP_KALIB_MS 600 di gerbang_mulai_sesi dan saat calibrating -> good); firmware/src/main.cpp (KLIK_MS 20, BIP_LAMA_MS 60, BIP_SIMPAN_MS 400); firmware/README.md bagian Antarmuka alat
@@ -871,8 +888,8 @@ Ambang selisih \textit{recall} 0,02 berpijak pada laporan kuantisasi INT8 untuk 
 
 Pengujian \textit{pipeline} dilakukan secara fungsional menggunakan subjek sehat untuk memverifikasi bahwa keseluruhan alur berjalan sesuai rancangan tanpa melakukan klaim klinis apa pun terhadap kondisi subjek. Pengujian ini terdiri dari tiga tahap berurutan.
 
-Tahap pertama adalah stabilisasi elektroda, yaitu subjek duduk diam minimal 10--15 menit setelah elektroda \textit{wet-gel} ditempelkan pada posisi Lead II, agar impedansi kontak elektroda dan respons transien filter Butterworth mencapai kondisi stabil. Selama periode ini perangkat berada pada fase kalibrasi dan inferensi CNN belum dijalankan. Tahap kedua adalah verifikasi kualitas sinyal. Sinyal dinyatakan layak untuk fase pemantauan apabila interval R-R berada dalam rentang fisiologis 300--1500~ms dan selisih antardetak (\(\Delta\)RR) tidak melebihi 200~ms secara konsisten selama minimal 30 detik. Setelah kriteria ini terpenuhi, perangkat beralih ke fase pemantauan dan inferensi mulai dijalankan per detak. Tahap ketiga adalah rekaman dan observasi \textit{pipeline}. Setiap hasil inferensi diamati keberhasilannya dalam terkirim ke \textit{broker} MQTT, tampil pada \textit{dashboard} ThingsBoard, dan tercatat pada \textit{log} historis. Parameter yang dicatat berupa \textit{Packet Delivery Success Rate} (PDSR), latensi rata-rata dari akuisisi hingga pembaruan \textit{dashboard}, jumlah entri pada \textit{ring buffer} lokal, serta waktu pemulihan setelah skenario putus koneksi.
-% sumber: firmware/include/gerbang.h dan firmware/src/gerbang.cpp (STABIL_MS = 10 menit, RR_TENANG_MS = 30 detik, RR_MIN_S = 0,300, RR_MAKS_S = 1,500, DRR_MAKS_S = 0,200); Tahap kedua dan ketiga mengikuti nilai_fase() dan publikasi()
+Tahap pertama adalah pemanasan elektroda, yaitu subjek duduk diam setelah elektroda \textit{wet-gel} ditempelkan pada posisi Lead II sampai kontak elektroda dinilai baik tanpa putus selama 60 detik. Selama periode ini perangkat berada pada fase kalibrasi dan inferensi CNN belum dijalankan. Tahap kedua adalah verifikasi kualitas sinyal. Sinyal dinyatakan layak untuk fase pemantauan apabila interval R-R berada dalam rentang fisiologis 300--1500~ms dan selisih antardetak (\(\Delta\)RR) tidak melebihi 200~ms secara konsisten selama minimal 30 detik. Setelah kriteria ini terpenuhi, perangkat beralih ke fase pemantauan dan inferensi mulai dijalankan per detak. Tahap ketiga adalah rekaman dan observasi \textit{pipeline}. Setiap hasil inferensi diamati keberhasilannya dalam terkirim ke \textit{broker} MQTT, tampil pada \textit{dashboard} ThingsBoard, dan tercatat pada \textit{log} historis. Parameter yang dicatat berupa \textit{Packet Delivery Success Rate} (PDSR), latensi rata-rata dari akuisisi hingga pembaruan \textit{dashboard}, jumlah entri pada \textit{ring buffer} lokal, serta waktu pemulihan setelah skenario putus koneksi.
+% sumber: firmware/include/gerbang.h dan firmware/src/gerbang.cpp (PEMANASAN_MS = 60 detik sejak kontak, RR_TENANG_MS = 30 detik, RR_MIN_S = 0,300, RR_MAKS_S = 1,500, DRR_MAKS_S = 0,200); Tahap kedua dan ketiga mengikuti nilai_fase() dan publikasi()
 
 % Skenario ketahanan diuji dengan menjalankan sistem pada kondisi \textit{streaming} normal, memutus koneksi WiFi secara paksa selama durasi tertentu, lalu memulihkannya kembali; selama proses ini diamati apakah data tetap tersimpan secara lokal dan apakah seluruh data tertunda berhasil terkirim utuh setelah koneksi pulih. Target kinerja yang ditetapkan untuk pengujian pipeline adalah PDSR $\geq$ 95\%, latensi \textit{edge}-ke-\textit{broker} $\leq$ 2 detik, dan bufer terkuras habis (\textit{flush} sempurna) dalam waktu $\leq$ 60 detik setelah koneksi pulih. Target waktu pemulihan ini dicapai dengan margin yang lebih besar berkat mekanisme \textit{batch offloading}, karena pengurasan backlog dalam kelompok 50--100 rekaman per paket menekan jumlah \textit{round-trip} PUBACK secara signifikan dibandingkan pendekatan pengiriman per-rekaman.
 
