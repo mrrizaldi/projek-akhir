@@ -408,7 +408,7 @@ dan PNG sama persis). Uji: `tests/test_analyze_recording.py`.
 | Metrik | Target | Kalau meleset |
 |---|---|---|
 | `sampel terlewat` | **0** | timer bermasalah — laporkan, ini bug firmware |
-| `clipping` | **0** | sinyal terpotong, baseline terlalu dekat rail |
+| `clipping` | ≤ 0,1% sampel di rail firmware (≥ 4090 atau ≤ 5) | puncak terpotong berulang: baseline terlalu dekat rail, atau elektroda/kabel terguncang. Rekaman bersih 22 Okt 2026 paling banyak 0,010% (puncak R sesekali menyentuh 4095), rekaman terganggu ≥ 0,135% |
 | `dengung 50Hz` | < 15% | cabut USB laptop, pilin kabel, cek RL |
 | `derau >60Hz` | < 50% | sebagian ditekan bandpass, ikut membaik kalau 50 Hz turun |
 | `drift <0.5Hz` | < 10% | subjek bergerak, atau elektroda bergeser |

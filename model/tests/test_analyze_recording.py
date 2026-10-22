@@ -1,7 +1,7 @@
 import numpy as np
 
 from scripts.analyze_recording import (
-    JENDELA_AUTOKORELASI_S, analisis_segmen, denyut_autokorelasi, denyut_per_jendela, gabung, muat,
+    AMBANG_CLIPPING_PERSEN, JENDELA_AUTOKORELASI_S, analisis_segmen, hitung_clipping, denyut_autokorelasi, denyut_per_jendela, gabung, muat,
 )
 
 FS = 360
@@ -45,3 +45,14 @@ def test_autokorelasi_panjang_median_per_jendela():
     assert len(tiap) == 3
     assert kuat == float(np.median([k for k, _, _ in tiap]))
     assert bpm == float(np.median([b for _, b, _ in tiap]))
+
+
+def test_clipping_dinilai_dari_fraksi_sampel_di_rail_firmware():
+    x = np.full(100000, 2000.0)
+    x[:5] = 4093
+    n, persen, ok = hitung_clipping(x)
+    assert (n, ok) == (5, True)
+    x[:200] = 4090
+    x[200:201] = 5
+    n, persen, ok = hitung_clipping(x)
+    assert n == 201 and persen > AMBANG_CLIPPING_PERSEN and not ok

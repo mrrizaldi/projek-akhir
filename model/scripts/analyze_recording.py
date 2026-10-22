@@ -33,6 +33,14 @@ def denyut_autokorelasi(x, fs):
 
 
 JENDELA_AUTOKORELASI_S = 30
+ADC_ATAS, ADC_BAWAH = 4090, 5
+AMBANG_CLIPPING_PERSEN = 0.1
+
+
+def hitung_clipping(mentah):
+    n_clip = int((mentah >= ADC_ATAS).sum() + (mentah <= ADC_BAWAH).sum())
+    persen = 100.0 * n_clip / len(mentah)
+    return n_clip, persen, persen <= AMBANG_CLIPPING_PERSEN
 
 
 def denyut_per_jendela(x, fs):
@@ -111,7 +119,7 @@ def main() -> None:
     mentah = np.concatenate(segmen)
     n = len(mentah)
 
-    clip = int((mentah >= 4095).sum() + (mentah <= 0).sum())
+    clip, persen_clip, clip_ok = hitung_clipping(mentah)
     hasil = [analisis_segmen(m, fs) for m in segmen]
     x = np.concatenate([h["x"] for h in hasil])
     filtered = np.concatenate([h["filtered"] for h in hasil])
@@ -130,7 +138,8 @@ def main() -> None:
             print(f"  segmen {i:<3}  {h['n'] / fs:6.1f} detik   R-peak {len(h['r']):4d}"
                   f"   RR {len(h['rr']):4d}   {ac}")
     print(f"  ADC          {int(mentah.min())}..{int(mentah.max())}   "
-          f"clipping {clip} sampel {'← RUSAK' if clip else 'OK'}")
+          f"clipping {clip} sampel ({persen_clip:.3f}%, ambang {AMBANG_CLIPPING_PERSEN}%) "
+          f"{'OK' if clip_ok else '← RUSAK'}")
     print(f"  dengung 50Hz {100 * hum / ekg:6.1f}% dari pita EKG   "
           f"{'OK' if hum / ekg < 0.15 else 'TERLALU BESAR'}")
     print(f"  derau >60Hz  {100 * hf / ekg:6.1f}% dari pita EKG   "
