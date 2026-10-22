@@ -96,9 +96,15 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   grafik rekaman, tempat/waktu perekaman, status Tujuan 1, abstrak, Bab 5).
   Prosedur: [`docs/akuisisi-walkthrough.md`](docs/akuisisi-walkthrough.md) §3–§6.
 - **(13 Okt 2026) Gerbang kalibrasi: ganti timer 10 menit (opsi C).**
-  1. Ukur waktu stabil sinyal sungguhan: log 15 menit dengan serial `q`
-     (laporan kualitas tiap detik), 2–3 ulangan, elektroda baru tiap ulangan,
-     subjek duduk diam, catu powerbank.
+  1. Waktu stabil sinyal sungguhan sudah diukur: tiga sesi ±15 menit
+     (21 Okt Lead I, 22 Okt dua sesi MLII; `data/recordings/README.md` §Catatan
+     per sesi), dinilai `scripts/tren_kualitas.py` (tabel per detik di
+     `artifacts/metrics/kualitas/`). Ketiganya: `ayun_bersih` ≥ 60 sejak detik
+     0 dan RR tenang 30 s tercapai di detik 30. Dengung 50 Hz tidak punya kurva
+     pemanasan yang konsisten (turun 45 → 10, lonjakan bertangga sampai 2.800
+     saat kontak memburuk, naik pelan 150 → 350); yang menandai kontak buruk
+     adalah LO± (lepas 14–62% per berkas pada sesi 22 Okt pagi) dan dengung,
+     sementara ayunan dan RR tetap lolos.
   2. Ganti `STABIL_MS` (timer 10 menit sejak sesi mulai) dengan **pemanasan
      sejak kontak** (hitung dari saat elektroda terdeteksi menempel, bukan dari
      boot) + **penilaian kualitas sinyal kontinu** (ayunan/dengung/RR dinilai
