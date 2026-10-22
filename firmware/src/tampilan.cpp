@@ -159,7 +159,7 @@ static void perbarui_led()
 
     if (!daya_tahap(4))                    tampilan_led(0, 0, 0);
     else if (gerbang_fase() == FASE_KALIBRASI) tampilan_led(0, 16, 64);
-    else if (gerbang_kualitas().ayun_bersih < AMBANG_AYUN) tampilan_led(64, 24, 0);
+    else if (gerbang_fase() == FASE_BURUK) tampilan_led(64, 24, 0);
     else                                   tampilan_led(0, 48, 0);
 }
 

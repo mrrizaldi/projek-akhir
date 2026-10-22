@@ -71,24 +71,41 @@ hanya klien MQTT, ring backlog, dan gerbangnya.
 
 ### 3.1 Dua gerbang: fase kalibrasi, lalu ayunan sinyal
 
-`bab3.tex` §Pengujian Pipeline menetapkan **dua** tahap sebelum pemantauan mulai,
-dan keduanya ada di `nilai_fase()`:
+Penilaian kontak berjalan tiap detik di `nilai_kontak()` (dipanggil
+`gerbang_nilai_kualitas()` sesudah jendela 1 detik), fase kalibrasi dinilai per
+detak di `gerbang_nilai_fase()`:
 
 ```
-KALIBRASI -> BAIK butuh tiga hal sekaligus:
-  1. elektroda stabil   millis() - t_sesi >= 10 menit
-  2. RR layak & tenang  RR 300-1500 ms dan |dRR| <= 200 ms, konsisten 30 detik
-  3. ayunan cukup       ayun_bersih_1s >= AMBANG_AYUN
+kontak (tiap detik)   LO+ = LO- = 0 sepanjang detik itu (diabaikan saat replay)
+                      dan ayun_bersih >= AMBANG_AYUN (60)
+                      dan dengung50 <= AMBANG_DENGUNG (500)
+KALIBRASI -> BAIK     kontak bertahan >= PEMANASAN_MS (60 detik, dihitung sejak
+                      kontak terakhir terbentuk, bukan sejak boot)
+                      dan RR 300-1500 ms dengan |dRR| <= 200 ms tenang 30 detik
+                      dan kontak saat itu
 ```
+
+Durasi pemanasan berasal dari tiga sesi rekaman ±15 menit (21–22 Okt 2026):
+ayunan bersih ≥ 60 sejak detik 0 dan RR tenang 30 detik tercapai di detik 30
+pada ketiganya; 60 detik = dua kali waktu lulus terukur. Timer 10 menit sejak
+sesi mulai tidak dipakai karena tidak didukung data dan membuat bip detak
+senyap 10 menit walau sinyal sudah baik. Kontak kehilangan salah satu syarat →
+hitungan pemanasan mulai lagi dari nol saat kontak kembali.
 
 Selama `calibrating` **CNN tidak dijalankan** (bab3: *"inferensi CNN belum
 dijalankan"*), tidak ada yang dipublikasikan, dan LED menyala biru. Detektor
 tetap jalan — RR-nya justru yang dipakai menilai kelayakan. Serial mencetak
-baris `calibrating | RR=… dRR=… | tenang …/30 s | ayun … | stabil …/600 s` tiap
-5 detik.
+baris `calibrating | RR=… dRR=… | tenang …/30 s | ayun … | dengung … | lepas … |
+kontak …/60 s` tiap 5 detik.
 
-Sesudah fase pemantauan dimulai, fase berganti antara `good` dan `poor` menurut
-ayunan bersih saja.
+Sesudah fase pemantauan dimulai, fase berganti antara `good` dan `poor` tiap
+detik menurut kontak (LO±, ayunan, dengung), tanpa menunggu detak dan tanpa
+mengulang pemanasan; serial mencetak `kualitas: good -> poor (lepas …, ayun …,
+dengung …)` dan sebaliknya. Ayunan saja tidak cukup: pada sesi 22 Okt 2026 pagi
+ayunan tetap ≥ 1.400 dan RR 97–100% wajar selama dengung melonjak sampai 2.800
+dan LO mencatat elektroda lepas 41–62% per berkas. Ambang dengung 500 berada di
+antara nilai sesi bersih (median per menit ≤ 370) dan lonjakan kontak buruk
+(≥ 790).
 
 > **Penting: kriteria RR itu gerbang MASUK, bukan gerbang per detak.** Sesudah fase
 > pemantauan mulai, `dRR` TIDAK lagi dibatasi. Menegakkan `dRR <= 200 ms`
@@ -131,19 +148,22 @@ if ((lewati_kalibrasi || replay || (stabil && rr_tenang)) && ayun_ok)
 dilewati dan serial mencetak `GERBANG DILEWATI (replay)` saat fase berpindah.
 Kembali ke Sensor (ADC), lewat menu Sumber sinyal atau `y` kedua, memanggil
 `gerbang_mulai_sesi()`, sehingga sinyal tubuh kembali ke `calibrating` dan
-harus memenuhi gerbang penuh (stabil 10 menit + RR tenang 30 detik + ayunan).
+harus memenuhi gerbang penuh (kontak 60 detik + RR tenang 30 detik).
 Tidak ada keadaan tersisa dari replay yang bisa membuka gerbang untuk sinyal
 tubuh.
 
 Toggle `k` (menu Kalibrasi → Lewati (bench)) adalah override manual untuk
-bench, terpisah dari replay: `k` ON melewati gerbang untuk jalur ADC
-(`GERBANG DILEWATI (bench)`), dan `k` OFF memanggil `gerbang_mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
+bench, terpisah dari replay: `k` ON melewati syarat pemanasan dan RR untuk
+jalur ADC (`GERBANG DILEWATI (bench)`), tetapi tidak melewati kontak (LO±,
+ayunan, dengung). Tanpa elektroda LO bernilai 1, jadi `k` tidak lagi membuka
+gerbang untuk derau ADC; uji meja tanpa elektroda memakai replay. `k` OFF `k` OFF memanggil `gerbang_mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
 penuh, termasuk bila fase sudah `good`. Status `k` terbaca di baris status
 (`lewati 0/1`, §4.4).
 
-Terverifikasi di board tanpa elektroda (13 Okt 2026). Derau tanpa elektroda
-berayun di atas `AMBANG_AYUN` (404–1.787 counts), sehingga yang diuji adalah
-syarat waktu dan RR, bukan syarat ayunan:
+Terverifikasi di board tanpa elektroda (13 Okt 2026, gerbang timer 10 menit
+sebelum syarat kontak ditambahkan). Derau tanpa elektroda berayun di atas
+`AMBANG_AYUN` (404–1.787 counts), sehingga yang diuji adalah syarat waktu dan
+RR, bukan syarat ayunan:
 
 ```
 >>> y   replay ON (golden_raw)
@@ -178,6 +198,34 @@ Baris ketiga menolak beat yang keluar lewat `ECG_LIVE_TIMEOUT` (asistol /
 elektroda lepas). `ecg_live.h` sudah menyuruhnya: *"Pemanggil sebaiknya
 menaikkan alarm 'sinyal hilang' TERPISAH dari klasifikasi aritmia, supaya tidak
 mengotori metrik."*
+
+### 3.1c Uji gerbang kontak (22 Okt 2026)
+
+Kondisi uji: board N16R8, firmware dengan gerbang kontak, elektroda MLII.
+
+1. Replay acuan, tanpa elektroda (serial, USB):
+
+   ```
+   >>> y   replay ON (golden_raw)
+           kualitas: calibrating -> good (GERBANG DILEWATI (replay), kontak 2 s, RR tenang 3 s, ayun 2434, dengung 19)
+   >>> s   status: ... replay=1 | kualitas good | ... | LO 1 1 | ... ayun 2836
+   >>> y   replay OFF (ADC)
+   >>> s   status: ... replay=0 | kualitas calibrating | ... | LO 1 1 | mentah 0..9 ayun 1
+   ```
+
+   LO diabaikan selama replay; kembali ke ADC tanpa elektroda tetap
+   `calibrating`.
+2. Elektroda dengan kontak buruk, board dicolok USB laptop (serial, ±3,5
+   menit): setiap baris `calibrating` menunjukkan `lepas 1` dan `kontak 0/60 s`;
+   ayunan naik pelan 11 → 395, dengung sampai 486, RR acak 0,20–1,10 s. Gerbang
+   tidak lulus.
+3. Elektroda menempel baik, catu powerbank (diamati subjek di layar, tanpa log
+   serial): LED biru lalu bip panjang dan LED hijau sekitar 60 detik sesudah
+   elektroda menempel, bip detak mulai; klip kabel kuning dicabut ±10 detik →
+   LED oranye; dipasang lagi → hijau tanpa menunggu 60 detik.
+
+Belum diverifikasi dengan log serial: langkah 3 (transisi `calibrating -> good
+(gerbang penuh, kontak 60 s ...)` dan `good -> poor (lepas 1 ...)` tercetak).
 
 ### 3.2 `confidence` — keyakinan pada KEPUTUSAN, bukan `p` mentah
 
@@ -765,8 +813,10 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
 - **Sinyal tubuh.** Seluruh angka di dokumen ini diukur dengan replay. Dua hal
   hanya dapat diuji dengan sinyal tubuh: (a) apakah `AMBANG_AYUN` 60 memisahkan
   elektroda lepas dari sinyal tubuh lemah — replay ~2700 counts terlalu jauh di
-  atas ambang; (b) **gerbang kalibrasi penuh** (10 menit + RR tenang 30 detik),
-  yang dilewati replay karena record 208 memang aritmik (§3.1b).
+  atas ambang; (b) **gerbang kalibrasi penuh** (kontak 60 detik + RR tenang 30
+  detik) beserta publikasinya, yang dilewati replay karena record 208 memang
+  aritmik (§3.1b). Gerbang kontak sendiri sudah diuji dengan sinyal tubuh tanpa
+  MQTT (§3.1c).
 - **Latensi p95.** Ekor p95 bergantung pada kanal WiFi (§7c). Pengukuran ulang
   yang bersih memerlukan AP yang tidak padat dan laporan n run. Kadens deteksi
   firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik), sehingga

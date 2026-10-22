@@ -7,19 +7,21 @@
 enum { FASE_KALIBRASI, FASE_BAIK, FASE_BURUK };
 
 constexpr int AMBANG_AYUN = 60;
+constexpr int AMBANG_DENGUNG = 500;
 
-constexpr uint32_t STABIL_MS = 10UL * 60 * 1000;
+constexpr uint32_t PEMANASAN_MS = 60UL * 1000;
 constexpr uint32_t RR_TENANG_MS = 30UL * 1000;
 
 struct gerbang_kualitas_t {
     int ayun, ayun_bersih, hum50, mentah_min, mentah_maks;
-    bool clipping;
+    bool clipping, lepas, kontak;
 };
 const gerbang_kualitas_t &gerbang_kualitas(void);
 
 void gerbang_mulai_sesi(void);
 uint32_t gerbang_t_sesi_ms(void);
 uint32_t gerbang_tenang_ms(void);
+uint32_t gerbang_kontak_ms(void);
 
 void gerbang_nilai_kualitas(float mentah);
 void gerbang_nilai_fase(const ecg_beat_t &beat);

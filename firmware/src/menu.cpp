@@ -92,13 +92,13 @@ static void kalib_status(baris_t *b)
     const gerbang_kualitas_t &q = gerbang_kualitas();
     const int f = gerbang_fase();
     snprintf(b[0], sizeof *b, "Fase %s", f == FASE_KALIBRASI ? "KALIBRASI" : f == FASE_BAIK ? "BAIK" : "BURUK");
-    snprintf(b[1], sizeof *b, "Stabil %lu/%lu s",
-             (unsigned long)min<uint32_t>((millis() - gerbang_t_sesi_ms()) / 1000, 99999),
-             (unsigned long)(STABIL_MS / 1000));
+    snprintf(b[1], sizeof *b, "Kontak %lu/%lu s",
+             (unsigned long)min<uint32_t>(gerbang_kontak_ms() / 1000, 99999),
+             (unsigned long)(PEMANASAN_MS / 1000));
     snprintf(b[2], sizeof *b, "RR tenang %lu/%lu s",
              (unsigned long)min<uint32_t>(gerbang_tenang_ms() / 1000, 99999),
              (unsigned long)(RR_TENANG_MS / 1000));
-    snprintf(b[3], sizeof *b, "Ayun %d (ambang %d)", q.ayun_bersih, AMBANG_AYUN);
+    snprintf(b[3], sizeof *b, "Ayun %d/%d 50Hz %d/%d", q.ayun_bersih, AMBANG_AYUN, q.hum50, AMBANG_DENGUNG);
     snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gerbang_lewati()), on_off(akuisisi_replay()));
     snprintf(b[5], sizeof *b, "Sampel hilang %u", (unsigned)akuisisi_lewat());
 }

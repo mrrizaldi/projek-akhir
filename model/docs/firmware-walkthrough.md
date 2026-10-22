@@ -483,7 +483,7 @@ Dua kegunaan, dan yang kedua justru yang lebih penting:
    beat hilang = beat seharusnya − beat yang sampai di broker. Setiap ganti
    sumber (menu atau `y`) me-reset `ecg_live` dan pencacah beat supaya
    hitungannya mulai dari nol. Selama replay (acuan maupun rekaman), syarat
-   waktu-stabil dan RR-tenang gerbang kalibrasi dilewati; bypass itu diturunkan
+   pemanasan dan RR-tenang gerbang kalibrasi dilewati; bypass itu diturunkan
    dari sumber sinyal sehingga berhenti bersama replay
    ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
 

@@ -86,8 +86,9 @@ pemasangan ulang.
 
 LED (NeoPixel) adalah **satu-satunya indikator kualitas sinyal**; layar tidak
 menuliskan kualitas. Status rekaman tidak ditampilkan lewat LED, melainkan di
-pojok kanan atas layar (§3). LED mengukur **ayunan sinyal setelah bandpass 0,5–40 Hz**, pakai fungsi
-`ecg_bandpass` yang sama dengan pipeline model.
+pojok kanan atas layar (§3). LED mengikuti fase gerbang, dan fase dinilai dari
+**kontak**: pin LO± AD8232, **ayunan sinyal setelah bandpass 0,5–40 Hz** (fungsi
+`ecg_bandpass` yang sama dengan pipeline model), dan dengung 50 Hz.
 
 Bandpass itu **tidak membunuh 50 Hz**, cuma meredamnya −9,3 dB (gain 0,342;
 diukur dari `ecg_sos` dengan `sosfreqz`). Dengung besar karena USB laptop
@@ -100,37 +101,45 @@ padahal isinya jala-jala, bukan EKG. Karena itu firmware mengukur amplitudo 50 H
 ayun_bersih = ayun_tersaring − 0,342 × dengung50_puncak-ke-puncak
 ```
 
-Angka `ayun_bersih` inilah yang menyetir LED, dan yang dicetak `q` sebagai
-`BERSIH`.
+Angka `ayun_bersih` inilah yang dinilai terhadap ambang 60, dan yang dicetak
+`q` sebagai `BERSIH`. Dengung 50 Hz puncak-ke-puncak (`dengung50` di `q`)
+dinilai terhadap ambang 500, dan LO± dinilai lepas bila satu sampel saja dalam
+detik itu menunjukkan lepas.
 
 LED dievaluasi tiap 250 ms dengan urutan prioritas berikut (`perbarui_led()`):
 
 | LED | Kondisi | Artinya |
 |---|---|---|
 | **Biru** | fase kalibrasi | stabilisasi elektroda; inferensi belum jalan |
-| **Oranye** | ayunan bersih < 60 | kontak kurang atau dengung dominan — **jangan rekam** |
-| **Hijau** | ayunan bersih ≥ 60 | sinyal sehat, boleh rekam |
+| **Oranye** | fase BURUK: LO± lepas, ayunan bersih < 60, atau dengung 50 Hz > 500 | kontak kurang atau dengung dominan — **jangan rekam** |
+| **Hijau** | fase BAIK: LO± menempel, ayunan bersih ≥ 60, dengung ≤ 500 | sinyal sehat, boleh rekam |
 
 Tiga keadaan, tanpa kedip, dan tidak berubah saat merekam. Merekam saat
 oranye = rekaman kosong; perbaiki elektrodanya lebih dulu. Merah berkedip
 hanya muncul bila inisialisasi TFLM gagal saat boot (bukan keadaan kualitas).
 
-**Fase kalibrasi (biru).** Setiap sesi dimulai di fase kalibrasi dan baru
-berpindah ke pemantauan bila tiga syarat terpenuhi bersamaan: sesi sudah
-berjalan ≥ 10 menit, RR 300–1500 ms dengan |dRR| ≤ 200 ms tenang selama
-30 detik, dan ayunan bersih ≥ 60 (rincian: [`mqtt-walkthrough.md`](mqtt-walkthrough.md)
-§3.1). Selama biru, LED tidak menunjukkan oranye/hijau, jadi kualitas kontak
-dibaca dari `q` atau dari halaman menu **Kalibrasi → Status** (waktu stabil,
-RR tenang, ayunan, sampel hilang; diperbarui tiap detik).
+**Fase kalibrasi (biru).** Setiap sesi dimulai di fase kalibrasi. Tiap detik
+firmware menilai **kontak**: LO+ dan LO− tidak lepas sepanjang detik itu,
+ayunan bersih ≥ 60, dan dengung 50 Hz ≤ 500. Fase berpindah ke pemantauan bila
+kontak sudah bertahan **60 detik** (dihitung sejak kontak terbentuk, bukan
+sejak board menyala) dan RR 300–1500 ms dengan |dRR| ≤ 200 ms tenang selama
+30 detik (rincian: [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1). Bip
+panjang menandai perpindahan itu, dan bip per detak baru berbunyi sesudahnya.
+Selama biru, LED tidak menunjukkan oranye/hijau, jadi kualitas kontak dibaca
+dari `q` atau dari halaman menu **Kalibrasi → Status** (`Kontak x/60 s`, RR
+tenang, ayunan dan dengung terhadap ambangnya, sampel hilang; diperbarui tiap
+detik). Sesudah pemantauan dimulai, kontak yang memburuk memindahkan fase ke
+BURUK (LED oranye, detak ditahan) dan kembali BAIK begitu kontak pulih, tanpa
+mengulang 60 detik.
 
-Siapa yang boleh melewati syarat waktu-stabil dan RR-tenang (syarat ayunan
-≥ 60 **tidak pernah** dilewati):
+Siapa yang boleh melewati syarat pemanasan dan RR-tenang (syarat kontak untuk
+sensor ADC **tidak pernah** dilewati):
 
-| Keadaan | Waktu-stabil & RR-tenang | Keterangan |
+| Keadaan | Pemanasan & RR-tenang | Keterangan |
 |---|---|---|
 | sumber = ADC, `k` OFF | **berlaku penuh** | kondisi perekaman resmi |
-| sumber = replay acuan atau replay rekaman (menu **Sumber sinyal**; `y` untuk replay acuan) | **dilewati otomatis** selama replay aktif | record 208 aritmik, tidak akan pernah RR-tenang; rekaman yang diputar ulang bukan kontak elektroda yang sedang menstabil, sehingga syarat stabilisasi tidak bermakna; keduanya tanpa elektroda. Serial: `GERBANG DILEWATI (replay)`. Bypass hilang begitu sumber kembali ke Sensor (ADC) |
-| lewati ON (`k`, atau menu **Kalibrasi → Lewati (bench)**) | dilewati — **override manual untuk bench** | serial: `GERBANG DILEWATI (bench)`. Mematikannya memulai **sesi baru**, jadi gerbang penuh (termasuk 10 menit) berlaku lagi dari nol |
+| sumber = replay acuan atau replay rekaman (menu **Sumber sinyal**; `y` untuk replay acuan) | **dilewati otomatis** selama replay aktif; LO± juga diabaikan | record 208 aritmik, tidak akan pernah RR-tenang; rekaman yang diputar ulang bukan kontak elektroda yang sedang menstabil, sehingga syarat stabilisasi tidak bermakna; keduanya tanpa elektroda. Serial: `GERBANG DILEWATI (replay)`. Bypass hilang begitu sumber kembali ke Sensor (ADC) |
+| lewati ON (`k`, atau menu **Kalibrasi → Lewati (bench)**) | dilewati — **override manual untuk bench** | serial: `GERBANG DILEWATI (bench)`. Syarat kontak tetap berlaku, jadi tanpa elektroda gerbang tidak terbuka. Mematikannya memulai **sesi baru**, jadi gerbang penuh berlaku lagi dari nol |
 
 Jangan merekam data resmi dengan `k` ON: gerbangnya tidak menjamin apa-apa.
 
@@ -453,7 +462,7 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 | ayunan tertahan 40–55 counts (lantai derau, ~38 µV input-referred) | sambungan header modul AD8232 tidak tersolder / intermiten | solder header modul, ulangi rekam |
 | `elektroda lepas 0%` tetapi rekaman kosong | LO dipuaskan satu jalur (mis. RL saja) | nilai dari ayunan, bukan dari LO |
 | ADC 0 mutlak | pin/jalur korslet atau modul tak bertenaga | `s` di serial, lihat status |
-| LED biru terus | fase kalibrasi belum lulus (≥ 10 menit + RR tenang 30 detik) | tunggu; `k` hanya untuk uji meja (bukan rekaman resmi) |
+| LED biru terus | fase kalibrasi belum lulus (kontak 60 detik + RR tenang 30 detik) | cek **Kalibrasi → Status**: `Kontak 0/60 s` berarti kontak belum terbentuk (elektroda baru, klip terkancing penuh); dengung di atas 500 → pakai catu powerbank (uji 22 Okt 2026: sinyal buruk saat dicolok USB laptop, baik dengan powerbank) |
 
 Mengukur resistansi rangkaian dengan ohmmeter wajib dalam keadaan daya mati;
 ohmmeter pada rangkaian bertegangan memberi angka salah tanpa tanda apa pun.

@@ -105,10 +105,12 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
      saat kontak memburuk, naik pelan 150 → 350); yang menandai kontak buruk
      adalah LO± (lepas 14–62% per berkas pada sesi 22 Okt pagi) dan dengung,
      sementara ayunan dan RR tetap lolos.
-  2. Ganti `STABIL_MS` (timer 10 menit sejak sesi mulai) dengan **pemanasan
-     sejak kontak** (hitung dari saat elektroda terdeteksi menempel, bukan dari
-     boot) + **penilaian kualitas sinyal kontinu** (ayunan/dengung/RR dinilai
-     terus, bukan sekali lulus). Durasi pemanasan diambil dari hasil langkah 1.
+  2. `STABIL_MS` diganti **pemanasan sejak kontak** `PEMANASAN_MS` 60 detik +
+     **penilaian kontak tiap detik** (LO±, `AMBANG_AYUN` 60, `AMBANG_DENGUNG`
+     500); kontak memburuk → fase BURUK lalu pulih tanpa pemanasan ulang
+     (keputusan user 22 Okt 2026; `docs/mqtt-walkthrough.md` §3.1, uji §3.1c).
+     Belum ada log serial transisi `gerbang penuh` dan `good -> poor` dengan
+     sinyal tubuh; diamati subjek di layar dengan catu powerbank.
   3. Revisi Bab 3 buku-pa bagian gerbang kualitas (stabilisasi 10–15 menit)
      dan butir Gerbang Kalibrasi di Bab 4 sesuai rancangan baru.
   Perilaku gerbang saat ini (bypass otomatis selama replay, `k` = override

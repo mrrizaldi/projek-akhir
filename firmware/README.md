@@ -463,10 +463,12 @@ tergambar tepat saat bipnya berbunyi. HR dan bip hanya muncul bila ayunan
 sinyal bersih di atas ambang (gerbang yang sama dengan publikasi MQTT).
 Selama fase kalibrasi bip detak senyap; bunyi panjang 600 ms menandai
 kalibrasi mulai (boot, ganti sumber, Kalibrasi → Mulai ulang, lewati
-kalibrasi OFF) dan selesai (masuk fase BAIK).
+kalibrasi OFF) dan selesai (masuk fase BAIK, ±60 detik sesudah elektroda
+menempel baik).
 
-Indikator NeoPixel = kualitas sinyal saja: biru = kalibrasi (stabilisasi),
-oranye = ayunan sinyal di bawah ambang, hijau = sinyal baik. Warnanya tidak
+Indikator NeoPixel = kualitas sinyal saja: biru = kalibrasi (pemanasan sejak
+kontak), oranye = fase BURUK (LO± lepas, ayunan di bawah 60, atau dengung 50 Hz
+di atas 500), hijau = sinyal baik. Warnanya tidak
 berubah saat merekam; status rekaman ada di kanan atas layar. Merah berkedip =
 inisialisasi TFLM gagal saat boot. Arti tombol dan menu: bagian Pemakaian di
 perangkat.
@@ -515,8 +517,8 @@ dipulihkan saat boot.
 
 | Halaman | Isi dan aksi |
 |---|---|
-| Sumber sinyal | **Sensor (ADC)**: AD8232 lewat elektroda. **REPLAY 208**: `golden_raw` record 208 diputar berulang (setara `y`); layar monitor menampilkan `RP 208`. **Replay rekaman**: daftar berkas `/rekam/NNN.csv` beserta durasinya; memilih satu memuat berkas ke PSRAM (maksimal 300 detik pertama) lalu memutarnya berulang dan kembali ke halaman Sumber sinyal; layar monitor menampilkan `RP#NNN`. Baris `#` (header, `# jeda`) dilewati, jadi segmen rekaman berjeda diputar bersambung. Rekaman yang gagal dimuat (< 1 detik) tidak mengubah sumber. Ganti sumber memulai sesi kalibrasi baru dan mengenolkan hitungan beat. Kedua replay melewati syarat waktu-stabil dan RR-tenang gerbang kalibrasi |
-| Kalibrasi | **Mulai ulang**: sesi kalibrasi baru dan hitungan klasifikasi dari nol. **Lewati (bench)**: setara `k`; OFF memulai sesi baru dengan gerbang penuh. **Status**: fase, waktu stabil x/600 s, RR tenang x/30 s, ayunan dan ambangnya, status lewati dan replay, sampel hilang; diperbarui tiap detik |
+| Sumber sinyal | **Sensor (ADC)**: AD8232 lewat elektroda. **REPLAY 208**: `golden_raw` record 208 diputar berulang (setara `y`); layar monitor menampilkan `RP 208`. **Replay rekaman**: daftar berkas `/rekam/NNN.csv` beserta durasinya; memilih satu memuat berkas ke PSRAM (maksimal 300 detik pertama) lalu memutarnya berulang dan kembali ke halaman Sumber sinyal; layar monitor menampilkan `RP#NNN`. Baris `#` (header, `# jeda`) dilewati, jadi segmen rekaman berjeda diputar bersambung. Rekaman yang gagal dimuat (< 1 detik) tidak mengubah sumber. Ganti sumber memulai sesi kalibrasi baru dan mengenolkan hitungan beat. Kedua replay melewati syarat pemanasan dan RR-tenang gerbang kalibrasi, dan pin LO± diabaikan selama replay |
+| Kalibrasi | **Mulai ulang**: sesi kalibrasi baru dan hitungan klasifikasi dari nol. **Lewati (bench)**: setara `k`; OFF memulai sesi baru dengan gerbang penuh. **Status**: fase, `Kontak x/60 s` (lama kontak baik tanpa putus), RR tenang x/30 s, ayunan dan dengung 50 Hz terhadap ambangnya (`Ayun 2300/60 50Hz 350/500`), status lewati dan replay, sampel hilang; diperbarui tiap detik |
 | Tes perangkat | Menjalankan satu fungsi `diag_*` (sama dengan `test_hw_*`) lalu membuka halaman hasil `LULUS`/`GAGAL` dengan ringkasan bacaan. Selama tes akuisisi dijeda. **Buzzer**: tiga bip untuk didengar. **Layar**: pola empat pita warna dan `TFT OK` ±2 detik. **ADC & lead-off**: rentang ADC ±1 detik dan status LO±; lulus tidak bergantung elektroda. **INA219**: V/I dan alamat; V bus < 1 V ditandai `bukan jalur catu`. **Tombol (10 s)**: tekan B1, B2, B3 masing-masing sekali dalam 10 detik |
 | Ukur daya | **Mulai tangga p0-p5**: tangga mandiri (prosedur di bagian Ukur daya tanpa laptop). **Hasil terakhir**: tabel mode, arus, dan daya tangga terakhir; `pN!` = langkah tidak sah |
 | Jaringan | **WiFi aktif**: setara `m`; OFF mematikan radio WiFi dan MQTT, ON menyalakan dan menyambung ulang; disimpan di NVS (bagian WiFi aktif di Konfigurasi jaringan dan broker). **WiFi** / **Broker**: daftar dari `wifi_secrets.h`, memilih entri = setara `w<n>` / `b<n>` (disimpan, sambung ulang; saat WiFi aktif OFF radio tetap mati). **Status**: status MQTT, SSID, IP, RSSI, host:port broker, jumlah terkirim dan backlog |
