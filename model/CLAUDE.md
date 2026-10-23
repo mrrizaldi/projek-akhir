@@ -85,6 +85,14 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 Daftar hal yang BELUM selesai dan mudah terlupa. Butir bertanggal; hapus butir
 hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
 
+- **(23 Okt 2026) Rekaman mulai sendiri sesaat setelah board dicolok USB.**
+  Teramati dua kali: 22 Okt (`rekam=1 n=417` di status pertama) dan 23 Okt
+  (rekaman 30,5 s tanpa elektroda, mulai ±1 s sebelum port pertama dibuka).
+  ModemManager sudah dikecualikan (udev `ID_MM_DEVICE_IGNORE=1`). Penyebab
+  belum diukur: pasang cetak sumber pemicu (tombol B3 / serial `r`) di
+  `rekam_toggle()` sebelum menebak. Dampak: sesi rekam kosong ikut tersimpan
+  dan perintah yang ditolak selama sesi rekam (mis. `m`) gagal diam-diam di
+  skrip.
 - **(13 Okt 2026) Konsumsi daya per mode operasi.** Pengukuran daya per mode
   (idle, inferensi, WiFi/MQTT): rancangan di
   [`docs/arsip/2026-09-16-daya-design.md`](docs/arsip/2026-09-16-daya-design.md).

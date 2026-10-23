@@ -708,19 +708,25 @@ bukan menalar mana yang "paling mungkin".
 
 ## 7c. Target `bab3.tex` Tabel *Rencana pengukuran pada pengujian pipeline*
 
-Diukur dengan `dashboard/ukur_pipeline.py 180` (replay ON, tanpa elektroda),
-**dua ulangan** — aturan repo bahwa satu run tidak sah berlaku di sini juga.
+Diukur dengan `dashboard/ukur_pipeline.py` (replay ON, tanpa elektroda): Run 1
+dan 2 `ukur_pipeline.py 180` pada 19 Sep 2026, Run 3 `ukur_pipeline.py 120` pada
+23 Okt 2026 07.22–07.24 dengan firmware akhir (gerbang kontak, perekam sesi
+PSRAM), WiFi `HIFIAIR_9351` RSSI −40 dBm. Latensi = batas bawah keluaran skrip.
 
-| Aspek | Target | Run 1 | Run 2 | Vonis |
-|---|---|---|---|---|
-| PDSR | ≥ 95% | **100,0%** (292/292) | **99,2%** (253/255) | lulus |
-| Latensi median | ≤ 2 dtk | **939 ms** | **1.108 ms** | lulus |
-| Latensi p95 | ≤ 2 dtk | **1.404 ms** (lulus) | 3.304 ms (tidak lulus) | tidak stabil |
-| Latensi minimum | — | 429 ms | 527 ms | — |
-| Bufer lokal | ±27.000 | 27.000 terpasang | idem | lulus |
-| Integritas saat putus | tanpa kehilangan | `hilang 0` | `hilang 0` | lulus |
-| Pemulihan bufer | ≤ 60 dtk | ~24 dtk (43 beat) | idem | lulus |
-| Deduplikasi cloud | duplikat dikenali | 0 ts duplikat | idem | lulus |
+| Aspek | Target | Run 1 | Run 2 | Run 3 | Vonis |
+|---|---|---|---|---|---|
+| PDSR | ≥ 95% | **100,0%** (292/292) | **99,2%** (253/255) | **100,0%** (188/188) | lulus |
+| Latensi median | ≤ 2 dtk | **939 ms** | **1.108 ms** | **1.014 ms** | lulus |
+| Latensi p95 | ≤ 2 dtk | **1.404 ms** (lulus) | 3.304 ms (tidak lulus) | 2.251 ms (tidak lulus) | tidak stabil |
+| Latensi minimum | — | 429 ms | 527 ms | 495 ms | — |
+| Bufer lokal | ±27.000 | 27.000 terpasang | idem | idem | lulus |
+| Integritas saat putus | tanpa kehilangan | `hilang 0` | `hilang 0` | `hilang 0` | lulus |
+| Pemulihan bufer | ≤ 60 dtk | ~24 dtk (43 beat) | idem | idem | lulus |
+| Deduplikasi cloud | duplikat dikenali | 0 ts duplikat | idem | 0 (267 baris unik REST = terkirim 267) | lulus |
+
+Run 3 juga menghasilkan tangkapan dashboard yang dipakai buku
+(`dashboard/preview.png` = `model/artifacts/metrics/mqtt/20261023-0724-dashboard-replay.png`,
+Playwright, jendela Realtime 2 menit).
 
 ### Latensi dipecah
 
