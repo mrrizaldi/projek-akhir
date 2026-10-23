@@ -43,8 +43,8 @@ pull: ## tarik rekaman dari board (N=nomor, bawaan terakhir) -> data/recordings/
 	$(PY) scripts/pull_recording.py $(N)
 pull-daya: ## tarik hasil tangga daya mandiri (N=nomor, bawaan terakhir) -> artifacts/metrics/daya/
 	$(PY) scripts/pull_daya.py $(N)
-analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv
-	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE)))
+analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv [JUDUL="judul grafik"]
+	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE))) $(if $(JUDUL),"$(JUDUL)")
 grafik: ## grafik EKG 60 detik terbaik: make grafik FILE=data/recordings/xxx.csv [MULAI=detik]
 	$(PY) scripts/plot_rekaman.py $(FILE) $(if $(MULAI),--mulai $(MULAI))
 broker-info: ## SSID WiFi, IP LAN, port 1883/8080, saran entri wifi_secrets.h

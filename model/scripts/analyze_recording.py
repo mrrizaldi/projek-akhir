@@ -115,6 +115,7 @@ def gabung(hasil, fs):
 def main() -> None:
     path = sys.argv[1]
     nama = sys.argv[2] if len(sys.argv) > 2 else "device"
+    judul = sys.argv[3] if len(sys.argv) > 3 else nama
     segmen, fs, lewat = muat(path)
     mentah = np.concatenate(segmen)
     n = len(mentah)
@@ -169,7 +170,7 @@ def main() -> None:
     fig, ax = plt.subplots(3 + (len(segmen) > 1), 1,
                            figsize=(13, 8 + 2.7 * (len(segmen) > 1)))
     ax[0].plot(t[tampil], mentah[tampil], lw=0.7)
-    ax[0].set_title(f"{nama} — ADC mentah (6 detik pertama)")
+    ax[0].set_title(f"{judul} — ADC mentah (6 detik pertama)")
     ax[0].set_ylabel("counts")
     ax[1].plot(t[tampil], filtered[tampil], lw=0.7, color="tab:green")
     for pos in r[r < tampil.stop]:
