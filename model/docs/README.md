@@ -8,10 +8,11 @@ ditolak, angka nyata, dan soal cek pemahaman.
 `PRD_Model_Aritmia_TinyML.pdf`. Keputusan yang mengikat = tabel decision point
 di `../CLAUDE.md`.
 
-**Pekerjaan terbuka** (rekaman sinyal tubuh resmi, gerbang kalibrasi, daya):
+**Pekerjaan terbuka** (konsumsi daya, WiFi OFF darurat, rekaman ke server, PCB rev2):
 daftar bertanggal di [`../CLAUDE.md` §Pekerjaan terbuka](../CLAUDE.md#pekerjaan-terbuka).
-Rekaman sebelum 13 Okt 2026 = uji coba, diarsipkan di
-[`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md).
+Data resmi sinyal tubuh = sesi 22 Okt 2026 siang
+([`../data/recordings/README.md`](../data/recordings/README.md)); rekaman pengembangan
+diarsipkan di [`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md).
 
 ---
 
@@ -75,7 +76,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
 | HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
 | HW | [akuisisi](akuisisi-walkthrough.md) | **Panduan kerja**: merekam dari badan, menarik data, menilai kualitas, membuat grafik |
-| HW-6 | [mqtt](mqtt-walkthrough.md) | **Panduan kerja**: dua toggle (`y` sumber sinyal, `m` publikasi), kenapa dummy ditaruh di ADC bukan di publisher, dan kenapa publikasi digerbangi ayunan sinyal bukan ada-tidaknya beat |
+| HW-6 | [mqtt](mqtt-walkthrough.md) | **Panduan kerja**: dua toggle (`y` sumber sinyal, `m` publikasi), kenapa dummy ditaruh di ADC bukan di publisher, dan kenapa publikasi digerbangi kualitas kontak (LO±, ayunan, dengung) bukan ada-tidaknya beat |
 
 Fase 8 tidak punya walkthrough — isinya verifikasi, bukan konsep baru.
 Jalankan `make poc` dan baca `scripts/check_poc.py`.

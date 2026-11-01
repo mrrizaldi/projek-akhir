@@ -7,9 +7,10 @@
 Panduan kerja, bukan spesifikasi: merekam dari badan, menarik data, menilai
 kualitas, membuat grafik.
 
-> **Status data (13 Okt 2026).** Pengujian rekaman sinyal tubuh secara resmi
-> **dimulai 13 Oktober 2026**; rekaman resmi masuk `data/recordings/`. Rekaman
-> 10 Sep – 11 Okt 2026 adalah **uji coba** dan diarsipkan di
+> **Status data.** Data resmi laporan = sesi 22 Okt 2026 siang (R1–R4,
+> `data/recordings/`, indeks di `data/recordings/README.md`). Rekaman lain di
+> `data/recordings/` adalah rekaman pengembangan, dan rekaman 10 Sep – 21 Okt 2026
+> yang tidak dipakai diarsipkan di
 > [`data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md)
 > (grafiknya di `artifacts/arsip/akuisisi-uji-coba/`). Semua angka di dokumen ini
 > yang berlabel *contoh dari rekaman uji coba (arsip)* hanya menggambarkan
@@ -315,7 +316,7 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
 
    ```
    20260910-2019: 15877 sampel = 44.1 detik @ 360 Hz, 0 sampel terlewat
-     ADC          3363..3558   clipping 0 sampel OK
+     ADC          3363..3558   clipping 0 sampel (0.000%, ambang 0.1%) OK
      dengung 50Hz   39.1% dari pita EKG   TERLALU BESAR
      derau >60Hz   191.3% dari pita EKG   TERLALU BESAR
      drift <0.5Hz    2.1% dari pita EKG
@@ -335,7 +336,7 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
    20261011-1834-jeda: 10947 sampel = 30.4 detik @ 360 Hz, 0 sampel terlewat, 2 segmen (dipisah jeda)
      segmen 1      11.1 detik   R-peak   11   RR   10   autokorelasi 0.45 @ 60 bpm, 1 puncak setara
      segmen 2      19.3 detik   R-peak   22   RR   21   autokorelasi 0.22 @ 69 bpm, 4 puncak setara
-     ADC          1461..3110   clipping 0 sampel OK
+     ADC          1461..3110   clipping 0 sampel (0.000%, ambang 0.1%) OK
      ...
      R-peak       33 dalam 30.4 detik
    ```
@@ -497,8 +498,8 @@ verifikasi state dari balasan board (`s`), jangan diasumsikan (`model/CLAUDE.md`
 
 ## 8. Data uji coba akuisisi (arsip, bukan hasil)
 
-Rekaman resmi (mulai 13 Okt 2026) tersimpan di `data/recordings/`, bernama
-tanggal-jam tarik. Rekaman uji coba 10 Sep – 11 Okt 2026 ada di
+Data resmi (sesi 22 Okt 2026 siang) dan rekaman pengembangan 15–22 Okt 2026
+tersimpan di `data/recordings/`, bernama tanggal-jam tarik. Rekaman uji coba 10 Sep – 21 Okt 2026 ada di
 [`data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md)
 beserta kondisi rangkaiannya. Tabel berikut adalah tujuh rekaman uji coba
 pertama (rangkaian breadboard, 10 Sep 2026) — dipertahankan karena

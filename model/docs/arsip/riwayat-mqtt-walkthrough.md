@@ -70,3 +70,24 @@ sumber saat formalisasi dokumentasi (Okt 2026).
   (`test_antre_pasang_kapasitas` ditambahkan), RAM 37,0% (121.336 B), Flash 13,5%
   (887.873 B).
 - **Alasan / bukti:** `pio run` dan `pio test -e native`, Okt 2026.
+
+## 13 Okt 2026 — uji gerbang kalibrasi timer 10 menit
+- **Dikeluarkan dari:** §3.1 (1 Nov 2026), karena format log (`stabil x/600 s`) dan perilaku `k` tanpa elektroda sudah tidak berlaku sesudah gerbang kontak (22 Okt 2026, uji di §3.1c).
+
+Terverifikasi di board tanpa elektroda (13 Okt 2026, gerbang timer 10 menit
+sebelum syarat kontak ditambahkan). Derau tanpa elektroda berayun di atas
+`AMBANG_AYUN` (404–1.787 counts), sehingga yang diuji adalah syarat waktu dan
+RR, bukan syarat ayunan:
+
+```
+>>> y   replay ON (golden_raw)
+        kualitas: calibrating -> good (GERBANG DILEWATI (replay), RR tenang 4 s, ayun 2707)   (+5 s)
+>>> y   replay OFF (ADC)
+        calibrating | ... | tenang 0/30 s | ayun 1787 (ambang 60) | stabil 34/600 s | lewati=0 replay=0
+        status: ... replay=0 | kualitas calibrating ...                                         (+40 s)
+>>> k   lewati gerbang kalibrasi ON
+        kualitas: calibrating -> good (GERBANG DILEWATI (bench), RR tenang 0 s, ayun 62)        (+3 s)
+>>> k   lewati gerbang kalibrasi OFF
+        calibrating | ... | stabil 5/600 s | lewati=0 replay=0
+        status: ... replay=0 | kualitas calibrating ... | lewati 0                              (+20 s)
+```

@@ -69,7 +69,7 @@ hanya klien MQTT, ring backlog, dan gerbangnya.
 
 ## 3. Fungsi per fungsi
 
-### 3.1 Dua gerbang: fase kalibrasi, lalu ayunan sinyal
+### 3.1 Dua gerbang: fase kalibrasi, lalu kontak elektroda
 
 Penilaian kontak berjalan tiap detik di `nilai_kontak()` (dipanggil
 `gerbang_nilai_kualitas()` sesudah jendela 1 detik), fase kalibrasi dinilai per
@@ -139,7 +139,7 @@ pengumuman. Bypass itu **diturunkan dari sumber sinyal**, bukan disimpan sebagai
 flag:
 
 ```c
-if ((lewati_kalibrasi || replay || (stabil && rr_tenang)) && ayun_ok)
+if ((lewati_kalibrasi || replay || (hangat && rr_tenang)) && q.kontak)
     fase = FASE_BAIK;
 ```
 
@@ -156,27 +156,11 @@ Toggle `k` (menu Kalibrasi → Lewati (bench)) adalah override manual untuk
 bench, terpisah dari replay: `k` ON melewati syarat pemanasan dan RR untuk
 jalur ADC (`GERBANG DILEWATI (bench)`), tetapi tidak melewati kontak (LO±,
 ayunan, dengung). Tanpa elektroda LO bernilai 1, jadi `k` tidak lagi membuka
-gerbang untuk derau ADC; uji meja tanpa elektroda memakai replay. `k` OFF `k` OFF memanggil `gerbang_mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
+gerbang untuk derau ADC; uji meja tanpa elektroda memakai replay. `k` OFF memanggil `gerbang_mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
 penuh, termasuk bila fase sudah `good`. Status `k` terbaca di baris status
 (`lewati 0/1`, §4.4).
 
-Terverifikasi di board tanpa elektroda (13 Okt 2026, gerbang timer 10 menit
-sebelum syarat kontak ditambahkan). Derau tanpa elektroda berayun di atas
-`AMBANG_AYUN` (404–1.787 counts), sehingga yang diuji adalah syarat waktu dan
-RR, bukan syarat ayunan:
-
-```
->>> y   replay ON (golden_raw)
-        kualitas: calibrating -> good (GERBANG DILEWATI (replay), RR tenang 4 s, ayun 2707)   (+5 s)
->>> y   replay OFF (ADC)
-        calibrating | ... | tenang 0/30 s | ayun 1787 (ambang 60) | stabil 34/600 s | lewati=0 replay=0
-        status: ... replay=0 | kualitas calibrating ...                                         (+40 s)
->>> k   lewati gerbang kalibrasi ON
-        kualitas: calibrating -> good (GERBANG DILEWATI (bench), RR tenang 0 s, ayun 62)        (+3 s)
->>> k   lewati gerbang kalibrasi OFF
-        calibrating | ... | stabil 5/600 s | lewati=0 replay=0
-        status: ... replay=0 | kualitas calibrating ... | lewati 0                              (+20 s)
-```
+Uji gerbang yang berlaku (replay, kontak buruk, kontak baik) ada di §3.1c.
 
 Buzzer mengikuti fase: bip detak senyap selama `calibrating`, dan bunyi panjang
 600 ms menandai kalibrasi mulai (boot, ganti sumber, Kalibrasi → Mulai ulang,
@@ -398,8 +382,8 @@ Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
 | 5 | tekan `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
 | 6 | buka `http://localhost:8080` | telemetri masuk di dashboard |
 
-**Kenapa replay lolos gerbang ayunan tanpa perlakuan khusus:** ayunannya
-~2700 counts, jauh di atas `AMBANG_AYUN` 60. Jadi dummy dan sinyal tubuh
+**Kenapa replay lolos gerbang kontak tanpa perlakuan khusus di jalur publikasi:** ayunannya
+~2700 counts, jauh di atas `AMBANG_AYUN` 60, dengungnya ±10–19, dan status LO± diabaikan selama replay. Jadi dummy dan sinyal tubuh
 melewati **gerbang per detak dan jalur publikasi yang sama persis** — tidak ada
 cabang `if (dummy)` di `publikasi()` maupun `ecg_mqtt.cpp`. Satu-satunya
 perlakuan replay adalah melewati gerbang kalibrasi selama replay menyala, dan
@@ -412,7 +396,7 @@ Format (tiga baris; angka contoh, `<…>` = isian):
 
 ```
 status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan) | antrean 2 |
-        sampel hilang 0 | LO 1 1 | mentah 1204..3550 ayun 2701 clipping 0
+        sampel hilang 0 (tick 0) | LO 1 1 | mentah 1204..3550 ayun 2701 clipping 0
         mqtt online | terkirim 41 | backlog 0/27000 | hilang 0 | gagal 0 |
         paket <ack>/<kirim> PDSR <x>% | tunda alat rata <ms> ms maks <ms> ms |
         RTT maks <ms> ms (lambat <n>) | RSSI <dBm> dBm | epoch_ms <epoch>

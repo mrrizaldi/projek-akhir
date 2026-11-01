@@ -65,7 +65,7 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | HW-3 Alur hidup | selesai | `src/ecg_live.cpp`: beban rata-rata 3,0% anggaran, burst puncak 33,4 ms → ADC wajib lewat ISR + antrean |
 | HW-4 Firmware produksi | selesai | timer ISR 360 Hz → antrean 256 → `ecg_live` → inferensi → LED + serial; sampel hilang 0 |
 | HW-5 Sinyal tubuh | selesai | data resmi = sesi 22 Okt 2026 siang (R1–R4, 927,1 s, MLII, satu subjek), keempatnya Berhasil; buku-pa Tabel kualitas rekaman. Gerbang kalibrasi berbasis kontak (LO±, ayunan 60, dengung 500, pemanasan 60 s) dari tiga sesi ±15 menit 21–22 Okt. Rekaman 10 Sep–11 Okt 2026 = uji coba (arsip). Detail: `data/recordings/README.md`, `docs/mqtt-walkthrough.md` §3.1 |
-| HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang ayunan, backlog 27.000 beat di PSRAM. PDSR 100% / 99,2%, latensi median 939 / 1.108 ms (2 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
+| HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang kontak (LO±, ayunan 60, dengung 500), backlog 27.000 beat di PSRAM. PDSR 100,0% / 99,2% / 100,0%, latensi median 939 / 1.108 / 1.014 ms (3 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
 | HW-7 Replay | selesai | sumber sinyal replay (menu Sumber sinyal: replay acuan 208 atau replay rekaman `/rekam/NNN.csv`; serial `y` = ADC ⇄ acuan) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
 
 ## Pekerjaan terbuka
@@ -122,8 +122,8 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   4. Hapus butir ini dan kalimat "Selama keluaran konverter belum disetel"
      di `firmware/README.md` bagian Hal yang perlu dicek pada rakitan.
 - **(14 Okt 2026) Rencana, dikerjakan sesudah WiFi ON kembali: rekaman langsung
-  ke server.** Rekaman panjang sekarang dipecah per 5 menit di LittleFS
-  (3.456 KB, ±6 berkas, harus ditarik lewat USB). Arah yang diminta user:
+  ke server.** Satu sesi rekam paling panjang 5 berkas × 300 s
+  (1.500 s) di LittleFS 3.456 KiB dan harus ditarik lewat USB. Arah yang diminta user:
   saat WiFi tersedia, sampel mentah dialirkan ke server di laptop sehingga
   durasi rekam tidak dibatasi LittleFS. Rencana awal (MQTT ke ThingsBoard
   untuk hasil klasifikasi per detak) tetap berjalan; aliran mentah adalah
@@ -341,7 +341,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   Sebab: ambang Pan-Tompkins adaptif relatif terhadap sinyal yang ada, jadi
   "tidak ada sinyal" bukan kondisi yang ia kenali — derau 15 counts pun punya
   puncak. Konsekuensi untuk HW-6: **publikasi MQTT wajib digerbangi penilai
-  kualitas sinyal (`AMBANG_AYUN`), bukan oleh ada-tidaknya beat.** Kalau tidak,
+  kualitas sinyal (fase BAIK dari kontak: LO±, `AMBANG_AYUN`, `AMBANG_DENGUNG`), bukan oleh ada-tidaknya beat.** Kalau tidak,
   elektroda lepas = banjir alarm palsu ke broker.
 - **"Epoch" menyesatkan sebagai satuan lama latih — model produksi adalah
   hasil SATU epoch.** Gejala: tidak ada. Training selesai normal, metrik wajar,

@@ -82,7 +82,7 @@ Sumber angka: `model/config.py` (`WIN_PRE = 128`, `WIN_POST = 128`,
 | Semula (proposal) | Menjadi |
 |---|---|
 | "Publikasi real-time per-rekaman" dan "Baca 50-100 rekaman" | Semua beat masuk antrean PSRAM, kirim batch ≤ 50, PUBACK dipungut tanpa blocking |
-| Belum ada | Fase "calibrating" dan gerbang ayunan sebelum publikasi |
+| Belum ada | Fase kalibrasi (kontak baik 60 detik + R-R tenang 30 detik) dan penilaian kontak elektroda tiap detik (lead-off, ayunan, dengung) sebelum publikasi |
 
 Sumber: `firmware/include/ecg_mqtt.h` (`ECG_MQTT_BATCH_N 50`);
 `firmware/src/gerbang.cpp` fungsi `gerbang_nilai_fase()` dan `publikasi()`

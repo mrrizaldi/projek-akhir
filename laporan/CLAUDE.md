@@ -4,17 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build Commands
 
-All commands run from inside the project folder (`proposal-pa/` or `buku-kp/`):
+All commands run from inside the project folder (`buku-pa/`, `progres-pa-1/`, `proposal-pa/`, `surat-magang/`):
 
 ```bash
-cd proposal-pa   # or: cd buku-kp
+cd buku-pa
 
-make pdf         # compile (paper size fixed per project: proposal-pa A4, buku-kp A5)
+make pdf         # compile (paper size fixed per project, buku-pa/progres-pa-1/proposal-pa A4)
 make rebuild     # clean + recompile from scratch
 make view        # compile then open PDF
-make docx        # convert to DOCX via pandoc
+make docx        # convert to DOCX via WordCraft (wordcraft-cli, format from ../wordcraft.toml)
 make clean       # delete output/ folder
-make check       # verify pdflatex, bibtex, pandoc are available
+make check       # verify pdflatex, bibtex, wordcraft-cli are available
 ```
 
 Build runs a full cycle: `pdflatex -> bibtex -> pdflatex -> pdflatex` to resolve bibliography and cross-references. Output goes to `output/` inside each project folder.
@@ -24,7 +24,9 @@ Build runs a full cycle: `pdflatex -> bibtex -> pdflatex -> pdflatex` to resolve
 This is a LaTeX monorepo for academic documents at PENS (Politeknik Elektronika Negeri Surabaya), D4 Teknik Informatika.
 
 ```
-texdocs/
+laporan/
+├── wordcraft.toml        <- format DOCX untuk make docx (WordCraft)
+├── pustaka/              <- PDF sumber rujukan (belum-dirujuk/ = kandidat)
 ├── shared/
 │   ├── preamble.tex      <- common preamble (size-independent): packages + formatting
 │   ├── size-a4.tex       <- A4 knobs: geometry, \setstretch, heading font macros
@@ -35,15 +37,12 @@ texdocs/
 │   ├── Makefile          <- include ../shared/Makefile.inc
 │   ├── referensi.bib     <- BibTeX bibliography
 │   └── bab/              <- halaman-judul, bab1, bab2, bab3, abstrak, etc.
-├── buku-kp/              <- Laporan Kerja Praktik (A5)
-│   ├── main.tex          <- standalone preamble (does not use shared/preamble.tex)
-│   ├── Makefile          <- include ../shared/Makefile.inc
-│   └── images/
 ├── buku-pa/              <- Buku Proyek Akhir FULL (A4, mode buku final, tanpa sakelar progres)
 │                            front matter: abstrak + abstract; Bab 4–5 register capaian
-└── progres-pa-1/         <- Varian laporan Progres 1 (salinan buku-pa yang dibekukan
-                             13 Okt 2026, \progrestrue). Belum disempurnakan, dibahas
-                             ulang bersama user. Jangan disinkronkan otomatis dengan buku-pa.
+├── progres-pa-1/         <- Varian laporan Progres 1 (salinan buku-pa yang dibekukan
+│                            13 Okt 2026, \progrestrue). Belum disempurnakan, dibahas
+│                            ulang bersama user. Jangan disinkronkan otomatis dengan buku-pa.
+└── surat-magang/         <- surat (article 12pt, berdiri sendiri)
 ```
 
 Kedua folder memakai `../shared/` dan `\graphicspath` ke `../proposal-pa/gambar/`.
@@ -68,14 +67,11 @@ For projects using the shared preamble (proposal-pa, buku-pa), `main.tex` does:
   `\FontChapterHead`, `\FontSectionHead`, `\FontKutipan`.
 - To change a project's size: swap both the `\documentclass` options and the `size-aX`
   input. Keep the two consistent.
-- `buku-kp` is a separate standalone template (A5 hardcoded in its own `main.tex`); it
-  does not use the shared preamble or size files.
 
 ### Shared vs Standalone Preamble
 
 - `proposal-pa/main.tex` delegates formatting to `shared/preamble.tex` (common) plus a
   `shared/size-aX.tex` (size-specific), input in that order.
-- `buku-kp/main.tex` has its own self-contained preamble (does not use `shared/preamble.tex`).
 - `shared/preamble.tex` requires a `size-aX.tex` to be `\input`-ed first (it provides the
   `\FontChapterHead` / `\FontSectionHead` / `\FontKutipan` macros, geometry, and spacing).
 

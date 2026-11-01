@@ -1,8 +1,8 @@
 # Arsip rekaman uji coba (10 September – 21 Oktober 2026)
 
-31 rekaman AD8232 yang diambil selama pengembangan, **sebelum** prosedur
-perekaman resmi ditetapkan pada 13 Oktober 2026. Diarsipkan supaya tidak
-tertukar dengan rekaman resmi di [`../../recordings/`](../../recordings/README.md).
+31 rekaman AD8232 yang diambil selama pengembangan dan berada di luar data
+resmi (sesi 22 Okt 2026 siang). Diarsipkan supaya tidak tertukar dengan
+rekaman di [`../../recordings/`](../../recordings/README.md).
 
 **Hanya untuk pengembangan (diagnosis rangkaian, uji skrip analisis), bukan
 data hasil.** Jangan dikutip sebagai hasil di laporan.
@@ -17,7 +17,7 @@ data hasil.** Jangan dikutip sebagai hasil di laporan.
 | 14–15 Okt 2026 (waktu rekam tidak tercatat) | 1 (`20261021-1425-rekam-002`) | rangkaian uji dengan peta pin PCB | berkas board #2 yang tertinggal di LittleFS dan baru ditarik 21 Okt 2026; 1.909 sampel (5,3 s), terlalu pendek untuk dianalisis |
 | 21 Okt 2026 | 2 (`20261021-1712-rekam-001`, `-002`) | rangkaian uji dengan peta pin PCB, USB laptop tercolok, elektroda kuning di dada kiri atas | uji perbaikan perekam (sesi disangga di PSRAM, ditulis sesudah berhenti): satu sesi 342,6 s, RR kontinu melewati detik 300 (0 RR < 0,5 s dari 418), header `lewat=0` |
 
-Kondisi bersama: satu subjek, Lead II, elektroda wet-gel, firmware yang sudah
+Kondisi bersama: satu subjek, Lead II (kecuali 21 Okt 2026: kuning di dada kiri atas, Lead I), elektroda wet-gel, firmware yang sudah
 diganti (format CSV sama: header `# fs=360 n=... lewat=... [lepas=...]`).
 Nama berkas = waktu **tarik**, bukan waktu rekam.
 

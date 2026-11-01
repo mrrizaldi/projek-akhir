@@ -14,7 +14,7 @@ AKUISISI="akuisisi/akuisisi_<tgl-jam>" bash scripts/export_artifacts.sh --lapora
 Langkah figure tidak berjalan tanpa `--laporan` karena `laporan/` bersifat
 read-only tanpa konfirmasi. Artefak tidak disalin manual. `LAPORAN_PROJ`
 memilih projek tujuan (bawaan `buku-pa`; `proposal-pa` = arsip). `AKUISISI`
-berisi daftar grafik rekaman resmi (≥ 13 Okt 2026, relatif terhadap
+berisi daftar grafik rekaman tambahan (data resmi = sesi 22 Okt 2026 siang, grafik R1 sudah ada di daftar tetap; relatif terhadap
 `model/artifacts/metrics/`, tanpa `.png`, dipisah spasi) yang ikut disalin.
 
 ## Pemeriksa
@@ -86,7 +86,7 @@ saran hanya dicetak (`--ketat` membuat saran ikut gagal). Format keluaran:
 python3 scripts/cek_tabel.py                                 # laporan/buku-pa/bab/bab*.tex
 python3 scripts/cek_tabel.py laporan/buku-pa/bab/bab4.tex    # satu bab
 python3 scripts/cek_tabel.py --tanpa-prosa                   # tabel dan penjelasnya saja
-python3 scripts/cek_tabel.py --kertas a5 laporan/buku-kp/... # lebar teks A5
+python3 scripts/cek_tabel.py --kertas a5 <berkas-bab.tex>    # lebar teks A5
 python3 scripts/cek_tabel.py --uji                           # uji mandiri pemeriksa
 ```
 

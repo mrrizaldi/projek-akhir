@@ -99,7 +99,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 |---|---|
 | `src/main.cpp` | Firmware utama: hanya merangkai modul di bawah (`setup()`/`loop()`) dan memetakan event tombol mode monitor; selama menu terbuka event diteruskan ke `menu.cpp` |
 | `src/akuisisi.cpp` | Timer ISR 360 Hz → antrean → `loop()`; sumber sinyal ADC AD8232, replay acuan `golden_raw`, atau replay rekaman `/rekam/NNN.csv`; pilihan tersimpan di NVS |
-| `src/gerbang.cpp` | Kualitas sinyal (ayunan 1 detik, clipping) dan fase kalibrasi → pemantauan |
+| `src/gerbang.cpp` | Kualitas sinyal per detik (ayunan, dengung 50 Hz Goertzel, LO±, clipping), penilaian kontak, dan fase kalibrasi (pemanasan 60 s) → pemantauan |
 | `src/klasifikasi.cpp` | Inferensi TFLM INT8 per beat dan publikasi hasilnya ke antrean MQTT |
 | `src/tampilan.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
 | `src/tombol.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
@@ -460,7 +460,9 @@ Buzzer berbunyi 50 ms per detak dan 250 ms untuk detak yang diklasifikasi
 aritmia. Bip dan gelombang ditunda sama rata 1,46 detik dari R (kadens deteksi
 + post-window + margin), sehingga jarak antar-bip sama dengan RR dan R
 tergambar tepat saat bipnya berbunyi. HR dan bip hanya muncul bila ayunan
-sinyal bersih di atas ambang (gerbang yang sama dengan publikasi MQTT).
+sinyal bersih di atas ambang 60. Syarat ini lebih longgar daripada gerbang
+publikasi MQTT, yang menuntut fase BAIK (LO± dan dengung juga dinilai), jadi
+bip tetap berbunyi pada fase BURUK karena dengung tinggi.
 Selama fase kalibrasi bip detak senyap; bunyi panjang 600 ms menandai
 kalibrasi mulai (boot, ganti sumber, Kalibrasi → Mulai ulang, lewati
 kalibrasi OFF) dan selesai (masuk fase BAIK, ±60 detik sesudah elektroda

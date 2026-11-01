@@ -53,16 +53,16 @@ cd dashboard && docker compose up -d      # -> http://localhost:8080
 | `model/` Fase 0-8 | Selesai | `make poc` 8/8, INT8 22,94 KB, DS2 F1 0,6594, AUC 0,9334 |
 | `model/` ablasi Fase A-G | Selesai, konfigurasi tidak berubah | 10 usul × 3-6 seed; TEST-B/C 85.812 beat / 39 pasien ([peta](model/docs/README.md)) |
 | `firmware/` env `esp32-s3` | Berjalan di board | Inferensi 26,6 ms/detak, tensor arena 12.948 B, sampel hilang 0; MQTT PDSR 99,2-100%, latensi median 939-1.108 ms |
-| Akuisisi sinyal tubuh | Pipeline siap (13 Okt 2026), **pengujian resmi belum** | Rekaman sebelum 13 Okt 2026 = uji coba, diarsipkan di [`model/data/arsip/rekaman-uji-coba/`](model/data/arsip/rekaman-uji-coba/README.md); rekaman resmi → `model/data/recordings/` |
+| Akuisisi sinyal tubuh | Selesai: data resmi = sesi 22 Okt 2026 siang (R1–R4, 927,1 s, 4/4 Berhasil) | Indeks sesi di [`model/data/recordings/README.md`](model/data/recordings/README.md); rekaman pengembangan diarsipkan di [`model/data/arsip/rekaman-uji-coba/`](model/data/arsip/rekaman-uji-coba/README.md) |
 | `firmware/` test perangkat | Lulus di board | `pio test -e esp32-s3`: 29 test (preprocessing, inferensi, buzzer, TFT, ADC, INA219, tombol, integrasi replay) |
 | `firmware/` env `native` | Lulus | `pio test -e native`: 23 test |
 | `dashboard/` | Berjalan | ThingsBoard CE self-host, dashboard tujuh widget, uji deduplikasi |
 | `laporan/proposal-pa` | Lengkap | Bab 1-3 dan abstrak |
-| `laporan/buku-pa` | Draf Bab 1-5 | Gambar ilustrasi berupa placeholder (`grep -rn PLACEHOLDER-GAMBAR laporan/`); hasil rekaman sinyal tubuh menunggu pengujian resmi (`grep -rn PLACEHOLDER-DATA laporan/buku-pa`) |
+| `laporan/buku-pa` | Draf Bab 1-5 | Gambar ilustrasi berupa placeholder (`grep -rn PLACEHOLDER-GAMBAR laporan/`); angka konsumsi daya menunggu pengukuran (`grep -rn PLACEHOLDER-DATA laporan/buku-pa`) |
 
 Status rinci per fase model berada di `model/CLAUDE.md`. Berkas ini hanya peta,
-agar tidak ada dua sumber kebenaran. Pekerjaan yang masih terbuka (rekaman
-sinyal tubuh resmi, gerbang kalibrasi, konsumsi daya) didaftar bertanggal di
+agar tidak ada dua sumber kebenaran. Pekerjaan yang masih terbuka (konsumsi
+daya, WiFi OFF darurat, rekaman ke server, PCB rev2) didaftar bertanggal di
 [`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka).
 
 ## Peta dokumentasi
