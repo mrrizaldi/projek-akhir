@@ -40,8 +40,9 @@ laporan/
 ├── buku-pa/              <- Buku Proyek Akhir FULL (A4, mode buku final, tanpa sakelar progres)
 │                            front matter: abstrak + abstract; Bab 4–5 register capaian
 ├── progres-pa-1/         <- Buku tahap 1 (\progrestrue, judul "PROGRES PROYEK AKHIR"):
-│                            buku-pa tanpa INA219 dan catu daya baterai, target isi
-│                            50-70% (arahan pembimbing). Tidak disinkronkan otomatis.
+│                            buku-pa tanpa INA219, catu daya baterai, dan hasil uji
+│                            pipeline; target isi 50-70% (arahan pembimbing).
+│                            Tidak disinkronkan otomatis.
 └── surat-magang/         <- surat (article 12pt, berdiri sendiri)
 ```
 
@@ -56,8 +57,16 @@ Buku tahap 1 adalah salinan `buku-pa/` yang dipangkas sesuai arahan pembimbing
 teori INA219 (Bab 2), butir perangkat keras, pin, layar, menu Ukur daya, dan
 rencana uji daya (Bab 3), butir hasil Konsumsi Daya, baris ketercapaian daya,
 dan keterbatasan daya (Bab 4), saran daya (Bab 5), serta kalimat status daya di
-abstrak. Akibatnya ketiga tujuan berstatus Tercapai dan tidak ada
-`PLACEHOLDER-DATA`. Satu-satunya beda di `main.tex` adalah blok
+abstrak. Hasil uji *pipeline edge-to-cloud* juga dibuang dari Bab 4–5 (keputusan
+user 1 Nov 2026, laporan progres memuat 2 dari 3 tujuan): Bab 2–3 tetap utuh
+sebagai rancangan, kategori f di `tab:parameter-eksperimen` tetap sebagai
+rencana, subbab hasil dan analisis Pipeline, butir Data Telemetri, uji jaringan
+di Tempat/Waktu/Peralatan, butir validitas jam satu detik, baris pipeline di
+`tab:ketercapaian`, keterbatasan pipeline, paragraf dan temuan latensi di Bab 5
+dibuang. Butir Gerbang Kalibrasi dipindah ke Jalur Preprocessing. Saran butir 2
+menjadi pekerjaan tersisa (pengujian pipeline), abstrak dan Sistematika Bab 4–5
+menyebut pipeline "dilaporkan pada tahap berikutnya". Akibatnya dua tujuan
+berstatus Tercapai dan tidak ada `PLACEHOLDER-DATA`. Satu-satunya beda di `main.tex` adalah blok
 `\newif\ifprogres \progrestrue` dan komentar kepala; halaman judul memakai
 `\ifprogres PROGRES\\\fi PROYEK AKHIR`.
 
@@ -77,13 +86,18 @@ Meregenerasi dari `buku-pa/` (misalnya sesudah `buku-pa` diperbarui):
    grep -rn -iE "INA219|TP4056|18650|konsumsi daya|ukur daya|tangga-daya" progres-pa-1/bab/*.tex | grep -v ":[0-9]*:\s*%"
    ```
    Yang tersisa hanya kalimat tentang penelitian lain di Bab 2.
+   Lalu buang hasil pipeline seperti daftar di atas dan pastikan tidak ada
+   `\ref` ke label yang hilang (`tab:target-pipeline`, `tab:dekomposisi-latensi`,
+   `fig:4-bufer`, `fig:4-dashboard`).
 4. Periksa dan buat keluaran:
    ```bash
    cd progres-pa-1 && make pdf && make docx
    python3 ../../scripts/cek_tabel.py bab/*.tex
    ```
    Hasil yang diharapkan: `undefined` 0, `Overfull` 0, cek_tabel 0 galat.
-   Kondisi 1 Nov 2026: 132 halaman, 0 galat, 0 saran, `output/main.docx` terbentuk.
+   Kondisi 1 Nov 2026 (sesudah hasil pipeline dibuang): 124 halaman, 28.081
+   kata non-komentar di `bab/` (buku-pa 31.089), 0 galat, 0 saran,
+   `output/main.docx` terbentuk.
 
 ### Paper Size Mechanism
 
