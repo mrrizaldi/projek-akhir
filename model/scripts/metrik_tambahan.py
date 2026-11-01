@@ -13,6 +13,7 @@ from src.quantize import predict_tflite
 
 KELAS_ARITMIA = ("S", "V", "F")
 BERKAS_KELUARAN = "fase7_metrik_tambahan.csv"
+BERKAS_PER_REKAMAN_INT8 = "fase7_per_record_int8.csv"
 
 
 def simbol_aami_ds2() -> np.ndarray:
@@ -32,6 +33,7 @@ def ringkas(y, prob, records, aami) -> dict:
         "pr_auc": average_precision(y, prob),
         "prevalensi": float(np.mean(y)),
         "mcc": mcc(hasil),
+        "tp": hasil["tp"], "fn": hasil["fn"], "fp": hasil["fp"], "tn": hasil["tn"],
         "recall": hasil["recall"],
         "recall_rerata_rekaman": float(np.mean(recall_rekaman)),
         "recall_median_rekaman": float(np.median(recall_rekaman)),
@@ -75,6 +77,14 @@ def main() -> None:
             f.write(f"{k},{fp32[k]:.6f},{int8[k]:.6f},{int8[k] - fp32[k]:+.6f}\n")
         f.write(f"label_berubah,,{int(berubah.sum())},\n")
         f.write(f"threshold,{THRESHOLD},{THRESHOLD},0\n")
+
+    baris = per_record_metrics(ds2["y"], prob_int8, ds2["records"], THRESHOLD)
+    with open(os.path.join(METRICS_DIR, BERKAS_PER_REKAMAN_INT8), "w") as f:
+        f.write("record,n_beat,n_aritmia,tp,fn,fp,tn,recall,precision,specificity\n")
+        for r in baris:
+            f.write("%d,%d,%d,%d,%d,%d,%d,%.6f,%.6f,%.6f\n" % (
+                r["record"], r["n_beat"], r["n_aritmia"], r["tp"], r["fn"], r["fp"],
+                r["tn"], r["recall"], r["precision"], r["specificity"]))
 
 
 if __name__ == "__main__":

@@ -4,11 +4,11 @@
 \section{Parameter Eksperimen}
 \label{sec:parameter-eksperimen}
 
-Parameter eksperimen ditetapkan untuk mengukur pencapaian tujuan penelitian secara objektif. Pengukuran dikelompokkan ke dalam enam kategori yang mengikuti dua jalur yang dilaporkan, yaitu jalur preprocessing \textit{real-time} dan jalur model TinyML \textit{on-device}, serta satu jalur \textit{pipeline edge-to-cloud} yang dicantumkan sebagai rencana. Target setiap parameter diambil dari rencana pengujian pada Tabel~\ref{tab:pengujian-model} dan Tabel~\ref{tab:pengujian-pipeline}, sedangkan ambangnya bersumber dari standar, jurnal, atau spesifikasi resmi perangkat. Rincian parameter yang diukur adalah sebagai berikut.
+Parameter eksperimen ditetapkan untuk mengukur pencapaian tujuan penelitian secara objektif. Pengukuran dikelompokkan ke dalam lima kategori yang mengikuti dua jalur yang dilaporkan, yaitu jalur preprocessing \textit{real-time} dan jalur model TinyML \textit{on-device}, serta satu jalur \textit{pipeline edge-to-cloud} yang dicantumkan sebagai rencana. Target setiap parameter diambil dari rencana pengujian pada Tabel~\ref{tab:pengujian-model} dan Tabel~\ref{tab:pengujian-pipeline}, sedangkan ambangnya bersumber dari standar, jurnal, atau spesifikasi resmi perangkat. Rincian parameter yang diukur adalah sebagai berikut.
 
 \subsubsection{Kualitas Klasifikasi Model}
 
-Parameter ini menilai kemampuan model membedakan detak Normal dan Aritmia pada pasien yang tidak pernah dilihat saat pelatihan. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. Seluruh metrik dihitung pada DS2 dengan \textit{threshold} hasil kalibrasi data validasi, yaitu \textit{threshold} dengan F1 maksimum. Metrik diturunkan dari \textit{confusion matrix} dengan kelas Aritmia sebagai kelas positif, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), lalu dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
+Parameter ini menilai kemampuan model membedakan detak Normal dan Aritmia pada pasien yang tidak pernah dilihat saat pelatihan. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. Seluruh metrik dihitung pada DS2 untuk model INT8 yang dijalankan di perangkat, dengan \textit{threshold} hasil kalibrasi data validasi, yaitu \textit{threshold} dengan F1 maksimum. Metrik diturunkan dari \textit{confusion matrix} dengan kelas Aritmia sebagai kelas positif, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), lalu dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
 
 \begin{align}
 \text{Recall} &= \frac{\text{TP}}{\text{TP} + \text{FN}} \nonumber \\
@@ -29,19 +29,13 @@ Parameter ini menilai kemampuan model membedakan detak Normal dan Aritmia pada p
   \item AUC. Luas di bawah kurva ROC, yaitu kurva pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh \textit{threshold}, sehingga kemampuan model memisahkan kedua kelas dapat dinilai tanpa bergantung pada satu \textit{threshold}~\cite{chicco_2020}. Nilai AUC juga tidak berubah oleh proporsi kelas, jadi tetap sahih walaupun detak Aritmia hanya sekitar 11\% DS2~\cite{richardson_2024}.
   \item \textit{Accuracy}. Proporsi seluruh prediksi yang benar. Metrik ini tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89.
   \item \textit{Recall} per kelas AAMI dan per pasien. \textit{Recall} kelas S, V, dan F serta median dan rerata \textit{recall} per rekaman, untuk melihat kelas dan pasien yang paling sering terlewat.
+  \item Perbandingan dengan model \textit{float32}. F1 model INT8 dibandingkan dengan F1 model \textit{float32} pada DS2 yang identik untuk memastikan kuantisasi tidak menurunkan kualitas. Targetnya mengikuti MLPerf Inference, yaitu kualitas model teroptimasi berada dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, sehingga F1 INT8 minimal 99\% F1 \textit{float32}. F1 dipakai karena \textit{threshold} dikalibrasi dari F1 maksimum.
 \end{enumerate}
 
-Seluruh metrik kategori ini dilaporkan tanpa ambang lulus, karena rencana pengujian tidak menetapkan ambang angka. Kualitas klasifikasi dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil.
+Metrik kategori ini dilaporkan tanpa ambang lulus karena rencana pengujian tidak menetapkan ambang angka, kecuali perbandingan dengan model \textit{float32}. Kualitas klasifikasi dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil.
 % sumber: model/data/processed/test.npz (49.656 detak, y.mean() = 0,1098, Normal 89,02%); model/CLAUDE.md decision "Metrik yang dipantau" (accuracy tidak dipakai)
 % sumber: Chicco dan Jurman 2020 (MCC memakai keempat sel, disarankan atas F1 dan accuracy bila threshold tersedia); Richardson dkk. 2024 Summary ("the ROC curve is robust to class imbalance, while the PR curve is highly sensitive to class imbalance"), PR-AUC karena itu tidak dilaporkan di buku (nilainya ada di model/docs/evaluate-walkthrough.md bagian 3b)
-
-\subsubsection{Dampak Kuantisasi}
-
-Parameter ini memastikan model INT8 yang dijalankan di perangkat tidak kehilangan kualitas dibandingkan model \textit{float32}.
-\begin{enumerate}[label=\arabic*)]
-  \item Selisih dan rasio metrik \textit{float32} terhadap INT8. Seluruh metrik kategori sebelumnya dihitung ulang untuk model INT8 pada DS2 yang identik. Targetnya mengikuti MLPerf Inference, yaitu kualitas model teroptimasi berada dalam 1\% dari model \textit{float32}~\cite{reddi_2020}. F1 dipakai sebagai metrik kualitas karena \textit{threshold} dikalibrasi dari F1 maksimum, sehingga targetnya F1 INT8 minimal 99\% F1 \textit{float32}.
-\end{enumerate}
-% sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); laporan/buku-pa/bab/bab3.tex tab:pengujian-model
+% sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); keputusan user 1 Nov 2026: kategori Dampak Kuantisasi digabung ke Kualitas Klasifikasi, hasil DS2 dilaporkan untuk model INT8
 
 \subsubsection{Kinerja di Perangkat}
 
@@ -452,7 +446,7 @@ Ketujuh skenario lulus pada dua putaran dengan sampel hilang nol selama sesi per
 
 \subsubsection{Segmentasi di Perangkat}
 
-Di perangkat, posisi R-\textit{peak} berasal dari detektor Pan-Tompkins, bukan dari anotasi seperti pada pelatihan. Biaya perbedaan itu diukur sebagai jumlah detak yang terlewat dan besarnya pengaruh pada klasifikasi. Pengukuran memakai DS2 dengan rangkaian koreksi posisi yang sama dengan kode C, yaitu kompensasi 38 sampel, penyelarasan ke puncak sinyal dalam $\pm$25 sampel, dan pengurangan \textit{group delay} 4 sampel. Nilai 38 sampel adalah median selisih antara deteksi dan anotasi pada DS1 dengan simpangan baku 13 sampel, jadi DS2 hanya dipakai untuk mengukur dan tidak untuk memilih parameter. Angka klasifikasi diukur pada model akhir, yaitu \textit{window} 256 sampel dan \textit{threshold} 0,80, dan pada model acuan berukuran \textit{window} 250 sampel dengan \textit{threshold} 0,35 sebagai pembanding, sedangkan angka \textit{sensitivity} detektor tidak melibatkan model.
+Di perangkat, posisi R-\textit{peak} berasal dari detektor Pan-Tompkins, bukan dari anotasi seperti pada pelatihan. Biaya perbedaan itu diukur sebagai jumlah detak yang terlewat dan besarnya pengaruh pada klasifikasi. Pengukuran memakai DS2 dengan rangkaian koreksi posisi yang sama dengan kode C, yaitu kompensasi 38 sampel, penyelarasan ke puncak sinyal dalam $\pm$25 sampel, dan pengurangan \textit{group delay} 4 sampel. Nilai 38 sampel adalah median selisih antara deteksi dan anotasi pada DS1 dengan simpangan baku 13 sampel, jadi DS2 hanya dipakai untuk mengukur dan tidak untuk memilih parameter. Angka klasifikasi diukur pada model akhir versi \textit{float32}, yaitu \textit{window} 256 sampel dan \textit{threshold} 0,80, dan pada model acuan berukuran \textit{window} 250 sampel dengan \textit{threshold} 0,35 sebagai pembanding. Angka \textit{sensitivity} detektor tidak melibatkan model.
 % sumber: model/docs/segmentasi-deteksi-walkthrough.md §1 dan §3 (offset median 38 sampel dikalibrasi di DS1; dua model: baseline window 90/160 threshold 0,35 dan model berlaku window 128/128 threshold 0,80, diukur ulang 13 Okt 2026 dengan model/scripts/eval_detected_segmentation.py); model/CLAUDE.md decision "Segmentasi on-device" (std 13 sampel); firmware/include/ecg_preproc.h (ECG_PT_OFFSET 38, ECG_PT_REFINE 25, ECG_GROUP_DELAY 4)
 
 Keluaran detektor jatuh di sebelah kanan anotasi pasangannya, yaitu pada garis dasar sesudah kompleks QRS dan bukan pada puncak R. Pada sepuluh detik pertama rekaman 100, seluruh 13 anotasi memiliki 13 deteksi pasangan tanpa deteksi yang terlewat maupun berlebih. Pada keseluruhan rekaman 100, median selisih posisi adalah 40 sampel atau sekitar 0,11 detik, sejalan dengan median 38 sampel dari DS1. Keterlambatan ini sistematis dan karena itu dapat dikompensasi dengan satu konstanta, sedangkan penyelarasan ke puncak sinyal menyerap sisa variasinya.
@@ -492,7 +486,7 @@ Dampak segmentasi hasil detektor terhadap klasifikasi ditunjukkan pada Tabel~\re
 
 \begin{table}[!ht]
   \centering
-  \caption{Klasifikasi DS2 dengan segmentasi anotasi dan segmentasi hasil detektor}
+  \caption{Klasifikasi DS2 model \textit{float32} dengan segmentasi anotasi dan segmentasi hasil detektor}
   \label{tab:segmentasi-deteksi}
   \setstretch{1.0}
   \setlength{\tabcolsep}{4pt}
@@ -511,7 +505,7 @@ Dampak segmentasi hasil detektor terhadap klasifikasi ditunjukkan pada Tabel~\re
 \end{table}
 % sumber: model/docs/segmentasi-deteksi-walkthrough.md §3 tabel A (recall, precision, F1 baseline anotasi/deteksi dan berlaku anotasi/deteksi) dan blok B (recall sistem: baseline 3.084 / 5.453 = 0,5656, berlaku 3.291 / 5.453 = 0,6035); model/artifacts/metrics/fase6b_segmentasi_deteksi.csv memuat baris model acuan (f1 0,565903 / 0,563082, recall_sistem 0,666055 / 0,565560)
 
-Segmentasi di perangkat tidak merusak klasifikasi selama ketiga koreksi posisi diterapkan (Tabel~\ref{tab:segmentasi-deteksi}). F1 dengan segmentasi detektor berselisih kurang dari 0,01 dari F1 dengan segmentasi anotasi pada kedua model, yaitu 0,6499 dibandingkan 0,6594 pada model akhir. \textit{Recall} sistem model akhir turun dari 0,6996 menjadi 0,6035, dan seluruh penurunan ini berasal dari detak yang tidak pernah sampai ke model.
+Segmentasi di perangkat tidak merusak klasifikasi selama ketiga koreksi posisi diterapkan (Tabel~\ref{tab:segmentasi-deteksi}). F1 dengan segmentasi detektor berselisih kurang dari 0,01 dari F1 dengan segmentasi anotasi pada kedua model, yaitu 0,6499 dibandingkan 0,6594 pada model akhir \textit{float32}. \textit{Recall} sistem model akhir turun dari 0,6996 menjadi 0,6035, dan seluruh penurunan ini berasal dari detak yang tidak pernah sampai ke model.
 
 Penurunan \textit{recall} sistem tersebut berarti hanya 3.291 dari 5.453 detak aritmia asli yang tertangkap detektor lalu dikenali model. Detektor juga menghasilkan 2.194 deteksi palsu, dan 50,4\% di antaranya diklasifikasi Aritmia oleh model akhir, menambah 1.106 alarm palsu.
 % sumber: model/docs/segmentasi-deteksi-walkthrough.md §3 blok B dan C (berlaku: 3.291 dari 5.453 tertangkap; 2.194 deteksi palsu, 50,4% diklasifikasi Aritmia = 1.106 alarm palsu tambahan); 0,6996 - 0,6035 = 0,0961
@@ -627,13 +621,13 @@ Gambar~\ref{fig:hasil-latih} memperlihatkan kurva data latih berwarna biru yang 
 
 \subsubsection{Evaluasi pada DS2}
 
-Kemampuan model diukur pada pasien yang tidak pernah dilihat saat pelatihan. Model \textit{float32} dievaluasi pada 49.656 detak DS2 dari 22 pasien, termasuk 5.450 detak Aritmia, pada \textit{threshold} 0,80 dengan metrik pada Persamaan~\ref{eq:metrik}. Seluruh detak setiap rekaman dipakai, termasuk lima menit pertama yang pada protokol evaluasi AAMI dikecualikan sebagai periode belajar~\cite{aami_ec57_2012}. Periode belajar tidak relevan karena model tidak beradaptasi per pasien, dan pembagian \textit{inter-patient} de Chazal juga memakai rekaman penuh~\cite{dechazal_2004}. Hasilnya ditunjukkan pada Tabel~\ref{tab:hasil-ds2}, sedangkan \textit{confusion matrix}-nya ditampilkan bersama model INT8 pada Gambar~\ref{fig:cm-ds2}.
+Kemampuan model diukur pada pasien yang tidak pernah dilihat saat pelatihan. Model INT8 yang dijalankan di perangkat dievaluasi pada 49.656 detak DS2 dari 22 pasien, termasuk 5.450 detak Aritmia, pada \textit{threshold} 0,80 dengan metrik pada Persamaan~\ref{eq:metrik}. Seluruh detak setiap rekaman dipakai, termasuk lima menit pertama yang pada protokol evaluasi AAMI dikecualikan sebagai periode belajar~\cite{aami_ec57_2012}. Periode belajar tidak relevan karena model tidak beradaptasi per pasien, dan pembagian \textit{inter-patient} de Chazal juga memakai rekaman penuh~\cite{dechazal_2004}. Hasilnya ditunjukkan pada Tabel~\ref{tab:hasil-ds2}, sedangkan model \textit{float32} dipakai sebagai pembanding kuantisasi.
 % sumber: model/artifacts/metrics/fase6_per_record_fp32.csv (22 rekaman, jumlah n_beat 49.656, jumlah n_aritmia 5.450); model/scripts/eval_fp32.py (threshold dari config.THRESHOLD, tidak disetel di DS2)
 % sumber: periode belajar 5 menit dari PhysioNet WAG "Evaluating ECG Analyzers" dan bxb (default -f 5 menit, mengacu EC38/EC57); de Chazal 2004 dan Luz 2016 Tabel 6 memakai seluruh detak DS2; docs/2026-11-01-crosscheck-metrik-bab4/klasifikasi.md butir 4
 
 \begin{table}[!ht]
   \centering
-  \caption{Hasil klasifikasi model \textit{float32} pada DS2 dengan \textit{threshold} 0,80}
+  \caption{Hasil klasifikasi model INT8 pada DS2 dengan \textit{threshold} 0,80}
   \label{tab:hasil-ds2}
   \setstretch{1.0}
   \setlength{\tabcolsep}{4pt}
@@ -643,25 +637,25 @@ Kemampuan model diukur pada pasien yang tidak pernah dilihat saat pelatihan. Mod
     \toprule
     \textbf{Metrik} & \textbf{Nilai} \\
     \midrule
-    \textit{Recall} & 0,6996 \\
-    \textit{Precision} & 0,6235 \\
-    F1 & 0,6594 \\
-    \textit{Specificity} & 0,9479 \\
-    MCC & 0,6160 \\
-    AUC & 0,9334 \\
-    \textit{Accuracy} & 0,9207 \\
+    \textit{Recall} & 0,7105 \\
+    \textit{Precision} & 0,6169 \\
+    F1 & 0,6604 \\
+    \textit{Specificity} & 0,9456 \\
+    MCC & 0,6171 \\
+    AUC & 0,9344 \\
+    \textit{Accuracy} & 0,9198 \\
     \bottomrule
   \end{tabular}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: TP 3.813, FN 1.637, FP 2.302, dan TN 41.904 dari 5.450 detak Aritmia dan 44.206 detak Normal. \textit{Accuracy} dilaporkan tetapi bukan acuan.\par}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: TP 3.872, FN 1.578, FP 2.405, dan TN 41.801 dari 5.450 detak Aritmia dan 44.206 detak Normal. \textit{Accuracy} dilaporkan tetapi bukan acuan.\par}
 \end{table}
 % sumber: model/artifacts/metrics/fase6_metrics_fp32.csv (threshold 0.80, tp 3813, fn 1637, fp 2302, tn 41904, accuracy 0,920674, precision 0,623549, recall 0,699633, specificity 0,947926, f1 0,659403, auc 0,933448); 41.904 + 2.302 = 44.206 detak Normal; MCC 0,615986 dari model/artifacts/metrics/fase7_metrik_tambahan.csv (model/scripts/metrik_tambahan.py)
 
-Model \textit{float32} menemukan sekitar tujuh dari sepuluh detak Aritmia pada pasien yang tidak pernah dilihat saat pelatihan (Tabel~\ref{tab:hasil-ds2}). \textit{Recall} 0,6996 dicapai dengan \textit{precision} 0,6235, yang berarti sekitar 38\% alarm adalah alarm palsu, sedangkan AUC 0,9334 menunjukkan pemisahan kelas yang tidak bergantung pada \textit{threshold}. \textit{Accuracy} hanya sekitar 3 poin di atas hasil menebak Normal untuk seluruh detak dan karena itu tidak dijadikan acuan.
+Model INT8 menemukan sekitar tujuh dari sepuluh detak Aritmia pada pasien yang tidak pernah dilihat saat pelatihan (Tabel~\ref{tab:hasil-ds2}). \textit{Recall} 0,7105 dicapai dengan \textit{precision} 0,6169, yang berarti sekitar 38\% alarm adalah alarm palsu, sedangkan AUC 0,9344 menunjukkan pemisahan kelas yang tidak bergantung pada \textit{threshold}. \textit{Accuracy} hanya sekitar 3 poin di atas hasil menebak Normal untuk seluruh detak dan karena itu tidak dijadikan acuan.
 
-Per kelas AAMI, \textit{recall} kelas V, S, dan F masing-masing 0,9248, 0,4390, dan 0,0670 dari 3.219, 1.836, dan 388 detak. Angka ini dihitung ulang dengan menjalankan model \textit{float32} pada DS2 beserta simbol AAMI-nya, dan 7 detak kelas Q tidak ditampilkan. Kelas S lemah karena bentuk kompleks QRS-nya mirip Normal dan pembedanya terletak pada waktu kedatangan serta gelombang P, yang menjadi alasan cabang ritme ditambahkan.
+Per kelas AAMI, \textit{recall} kelas V, S, dan F masing-masing 0,9282, 0,4630, dan 0,0773 dari 3.219, 1.836, dan 388 detak. Angka ini dihitung ulang dengan menjalankan model INT8 pada DS2 beserta simbol AAMI-nya, dan 7 detak kelas Q tidak ditampilkan. Kelas S lemah karena bentuk kompleks QRS-nya mirip Normal dan pembedanya terletak pada waktu kedatangan serta gelombang P, yang menjadi alasan cabang ritme ditambahkan.
 % sumber: fase6_metrics_fp32.csv; 41.904 + 2.302 = 44.206 detak Normal; 2.302 / (3.813 + 2.302) = 0,3765; tebak Normal 44.206 / 49.656 = 0,8902 dan 0,9207 - 0,8902 = 0,0305; per kelas dari perhitungan ulang dengan model/.venv atas model/artifacts/model_fp32.keras pada model/data/processed/test.npz, simbol dari model/data/processed/per_record/<rekaman>.npz dipetakan dengan config.AAMI_MAP, threshold 0,80 (S 806/1.836 = 0,4390, V 2.977/3.219 = 0,9248, F 26/388 = 0,0670, Q 4/7, jumlah terdeteksi 3.813 = TP)
 
-\textit{Recall} per pasien dihitung pada 21 rekaman yang memiliki aritmia, karena rekaman 212 tidak memuat aritmia. Mediannya 0,9167 dan reratanya 0,7402, tetapi \textit{recall} tingkat detak terseret dua rekaman, yaitu rekaman 232 yang berisi 1.381 detak S dengan \textit{recall} 0,3541 dan rekaman 213 yang didominasi 362 detak F dengan \textit{recall} 0,2246. Keduanya menyumbang 83,4\% dari 1.637 detak terlewat. Keterbatasannya, \textit{epoch} dan \textit{threshold} hanya memakai VAL, tetapi ukuran \textit{window} dan jumlah salinan \textit{jitter} dipilih dari ablasi yang dinilai pada DS2. DS2 karena itu bukan tolok ukur yang tidak tersentuh untuk kedua keputusan itu, dan angkanya berpotensi sedikit optimistis.
+\textit{Recall} per pasien dihitung pada 21 rekaman yang memiliki aritmia, karena rekaman 212 tidak memuat aritmia. Mediannya 0,9167 dan reratanya 0,7446, tetapi \textit{recall} tingkat detak terseret dua rekaman, yaitu rekaman 232 yang berisi 1.381 detak S dengan \textit{recall} 0,3838 dan rekaman 213 yang didominasi 362 detak F dengan \textit{recall} 0,2426. Keduanya menyumbang 83,2\% dari 1.578 detak terlewat. Keterbatasannya, \textit{epoch} dan \textit{threshold} hanya memakai VAL, tetapi ukuran \textit{window} dan jumlah salinan \textit{jitter} dipilih dari ablasi yang dinilai pada DS2. DS2 karena itu bukan tolok ukur yang tidak tersentuh untuk kedua keputusan itu, dan angkanya berpotensi sedikit optimistis.
 % sumber: rerata recall per rekaman 0,740204 dari model/artifacts/metrics/fase7_metrik_tambahan.csv (statistik average EC57, 21 rekaman)
 % sumber: model/.venv/bin/python atas model/artifacts/metrics/fase6_per_record_fp32.csv (aturan: hanya rekaman n_aritmia > 0, rekaman 212 n_aritmia 0 dikeluarkan; 21 rekaman, median recall 0,9167, 11 rekaman >= 0,9; 232 recall 0,3541 n_aritmia 1.381 fn 892; 213 recall 0,2246 n_aritmia 610 fn 473; 1.365 / 1.637 = 0,834; 1.381 / 5.450 = 0,253); komposisi kelas dari model/data/processed/per_record/232.npz (S 1.381, N 397) dan 213.npz (F 362, V 220, S 28); model/docs/arsip/2026-09-18-robustness-changelog.md (ablasi window dan salinan dinilai F1 DS2, threshold dari VAL)
 
@@ -686,7 +680,7 @@ Pada model lama, yaitu \textit{window} 250 sampel tanpa augmentasi dengan \texti
 
 \subsubsection{Ablasi dan Keputusan Rancangan}
 
-Setiap pilihan pengaturan model diputuskan dari pengukuran. Setiap varian melewati rantai yang sama, yaitu menyusun DS1 sesuai varian, melatih, mengalibrasi \textit{threshold} pada VAL, lalu mengukur DS2. Hanya satu pengaturan yang diubah per varian, dengan paling sedikit tiga \textit{seed}, dan hasilnya berupa rerata beserta setengah rentang. Selisih F1 di bawah 0,04 tidak dianggap bermakna, karena penjadwalan \textit{thread} oneDNN membuat hasil berubah walaupun \textit{seed} sama. Rerata tiga \textit{seed} konfigurasi terkunci pun bergeser dari 0,6911 menjadi 0,6535 saat diulang pada pengulangan kedua, dan F1 model akhir sebesar 0,6594 berada dalam rentang pengulangan kedua, yaitu 0,6261 sampai 0,6821. Keputusan Dipilih diberikan pada varian yang dipakai dan Acuan pada varian pembanding. Keputusan Ditolak diberikan pada varian yang tidak dipakai, baik karena lebih buruk, menukar kelas yang lebih penting, maupun menambah biaya tanpa selisih bermakna. Hasil yang menentukan keputusan dirangkum pada Tabel~\ref{tab:ablasi}.
+Setiap pilihan pengaturan model diputuskan dari pengukuran. Setiap varian melewati rantai yang sama, yaitu menyusun DS1 sesuai varian, melatih, mengalibrasi \textit{threshold} pada VAL, lalu mengukur DS2. Hanya satu pengaturan yang diubah per varian, dengan paling sedikit tiga \textit{seed}, dan hasilnya berupa rerata beserta setengah rentang. Selisih F1 di bawah 0,04 tidak dianggap bermakna, karena penjadwalan \textit{thread} oneDNN membuat hasil berubah walaupun \textit{seed} sama. Rerata tiga \textit{seed} konfigurasi terkunci pun bergeser dari 0,6911 menjadi 0,6535 saat diulang pada pengulangan kedua, dan F1 model akhir \textit{float32} sebesar 0,6594 berada dalam rentang pengulangan kedua, yaitu 0,6261 sampai 0,6821. Keputusan Dipilih diberikan pada varian yang dipakai dan Acuan pada varian pembanding. Keputusan Ditolak diberikan pada varian yang tidak dipakai, baik karena lebih buruk, menukar kelas yang lebih penting, maupun menambah biaya tanpa selisih bermakna. Hasil yang menentukan keputusan dirangkum pada Tabel~\ref{tab:ablasi}.
 % sumber: model/docs/jitter-walkthrough.md bagian 5 (rantai ablasi, threshold per varian dari VAL, ukur DS2); model/scripts/ringkas_ablasi.py (SEED_MINIMAL 3, rerata dan setengah-rentang, AMBANG = 0.04); model/docs/arsip/2026-09-18-robustness-changelog.md bagian B2 (0,6209 vs 0,5882); keluaran ringkas_ablasi.py (w128b 0,6911, t8_lr1e3 0,6535); model/artifacts/metrics/ablasi/ablasi.csv (seed 42, 7, 13, ditambah 21, 34, 55 pada sebagian varian; t8_lr1e3 per seed 0,626084, 0,682129, 0,652266); model/artifacts/metrics/fase6_metrics_fp32.csv (f1 0,659403); model/src/dataset.py bagi_train_test (held-out sorted()[::4], sisanya ke latih); model/CLAUDE.md decision "Database LATIH" (mitdb saja)
 
 \begin{table}[!ht]
@@ -745,38 +739,13 @@ Fitur rasio R-R dan lebar QRS (A8) tidak menaikkan F1 secara bermakna, tetapi me
 
 \subsubsection{Kuantisasi INT8}
 
-Dampak kuantisasi diukur dengan membandingkan model INT8 terhadap model \textit{float32}. Yang dikuantisasi adalah varian \textit{deploy}, yaitu DepthwiseConv1D(32) berbobot 1/32 sebagai pengganti \textit{Global Average Pooling} dengan kepala Conv1D \textit{kernel} 1, memakai \textit{post-training quantization} INT8 penuh dan 300 sampel kalibrasi \textit{stratified} dari DS1. Selisihnya terhadap \textit{float32} pada DS2 dan \textit{threshold} yang sama ditunjukkan pada Tabel~\ref{tab:delta-int8}.
-% sumber: model/src/model.py build_deploy_model (kernel = panjang sesudah tiga pooling = 32, bobot 1/32, Conv1D kernel 1); model/artifacts/model_int8.tflite (tensor gap_dw [1,1,32,32]); model/config.py (REP_SAMPLES 300, INT8_IO True); model/src/quantize.py (stratified, inference_input_type dan output_type int8); model/artifacts/metrics/fase7_delta.csv (threshold 0,8 pada kedua model)
+Model INT8 yang dievaluasi pada DS2 adalah hasil kuantisasi varian \textit{deploy}, yaitu DepthwiseConv1D(32) berbobot 1/32 sebagai pengganti \textit{Global Average Pooling} dengan kepala Conv1D \textit{kernel} 1. Kuantisasinya memakai \textit{post-training quantization} INT8 penuh dengan 300 sampel kalibrasi \textit{stratified} dari DS1.
+% sumber: model/src/model.py build_deploy_model (kernel = panjang sesudah tiga pooling = 32, bobot 1/32, Conv1D kernel 1); model/artifacts/model_int8.tflite (tensor gap_dw [1,1,32,32]); model/config.py (REP_SAMPLES 300, INT8_IO True); model/src/quantize.py (stratified, inference_input_type dan output_type int8)
 
-\begin{table}[!ht]
-  \centering
-  \caption{Selisih metrik model \textit{float32} dan INT8 pada DS2}
-  \label{tab:delta-int8}
-  \setstretch{1.0}
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \small
-  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.0cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.6cm}}
-    \toprule
-    \textbf{Metrik} & \textbf{\textit{Float32}} & \textbf{INT8} & \textbf{Selisih} & \textbf{INT8 / \textit{Float32} (\%)} \\
-    \midrule
-    F1 & 0,6594 & 0,6604 & $+$0,0010 & 100,14 \\
-    \textit{Recall} & 0,6996 & 0,7105 & $+$0,0108 & 101,55 \\
-    \textit{Precision} & 0,6235 & 0,6169 & $-$0,0067 & 98,93 \\
-    \textit{Specificity} & 0,9479 & 0,9456 & $-$0,0023 & 99,75 \\
-    MCC & 0,6160 & 0,6171 & $+$0,0011 & 100,18 \\
-    AUC & 0,9334 & 0,9344 & $+$0,0010 & 100,10 \\
-    \textit{Accuracy} & 0,9207 & 0,9198 & $-$0,0009 & 99,90 \\
-    \bottomrule
-  \end{tabular}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: kedua model dinilai pada \textit{threshold} 0,80. F1 adalah metrik kualitas yang menjadi target. \textit{Accuracy} dilaporkan tetapi bukan acuan. Ukuran model INT8 22,94 KB dicantumkan pada Tabel~\ref{tab:sumber-daya}.\par}
-\end{table}
-% sumber: model/artifacts/metrics/fase7_delta.csv (accuracy 0,920674 / 0,919788 / -0,000886; precision 0,623549 / 0,616855 / -0,006694; recall 0,699633 / 0,710459 / +0,010826; f1 0,659403 / 0,660356 / +0,000953; specificity 0,947926 / 0,945596 / -0,002330; auc 0,933448 / 0,934425 / +0,000977; ukuran_kb int8 22,94, float32 kosong); baris threshold tidak ditampilkan; MCC 0,615986 / 0,617110 / +0,001125 dari model/artifacts/metrics/fase7_metrik_tambahan.csv; rasio = int8 / float32 x 100 dari nilai 6 desimal (f1 100,14; recall 101,55; precision 98,93; specificity 99,75; mcc 100,18; auc 100,10; accuracy 99,90)
+Kuantisasi memenuhi target, karena F1 model INT8 sebesar 0,6604 mencapai 100,14\% F1 model \textit{float32} sebesar 0,6594, di atas syarat 99\%. Satu-satunya metrik di bawah 99\% adalah \textit{precision}, yaitu 98,93\% nilai \textit{float32}. Penurunan itu sejalan dengan kenaikan \textit{recall}, karena probabilitas yang bergeser di sekitar \textit{threshold} menangkap lebih banyak aritmia sekaligus menambah alarm palsu.
+% sumber: model/artifacts/metrics/fase7_delta.csv (f1 0,659403 / 0,660356; precision 0,623549 / 0,616855; recall 0,699633 / 0,710459); rasio int8 / float32 x 100 (f1 100,14; precision 98,93; recall 101,55; specificity 99,75; mcc 100,18; auc 100,10; accuracy 99,90); keputusan user 1 Nov 2026: tabel selisih diringkas ke kalimat
 
-Kuantisasi memenuhi target, karena F1 model INT8 mencapai 100,14\% F1 \textit{float32}, di atas syarat 99\% (Tabel~\ref{tab:delta-int8}). Satu-satunya metrik di bawah 99\% adalah \textit{precision}, yaitu 98,93\%. Penurunan itu sejalan dengan kenaikan \textit{recall}, karena probabilitas yang bergeser di sekitar \textit{threshold} menangkap lebih banyak aritmia sekaligus menambah alarm palsu. Kedua \textit{confusion matrix} dibandingkan pada Gambar~\ref{fig:cm-ds2}.
-% sumber: fase7_delta.csv; model/artifacts/model_int8.tflite (stat 23.488 byte, 23.488 / 1.024 = 22,94 KB); firmware/include/model_int8.h (model_int8_tflite_len 23488); laporan/buku-pa/bab/bab3.tex tab:pengujian-model (|delta recall| < 0,02); model/config.py MAX_MODEL_KB = 25
-
-Selisih per kelas searah dengan selisih agregat, dan tidak ada kelas yang turun. \textit{Recall} kelas S, V, dan F masing-masing naik 0,0240, 0,0034, dan 0,0103. Label akhir hanya berubah pada 272 detak, yaitu 0,55\% DS2, karena probabilitas INT8 yang bergeser sedikit di sekitar \textit{threshold}.
+Selisih per kelas searah dengan selisih agregat, dan tidak ada kelas yang turun. \textit{Recall} kelas S, V, dan F masing-masing naik 0,0240, 0,0034, dan 0,0103. Label akhir hanya berubah pada 272 detak, yaitu 0,55\% DS2. Kedua \textit{confusion matrix} dibandingkan pada Gambar~\ref{fig:cm-ds2}.
 % sumber: model/artifacts/metrics/fase7_metrik_tambahan.csv (recall_S 0,438998 / 0,462963 / +0,023965; recall_V 0,924821 / 0,928239 / +0,003417; recall_F 0,067010 / 0,077320 / +0,010309; label_berubah 272 dari 49.656 = 0,55%), model/scripts/metrik_tambahan.py; model/docs/quantize-walkthrough.md bagian 6
 
 \begin{figure}[H]
@@ -881,10 +850,10 @@ Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi 
 \subsection{Analisis Jalur Model TinyML \textit{On-Device}}
 \label{subsec:analisis-tujuan2}
 
-Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi mempertahankan F1 pada 100,14\% nilai \textit{float32} dengan ukuran model 22,94~KB (Tabel~\ref{tab:delta-int8}). Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan.
+Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi mempertahankan F1 pada 100,14\% nilai \textit{float32} dengan ukuran model 22,94~KB. Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan.
 % sumber: bab4 tab:delta-int8 (+0,0108, 22,94 KB), tab:sumber-daya dan paragraf sesudahnya (26,6 ms, 13,3% dari 200 ms, 12.948 dari 24.576 byte), subsec:hasil-tujuan1 336 vs 0,973)
 
-Kualitas klasifikasi, yang tidak memiliki ambang angka, mencapai \textit{recall} 0,6996, F1 0,6594, dan AUC 0,9334 pada model \textit{float32} (Tabel~\ref{tab:hasil-ds2}) dengan median \textit{recall} per pasien 0,9167. Kelemahan terbesarnya adalah kelas S dengan \textit{recall} 0,4390, karena QRS-nya mirip Normal dan pembedanya terletak pada waktu kedatangan serta gelombang P. Latensi inferensi diukur tanpa WiFi aktif. Jalur model dinilai Tercapai, karena target kuantisasi, ukuran, latensi, dan memori seluruhnya terpenuhi.
+Kualitas klasifikasi, yang tidak memiliki ambang angka, mencapai \textit{recall} 0,7105, F1 0,6604, dan AUC 0,9344 pada model INT8 (Tabel~\ref{tab:hasil-ds2}) dengan median \textit{recall} per pasien 0,9167. Kelemahan terbesarnya adalah kelas S dengan \textit{recall} 0,4630, karena QRS-nya mirip Normal dan pembedanya terletak pada waktu kedatangan serta gelombang P. Latensi inferensi diukur tanpa WiFi aktif. Jalur model dinilai Tercapai, karena target kuantisasi, ukuran, latensi, dan memori seluruhnya terpenuhi.
 % sumber: bab4 tab:hasil-ds2 (0,6996, 0,6594, 0,9334), subsec:hasil-tujuan2 butir Evaluasi DS2 (median per pasien 0,9167, recall S 0,4390, alasan QRS mirip Normal), butir Konsumsi Daya (INA219 belum dirakit di sisi baterai), paragraf sesudah tab:sumber-daya (latensi tanpa WiFi aktif)
 
 \subsection{Perbandingan dengan Penelitian Terkait}
@@ -926,7 +895,7 @@ Perbandingan dibatasi pada penelitian terkait yang skema evaluasinya diketahui, 
   \end{tabular}
 \end{table}
 
-Angka ketiga penelitian pada Tabel~\ref{tab:perbandingan-protokol} tidak dapat dibandingkan langsung karena kelas, pembagian data, dan metriknya berbeda. Pembagian per detak membuat detak dari pasien yang sama dapat muncul di himpunan latih dan uji, sedangkan DS2 berisi 22 pasien yang tidak pernah dilihat saat pelatihan. Latensi juga tidak dibandingkan karena Arduino UNO 8-bit dan ESP32-S3 berbeda kelas. Pada sisi metrik, 89,0\% detak DS2 berlabel Normal, jadi menebak Normal untuk seluruh detak sudah memberi \textit{accuracy} sekitar 0,89. \textit{Accuracy} model ini, yaitu 0,9207 pada \textit{float32} dan 0,9198 pada INT8, hanya sekitar 3 poin di atasnya (Tabel~\ref{tab:delta-int8}). \textit{Accuracy} pada data setimpang ini belum menunjukkan kemampuan mendeteksi aritmia, karena itu hasil penelitian ini dilaporkan melalui \textit{recall}, F1, dan AUC.
+Angka ketiga penelitian pada Tabel~\ref{tab:perbandingan-protokol} tidak dapat dibandingkan langsung karena kelas, pembagian data, dan metriknya berbeda. Pembagian per detak membuat detak dari pasien yang sama dapat muncul di himpunan latih dan uji, sedangkan DS2 berisi 22 pasien yang tidak pernah dilihat saat pelatihan. Latensi juga tidak dibandingkan karena Arduino UNO 8-bit dan ESP32-S3 berbeda kelas. Pada sisi metrik, 89,0\% detak DS2 berlabel Normal, jadi menebak Normal untuk seluruh detak sudah memberi \textit{accuracy} sekitar 0,89. \textit{Accuracy} model INT8, yaitu 0,9198, hanya sekitar 3 poin di atasnya (Tabel~\ref{tab:hasil-ds2}). \textit{Accuracy} pada data setimpang ini belum menunjukkan kemampuan mendeteksi aritmia, karena itu hasil penelitian ini dilaporkan melalui \textit{recall}, F1, dan AUC.
 % sumber: bab4 sec:parameter-eksperimen (89,0%, sekitar 0,89), subsec:hasil-tujuan2 butir Evaluasi DS2 (accuracy 0,9207 sekitar 3 poin di atas tebak Normal), tab:delta-int8 (0,9207 dan 0,9198)
 
 Penelitian pendahulu mendeteksi atrial fibrilasi dengan SVM di sisi \textit{cloud}~\cite{mulyawan_2026}. Penelitian ini melanjutkannya dengan memindahkan klasifikasi per detak ke ESP32-S3. Protokol \textit{inter-patient} disadari membuat angka penelitian ini tampak lebih rendah daripada \textit{accuracy} pada pembagian per detak~\cite{xiao_2023}, dan angka DS2 pun berpotensi sedikit optimistis karena DS2 dipakai menilai ablasi \textit{window} dan \textit{jitter}. Penelitian ini karena itu tidak mengklaim \textit{accuracy} yang lebih tinggi. Yang diklaim adalah evaluasi yang lebih ketat terhadap pasien baru dan inferensi yang berjalan langsung di perangkat.
