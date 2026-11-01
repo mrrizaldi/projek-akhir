@@ -21,14 +21,14 @@ Parameter ini menilai kemampuan model membedakan detak Normal dan Aritmia pada p
 
 \noindent di mana TP adalah detak aritmia yang diprediksi aritmia, FP adalah detak normal yang diprediksi aritmia, TN adalah detak normal yang diprediksi normal, dan FN adalah detak aritmia yang terlewat. Metrik yang dilaporkan adalah sebagai berikut.
 \begin{enumerate}[label=\arabic*)]
-  \item \textbf{\textit{Recall}.} Proporsi detak aritmia yang terdeteksi, yaitu kemampuan model untuk tidak melewatkan aritmia.
-  \item \textbf{\textit{Precision}.} Proporsi prediksi aritmia yang benar, yaitu kemampuan model untuk tidak memberi alarm palsu pada detak normal.
-  \item \textbf{\textit{Specificity}.} Proporsi detak normal yang dikenali sebagai normal.
-  \item \textbf{F1.} Rerata harmonik \textit{precision} dan \textit{recall}, yang juga menjadi kriteria kalibrasi \textit{threshold}.
-  \item \textbf{MCC.} \textit{Matthews correlation coefficient}, yaitu korelasi antara prediksi dan label yang memakai keempat sel \textit{confusion matrix}, sehingga nilainya hanya tinggi bila kedua kelas dikenali dengan baik~\cite{chicco_2020}.
-  \item \textbf{AUC.} Luas di bawah kurva ROC, yaitu kurva pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh \textit{threshold}, sehingga kemampuan model memisahkan kedua kelas dapat dinilai tanpa bergantung pada satu \textit{threshold}~\cite{chicco_2020}. Nilai AUC juga tidak berubah oleh proporsi kelas, jadi tetap sahih walaupun detak Aritmia hanya sekitar 11\% DS2~\cite{richardson_2024}.
-  \item \textbf{\textit{Accuracy}.} Proporsi seluruh prediksi yang benar. Metrik ini tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89.
-  \item \textbf{\textit{Recall} per kelas AAMI dan per pasien.} \textit{Recall} kelas S, V, dan F serta median dan rerata \textit{recall} per rekaman, untuk melihat kelas dan pasien yang paling sering terlewat.
+  \item \textit{Recall}. Proporsi detak aritmia yang terdeteksi, yaitu kemampuan model untuk tidak melewatkan aritmia.
+  \item \textit{Precision}. Proporsi prediksi aritmia yang benar, yaitu kemampuan model untuk tidak memberi alarm palsu pada detak normal.
+  \item \textit{Specificity}. Proporsi detak normal yang dikenali sebagai normal.
+  \item F1. Rerata harmonik \textit{precision} dan \textit{recall}, yang juga menjadi kriteria kalibrasi \textit{threshold}.
+  \item MCC. \textit{Matthews correlation coefficient}, yaitu korelasi antara prediksi dan label yang memakai keempat sel \textit{confusion matrix}, sehingga nilainya hanya tinggi bila kedua kelas dikenali dengan baik~\cite{chicco_2020}.
+  \item AUC. Luas di bawah kurva ROC, yaitu kurva pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh \textit{threshold}, sehingga kemampuan model memisahkan kedua kelas dapat dinilai tanpa bergantung pada satu \textit{threshold}~\cite{chicco_2020}. Nilai AUC juga tidak berubah oleh proporsi kelas, jadi tetap sahih walaupun detak Aritmia hanya sekitar 11\% DS2~\cite{richardson_2024}.
+  \item \textit{Accuracy}. Proporsi seluruh prediksi yang benar. Metrik ini tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89.
+  \item \textit{Recall} per kelas AAMI dan per pasien. \textit{Recall} kelas S, V, dan F serta median dan rerata \textit{recall} per rekaman, untuk melihat kelas dan pasien yang paling sering terlewat.
 \end{enumerate}
 
 Seluruh metrik kategori ini dilaporkan tanpa ambang lulus, karena rencana pengujian tidak menetapkan ambang angka. Kualitas klasifikasi dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil.
@@ -39,7 +39,7 @@ Seluruh metrik kategori ini dilaporkan tanpa ambang lulus, karena rencana penguj
 
 Parameter ini memastikan model INT8 yang dijalankan di perangkat tidak kehilangan kualitas dibandingkan model \textit{float32}.
 \begin{enumerate}[label=\arabic*)]
-  \item \textbf{Selisih dan rasio metrik \textit{float32} terhadap INT8.} Seluruh metrik kategori sebelumnya dihitung ulang untuk model INT8 pada DS2 yang identik. Targetnya mengikuti MLPerf Inference, yaitu kualitas model teroptimasi berada dalam 1\% dari model \textit{float32}~\cite{reddi_2020}. F1 dipakai sebagai metrik kualitas karena \textit{threshold} dikalibrasi dari F1 maksimum, sehingga targetnya F1 INT8 minimal 99\% F1 \textit{float32}.
+  \item Selisih dan rasio metrik \textit{float32} terhadap INT8. Seluruh metrik kategori sebelumnya dihitung ulang untuk model INT8 pada DS2 yang identik. Targetnya mengikuti MLPerf Inference, yaitu kualitas model teroptimasi berada dalam 1\% dari model \textit{float32}~\cite{reddi_2020}. F1 dipakai sebagai metrik kualitas karena \textit{threshold} dikalibrasi dari F1 maksimum, sehingga targetnya F1 INT8 minimal 99\% F1 \textit{float32}.
 \end{enumerate}
 % sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); laporan/buku-pa/bab/bab3.tex tab:pengujian-model
 
@@ -47,9 +47,9 @@ Parameter ini memastikan model INT8 yang dijalankan di perangkat tidak kehilanga
 
 Parameter ini menilai apakah model INT8 dapat berjalan di ESP32-S3 dalam batas waktu dan memori perangkat.
 \begin{enumerate}[label=\arabic*)]
-  \item \textbf{Latensi inferensi per detak.} Waktu satu inferensi model INT8 di ESP32-S3. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}, sehingga targetnya lebih kecil dari interval antardetak~\cite{tran_2025}.
-  \item \textbf{Pemakaian memori.} \textit{Tensor arena}, \textit{heap} bebas, serta pemakaian RAM dan \textit{flash} hasil \textit{build}. \textit{Tensor arena} diukur dengan API TensorFlow Lite Micro~\cite{david_2021}, dan targetnya muat di SRAM perangkat.
-  \item \textbf{Ukuran model INT8.} Standar batas ukuran model TinyML belum ditemukan, karena itu ukuran model dinilai terhadap kapasitas memori ESP32-S3~\cite{espressif_esp32s3_wroom1, espressif_esp32s3_datasheet} dengan target muat di \textit{flash} perangkat.
+  \item Latensi inferensi per detak. Waktu satu inferensi model INT8 di ESP32-S3. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}, sehingga targetnya lebih kecil dari interval antardetak~\cite{tran_2025}.
+  \item Pemakaian memori. \textit{Tensor arena}, \textit{heap} bebas, serta pemakaian RAM dan \textit{flash} hasil \textit{build}. \textit{Tensor arena} diukur dengan API TensorFlow Lite Micro~\cite{david_2021}, dan targetnya muat di SRAM perangkat.
+  \item Ukuran model INT8. Standar batas ukuran model TinyML belum ditemukan, karena itu ukuran model dinilai terhadap kapasitas memori ESP32-S3~\cite{espressif_esp32s3_wroom1, espressif_esp32s3_datasheet} dengan target muat di \textit{flash} perangkat.
 \end{enumerate}
 % sumber: Tran dkk. 2025 hlm. 541 (inferensi dibandingkan interval antardetak minimum 400 ms); David dkk. 2021 bagian 5.3 (alokasi arena persisten dan nonpersisten); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
 
@@ -57,8 +57,8 @@ Parameter ini menilai apakah model INT8 dapat berjalan di ESP32-S3 dalam batas w
 
 Parameter ini menilai apakah rantai preprocessing berjalan secara \textit{real-time} pada laju cuplik 360 Hz.
 \begin{enumerate}[label=\arabic*)]
-  \item \textbf{Beban komputasi per sampel dan puncak beban.} Waktu pemrosesan setiap sampel yang dicatat dengan penghitung mikrodetik perangkat. Pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}, sehingga targetnya rata-rata beban lebih kecil dari anggaran waktu per sampel.
-  \item \textbf{Jumlah sampel hilang.} Jumlah sampel ADC yang tidak sempat diproses. Targetnya tidak ada sampel yang hilang, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
+  \item Beban komputasi per sampel dan puncak beban. Waktu pemrosesan setiap sampel yang dicatat dengan penghitung mikrodetik perangkat. Pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}, sehingga targetnya rata-rata beban lebih kecil dari anggaran waktu per sampel.
+  \item Jumlah sampel hilang. Jumlah sampel ADC yang tidak sempat diproses. Targetnya tidak ada sampel yang hilang, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
 \end{enumerate}
 % sumber: Busia dkk. 2025 hlm. 10 ("0.77 ms for each newly acquired sample"); laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); keputusan user 1 Nov 2026 (uji kesetaraan kode C vs Python dihapus dari buku tahap 1)
 
@@ -66,9 +66,9 @@ Parameter ini menilai apakah rantai preprocessing berjalan secara \textit{real-t
 
 Parameter ini menilai kelayakan sinyal tubuh dari AD8232 sebagai masukan jalur preprocessing. \textit{Flag lead-off} AD8232 tidak menjamin adanya sinyal, karena itu ayunan ADC absolut dijadikan acuan ada tidaknya biopotensial.
 \begin{enumerate}[label=\arabic*)]
-  \item \textbf{Ayunan sinyal ADC.} Selisih nilai maksimum dan minimum sinyal dalam \textit{count} dan dalam mV ekuivalen masukan AD8232. Ayunan dilaporkan tanpa ambang lulus.
-  \item \textbf{Dengung 50 Hz dan sampel jenuh.} Persentase energi pita 50 Hz terhadap energi pita ECG 0,5--40 Hz~\cite{gajdzik_2026} serta jumlah sampel di batas ADC. Keduanya dilaporkan tanpa ambang lulus karena acuan baku untuk ambangnya tidak ditemukan.
-  \item \textbf{Indeks kualitas sinyal per jendela 10 detik.} Setiap jendela harus memenuhi syarat detak per menit 40--180, jeda antar-R-\textit{peak} paling lama 3 detik, dan rasio interval R-R terpanjang terhadap terpendek di bawah 2,2. Jendela dinyatakan lolos bila rerata korelasi setiap kompleks QRS terhadap \textit{template} juga minimal 0,66~\cite{syversen_2024}.
+  \item Ayunan sinyal ADC. Selisih nilai maksimum dan minimum sinyal dalam \textit{count} dan dalam mV ekuivalen masukan AD8232. Ayunan dilaporkan tanpa ambang lulus.
+  \item Dengung 50 Hz dan sampel jenuh. Persentase energi pita 50 Hz terhadap energi pita ECG 0,5--40 Hz~\cite{gajdzik_2026} serta jumlah sampel di batas ADC. Keduanya dilaporkan tanpa ambang lulus karena acuan baku untuk ambangnya tidak ditemukan.
+  \item Indeks kualitas sinyal per jendela 10 detik. Setiap jendela harus memenuhi syarat detak per menit 40--180, jeda antar-R-\textit{peak} paling lama 3 detik, dan rasio interval R-R terpanjang terhadap terpendek di bawah 2,2. Jendela dinyatakan lolos bila rerata korelasi setiap kompleks QRS terhadap \textit{template} juga minimal 0,66~\cite{syversen_2024}.
 \end{enumerate}
 % sumber: Syversen dkk. 2024 bagian SQI1 (40-180 bpm, jeda < 3 s, rasio < 2,2, korelasi template 0,66); Gajdzik dkk. 2026 hlm. 59-60 (PLIratio = P 49-51 Hz / P 0,5-40 Hz, tanpa ambang lulus); ambang gerbang kalibrasi (AMBANG_AYUN 60, kontak 60 s, RR 300-1500 ms, |dRR| <= 200 ms) adalah hasil ukur sendiri dan tidak dijadikan parameter atas keputusan user 1 Nov 2026, diuji sebagai uji fungsi di butir Gerbang Kalibrasi
 
@@ -76,12 +76,12 @@ Parameter ini menilai kelayakan sinyal tubuh dari AD8232 sebagai masukan jalur p
 
 Parameter ini menilai kontinuitas data hasil klasifikasi dari perangkat ke \textit{cloud}. Bufer lokal di sisi \textit{edge} mempertahankan kontinuitas data ketika koneksi putus~\cite{escobedo_2026, tipparaju_2021}, karena detak yang hilang bertepatan dengan kejadian aritmia tidak dapat direkonstruksi di sisi \textit{cloud}. Target kategori ini dicantumkan sebagai rencana, karena hasil pengujian \textit{pipeline} belum termasuk dalam laporan tahap ini.
 \begin{enumerate}[label=\arabic*)]
-  \item \textbf{\textit{Packet Delivery Success Rate} (PDSR).} Persentase paket yang dikonfirmasi PUBACK pada percobaan pertama, dengan target minimal 95\%.
-  \item \textbf{Latensi \textit{end-to-end}.} Waktu dari terjadinya detak hingga data tersedia di \textit{cloud}, dengan target median paling lama 2 detik. Persentil ke-95 (p95) dilaporkan agar ekor sebarannya ikut terlihat.
-  \item \textbf{Jumlah entri \textit{ring buffer}.} Isi bufer lokal saat \textit{streaming} normal dan saat koneksi putus, dengan target tidak \textit{overflow} dalam kapasitas $\pm$27.000 rekaman.
-  \item \textbf{Data hilang saat putus koneksi.} Jumlah detak yang tidak sampai ke \textit{cloud} setelah koneksi pulih, dengan target tidak ada.
-  \item \textbf{Waktu \textit{flush}.} Durasi sejak koneksi pulih hingga bufer terkuras, dengan target paling lama 60 detik.
-  \item \textbf{Paket ganda.} Duplikat akibat pengiriman ulang QoS 1, dengan target dikenali dan diabaikan di sisi \textit{cloud}.
+  \item \textit{Packet Delivery Success Rate} (PDSR). Persentase paket yang dikonfirmasi PUBACK pada percobaan pertama, dengan target minimal 95\%.
+  \item Latensi \textit{end-to-end}. Waktu dari terjadinya detak hingga data tersedia di \textit{cloud}, dengan target median paling lama 2 detik. Persentil ke-95 (p95) dilaporkan agar ekor sebarannya ikut terlihat.
+  \item Jumlah entri \textit{ring buffer}. Isi bufer lokal saat \textit{streaming} normal dan saat koneksi putus, dengan target tidak \textit{overflow} dalam kapasitas $\pm$27.000 rekaman.
+  \item Data hilang saat putus koneksi. Jumlah detak yang tidak sampai ke \textit{cloud} setelah koneksi pulih, dengan target tidak ada.
+  \item Waktu \textit{flush}. Durasi sejak koneksi pulih hingga bufer terkuras, dengan target paling lama 60 detik.
+  \item Paket ganda. Duplikat akibat pengiriman ulang QoS 1, dengan target dikenali dan diabaikan di sisi \textit{cloud}.
 \end{enumerate}
 % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-pipeline
 
