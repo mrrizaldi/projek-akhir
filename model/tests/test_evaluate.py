@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from src.evaluate import (
-    confusion_counts, binary_metrics, evaluate_probabilities,
-    per_record_metrics, roc_auc,
+    average_precision, confusion_counts, binary_metrics, evaluate_probabilities,
+    mcc, per_record_metrics, roc_auc,
 )
 
 
@@ -61,3 +61,18 @@ def test_per_record_memisah_pasien():
     rows = per_record_metrics(y, p, np.array([100, 100, 200, 200]), 0.5)
     assert [r["record"] for r in rows] == [100, 200]
     assert rows[0]["recall"] == 1.0 and rows[1]["recall"] == 0.0
+
+
+def test_average_precision_sempurna_dan_hitungan_tangan():
+    assert average_precision([0, 1, 0, 1], [0.1, 0.9, 0.2, 0.8]) == pytest.approx(1.0)
+    assert average_precision([1, 0, 1, 0], [0.9, 0.8, 0.7, 0.1]) == pytest.approx(0.5 + 0.5 * 2 / 3)
+
+
+def test_average_precision_seri_jadi_satu_titik():
+    assert average_precision([1, 0], [0.5, 0.5]) == pytest.approx(0.5)
+
+
+def test_mcc_sempurna_acak_dan_pembagian_nol():
+    assert mcc({"tp": 5, "fn": 0, "fp": 0, "tn": 5}) == pytest.approx(1.0)
+    assert mcc({"tp": 1, "fn": 1, "fp": 1, "tn": 1}) == pytest.approx(0.0)
+    assert mcc({"tp": 0, "fn": 0, "fp": 0, "tn": 9}) == 0.0

@@ -285,6 +285,27 @@ Ini pengingat penting: **selisih metrik pada threshold tetap mencampur dua hal**
 — perubahan kualitas model dan pergeseran kalibrasi probabilitas. AUC yang
 memisahkan keduanya, dan AUC bilang model INT8 setara.
 
+### Delta per kelas dan label yang berubah
+
+Dampak INT8 pada aritmia ECG di literatur cenderung terpusat di kelas S (Busia
+2024), jadi selisih agregat bisa menyembunyikan satu kelas yang jatuh. Diukur
+dengan `scripts/metrik_tambahan.py` (1 Nov 2026, *threshold* 0,80):
+
+| *Recall* | Float32 | INT8 | Delta |
+|---|---|---|---|
+| S (1.836 detak) | 0,4390 | 0,4630 | +0,0240 |
+| V (3.219 detak) | 0,9248 | 0,9282 | +0,0034 |
+| F (388 detak) | 0,0670 | 0,0773 | +0,0103 |
+| PR-AUC | 0,7445 | 0,7663 | +0,0218 |
+| MCC | 0,6160 | 0,6171 | +0,0011 |
+
+Ketiga kelas bergeser ke arah yang sama dengan *recall* agregat (+0,0108), dan
+tidak ada kelas yang turun. Yang terbesar S, +0,0240, sedikit di atas ambang
+agregat 0,02 tetapi searah perbaikan. Label berubah pada **272 dari 49.656
+detak (0,55%)**. Pergeseran ini konsisten dengan penjelasan di atas:
+probabilitas INT8 sedikit naik di sekitar *threshold*, sehingga lebih banyak
+detak melewati 0,80 di semua kelas.
+
 ---
 
 ## 7. Yang sengaja TIDAK dilakukan

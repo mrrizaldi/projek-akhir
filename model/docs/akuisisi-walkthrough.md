@@ -448,6 +448,48 @@ Vonis `PALSU — N puncak setara` berarti autokorelasi tinggi tapi puncaknya
 berderet seragam. Jantung memberi **satu** puncak dominan; variabilitas denyut
 alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 
+### SQI per jendela 10 detik (Orphanidou 2015)
+
+Vonis `analyze_recording.py` berlaku per rekaman, sehingga satu menit buruk di
+rekaman 300 detik bisa tersembunyi. `scripts/kualitas_jendela.py` menilai tiap
+jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
+(`laporan/pustaka/orphanidou_2015.pdf`, hlm. 834–836):
+
+1. HR = 60 / rerata RR di jendela, harus 40–180 bpm.
+2. Jeda RR terpanjang ≤ 3 detik.
+3. Rasio RR terpanjang / terpendek < 2,2.
+4. Bila ketiganya lolos: potong tiap QRS selebar median RR dengan R di tengah,
+   rata-ratakan jadi template, hitung korelasi tiap potongan terhadap template.
+   Rerata korelasi ≥ 0,66 (ambang paper: *sensitivity* 94%, *specificity* 97%
+   terhadap anotasi manual).
+
+R-peak memakai rantai yang sama dengan grafik (`plot_rekaman.puncak_r`:
+kompensasi `PT_DETECTOR_OFFSET`, penyelarasan `PT_REFINE_WIN`) pada sinyal
+*bandpass*. Potongan yang terpotong tepi jendela dibuang.
+
+```bash
+cd model
+.venv/bin/python scripts/kualitas_jendela.py data/recordings/20261022-1256-rekam-001.csv \
+  data/recordings/20261022-1256-rekam-002.csv data/recordings/20261022-1257-rekam-003.csv \
+  data/recordings/20261022-1257-rekam-004.csv
+```
+
+Hasil rekaman resmi 22 Okt 2026:
+
+| Rekaman | Jendela | Lolos aturan 1–3 | Lolos semua | Korelasi median / minimum |
+|---|---|---|---|---|
+| R1 `-1256-rekam-001` | 30 | 100% | 100% | 0,991 / 0,981 |
+| R2 `-1256-rekam-002` | 30 | 100% | 100% | 0,987 / 0,967 |
+| R3 `-1257-rekam-003` | 30 | 100% | 100% | 0,985 / 0,967 |
+| R4 `-1257-rekam-004` | 2 | 100% | 100% | 0,982 / 0,980 |
+
+Kontrol negatif pada rekaman uji coba arsip (§8): rekaman berlantai derau
+(ayunan 16–55 count) lolos 0% jendela, rekaman 14 Okt 2026 lolos 93,3%, jadi
+penilai ini memang bisa menolak. **Jebakan:** SQI ini tidak menilai amplitudo.
+Rekaman arsip `20261011-1823` berayun hanya 176 count dan tetap lolos satu
+jendelanya, karena korelasi tidak peka skala. Ayunan ADC absolut tetap wasit
+ada tidaknya biopotensial; SQI menilai keteraturan detak di atasnya.
+
 ---
 
 ## 7. Kalau bermasalah

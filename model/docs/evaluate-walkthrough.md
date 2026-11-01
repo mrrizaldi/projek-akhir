@@ -135,6 +135,35 @@ jadi dialah yang bisa membandingkan *kualitas model* lintas konfigurasi.
 Perbandingan antar-varian di [`jitter-walkthrough.md`](jitter-walkthrough.md)
 bersandar pada sifat ini.
 
+### 3b. PR-AUC dan MCC — metrik untuk kelas positif 11%
+
+ROC-AUC memakai *specificity*, dan *specificity* mudah tinggi bila kelas Normal
+berjumlah 89%. Dua metrik pelengkap, dihitung dengan numpy di `src/evaluate.py`:
+
+- `average_precision()` = PR-AUC: luas di bawah kurva *precision*–*recall*,
+  $\text{AP} = \sum_n (R_n - R_{n-1}) P_n$ atas setiap nilai probabilitas unik.
+  Probabilitas seri digabung jadi satu titik. Garis dasarnya **prevalensi**
+  (model acak memberi AP = proporsi positif), bukan 0,5 seperti ROC-AUC.
+- `mcc()` = koefisien korelasi Matthews pada *threshold* tetap, memakai keempat
+  sel *confusion matrix*. Penyebut nol → 0,0 (sama dengan kebijakan
+  pembagian-nol `binary_metrics`).
+
+Hasil DS2 (`scripts/metrik_tambahan.py`, 1 Nov 2026):
+
+| | Float32 | INT8 |
+|---|---|---|
+| PR-AUC | 0,7445 | 0,7663 |
+| prevalensi (garis dasar PR-AUC) | 0,1098 | 0,1098 |
+| MCC @ 0,80 | 0,6160 | 0,6171 |
+| rerata *recall* per rekaman (21 rekaman beraritmia) | 0,7402 | 0,7446 |
+| median *recall* per rekaman | 0,9167 | 0,9167 |
+
+Rerata per rekaman adalah statistik "average" EC57 (rerata statistik per
+rekaman); *recall* tingkat detak adalah statistik "gross". Rerata 0,7402 di
+bawah median 0,9167 karena rekaman 232 dan 213 menariknya turun (§5).
+Rujukan pemilihan metrik: Saito & Rehmsmeier 2015, Chicco & Jurman 2020/2023
+(`docs/2026-11-01-crosscheck-metrik-bab4/klasifikasi.md` di root repo).
+
 ---
 
 ## 4. Hasil DS2

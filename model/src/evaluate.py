@@ -71,6 +71,28 @@ def roc_auc(y_true, y_prob) -> float:
     return float((ranks[y_true == 1].sum() - n_pos * (n_pos + 1) / 2.0) / (n_pos * n_neg))
 
 
+def average_precision(y_true, y_prob) -> float:
+    y_true = np.asarray(y_true).astype(int)
+    y_prob = np.asarray(y_prob, dtype=np.float64)
+    n_pos = int((y_true == 1).sum())
+    if n_pos == 0:
+        raise ValueError("average precision butuh kelas positif")
+    order = np.argsort(-y_prob, kind="mergesort")
+    p_urut, y_urut = y_prob[order], y_true[order]
+    ujung_grup = np.r_[np.flatnonzero(np.diff(p_urut)), len(p_urut) - 1]
+    tp = np.cumsum(y_urut)[ujung_grup]
+    fp = np.cumsum(1 - y_urut)[ujung_grup]
+    precision = tp / (tp + fp)
+    recall = tp / n_pos
+    return float(np.sum(np.diff(np.r_[0.0, recall]) * precision))
+
+
+def mcc(counts: dict) -> float:
+    tp, fn, fp, tn = counts["tp"], counts["fn"], counts["fp"], counts["tn"]
+    penyebut = np.sqrt(float(tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    return float((tp * tn - fp * fn) / penyebut) if penyebut else 0.0
+
+
 def pair_detected(detected, annotation, tolerance_samples: int):
     detected = np.asarray(detected)
     annotation = np.asarray(annotation)
