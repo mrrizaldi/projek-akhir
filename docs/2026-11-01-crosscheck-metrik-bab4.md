@@ -128,7 +128,7 @@ jurnal atau buku**; yang tidak punya rujukan dihapus. Diterapkan di
 | Butir | Sebelum | Sesudah | Rujukan |
 |---|---|---|---|
 | Ambang kuantisasi | \|Δrecall\| < 0,02 | F1 INT8 ≥ 99% F1 float32; rasio semua metrik dilaporkan, precision 98,93% | `reddi_2020` |
-| Ukuran model | < 25 KB | Dilaporkan | — |
+| Ukuran model | < 25 KB | Muat di *flash* ESP32-S3 (0,36% partisi aplikasi); arena 7,5% RAM 320 KB. Tidak dibandingkan dengan model di perangkat lain karena arsitekturnya berbeda (keputusan user) | `espressif_esp32s3_wroom1`, `espressif_esp32s3_datasheet` |
 | Latensi, beban per sampel, memori | target tanpa sitasi | target sama, diberi sitasi | `tran_2025`, `busia_2025`, `david_2021` |
 | Akuisisi offline | dengung < 15%, autokorelasi > 0,25, BPM wajar > 90%, jenuh 0,1%, status Berhasil | SQI per jendela 10 s; dengung dan jenuh dilaporkan tanpa ambang | `syversen_2024`, `gajdzik_2026` |
 | Gerbang kalibrasi | baris di tabel parameter | keluar dari tabel; tetap rancangan Bab 3 dan uji fungsi Bab 4 | — |

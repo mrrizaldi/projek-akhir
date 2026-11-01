@@ -35,7 +35,7 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
     \multicolumn{2}{l}{\textit{c. Kinerja di perangkat, target dari Tabel~\ref{tab:pengujian-model}}} \\
     Latensi inferensi per detak & Lebih kecil dari interval antardetak \\
     \textit{Tensor arena}, \textit{heap} bebas, pemakaian RAM dan \textit{flash} & Muat di SRAM perangkat \\
-    Ukuran model INT8 (KB) & Dilaporkan \\
+    Ukuran model INT8 (KB) & Muat di \textit{flash} perangkat \\
     % sumber: model/config.py (MAX_MODEL_KB = 25 dan komentarnya); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
     \midrule
     \multicolumn{2}{l}{\textit{d. Preprocessing di mikrokontroler, target dari Tabel~\ref{tab:pengujian-model}}} \\
@@ -63,7 +63,7 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
 
 Lima dari enam kategori pada Tabel~\ref{tab:parameter-eksperimen}, yaitu kategori b sampai f, memiliki target yang dapat diverifikasi secara langsung, baik berupa ambang angka maupun syarat lulus seperti tidak adanya sampel yang hilang. Kategori a tidak memiliki ambang angka pada rencana pengujian. Kualitas klasifikasi karena itu dilaporkan pada titik operasi hasil kalibrasi data validasi dan dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil. Target kategori f tetap dicantumkan sebagai rencana, tetapi hasil pengujian \textit{pipeline edge-to-cloud} belum termasuk dalam laporan tahap ini.
 
-Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Dampak kuantisasi dinilai dengan syarat MLPerf Inference, yaitu kualitas model teroptimasi dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, dengan F1 sebagai metrik kualitas. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}~\cite{tran_2025}, dan pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}. Ukuran model dilaporkan tanpa target karena acuan baku untuk batas ukuran tidak ditemukan. Jumlah sampel hilang adalah uji fungsi, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
+Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Dampak kuantisasi dinilai dengan syarat MLPerf Inference, yaitu kualitas model teroptimasi dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, dengan F1 sebagai metrik kualitas. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}~\cite{tran_2025}, dan pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}. Standar batas ukuran model TinyML belum ditemukan, karena itu ukuran model dan pemakaian memori dinilai terhadap kapasitas ESP32-S3~\cite{espressif_esp32s3_wroom1, espressif_esp32s3_datasheet}. Jumlah sampel hilang adalah uji fungsi, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
 
 % sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); Tran dkk. 2025 hlm. 541 (inferensi dibandingkan interval antardetak minimum 400 ms); Busia dkk. 2025 hlm. 10 ("0.77 ms for each newly acquired sample"); keputusan user 1 Nov 2026 (parameter tanpa rujukan dihapus, kesetaraan dipertahankan sebagai uji fungsi)
 
@@ -815,7 +815,7 @@ Model INT8 harus memenuhi batas waktu dan memori di ESP32-S3. Seluruh kasus uji 
     \toprule
     \textbf{Besaran} & \textbf{Nilai} & \textbf{Kondisi Pengukuran} & \textbf{Target} \\
     \midrule
-    Ukuran model INT8 (byte) & 23.488 & Format TensorFlow Lite, \textit{window} 256 & Dilaporkan \\
+    Ukuran model INT8 (byte) & 23.488 & Format TensorFlow Lite, \textit{window} 256 & Muat di \textit{flash} \\
     Latensi inferensi per detak (ms) & 26,6 & Uji perangkat, 240 MHz, \textit{kernel} referensi, \textit{window} 256 & Lebih kecil dari interval antardetak \\
     \textit{Tensor arena} terpakai (byte) & 12.948 & Uji perangkat, alokasi 24.576 byte & Muat di SRAM \\
     \textit{Heap} bebas (byte) & 312.396 & Uji perangkat, \textit{window} 256 & Muat di SRAM \\
@@ -825,8 +825,9 @@ Model INT8 harus memenuhi batas waktu dan memori di ESP32-S3. Seluruh kasus uji 
     Flash dengan MQTT (byte) & 887.873 & \textit{Firmware} dengan MQTT, kredensial WiFi terisi & Muat di memori \\
     \bottomrule
   \end{tabularx}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: 23.488 byte setara 22,94 KB. RAM statis 74.284 dan 121.336 byte setara 22,7\% dan 37,0\% dari RAM 320 KB, sedangkan Flash 430.569 dan 887.873 byte setara 6,6\% dan 13,5\% dari partisi aplikasi 6,25 MB.\par}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: 23.488 byte setara 22,94 KB atau 0,36\% partisi aplikasi 6,25 MB, dan alokasi \textit{tensor arena} 24.576 byte setara 7,5\% RAM 320 KB. RAM statis 74.284 dan 121.336 byte setara 22,7\% dan 37,0\% dari RAM 320 KB, sedangkan Flash 430.569 dan 887.873 byte setara 6,6\% dan 13,5\% dari partisi aplikasi 6,25 MB.\par}
 \end{table}
+% sumber: 23.488 / (6,25 x 1.048.576) = 0,358%; 24.576 / (320 x 1.024) = 7,5%; flash 16 MB dari datasheet ESP32-S3-WROOM-1 (N16R8), SRAM 512 KB dari datasheet ESP32-S3; standar batas ukuran model tidak ditemukan (docs/2026-11-01-crosscheck-metrik-bab4/tinyml.md butir 4: MLPerf Tiny tidak menjadikan memori skor)
 % sumber: model/docs/firmware-walkthrough.md bagian 6 (inferensi 26,6 ms, tensor arena 12.948 dari 24.576, model 22,94 KB, heap bebas 312.396, RAM 74.284 byte 22,7% dari 320 KB, Flash 430.569 byte 6,6% dari 6,25 MB); model/CLAUDE.md HW-1 (26,6 ms, 12.948 B, 312.396 B); model/docs/firmware-walkthrough.md bagian 6 dan model/docs/mqtt-walkthrough.md bagian 7 (build firmware utama dengan MQTT dan kredensial terisi: RAM 37,0% 121.336 B, Flash 13,5% 887.873 B; angka tanpa kredensial tidak dipakai; nilai lama 36,9% 121.008 B dan 881.861 B diperbarui 13 Okt 2026); firmware/src/klasifikasi.cpp ARENA_N = 24 * 1024; laporan/buku-pa/bab/bab3.tex tab:pengujian-model (target)
 
 Seluruh besaran pada Tabel~\ref{tab:sumber-daya} memenuhi target, jadi model INT8 layak dijalankan secara \textit{on-device} tanpa \textit{cloud}. Latensi 26,6 ms setara paling banyak 13,3\% dari periode refraktori detektor 200 ms, yaitu interval antardetak terpendek, dan sekitar 4,4\% waktu CPU untuk inferensi saja pada laju \textit{replay} sekitar 1,6 detak per detik. \textit{Tensor arena} terpakai 52,7\% dari alokasinya.
@@ -858,7 +859,7 @@ Hasil eksperimen pada laporan tahap ini dinilai terhadap dua tujuan penelitian, 
     \midrule
     \multirow{3}{=}{Model INT8 \textit{on-device}} & F1 INT8 minimal 99\% F1 \textit{float32} & 100,14\% & \multirow{3}{=}{\centering Tercapai} \\
     & Latensi di bawah interval antardetak & 26,6~ms per detak & \\
-    & Muat di SRAM & \textit{Arena} 12.948 dari 24.576 byte & \\
+    & Muat di memori ESP32-S3 & Model 0,36\% partisi aplikasi, \textit{arena} 12.948 dari 24.576 byte & \\
     % sumber: bab4 tab:delta-int8, tab:sumber-daya; target dari bab3 tab:pengujian-model
     \bottomrule
   \end{tabularx}
