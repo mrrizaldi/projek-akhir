@@ -63,7 +63,7 @@ sebagai rancangan, kategori f di `tab:parameter-eksperimen` tetap sebagai
 rencana, subbab hasil dan analisis Pipeline, butir Data Telemetri, uji jaringan
 di Tempat/Waktu/Peralatan, butir validitas jam satu detik, baris pipeline di
 `tab:ketercapaian`, keterbatasan pipeline, paragraf dan temuan latensi di Bab 5
-dibuang. Butir Gerbang Kalibrasi dipindah ke Jalur Preprocessing. Saran butir 2
+dibuang. Butir Gerbang Kalibrasi dipindah ke Jalur Preprocessing. Parameter eksperimen hanya memakai ambang dari standar atau jurnal (keputusan user 1 Nov 2026, rincian di `docs/2026-11-01-crosscheck-metrik-bab4.md`): kuantisasi memakai F1 INT8 minimal 99% F1 float32 (MLPerf), ukuran model dilaporkan tanpa target, kriteria akuisisi diganti SQI per jendela 10 detik, gerbang kalibrasi keluar dari tabel parameter, dan uji kesetaraan kode C terhadap Python dibuang seluruhnya (butir hasil, tabel per tahap, baris ketercapaian, temuan Bab 5). Saran butir 2
 menjadi pekerjaan tersisa (pengujian pipeline), abstrak dan Sistematika Bab 4–5
 menyebut pipeline "dilaporkan pada tahap berikutnya". Akibatnya dua tujuan
 berstatus Tercapai dan tidak ada `PLACEHOLDER-DATA`. Satu-satunya beda di `main.tex` adalah blok
@@ -95,9 +95,10 @@ Meregenerasi dari `buku-pa/` (misalnya sesudah `buku-pa` diperbarui):
    python3 ../../scripts/cek_tabel.py bab/*.tex
    ```
    Hasil yang diharapkan: `undefined` 0, `Overfull` 0, cek_tabel 0 galat.
-   Kondisi 1 Nov 2026 (sesudah hasil pipeline dibuang): 124 halaman, 28.081
-   kata non-komentar di `bab/` (buku-pa 31.089), 0 galat, 0 saran,
-   `output/main.docx` terbentuk.
+   Kondisi 1 Nov 2026 (sesudah ambang tanpa rujukan dan uji kesetaraan
+   dibuang): 123 halaman, 27.772 token kata non-komentar di semua `bab/*.tex`
+   (buku-pa 32.976, sekitar 84%), 0 galat, 0 saran, `output/main.docx`
+   terbentuk.
 
 ### Paper Size Mechanism
 

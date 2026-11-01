@@ -119,6 +119,27 @@ Butir di luar cakupan buku tahap 1 (pipeline, daya) ditunda.
 | 3 | D1, config INA219 `0x39FF` + CNVR sebelum tangga daya | Ditunda, di luar buku tahap 1 |
 | 4 | Validasi R-peak/HR | A8: hasil akuisisi ditulis sebagai status fungsional, bukan akurasi, karena belum ada alat medis acuan. B6 dan C7 tidak dikerjakan. Penulisannya dikerjakan nanti bersama butir A lain |
 
+### Keputusan lanjutan (1 Nov 2026, malam)
+
+Aturan user: parameter dan ambang di laporan diambil dari **standar dulu, lalu
+jurnal atau buku**; yang tidak punya rujukan dihapus. Diterapkan di
+`progres-pa-1` (commit `d0ffc38` dan sesudahnya):
+
+| Butir | Sebelum | Sesudah | Rujukan |
+|---|---|---|---|
+| Ambang kuantisasi | \|Δrecall\| < 0,02 | F1 INT8 ≥ 99% F1 float32; rasio semua metrik dilaporkan, precision 98,93% | `reddi_2020` |
+| Ukuran model | < 25 KB | Dilaporkan | — |
+| Latensi, beban per sampel, memori | target tanpa sitasi | target sama, diberi sitasi | `tran_2025`, `busia_2025`, `david_2021` |
+| Akuisisi offline | dengung < 15%, autokorelasi > 0,25, BPM wajar > 90%, jenuh 0,1%, status Berhasil | SQI per jendela 10 s; dengung dan jenuh dilaporkan tanpa ambang | `syversen_2024`, `gajdzik_2026` |
+| Gerbang kalibrasi | baris di tabel parameter | keluar dari tabel; tetap rancangan Bab 3 dan uji fungsi Bab 4 | — |
+| Uji kesetaraan C vs Python | uji fungsi | **dibuang seluruhnya** (butir hasil, tabel per tahap, ketercapaian, temuan Bab 5, abstrak, rencana Bab 3) | — |
+| PR-AUC | usulan tambah | tidak dilaporkan; ROC-AUC dibela dengan Richardson 2024 | `richardson_2024` |
+| Pipeline (kategori f) | — | ditunda | — |
+
+Konsekuensi uji kesetaraan dibuang: angka DS2 (diukur di komputer) tidak lagi
+punya bukti tertulis di buku bahwa model di perangkat berperilaku sama.
+Bug op `MEAN` (`model/CLAUDE.md` jebakan) tetap tercatat di repo.
+
 ## 5. Rujukan kandidat `referensi.bib`
 
 Belum ditambahkan. Kunci, DOI, dan kutipan ada di laporan rinci. Yang paling

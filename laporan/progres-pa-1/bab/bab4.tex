@@ -39,11 +39,9 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
     % sumber: model/config.py (MAX_MODEL_KB = 25 dan komentarnya); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
     \midrule
     \multicolumn{2}{l}{\textit{d. Preprocessing di mikrokontroler, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    Label akhir dan probabilitas kode C terhadap Python per detak acuan & Label identik, selisih probabilitas $\leq$ 0,02 \\
-    Selisih keluaran filter dan \textit{z-score} kode C terhadap Python & $\leq 10^{-3}$ \\
     Beban komputasi per sampel dan puncak beban & Rata-rata lebih kecil dari anggaran waktu per sampel \\
     Jumlah sampel hilang & Tidak ada \\
-    % sumber: laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); firmware/test/golden_ref.h
+    % sumber: laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); uji kesetaraan kode C vs Python dihapus dari buku tahap 1 atas keputusan user 1 Nov 2026
     \midrule
     \multicolumn{2}{l}{\textit{e. Akuisisi sinyal tubuh}} \\
     Ayunan sinyal ADC (\textit{count} dan mV) & Dilaporkan \\
@@ -63,9 +61,9 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: PDSR adalah \textit{packet delivery success rate}, p95 adalah persentil ke-95. Target latensi 2 detik pada rencana pengujian ditulis sebagai 2.000 ms agar satu baris memakai satu satuan.\par}
 \end{center}
 
-Lima dari enam kategori pada Tabel~\ref{tab:parameter-eksperimen}, yaitu kategori b sampai f, memiliki target yang dapat diverifikasi secara langsung, baik berupa ambang angka maupun syarat lulus seperti label akhir yang identik pada setiap detak acuan. Kategori a tidak memiliki ambang angka pada rencana pengujian. Kualitas klasifikasi karena itu dilaporkan pada titik operasi hasil kalibrasi data validasi dan dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil. Target kategori f tetap dicantumkan sebagai rencana, tetapi hasil pengujian \textit{pipeline edge-to-cloud} belum termasuk dalam laporan tahap ini.
+Lima dari enam kategori pada Tabel~\ref{tab:parameter-eksperimen}, yaitu kategori b sampai f, memiliki target yang dapat diverifikasi secara langsung, baik berupa ambang angka maupun syarat lulus seperti tidak adanya sampel yang hilang. Kategori a tidak memiliki ambang angka pada rencana pengujian. Kualitas klasifikasi karena itu dilaporkan pada titik operasi hasil kalibrasi data validasi dan dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil. Target kategori f tetap dicantumkan sebagai rencana, tetapi hasil pengujian \textit{pipeline edge-to-cloud} belum termasuk dalam laporan tahap ini.
 
-Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Dampak kuantisasi dinilai dengan syarat MLPerf Inference, yaitu kualitas model teroptimasi dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, dengan F1 sebagai metrik kualitas. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}~\cite{tran_2025}, dan pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}. Ukuran model dilaporkan tanpa target karena acuan baku untuk batas ukuran tidak ditemukan. Kesetaraan kode C dan Python serta jumlah sampel hilang adalah uji fungsi dengan ambang rancangan. Uji pertama memastikan angka DS2 yang diukur di komputer berlaku untuk perangkat, sedangkan sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
+Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Dampak kuantisasi dinilai dengan syarat MLPerf Inference, yaitu kualitas model teroptimasi dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, dengan F1 sebagai metrik kualitas. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}~\cite{tran_2025}, dan pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}. Ukuran model dilaporkan tanpa target karena acuan baku untuk batas ukuran tidak ditemukan. Jumlah sampel hilang adalah uji fungsi, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
 
 % sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); Tran dkk. 2025 hlm. 541 (inferensi dibandingkan interval antardetak minimum 400 ms); Busia dkk. 2025 hlm. 10 ("0.77 ms for each newly acquired sample"); keputusan user 1 Nov 2026 (parameter tanpa rujukan dihapus, kesetaraan dipertahankan sebagai uji fungsi)
 
@@ -153,7 +151,7 @@ Rekaman yang tidak memenuhi kriteria kualitas sinyal tetap disimpan karena menja
 
 \subsubsection{Sumber Sinyal \textit{Replay}}
 
-Untuk menguji jalur hilir secara deterministik tanpa bergantung pada elektroda, perangkat dilengkapi sumber sinyal \textit{replay} yang dipilih dari menu Sumber sinyal. Sumber yang dipakai pada seluruh pengujian bab ini adalah sinyal mentah data acuan, yaitu 2.400 sampel pertama rekaman 208 dari DS1 atau sekitar 6,67 detik, yang dikonversi sekali menjadi nilai \textit{count} ADC saat \textit{setup}. Ketika \textit{replay} aktif, \textit{timer interrupt} menyalin nilai dari tabel tersebut sebagai pengganti pembacaan ADC, sedangkan filter, deteksi R-\textit{peak}, segmentasi, inferensi, dan pengiriman MQTT tidak berubah sama sekali. Karena hanya sumber sampel yang diganti, hasil pengukuran pada jalur hilir dapat dijadikan acuan untuk sinyal yang berasal dari ADC. Catatannya, syarat lama kontak, syarat R-R, dan status \textit{lead-off} pada gerbang kalibrasi dilewati selama \textit{replay}, dan laju detaknya sekitar 1,6 detak per detik. Sumber \textit{replay} rekaman tersimpan juga tersedia, tetapi tidak dipakai pada pengujian yang dilaporkan.
+Untuk menguji jalur hilir secara deterministik tanpa bergantung pada elektroda, perangkat dilengkapi sumber sinyal \textit{replay} yang dipilih dari menu Sumber sinyal. Sumber yang dipakai pada seluruh pengujian bab ini adalah 2.400 sampel pertama sinyal mentah rekaman 208 dari DS1 atau sekitar 6,67 detik, yang dikonversi sekali menjadi nilai \textit{count} ADC saat \textit{setup}. Ketika \textit{replay} aktif, \textit{timer interrupt} menyalin nilai dari tabel tersebut sebagai pengganti pembacaan ADC, sedangkan filter, deteksi R-\textit{peak}, segmentasi, inferensi, dan pengiriman MQTT tidak berubah sama sekali. Karena hanya sumber sampel yang diganti, hasil pengukuran pada jalur hilir dapat dijadikan acuan untuk sinyal yang berasal dari ADC. Catatannya, syarat lama kontak, syarat R-R, dan status \textit{lead-off} pada gerbang kalibrasi dilewati selama \textit{replay}, dan laju detaknya sekitar 1,6 detak per detik. Sumber \textit{replay} rekaman tersimpan juga tersedia, tetapi tidak dipakai pada pengujian yang dilaporkan.
 % sumber: firmware/test/golden_ref.h (record 208 DS1, GOLDEN_N 2400, golden_raw); 2400 / 360 = 6,67 detik; firmware/src/akuisisi.cpp on_timer() dan sim_counts (tabel replay acuan); model/docs/firmware-walkthrough.md §5c "Terukur di board" (11 beat per putaran 6,67 detik, 1,58 beat/detik)
 
 Satu putaran sinyal \textit{replay} memuat 9 detak beranotasi, tetapi perangkat mengeluarkan 11 detak per putaran karena sambungan antarputaran menghasilkan dua detak tambahan. Rekaman 208 juga bersifat aritmik dan karena itu tidak dapat melewati gerbang R-R pada fase kalibrasi. Pada \textit{firmware} akhir, pelewatan gerbang tersebut melekat pada sumber \textit{replay} dan berhenti begitu sumber kembali ke sensor, jadi tidak dapat terbawa ke perekaman sinyal tubuh.
@@ -164,7 +162,7 @@ Satu putaran sinyal \textit{replay} memuat 9 detak beranotasi, tetapi perangkat 
 Model hanya berlaku di perangkat apabila \textit{window} yang diterimanya identik dengan \textit{window} saat pelatihan. Filter Butterworth pada kedua sisi bersifat kausal dengan koefisien SOS yang sama, karena koefisien untuk kode C dihasilkan otomatis dari Python ke berkas \textit{header} C. Filter kausal menimbulkan \textit{group delay} sebesar 4 sampel, dan pergeseran ini tidak dikoreksi melainkan dipelajari model. Puncak R karena itu berada di indeks 132 pada \textit{window} 256 sampel, yaitu 128 sampel sebelum R ditambah 4. Setiap \textit{window} dinormalisasi \textit{z-score} secara mandiri, dan model INT8 beserta \textit{threshold} 0,80 dibawa ke \textit{firmware} melalui berkas \textit{header} C yang juga dihasilkan otomatis.
 % sumber: firmware/include/ecg_preproc.h (GENERATED oleh model/scripts/export_golden.py, ECG_WIN_PRE 128, ECG_WIN_POST 128, ECG_GROUP_DELAY 4); model/config.py (R_IN_WINDOW = WIN_PRE + 4); firmware/include/model_int8.h (GENERATED oleh export_model_h.py, ECG_THRESHOLD 0.8f); model/CLAUDE.md Jebakan "Group delay filter kausal"
 
-Di perangkat, posisi R-\textit{peak} berasal dari detektor Pan-Tompkins, bukan dari anotasi. Keluaran detektor karena itu dikompensasi sebesar 38 sampel, dicari puncak sebenarnya dalam rentang $\pm$25 sampel, lalu dikurangi \textit{group delay} 4 sampel, agar puncak R mendarat di indeks yang sama dengan data latih. Kesetaraan seluruh rantai ini diuji dengan data acuan (\textit{golden reference}), yaitu keluaran setiap tahap Python pada rekaman 208 yang dibandingkan dengan keluaran kode C.
+Di perangkat, posisi R-\textit{peak} berasal dari detektor Pan-Tompkins, bukan dari anotasi. Keluaran detektor karena itu dikompensasi sebesar 38 sampel, dicari puncak sebenarnya dalam rentang $\pm$25 sampel, lalu dikurangi \textit{group delay} 4 sampel, agar puncak R mendarat di indeks yang sama dengan data latih.
 
 % sumber: firmware/include/ecg_preproc.h (ECG_PT_OFFSET 38, ECG_PT_REFINE 25, ECG_GROUP_DELAY 4); model/CLAUDE.md decision "Segmentasi on-device"; firmware/test/golden_ref.h
 
@@ -339,7 +337,7 @@ Hasil eksperimen disusun per tujuan penelitian, bukan per urutan waktu pengerjaa
 \subsection{Jalur Preprocessing \textit{Real-Time}}
 \label{subsec:hasil-tujuan1}
 
-Algoritma preprocessing ECG ringan diimplementasikan untuk berjalan secara \textit{real-time} pada ESP32-S3. Keberhasilannya dinilai dari keluaran kode C yang identik dengan Python dalam toleransi pada Tabel~\ref{tab:pengujian-model}, beban pemrosesan yang lebih kecil daripada anggaran waktu per sampel, dan tidak adanya sampel yang hilang. Hasilnya mencakup verifikasi preprocessing di Python, \textit{port} ke bahasa C beserta uji kesetaraannya, serta alur hidup beserta beban komputasi. Pengujian berikutnya meliputi uji perangkat dan integrasi di \textit{board}, segmentasi di perangkat, akuisisi sinyal tubuh, dan gerbang kalibrasi.
+Algoritma preprocessing ECG ringan diimplementasikan untuk berjalan secara \textit{real-time} pada ESP32-S3. Keberhasilannya dinilai dari beban pemrosesan yang lebih kecil daripada anggaran waktu per sampel dan tidak adanya sampel yang hilang. Hasilnya mencakup verifikasi preprocessing di Python serta alur hidup beserta beban komputasi. Pengujian berikutnya meliputi uji perangkat dan integrasi di \textit{board}, segmentasi di perangkat, akuisisi sinyal tubuh, dan gerbang kalibrasi.
 
 \subsubsection{Verifikasi Preprocessing di Python}
 
@@ -362,47 +360,8 @@ Gambar~\ref{fig:hasil-filter} terdiri atas tiga panel. Pada panel atas, filter m
 Hasil segmentasi \textit{window} 256 sampel beserta normalisasi \textit{z-score}, yang rancangannya ditunjukkan pada Gambar~\ref{fig:segmentasi}, diperiksa secara numerik pada rekaman 100. Sebanyak 2.273 anotasi menghasilkan 2.271 \textit{window} karena dua detak di tepi rekaman tidak memiliki cukup sampel. Setiap \textit{window} membentang 128 sampel atau sekitar 0,36 detik pada tiap sisi anotasi, dan seluruhnya berukuran 256 sampel dengan rata-rata mendekati nol serta simpangan baku 1,0000 setelah \textit{z-score}. Median indeks puncak R adalah 132 dan seluruh 2.271 \textit{window} memiliki puncak (nilai mutlak terbesar) dalam $\pm$2 sampel dari indeks tersebut.
 % sumber: perhitungan ulang rekaman 100 dengan model/src/preprocessing.py segment_beats dan zscore_per_window (2.271 window, bentuk (2271, 256), median indeks puncak 132,0, seluruhnya dalam 132 +- 2, std z-score 1,0000); model/config.py (WIN_PRE 128, FS 360, 128/360 = 0,36 detik)
 
-Ketiga tahap dinilai berjalan sesuai rancangan, dan keluarannya dipakai sebagai acuan uji kesetaraan kode C pada butir berikutnya. Verifikasi ini hanya mencakup rekaman 100 dan 114. Pada rekaman 114, simpangan baku turun dari 0,3755 mV menjadi 0,3480 mV (7,3\%), seluruh 1.879 anotasi menghasilkan \textit{window}, dan 99,8\% \textit{window} memiliki puncak R dalam $\pm$2 sampel dari indeks 132.
+Ketiga tahap dinilai berjalan sesuai rancangan. Verifikasi ini hanya mencakup rekaman 100 dan 114. Pada rekaman 114, simpangan baku turun dari 0,3755 mV menjadi 0,3480 mV (7,3\%), seluruh 1.879 anotasi menghasilkan \textit{window}, dan 99,8\% \textit{window} memiliki puncak R dalam $\pm$2 sampel dari indeks 132.
 % sumber: perhitungan ulang rekaman 114 (std 0,3755 -> 0,3480 = -7,3%, 1.879 window dengan 0 dibuang, 99,8% dalam 132 +- 2); model/CLAUDE.md Fase 1 (std 114 0,3755 -> 0,3480)
-
-\subsubsection{\textit{Port} ke Bahasa C dan Uji Kesetaraan}
-
-Kode C di ESP32-S3 harus menghitung hal yang sama dengan Python. Pembuktiannya memakai data acuan, yaitu keluaran setiap tahap Python berpresisi \textit{float64} pada 2.400 sampel pertama rekaman 208 DS1 yang disimpan sebagai berkas \textit{header} C dan ikut dikompilasi bersama kode uji. Keluaran kode C berpresisi \textit{float32} dibandingkan dengan acuan tersebut tahap demi tahap dan tidak hanya pada hasil akhir, agar tahap yang meleset langsung terlihat. Tahap yang dibandingkan beserta toleransinya ditunjukkan pada Tabel~\ref{tab:uji-kesetaraan-tahap}.
-% sumber: firmware/test/golden_ref.h (GOLDEN_N 2400, komentar "golden ini float64 (scipy), device float32", GOLDEN_TOL_FILTER 1e-3, GOLDEN_TOL_ZSCORE 1e-3, GOLDEN_TOL_PROB 2e-2); firmware/test/test_preproc/test_preproc.cpp
-
-\begin{table}[!ht]
-  \centering
-  \caption{Tahap uji kesetaraan kode C terhadap data acuan Python}
-  \label{tab:uji-kesetaraan-tahap}
-  \setstretch{1.0}
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \small
-  \begin{tabular}{>{\RaggedRight\arraybackslash}p{4.2cm}>{\RaggedRight\arraybackslash}p{3.0cm}>{\RaggedRight\arraybackslash}p{3.2cm}>{\centering\arraybackslash}p{2.2cm}}
-    \toprule
-    \textbf{Tahap} & \textbf{Pembanding (jumlah)} & \textbf{Toleransi} & \textbf{Hasil} \\
-    \midrule
-    Filter \textit{bandpass}, sekali jalan & 2.400 sampel & $10^{-3}$ & Lulus \\
-    Filter \textit{bandpass}, \textit{streaming} per blok 64 sampel & 2.400 sampel & $10^{-3}$ & Lulus \\
-    Segmentasi dan \textit{z-score} & 9 \textit{window} 256 sampel & $10^{-3}$ & Lulus \\
-    Rantai utuh dari sinyal mentah ke \textit{z-score} & 9 \textit{window} 256 sampel & $10^{-3}$ & Lulus \\
-    Fitur interval R-R & 7 detak & $10^{-4}$ & Lulus \\
-    Deteksi R-\textit{peak} Pan-Tompkins & 11 puncak & 1 sampel & Lulus \\
-    Penyelarasan puncak R di dalam \textit{window} & Seluruh puncak yang \textit{window}-nya muat & Indeks 132 $\pm$2 sampel & Lulus \\
-    Probabilitas model INT8 di perangkat & 7 detak & $\leq$ 0,02 dan label identik & Lulus \\
-    \bottomrule
-  \end{tabular}
-\end{table}
-% sumber: firmware/test/test_preproc/test_preproc.cpp (test_bandpass, test_bandpass_streaming blok 64, test_window_zscore, test_pipeline_utuh, test_rr_features 1e-4 untuk GOLDEN_RR_FIRST 2 sampai 8 = 7 detak, test_detect_r GOLDEN_N_DETEKSI 11 toleransi 1, test_align_r_menaruh_puncak_di_r_idx R_IDX = 128 + 4 toleransi 2); firmware/test/test_inference/test_inference.cpp (test_inferensi_cocok_dengan_pc, GOLDEN_TOL_PROB, label sama); hasil pio test -e native (23 kasus lulus) dan model/CLAUDE.md HW-1 (pio test -e esp32-s3 16/16 pada 18 Sep 2026); git log f6042b5 (13 Okt 2026, board 29/29, native 23/23)
-
-Seluruh tahap pada Tabel~\ref{tab:uji-kesetaraan-tahap} lulus, dan selisih terbesar yang tercatat jauh di bawah toleransinya. Uji unit kode C yang dijalankan di komputer tanpa perangkat menghasilkan 23 kasus uji lulus dari 23, dengan 11 di antaranya milik uji preprocessing dan sisanya milik uji MQTT dan uji \textit{driver} perangkat. Deteksi R-\textit{peak} di kode C menemukan 11 puncak yang sama dengan Python di dalam toleransi. Selisih filter akibat presisi \textit{float32} hanya sekitar $2 \times 10^{-4}$ pada amplitudo sekitar 0,4, dan selisih rantai utuh pada \textit{window} ber-\textit{z-score} juga tetap di bawah toleransi. Uji probabilitas model dijalankan terpisah di ESP32-S3.
-% sumber: pio test -e native (SUMMARY "23 test cases: 23 succeeded", test_preproc 11 baris PASSED, test_mqtt dan test_ina219 PASSED); firmware/test/golden_ref.h (komentar toleransi filter "terukur ~2e-4 pada amplitudo ~0,4"); model/CLAUDE.md HW-1 dan HW-6 (esp32-s3 16/16 pada 18 Sep 2026); git log f6042b5 (13 Okt 2026, native 23/23, board 29/29)
-
-Kesetaraan pada keluaran akhir dinilai dari probabilitas Aritmia model INT8 pada tujuh detak acuan rekaman 208. Dua detak pertama tidak diuji karena belum memiliki fitur R-R sebelumnya. Keputusan akhir identik pada ketujuh detak, yaitu lima detak berlabel Aritmia berada di atas \textit{threshold} 0,80 dan dua detak berlabel Normal berada di bawahnya. Uji di ESP32-S3 pada 18 September 2026 lulus 16 kasus dari 16. Rangkaian uji di \textit{board} yang sudah diperluas dengan uji perangkat dijalankan ulang pada 13 Oktober 2026 dengan hasil 29 kasus lulus dari 29, termasuk uji probabilitas ini. Catatan uji 18 September hanya mencatat satu detak yang berbeda dari PC, yaitu detak ketujuh pada rekaman 208 yang berlabel Normal dengan probabilitas 0,0820 di perangkat dan 0,0859 di PC. Selisih satu kuantum INT8 ini bernilai 1/256 atau sekitar 0,0039, sekitar seperlima toleransi 0,02, dan tidak mengubah label. Probabilitas keenam detak lainnya tidak disimpan sebagai berkas \textit{log}, jadi kesamaannya disimpulkan dari catatan tersebut dan dari lulusnya uji pada toleransi 0,02, bukan dari pembacaan nilai per detak.
-% sumber: firmware/test/golden_ref.h (golden_prob_int8 indeks 2 sampai 8 = 0,99609375 0,01953125 0,99609375 0,98828125 0,0859375 0,99609375 0,99609375; golden_sym N F V N V V N V V; golden_label 1 0 1 1 0 1 1 untuk indeks 2 sampai 8; detak ketujuh = indeks 6 = 0,0859375; GOLDEN_THRESHOLD 0,8f); firmware/include/model_int8.h (ECG_OUT_SCALE 0.00390625 = 1/256); model/CLAUDE.md HW-1 "angka diperbarui 18 Sep 2026, window 256" (pio test -e esp32-s3 16/16, satu beat beda 1 kuantum INT8, 0,0820 vs 0,0859); 0,00390625 / 0,02 = 0,195. Nilai perangkat per detak tidak tersimpan sebagai berkas log.
-
-Uji kesetaraan ini juga berfungsi sebagai pengaman yang terbukti bekerja. Perbandingan terhadap data acuan inilah yang mengungkap bahwa operasi MEAN pada TensorFlow Lite Micro menghasilkan probabilitas 0,336 di perangkat padahal 0,973 di PC tanpa pesan kesalahan apa pun. Keterbatasannya, acuan hanya berasal dari satu rekaman aritmik sepanjang 6,67 detik dengan detak berkelas N, F, dan V, dan tidak mencakup kelas S. Kesetaraan diuji dengan sinyal \textit{replay} karena hanya sinyal yang keluaran setiap tahapnya sudah diketahui yang dapat dibandingkan tahap demi tahap, sedangkan filter dan detektor yang diuji adalah kode yang sama yang memproses sinyal tubuh.
-% sumber: model/CLAUDE.md jebakan "TFLite Micro menghitung op MEAN beda" (PC 0,9727 vs device 0,3359) dan decision "Model yang dikuantisasi" (PC 0,973 vs device 0,336); firmware/test/golden_ref.h (golden_sym tanpa S, GOLDEN_N 2400 / 360 = 6,67 detik)
 
 \subsubsection{Alur Hidup dan Beban Komputasi}
 
@@ -463,20 +422,19 @@ Setiap komponen perangkat diuji fungsinya, dan jalur \textit{real-time} diperiks
     \toprule
     \textbf{Rangkaian Uji} & \textbf{Kasus} & \textbf{Yang Diverifikasi} & \textbf{Hasil} \\
     \midrule
-    Preprocessing & 11 & Kesetaraan tahap demi tahap terhadap data acuan (Tabel~\ref{tab:uji-kesetaraan-tahap}) & Lulus \\
-    Inferensi & 5 & Probabilitas model INT8 sama dengan komputer, latensi, dan \textit{tensor arena} & Lulus \\
-    Integrasi & 5 & Jalur \textit{real-time} utuh dengan layar dan \textit{buzzer} aktif; sampel hilang 0, laju jantung dalam 3 bpm, label identik & Lulus \\
+    Inferensi & 5 & Inferensi model INT8 di perangkat, latensi, dan \textit{tensor arena} & Lulus \\
+    Integrasi & 5 & Jalur \textit{real-time} utuh dengan layar dan \textit{buzzer} aktif; sampel hilang 0, laju jantung dalam 3 bpm & Lulus \\
     Layar & 2 & Inisialisasi TFT dan transfer SPI satu layar penuh & Lulus \\
     ADC dan \textit{lead-off} & 2 & ADC terbaca dan pewaktu menghasilkan 360 sampel per detik & Lulus \\
     Tombol & 2 & Ketiga pin berlogika HIGH saat diam dan uji tombol berakhir tepat pada batas waktunya & Lulus \\
     \textit{Buzzer} & 1 & Pin tersambung ke pembangkit nada setelah SPI layar terpasang, diam pada logika HIGH & Lulus \\
-    Jumlah & 28 & & 28 lulus \\
+    Jumlah & 17 & & 17 lulus \\
     \bottomrule
   \end{tabular}
 \end{table}
 % sumber: firmware/README.md tabel Test dan baris "board 29 (test_preproc 11, test_inference 5, test_hw_integrasi 5, test_hw_tft 2, test_hw_adc 2, test_hw_tombol 2, test_hw_buzzer 1, test_hw_ina219 1)"; jumlah RUN_TEST per suite di firmware/test/test_*/; firmware/test/test_hw_integrasi/ (n_lewat == 0, PUTARAN 3, HR beda <= 3 bpm, label sama PC); git log f6042b5 (board 29/29)
 
-Seluruh 28 kasus pada Tabel~\ref{tab:uji-papan} lulus, dan uji unit di komputer pada tanggal yang sama juga lulus 23 kasus dari 23. Hasil terpenting adalah uji integrasi. Pengukuran beban pada Tabel~\ref{tab:beban-komputasi} belum mencakup layar dan \textit{buzzer}, sedangkan uji integrasi menunjukkan sampel hilang tetap nol ketika gelombang digambar dan bip dibunyikan selama tiga putaran sinyal acuan. Uji integrasi juga memeriksa laju jantung yang ditampilkan, yaitu berselisih paling banyak 3 bpm dari interval R-R anotasi, dan label setiap detak yang sama dengan komputer. Cakupannya perlu dicatat. Uji otomatis tidak menilai bunyi \textit{buzzer}, warna layar, dan tekanan tombol sungguhan, karena hal tersebut memerlukan pengamatan manusia dan diperiksa melalui menu Tes perangkat yang hasilnya tidak dicatat sebagai berkas. Uji integrasi juga dijalankan tanpa WiFi dan MQTT, jadi beban radio pada jalur \textit{real-time} belum tercakup dalam hasil ini.
+Seluruh 17 kasus pada Tabel~\ref{tab:uji-papan} lulus. Hasil terpenting adalah uji integrasi. Pengukuran beban pada Tabel~\ref{tab:beban-komputasi} belum mencakup layar dan \textit{buzzer}, sedangkan uji integrasi menunjukkan sampel hilang tetap nol ketika gelombang digambar dan bip dibunyikan selama tiga putaran sinyal acuan. Uji integrasi juga memeriksa laju jantung yang ditampilkan, yaitu berselisih paling banyak 3 bpm dari interval R-R anotasi. Cakupannya perlu dicatat. Uji otomatis tidak menilai bunyi \textit{buzzer}, warna layar, dan tekanan tombol sungguhan, karena hal tersebut memerlukan pengamatan manusia dan diperiksa melalui menu Tes perangkat yang hasilnya tidak dicatat sebagai berkas. Uji integrasi juga dijalankan tanpa WiFi dan MQTT, jadi beban radio pada jalur \textit{real-time} belum tercakup dalam hasil ini.
 
 Penguncian sesi perekaman diuji terpisah dengan menyuntikkan tekanan tombol dan perintah melalui serial ke perangkat yang sedang berjalan. Tujuh skenario diuji, yaitu sebagai berikut.
 \begin{enumerate}
@@ -781,7 +739,7 @@ Fitur rasio R-R dan lebar QRS (A8) tidak menaikkan F1 secara bermakna, tetapi me
 
 \textit{Learning rate} $10^{-4}$ menghasilkan pertukaran yang disengaja. AUC DS2 naik pada kedua pengulangan dan \textit{recall} F DS2 naik dari 0,1804 menjadi 0,3591, sedangkan F1 DS2 tidak berbeda bermakna. Sebaliknya, \textit{recall} S DS2 turun dari 0,4473 menjadi 0,3126. Penurunan ini bukan efek \textit{threshold}, karena pada \textit{recall} total yang disamakan, $10^{-3}$ tetap unggul pada kelas S di keenam perbandingan pada \textit{seed} 42, sedangkan penyebab pastinya belum diketahui.
 
-\textit{Learning rate} $10^{-3}$ dipertahankan karena dua alasan. Pertama, kelas S paling bergantung pada ritme dan konteks sebelum R, dan kelas ini menjadi alasan rancangan \textit{hybrid}. Kedua, perpindahan menuntut pembuatan ulang berkas model dan data acuan pada \textit{firmware} beserta validasi ulang di perangkat. Model hasil satu \textit{epoch} karena itu tercatat sebagai keterbatasan yang disengaja.
+\textit{Learning rate} $10^{-3}$ dipertahankan karena dua alasan. Pertama, kelas S paling bergantung pada ritme dan konteks sebelum R, dan kelas ini menjadi alasan rancangan \textit{hybrid}. Kedua, perpindahan menuntut pembuatan ulang berkas model pada \textit{firmware} beserta validasi ulang di perangkat. Model hasil satu \textit{epoch} karena itu tercatat sebagai keterbatasan yang disengaja.
 % sumber: tab:ablasi (t8_lr1e3 AUC 0,9305 dan F1 0,6535, t8_lr1e4 AUC 0,9415 dan F1 0,6729, recall S t8 0,4473 dan 0,3126); keluaran ringkas_ablasi.py (w128b AUC 0,9373 dan g_lr1e4 AUC 0,9461 sebagai batch pertama, baris keduanya dikeluarkan dari tab:ablasi); selisih F1 DS2 0,6729 - 0,6535 = 0,0194 di bawah ambang 0,04; rerata anot_recall_F di model/artifacts/metrics/ablasi/ablasi.csv (t8_lr1e3 0,1804, t8_lr1e4 0,3591); model/docs/arsip/2026-09-19-faseG-changelog.md bagian 4 (threshold tetap dari VAL, uji titik operasi setara model/scripts/cek_titik_operasi.py pada DS2 test.npz hanya seed 42 pada recall total 0,65/0,70/0,80, 6 dari 6) dan bagian 8; model/CLAUDE.md decision "Learning rate" (TETAP 1e-3, biaya regen model_int8.h dan golden_ref.h serta validasi board saat HW-5 buntu)
 
 \subsubsection{Kuantisasi INT8}
@@ -840,9 +798,9 @@ Pada Gambar~\ref{fig:cm-ds2}, baris adalah label sebenarnya dan kolom adalah pre
 % sumber: gambar laporan/buku-pa/gambar/fase6_confusion_fp32.png (TN 41.904, FP 2.302, FN 1.637, TP 3.813) dan fase7_confusion_int8.png (TN 41.801, FP 2.405, FN 1.578, TP 3.872), keduanya dibuka dan dibaca; 3.872 - 3.813 = 59; 2.405 - 2.302 = 103
 % sumber: model/CLAUDE.md jebakan "Op pooling mewarisi skala kuantisasi input" (recall DS2 0,655 -> 0,528, skala input diwarisi)
 
-\subsubsection{Kesetaraan dan Kinerja di Perangkat}
+\subsubsection{Kinerja di Perangkat}
 
-Model INT8 harus memenuhi batas waktu dan memori di ESP32-S3. Kesetaraan keluarannya dengan PC sudah terbukti pada uji data acuan. Seluruh kasus uji di \textit{board} lulus, yaitu 16 kasus pada 18 September 2026 dan 29 kasus pada 13 Oktober 2026 setelah uji perangkat dan uji integrasi ditambahkan. Latensi diukur pada 18 September 2026 atas tujuh detak acuan pada CPU 240 MHz dengan \textit{kernel} referensi TensorFlow Lite Micro tanpa ESP-NN. RAM dan Flash diambil dari laporan \textit{build} PlatformIO. Hasilnya ditunjukkan pada Tabel~\ref{tab:sumber-daya}.
+Model INT8 harus memenuhi batas waktu dan memori di ESP32-S3. Seluruh kasus uji di \textit{board} lulus, yaitu 16 kasus pada 18 September 2026 dan 29 kasus pada 13 Oktober 2026 setelah uji perangkat dan uji integrasi ditambahkan. Latensi diukur pada 18 September 2026 atas tujuh detak acuan pada CPU 240 MHz dengan \textit{kernel} referensi TensorFlow Lite Micro tanpa ESP-NN. RAM dan Flash diambil dari laporan \textit{build} PlatformIO. Hasilnya ditunjukkan pada Tabel~\ref{tab:sumber-daya}.
 % sumber: firmware/test/test_inference/test_inference.cpp test_latensi_dan_memori (rata-rata us_terpakai atas GOLDEN_RR_FIRST sampai GOLDEN_N_BEAT = 7 detak, arena_used_bytes, ESP.getFreeHeap, getCpuFreqMHz); model/docs/firmware-walkthrough.md bagian 6 (240 MHz, kernel referensi tanpa ESP-NN); model/CLAUDE.md HW-1 dan HW-6 (pio test -e esp32-s3 16/16, angka diperbarui 18 Sep 2026); git log f6042b5 dan 07a5a07 (13 Okt 2026, board 29/29; angka latensi tidak dicatat ulang)
 
 \begin{table}[!ht]
@@ -894,18 +852,17 @@ Hasil eksperimen pada laporan tahap ini dinilai terhadap dua tujuan penelitian, 
     \toprule
     \textbf{Tujuan} & \textbf{Target} & \textbf{Hasil} & \textbf{Status} \\
     \midrule
-    \multirow{3}{=}{Preprocessing \textit{real-time}} & Setara dengan Python dalam toleransi data acuan & Seluruh tahap uji data acuan lulus & \multirow{3}{=}{\centering Tercapai} \\
-    & Tanpa sampel hilang & Sampel hilang 0, beban 3,0\% anggaran & \\
+    \multirow{2}{=}{Preprocessing \textit{real-time}} & Tanpa sampel hilang & Sampel hilang 0, beban 3,0\% anggaran & \multirow{2}{=}{\centering Tercapai} \\
     & Sinyal tubuh lolos indeks kualitas sinyal & 92 dari 92 jendela 10 detik, satu sesi & \\
-    % sumber: bab4 tab:uji-kesetaraan-tahap, tab:beban-komputasi, tab:kualitas-rekaman; target dari bab3 tab:pengujian-model dan bab4 tab:parameter-eksperimen baris d dan e
+    % sumber: bab4 tab:beban-komputasi, tab:kualitas-rekaman; target dari bab3 tab:pengujian-model dan bab4 tab:parameter-eksperimen baris d dan e
     \midrule
-    \multirow{3}{=}{Model INT8 \textit{on-device}} & F1 INT8 $\geq$ 99\% F1 \textit{float32} & 100,14\% & \multirow{3}{=}{\centering Tercapai} \\
+    \multirow{3}{=}{Model INT8 \textit{on-device}} & F1 INT8 minimal 99\% F1 \textit{float32} & 100,14\% & \multirow{3}{=}{\centering Tercapai} \\
     & Latensi di bawah interval antardetak & 26,6~ms per detak & \\
     & Muat di SRAM & \textit{Arena} 12.948 dari 24.576 byte & \\
     % sumber: bab4 tab:delta-int8, tab:sumber-daya; target dari bab3 tab:pengujian-model
     \bottomrule
   \end{tabularx}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: satuan Hasil mengikuti satuan Target pada baris yang sama. F1 INT8 0,6604 dilaporkan tanpa target. Jalur \textit{pipeline edge-to-cloud} belum dinilai pada laporan tahap ini.\par}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: satuan Hasil mengikuti satuan Target pada baris yang sama. F1 INT8 0,6604 terhadap F1 \textit{float32} 0,6594. Jalur \textit{pipeline edge-to-cloud} belum dinilai pada laporan tahap ini.\par}
 \end{table}
 
 Seluruh target jalur preprocessing dan jalur model, yaitu target komputasi, model, dan kualitas sinyal tubuh, terpenuhi (Tabel~\ref{tab:ketercapaian}). Target pengiriman data pada rencana pengujian \textit{pipeline}, yaitu PDSR, latensi, bufer lokal, waktu \textit{flush}, dan deduplikasi, belum dinilai karena hasil pengujiannya belum termasuk dalam laporan tahap ini.
@@ -913,17 +870,17 @@ Seluruh target jalur preprocessing dan jalur model, yaitu target komputasi, mode
 \subsection{Analisis Jalur Preprocessing \textit{Real-Time}}
 \label{subsec:analisis-tujuan1}
 
-Jalur komputasi preprocessing terbukti setara dengan Python dan berjalan secara \textit{real-time}. Seluruh tahap pada Tabel~\ref{tab:uji-kesetaraan-tahap} lulus, termasuk 11 R-\textit{peak} yang sama dengan Python dalam toleransi 1 sampel dan keputusan akhir yang identik pada tujuh detak acuan. Beban rata-rata hanya 82 $\mu$s per sampel atau 3,0\% anggaran, dan sampel hilang tetap 0 walaupun puncak beban sesaat mencapai 33,4~ms (Tabel~\ref{tab:beban-komputasi}). Kesetaraan ini dipastikan oleh koefisien filter dan model yang dihasilkan otomatis dari Python lalu diuji tahap demi tahap. ADC yang dibaca di ISR dan antrean 256 sampel menyerap \textit{burst} deteksi dan inferensi, dan syarat pada Tabel~\ref{tab:pengujian-model} terpenuhi.
-% sumber: bab4 tab:uji-kesetaraan-tahap (11 puncak, toleransi 1 sampel, label identik 7 detak), tab:beban-komputasi (82 us, 3,0%, 33,4 ms, sampel hilang 0, antrean 256), sec:karakteristik-data butir penyelarasan (berkas ecg_preproc.h dan model_int8.h dihasilkan otomatis)
+Jalur komputasi preprocessing berjalan secara \textit{real-time} di ESP32-S3. Beban rata-rata hanya 82 $\mu$s per sampel atau 3,0\% anggaran, dan sampel hilang tetap 0 walaupun puncak beban sesaat mencapai 33,4~ms (Tabel~\ref{tab:beban-komputasi}). ADC yang dibaca di ISR dan antrean 256 sampel menyerap \textit{burst} deteksi dan inferensi, dan syarat pada Tabel~\ref{tab:pengujian-model} terpenuhi.
+% sumber: bab4 tab:beban-komputasi (82 us, 3,0%, 33,4 ms, sampel hilang 0, antrean 256), sec:karakteristik-data butir penyelarasan (berkas ecg_preproc.h dan model_int8.h dihasilkan otomatis)
 
-Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi dari satu sesi perekaman lolos indeks kualitas sinyal pada seluruh jendela (Tabel~\ref{tab:kualitas-rekaman}). Segmentasi hasil detektor tidak merusak klasifikasi, dengan F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi (Tabel~\ref{tab:segmentasi-deteksi}). Catatannya, kesetaraan tahap demi tahap dibuktikan pada sinyal \textit{replay} sepanjang 6,67 detik tanpa kelas S, beban rata-rata diukur pada model \textit{window} 250, dan detektor menemukan kelas S dengan \textit{sensitivity} 0,6494 (Tabel~\ref{tab:sensitivity-detektor}). Sinyal tubuh juga baru berasal dari satu subjek dan satu sesi. Karena seluruh target jalur ini terpenuhi pada pengujian yang dilakukan, jalur preprocessing dinilai Tercapai dengan cakupan tersebut dicatat sebagai keterbatasan.
+Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi dari satu sesi perekaman lolos indeks kualitas sinyal pada seluruh jendela (Tabel~\ref{tab:kualitas-rekaman}). Segmentasi hasil detektor tidak merusak klasifikasi, dengan F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi (Tabel~\ref{tab:segmentasi-deteksi}). Catatannya, beban rata-rata diukur pada sinyal \textit{replay} sepanjang 6,67 detik dengan model \textit{window} 250, dan detektor menemukan kelas S dengan \textit{sensitivity} 0,6494 (Tabel~\ref{tab:sensitivity-detektor}). Sinyal tubuh juga baru berasal dari satu subjek dan satu sesi. Karena seluruh target jalur ini terpenuhi pada pengujian yang dilakukan, jalur preprocessing dinilai Tercapai dengan cakupan tersebut dicatat sebagai keterbatasan.
 % sumber: bab4 subsec:hasil-tujuan1 butir port C (rekaman 208, 6,67 detik, tanpa kelas S) dan butir alur hidup (window 250), tab:sensitivity-detektor (S 0,6494), tab:segmentasi-deteksi
 
 \subsection{Analisis Jalur Model TinyML \textit{On-Device}}
 \label{subsec:analisis-tujuan2}
 
-Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi mempertahankan F1 pada 100,14\% nilai \textit{float32} dengan ukuran model 22,94~KB (Tabel~\ref{tab:delta-int8}). Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan dan hanya terungkap oleh uji data acuan.
-% sumber: bab4 tab:delta-int8 (+0,0108, 22,94 KB), tab:sumber-daya dan paragraf sesudahnya (26,6 ms, 13,3% dari 200 ms, 12.948 dari 24.576 byte), subsec:hasil-tujuan1 butir Port ke Bahasa C (MEAN 0,336 vs 0,973)
+Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi mempertahankan F1 pada 100,14\% nilai \textit{float32} dengan ukuran model 22,94~KB (Tabel~\ref{tab:delta-int8}). Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan.
+% sumber: bab4 tab:delta-int8 (+0,0108, 22,94 KB), tab:sumber-daya dan paragraf sesudahnya (26,6 ms, 13,3% dari 200 ms, 12.948 dari 24.576 byte), subsec:hasil-tujuan1 336 vs 0,973)
 
 Kualitas klasifikasi, yang tidak memiliki ambang angka, mencapai \textit{recall} 0,6996, F1 0,6594, dan AUC 0,9334 pada model \textit{float32} (Tabel~\ref{tab:hasil-ds2}) dengan median \textit{recall} per pasien 0,9167. Kelemahan terbesarnya adalah kelas S dengan \textit{recall} 0,4390, karena QRS-nya mirip Normal dan pembedanya terletak pada waktu kedatangan serta gelombang P. Latensi inferensi diukur tanpa WiFi aktif. Jalur model dinilai Tercapai, karena target kuantisasi, ukuran, latensi, dan memori seluruhnya terpenuhi.
 % sumber: bab4 tab:hasil-ds2 (0,6996, 0,6594, 0,9334), subsec:hasil-tujuan2 butir Evaluasi DS2 (median per pasien 0,9167, recall S 0,4390, alasan QRS mirip Normal), butir Konsumsi Daya (INA219 belum dirakit di sisi baterai), paragraf sesudah tab:sumber-daya (latensi tanpa WiFi aktif)
@@ -970,7 +927,7 @@ Perbandingan dibatasi pada penelitian terkait yang skema evaluasinya diketahui, 
 Angka ketiga penelitian pada Tabel~\ref{tab:perbandingan-protokol} tidak dapat dibandingkan langsung karena kelas, pembagian data, dan metriknya berbeda. Pembagian per detak membuat detak dari pasien yang sama dapat muncul di himpunan latih dan uji, sedangkan DS2 berisi 22 pasien yang tidak pernah dilihat saat pelatihan. Latensi juga tidak dibandingkan karena Arduino UNO 8-bit dan ESP32-S3 berbeda kelas. Pada sisi metrik, 89,0\% detak DS2 berlabel Normal, jadi menebak Normal untuk seluruh detak sudah memberi \textit{accuracy} sekitar 0,89. \textit{Accuracy} model ini, yaitu 0,9207 pada \textit{float32} dan 0,9198 pada INT8, hanya sekitar 3 poin di atasnya (Tabel~\ref{tab:delta-int8}). \textit{Accuracy} pada data setimpang ini belum menunjukkan kemampuan mendeteksi aritmia, karena itu hasil penelitian ini dilaporkan melalui \textit{recall}, F1, dan AUC.
 % sumber: bab4 sec:parameter-eksperimen (89,0%, sekitar 0,89), subsec:hasil-tujuan2 butir Evaluasi DS2 (accuracy 0,9207 sekitar 3 poin di atas tebak Normal), tab:delta-int8 (0,9207 dan 0,9198)
 
-Penelitian pendahulu mendeteksi atrial fibrilasi dengan SVM di sisi \textit{cloud}~\cite{mulyawan_2026}. Penelitian ini melanjutkannya dengan memindahkan klasifikasi per detak ke ESP32-S3. Protokol \textit{inter-patient} disadari membuat angka penelitian ini tampak lebih rendah daripada \textit{accuracy} pada pembagian per detak~\cite{xiao_2023}, dan angka DS2 pun berpotensi sedikit optimistis karena DS2 dipakai menilai ablasi \textit{window} dan \textit{jitter}. Penelitian ini karena itu tidak mengklaim \textit{accuracy} yang lebih tinggi. Yang diklaim adalah evaluasi yang lebih ketat terhadap pasien baru dan inferensi di perangkat yang setara dengan Python.
+Penelitian pendahulu mendeteksi atrial fibrilasi dengan SVM di sisi \textit{cloud}~\cite{mulyawan_2026}. Penelitian ini melanjutkannya dengan memindahkan klasifikasi per detak ke ESP32-S3. Protokol \textit{inter-patient} disadari membuat angka penelitian ini tampak lebih rendah daripada \textit{accuracy} pada pembagian per detak~\cite{xiao_2023}, dan angka DS2 pun berpotensi sedikit optimistis karena DS2 dipakai menilai ablasi \textit{window} dan \textit{jitter}. Penelitian ini karena itu tidak mengklaim \textit{accuracy} yang lebih tinggi. Yang diklaim adalah evaluasi yang lebih ketat terhadap pasien baru dan inferensi yang berjalan langsung di perangkat.
 % sumber: bab2 subsec:related-mulyawan2026 (SVM di backend cloud, AFib); bab4 tab:sumber-daya (26,6 ms), subsec:hasil-tujuan2 butir Evaluasi DS2 (DS2 menilai ablasi window dan jitter, berpotensi sedikit optimistis), tab:uji-kesetaraan-tahap
 
 \subsection{Keterbatasan dan Status \textit{Proof of Concept}}
