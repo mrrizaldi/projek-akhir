@@ -4,70 +4,11 @@
 \section{Parameter Eksperimen}
 \label{sec:parameter-eksperimen}
 
-Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga jalur pada tujuan penelitian. Target setiap metrik diambil dari rencana pengujian pada Tabel~\ref{tab:pengujian-model} dan Tabel~\ref{tab:pengujian-pipeline} serta uraian pengujian \textit{pipeline}, agar hasil pada bab ini dapat dinilai langsung terhadap rencana tersebut. Metrik dan target setiap kategori dirangkum pada Tabel~\ref{tab:parameter-eksperimen}, sedangkan alasan pemilihannya diuraikan sesudahnya.
+Parameter eksperimen ditetapkan untuk mengukur pencapaian tujuan penelitian secara objektif. Pengukuran dikelompokkan ke dalam enam kategori yang mengikuti dua jalur yang dilaporkan, yaitu jalur preprocessing \textit{real-time} dan jalur model TinyML \textit{on-device}, serta satu jalur \textit{pipeline edge-to-cloud} yang dicantumkan sebagai rencana. Target setiap parameter diambil dari rencana pengujian pada Tabel~\ref{tab:pengujian-model} dan Tabel~\ref{tab:pengujian-pipeline}, sedangkan ambangnya bersumber dari standar, jurnal, atau spesifikasi resmi perangkat. Rincian parameter yang diukur adalah sebagai berikut.
 
-\begin{center}
-  \setstretch{1.0}
-  \setlength{\tabcolsep}{4pt}
-  \renewcommand{\arraystretch}{1.15}
-  \small
-  \begin{longtable}{>{\RaggedRight\arraybackslash}p{6.9cm}>{\RaggedRight\arraybackslash}p{6.4cm}}
-    \caption{Parameter eksperimen per kategori}
-    \label{tab:parameter-eksperimen} \\
-    \toprule
-    \textbf{Metrik} & \textbf{Target} \\
-    \midrule
-    \endfirsthead
-    \toprule
-    \textbf{Metrik} & \textbf{Target} \\
-    \midrule
-    \endhead
-    \bottomrule
-    \endfoot
-    \multicolumn{2}{l}{\textit{a. Kualitas klasifikasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    \textit{Recall}, \textit{precision}, F1, \textit{specificity}, MCC, dan AUC pada DS2 & Dilaporkan pada \textit{threshold} hasil kalibrasi data validasi (F1 maksimum) \\
-    \textit{Recall} per kelas AAMI dan per pasien pada DS2 & Dilaporkan \\
-    \midrule
-    \multicolumn{2}{l}{\textit{b. Dampak kuantisasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    Selisih dan rasio tiap metrik antara \textit{float32} dan INT8 pada DS2 yang identik & F1 INT8 $\geq$ 99\% F1 \textit{float32} \\
-    % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-model; model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02)
-    \midrule
-    \multicolumn{2}{l}{\textit{c. Kinerja di perangkat, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    Latensi inferensi per detak & Lebih kecil dari interval antardetak \\
-    \textit{Tensor arena}, \textit{heap} bebas, pemakaian RAM dan \textit{flash} & Muat di SRAM perangkat \\
-    Ukuran model INT8 (KB) & Muat di \textit{flash} perangkat \\
-    % sumber: model/config.py (MAX_MODEL_KB = 25 dan komentarnya); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
-    \midrule
-    \multicolumn{2}{l}{\textit{d. Preprocessing di mikrokontroler, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    Beban komputasi per sampel dan puncak beban & Rata-rata lebih kecil dari anggaran waktu per sampel \\
-    Jumlah sampel hilang & Tidak ada \\
-    % sumber: laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); uji kesetaraan kode C vs Python dihapus dari buku tahap 1 atas keputusan user 1 Nov 2026
-    \midrule
-    \multicolumn{2}{l}{\textit{e. Akuisisi sinyal tubuh}} \\
-    Ayunan sinyal ADC (\textit{count} dan mV) & Dilaporkan \\
-    Persentase dengung jala-jala 50 Hz dan jumlah sampel jenuh & Dilaporkan \\
-    Indeks kualitas sinyal per jendela 10 detik & Detak per menit 40--180, jeda R-R $\leq$ 3 detik, rasio R-R $<$ 2,2, korelasi \textit{template} $\geq$ 0,66 \\
-    % sumber: Syversen dkk. 2024 bagian SQI1 (40-180 bpm, jeda < 3 s, rasio < 2,2, korelasi template 0,66); Gajdzik dkk. 2026 hlm. 59-60 (PLIratio = P 49-51 Hz / P 0,5-40 Hz, tanpa ambang lulus); ambang gerbang kalibrasi (AMBANG_AYUN 60, kontak 60 s, RR 300-1500 ms, |dRR| <= 200 ms) adalah hasil ukur sendiri dan dikeluarkan dari tabel parameter atas keputusan user 1 Nov 2026, diuji sebagai uji fungsi di butir Gerbang Kalibrasi
-    \midrule
-    \multicolumn{2}{l}{\textit{f. Pipeline edge-to-cloud, target dari Tabel~\ref{tab:pengujian-pipeline}}} \\
-    PDSR (\%) & $\geq$ 95 \\
-    Latensi \textit{end-to-end} median dan p95 (ms) & Median $\leq$ 2.000, p95 dilaporkan \\
-    Jumlah entri \textit{ring buffer} & Tidak \textit{overflow} dalam $\pm$27.000 rekaman \\
-    Data hilang saat putus koneksi & Tidak ada \\
-    Waktu \textit{flush} (detik) & $\leq$ 60 \\
-    Paket ganda & Duplikat QoS 1 dikenali \\
-    % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-pipeline
-  \end{longtable}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: PDSR adalah \textit{packet delivery success rate}, p95 adalah persentil ke-95. Target latensi 2 detik pada rencana pengujian ditulis sebagai 2.000 ms agar satu baris memakai satu satuan.\par}
-\end{center}
+\subsubsection{Kualitas Klasifikasi Model}
 
-Lima dari enam kategori pada Tabel~\ref{tab:parameter-eksperimen}, yaitu kategori b sampai f, memiliki target yang dapat diverifikasi secara langsung, baik berupa ambang angka maupun syarat lulus seperti tidak adanya sampel yang hilang. Kategori a tidak memiliki ambang angka pada rencana pengujian. Kualitas klasifikasi karena itu dilaporkan pada titik operasi hasil kalibrasi data validasi dan dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil. Target kategori f tetap dicantumkan sebagai rencana, tetapi hasil pengujian \textit{pipeline edge-to-cloud} belum termasuk dalam laporan tahap ini.
-
-Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Dampak kuantisasi dinilai dengan syarat MLPerf Inference, yaitu kualitas model teroptimasi dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, dengan F1 sebagai metrik kualitas. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}~\cite{tran_2025}, dan pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}. Standar batas ukuran model TinyML belum ditemukan, karena itu ukuran model dan pemakaian memori dinilai terhadap kapasitas ESP32-S3~\cite{espressif_esp32s3_wroom1, espressif_esp32s3_datasheet}. Jumlah sampel hilang adalah uji fungsi, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
-
-% sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); Tran dkk. 2025 hlm. 541 (inferensi dibandingkan interval antardetak minimum 400 ms); Busia dkk. 2025 hlm. 10 ("0.77 ms for each newly acquired sample"); keputusan user 1 Nov 2026 (parameter tanpa rujukan dihapus, kesetaraan dipertahankan sebagai uji fungsi)
-
-Kinerja klasifikasi pada kategori a dinilai dari perbandingan prediksi dan label sebenarnya dengan kelas Aritmia sebagai kelas positif, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN). Dari keempat nilai tersebut, \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan \textit{Matthews correlation coefficient} (MCC) dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
+Parameter ini menilai kemampuan model membedakan detak Normal dan Aritmia pada pasien yang tidak pernah dilihat saat pelatihan. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. Seluruh metrik dihitung pada DS2 dengan \textit{threshold} hasil kalibrasi data validasi, yaitu \textit{threshold} dengan F1 maksimum. Metrik diturunkan dari \textit{confusion matrix} dengan kelas Aritmia sebagai kelas positif, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN), lalu dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
 
 \begin{align}
 \text{Recall} &= \frac{\text{TP}}{\text{TP} + \text{FN}} \nonumber \\
@@ -78,11 +19,71 @@ Kinerja klasifikasi pada kategori a dinilai dari perbandingan prediksi dan label
 \label{eq:metrik}
 \end{align}
 
-\noindent di mana TP adalah detak aritmia yang diprediksi aritmia, FP adalah detak normal yang diprediksi aritmia, TN adalah detak normal yang diprediksi normal, dan FN adalah detak aritmia yang terlewat. \textit{Recall} menyatakan proporsi aritmia yang terdeteksi, \textit{precision} menyatakan proporsi prediksi aritmia yang benar, \textit{specificity} menyatakan proporsi detak normal yang dikenali, dan F1 adalah rerata harmonik \textit{precision} dan \textit{recall}. MCC adalah korelasi antara prediksi dan label yang memakai keempat sel \textit{confusion matrix}, sehingga nilainya hanya tinggi bila kedua kelas dikenali dengan baik~\cite{chicco_2020}. AUC adalah luas di bawah kurva ROC, yaitu kurva pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh \textit{threshold}, sehingga kemampuan model memisahkan kedua kelas dapat dinilai tanpa bergantung pada satu \textit{threshold}~\cite{chicco_2020}. Nilai AUC juga tidak berubah oleh proporsi kelas, jadi tetap sahih walaupun detak Aritmia hanya sekitar 11\% DS2~\cite{richardson_2024}.
+\noindent di mana TP adalah detak aritmia yang diprediksi aritmia, FP adalah detak normal yang diprediksi aritmia, TN adalah detak normal yang diprediksi normal, dan FN adalah detak aritmia yang terlewat. Metrik yang dilaporkan adalah sebagai berikut.
+\begin{enumerate}[label=\arabic*)]
+  \item \textbf{\textit{Recall}.} Proporsi detak aritmia yang terdeteksi, yaitu kemampuan model untuk tidak melewatkan aritmia.
+  \item \textbf{\textit{Precision}.} Proporsi prediksi aritmia yang benar, yaitu kemampuan model untuk tidak memberi alarm palsu pada detak normal.
+  \item \textbf{\textit{Specificity}.} Proporsi detak normal yang dikenali sebagai normal.
+  \item \textbf{F1.} Rerata harmonik \textit{precision} dan \textit{recall}, yang juga menjadi kriteria kalibrasi \textit{threshold}.
+  \item \textbf{MCC.} \textit{Matthews correlation coefficient}, yaitu korelasi antara prediksi dan label yang memakai keempat sel \textit{confusion matrix}, sehingga nilainya hanya tinggi bila kedua kelas dikenali dengan baik~\cite{chicco_2020}.
+  \item \textbf{AUC.} Luas di bawah kurva ROC, yaitu kurva pasangan \textit{recall} dan $1 - \textit{specificity}$ untuk seluruh \textit{threshold}, sehingga kemampuan model memisahkan kedua kelas dapat dinilai tanpa bergantung pada satu \textit{threshold}~\cite{chicco_2020}. Nilai AUC juga tidak berubah oleh proporsi kelas, jadi tetap sahih walaupun detak Aritmia hanya sekitar 11\% DS2~\cite{richardson_2024}.
+  \item \textbf{\textit{Accuracy}.} Proporsi seluruh prediksi yang benar. Metrik ini tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89.
+  \item \textbf{\textit{Recall} per kelas AAMI dan per pasien.} \textit{Recall} kelas S, V, dan F serta median dan rerata \textit{recall} per rekaman, untuk melihat kelas dan pasien yang paling sering terlewat.
+\end{enumerate}
+
+Seluruh metrik kategori ini dilaporkan tanpa ambang lulus, karena rencana pengujian tidak menetapkan ambang angka. Kualitas klasifikasi dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil.
 % sumber: model/data/processed/test.npz (49.656 detak, y.mean() = 0,1098, Normal 89,02%); model/CLAUDE.md decision "Metrik yang dipantau" (accuracy tidak dipakai)
 % sumber: Chicco dan Jurman 2020 (MCC memakai keempat sel, disarankan atas F1 dan accuracy bila threshold tersedia); Richardson dkk. 2024 Summary ("the ROC curve is robust to class imbalance, while the PR curve is highly sensitive to class imbalance"), PR-AUC karena itu tidak dilaporkan di buku (nilainya ada di model/docs/evaluate-walkthrough.md bagian 3b)
 
-Pada kategori e dan f, \textit{flag lead-off} AD8232 tidak menjamin adanya sinyal, karena itu ayunan ADC absolut dijadikan acuan kualitas sinyal. Bufer lokal di sisi \textit{edge} mempertahankan kontinuitas data ketika koneksi putus~\cite{escobedo_2026, tipparaju_2021}, sedangkan detak yang hilang bertepatan dengan kejadian aritmia tidak dapat direkonstruksi di sisi \textit{cloud}. Target latensi dinilai pada median, sesuai pencatatan latensi rata-rata pada rencana pengujian, sedangkan p95 dilaporkan agar ekor sebarannya ikut terlihat.
+\subsubsection{Dampak Kuantisasi}
+
+Parameter ini memastikan model INT8 yang dijalankan di perangkat tidak kehilangan kualitas dibandingkan model \textit{float32}.
+\begin{enumerate}[label=\arabic*)]
+  \item \textbf{Selisih dan rasio metrik \textit{float32} terhadap INT8.} Seluruh metrik kategori sebelumnya dihitung ulang untuk model INT8 pada DS2 yang identik. Targetnya mengikuti MLPerf Inference, yaitu kualitas model teroptimasi berada dalam 1\% dari model \textit{float32}~\cite{reddi_2020}. F1 dipakai sebagai metrik kualitas karena \textit{threshold} dikalibrasi dari F1 maksimum, sehingga targetnya F1 INT8 minimal 99\% F1 \textit{float32}.
+\end{enumerate}
+% sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); laporan/buku-pa/bab/bab3.tex tab:pengujian-model
+
+\subsubsection{Kinerja di Perangkat}
+
+Parameter ini menilai apakah model INT8 dapat berjalan di ESP32-S3 dalam batas waktu dan memori perangkat.
+\begin{enumerate}[label=\arabic*)]
+  \item \textbf{Latensi inferensi per detak.} Waktu satu inferensi model INT8 di ESP32-S3. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}, sehingga targetnya lebih kecil dari interval antardetak~\cite{tran_2025}.
+  \item \textbf{Pemakaian memori.} \textit{Tensor arena}, \textit{heap} bebas, serta pemakaian RAM dan \textit{flash} hasil \textit{build}. \textit{Tensor arena} diukur dengan API TensorFlow Lite Micro~\cite{david_2021}, dan targetnya muat di SRAM perangkat.
+  \item \textbf{Ukuran model INT8.} Standar batas ukuran model TinyML belum ditemukan, karena itu ukuran model dinilai terhadap kapasitas memori ESP32-S3~\cite{espressif_esp32s3_wroom1, espressif_esp32s3_datasheet} dengan target muat di \textit{flash} perangkat.
+\end{enumerate}
+% sumber: Tran dkk. 2025 hlm. 541 (inferensi dibandingkan interval antardetak minimum 400 ms); David dkk. 2021 bagian 5.3 (alokasi arena persisten dan nonpersisten); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
+
+\subsubsection{Preprocessing di Mikrokontroler}
+
+Parameter ini menilai apakah rantai preprocessing berjalan secara \textit{real-time} pada laju cuplik 360 Hz.
+\begin{enumerate}[label=\arabic*)]
+  \item \textbf{Beban komputasi per sampel dan puncak beban.} Waktu pemrosesan setiap sampel yang dicatat dengan penghitung mikrodetik perangkat. Pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}, sehingga targetnya rata-rata beban lebih kecil dari anggaran waktu per sampel.
+  \item \textbf{Jumlah sampel hilang.} Jumlah sampel ADC yang tidak sempat diproses. Targetnya tidak ada sampel yang hilang, karena sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
+\end{enumerate}
+% sumber: Busia dkk. 2025 hlm. 10 ("0.77 ms for each newly acquired sample"); laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); keputusan user 1 Nov 2026 (uji kesetaraan kode C vs Python dihapus dari buku tahap 1)
+
+\subsubsection{Akuisisi Sinyal Tubuh}
+
+Parameter ini menilai kelayakan sinyal tubuh dari AD8232 sebagai masukan jalur preprocessing. \textit{Flag lead-off} AD8232 tidak menjamin adanya sinyal, karena itu ayunan ADC absolut dijadikan acuan ada tidaknya biopotensial.
+\begin{enumerate}[label=\arabic*)]
+  \item \textbf{Ayunan sinyal ADC.} Selisih nilai maksimum dan minimum sinyal dalam \textit{count} dan dalam mV ekuivalen masukan AD8232. Ayunan dilaporkan tanpa ambang lulus.
+  \item \textbf{Dengung 50 Hz dan sampel jenuh.} Persentase energi pita 50 Hz terhadap energi pita ECG 0,5--40 Hz~\cite{gajdzik_2026} serta jumlah sampel di batas ADC. Keduanya dilaporkan tanpa ambang lulus karena acuan baku untuk ambangnya tidak ditemukan.
+  \item \textbf{Indeks kualitas sinyal per jendela 10 detik.} Setiap jendela harus memenuhi syarat detak per menit 40--180, jeda antar-R-\textit{peak} paling lama 3 detik, dan rasio interval R-R terpanjang terhadap terpendek di bawah 2,2. Jendela dinyatakan lolos bila rerata korelasi setiap kompleks QRS terhadap \textit{template} juga minimal 0,66~\cite{syversen_2024}.
+\end{enumerate}
+% sumber: Syversen dkk. 2024 bagian SQI1 (40-180 bpm, jeda < 3 s, rasio < 2,2, korelasi template 0,66); Gajdzik dkk. 2026 hlm. 59-60 (PLIratio = P 49-51 Hz / P 0,5-40 Hz, tanpa ambang lulus); ambang gerbang kalibrasi (AMBANG_AYUN 60, kontak 60 s, RR 300-1500 ms, |dRR| <= 200 ms) adalah hasil ukur sendiri dan tidak dijadikan parameter atas keputusan user 1 Nov 2026, diuji sebagai uji fungsi di butir Gerbang Kalibrasi
+
+\subsubsection{\textit{Pipeline Edge-to-Cloud}}
+
+Parameter ini menilai kontinuitas data hasil klasifikasi dari perangkat ke \textit{cloud}. Bufer lokal di sisi \textit{edge} mempertahankan kontinuitas data ketika koneksi putus~\cite{escobedo_2026, tipparaju_2021}, karena detak yang hilang bertepatan dengan kejadian aritmia tidak dapat direkonstruksi di sisi \textit{cloud}. Target kategori ini dicantumkan sebagai rencana, karena hasil pengujian \textit{pipeline} belum termasuk dalam laporan tahap ini.
+\begin{enumerate}[label=\arabic*)]
+  \item \textbf{\textit{Packet Delivery Success Rate} (PDSR).} Persentase paket yang dikonfirmasi PUBACK pada percobaan pertama, dengan target minimal 95\%.
+  \item \textbf{Latensi \textit{end-to-end}.} Waktu dari terjadinya detak hingga data tersedia di \textit{cloud}, dengan target median paling lama 2 detik. Persentil ke-95 (p95) dilaporkan agar ekor sebarannya ikut terlihat.
+  \item \textbf{Jumlah entri \textit{ring buffer}.} Isi bufer lokal saat \textit{streaming} normal dan saat koneksi putus, dengan target tidak \textit{overflow} dalam kapasitas $\pm$27.000 rekaman.
+  \item \textbf{Data hilang saat putus koneksi.} Jumlah detak yang tidak sampai ke \textit{cloud} setelah koneksi pulih, dengan target tidak ada.
+  \item \textbf{Waktu \textit{flush}.} Durasi sejak koneksi pulih hingga bufer terkuras, dengan target paling lama 60 detik.
+  \item \textbf{Paket ganda.} Duplikat akibat pengiriman ulang QoS 1, dengan target dikenali dan diabaikan di sisi \textit{cloud}.
+\end{enumerate}
+% sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-pipeline
 
 \section{Karakteristik Data}
 \label{sec:karakteristik-data}
@@ -581,7 +582,7 @@ Keberadaan R-\textit{peak} tidak dapat dijadikan penentu kualitas sinyal. Pan-To
 Hasil akuisisi tersebut adalah status fungsional, bukan akurasi. Jumlah R-\textit{peak} dan indeks kualitas sinyal menunjukkan bahwa detektor menemukan detak dengan irama yang masuk akal. Namun, posisi R-\textit{peak} dan detak per menit belum dibandingkan dengan perangkat ECG acuan maupun anotasi manual. Rentang masukan juga terbatas. Dengan garis dasar sekitar 1.900 \textit{count}, ruang sampai batas atas ADC hanya sekitar 1,5 mV ekuivalen masukan, dan karena itu puncak R sesekali terpotong. Filter 0,5--40 Hz yang kausal dipilih untuk analisis ritme dan klasifikasi detak, jadi rekaman ini tidak dimaksudkan untuk analisis segmen ST.
 % sumber: keputusan user 1 Nov 2026 (hasil akuisisi ditulis sebagai status fungsional karena belum ada alat medis acuan); docs/2026-11-01-crosscheck-metrik-bab4.md bagian 4 dan akuisisi.md butir 1, 2, 9; ruang atas (4.095 - 1.900) x 0,757 / 1.100 = 1,51 mV dari garis dasar Gambar rekaman R1; model/config.py BANDPASS_LOW 0.5, BANDPASS_HIGH 40.0, filter kausal sosfilt
 
-Dengan demikian, sinyal tubuh dari satu sesi perekaman layak secara fungsional sebagai masukan jalur preprocessing, dengan keempat rekamannya lolos indeks kualitas sinyal pada seluruh jendela dan target akuisisi pada Tabel~\ref{tab:parameter-eksperimen} terpenuhi.
+Dengan demikian, sinyal tubuh dari satu sesi perekaman layak secara fungsional sebagai masukan jalur preprocessing, dengan keempat rekamannya lolos indeks kualitas sinyal pada seluruh jendela, sehingga target akuisisi terpenuhi.
 % sumber: tab:kualitas-rekaman (4 dari 4 Berhasil, satu sesi)
 
 \subsubsection{Gerbang Kalibrasi dan Kualitas Sinyal}
