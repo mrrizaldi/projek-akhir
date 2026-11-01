@@ -340,7 +340,7 @@ disusun mencakup seluruh kelas, bukan hanya kelas normal, agar rentang
 kuantisasi terkalibrasi dengan tepat untuk kelas langka.
 % sumber: model/CLAUDE.md decision "Strategi imbalance" (w_c = N/(2 n_c), Normal 0,556 / Aritmia 4,947, tanpa oversampling); model/src/train.py make_class_weights
 
-Setelah dilatih, varian \textit{deploy} model dikuantisasi ke INT8 agar ukurannya jauh berkurang dan dapat dikonversi ke format TensorFlow Lite Micro untuk dijalankan pada mikrokontroler~\cite{jacob_2018, david_2021}. Kalibrasi kuantisasi menggunakan 300 sampel representatif yang diambil secara \textit{stratified} dari DS1 dengan \textit{seed} tetap. Kuantisasi dilakukan penuh hingga tensor masukan dan keluaran juga bertipe INT8, dan tidak ada operasi \textit{floating-point} di dalam model. Ukuran model setelah kuantisasi dibatasi di bawah 25 KB, jauh lebih kecil dari kapasitas SRAM internal ESP32-S3 sekitar 512 KB yang didukung PSRAM (\textit{Pseudo-Static RAM}) berkapasitas 8 MB. Dengan batas itu model muat dan tetap menyisakan ruang yang memadai untuk \textit{tensor arena} dan bufer data.
+Setelah dilatih, varian \textit{deploy} model dikuantisasi ke INT8 agar ukurannya jauh berkurang dan dapat dikonversi ke format TensorFlow Lite Micro untuk dijalankan pada mikrokontroler~\cite{jacob_2018, david_2021}. Kalibrasi kuantisasi menggunakan 300 sampel representatif yang diambil secara \textit{stratified} dari DS1 dengan \textit{seed} tetap. Kuantisasi dilakukan penuh hingga tensor masukan dan keluaran juga bertipe INT8, dan tidak ada operasi \textit{floating-point} di dalam model. Model hasil kuantisasi diharapkan jauh lebih kecil dari kapasitas SRAM internal ESP32-S3 sekitar 512 KB yang didukung PSRAM (\textit{Pseudo-Static RAM}) berkapasitas 8 MB. Dengan begitu tetap tersisa ruang yang memadai untuk \textit{tensor arena} dan bufer data.
 % sumber: model/config.py (REP_SAMPLES = 300, MAX_MODEL_KB = 25); model/src/quantize.py (stratified_indices, inference_input_type/output_type = tf.int8); model/CLAUDE.md decision "Sampel kalibrasi PTQ", "Tipe I/O INT8", "Batas ukuran model"
 
 \subsection{\textit{Pipeline Edge-to-Cloud} yang Resilien}
@@ -841,8 +841,8 @@ Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujia
     Dampak kuantisasi INT8 &
     Selisih (\textit{delta}) tiap metrik antara \textit{float32} dan INT8 &
     \textit{Post-training quantization} lalu uji ulang pada DS2 yang identik &
-    $|\Delta \textit{recall}| < 0{,}02$ \\
-    % sumber: model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02)
+    F1 INT8 $\geq$ 99\% F1 \textit{float32} \\
+    % sumber: Reddi dkk. 2020 hlm. 5 ("quality target within 1% of the FP32 reference model's accuracy"); F1 dipakai sebagai metrik kualitas karena threshold dikalibrasi dari F1 maksimum
     Kesetaraan preprocessing dan inferensi &
     Selisih keluaran perangkat terhadap Python &
     Data acuan keluaran Python diputar ulang di perangkat &
@@ -859,15 +859,14 @@ Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujia
     Ukuran model &
     Ukuran berkas model INT8 (KB) &
     Ukuran berkas TFLite hasil kuantisasi &
-    $<$ 25 KB \\
-    % sumber: model/config.py (MAX_MODEL_KB = 25)
+    Dilaporkan \\
   \end{longtable}
   \par\vspace{2pt}{\footnotesize\raggedright Keterangan: Dilaporkan berarti aspek dilaporkan sebagai pembanding tanpa syarat lulus. \textit{Threshold} kualitas model adalah hasil kalibrasi data validasi dengan F1 maksimum. Toleransi kesetaraan mengikuti data acuan keluaran Python.\par}
 \end{center}
 
-Ambang berangka pada Tabel~\ref{tab:pengujian-model} hanya dipasang pada aspek yang menentukan apakah hasil evaluasi \textit{offline} berlaku bagi model yang berjalan di perangkat, yaitu dampak kuantisasi, kesetaraan, dan ukuran model. Batas ukuran model mengikuti ruang yang harus disisakan di SRAM untuk \textit{tensor arena} dan bufer data, sedangkan toleransi kesetaraan mengikuti toleransi data acuan yang dipakai uji unit. Bila selisih \textit{recall} atau selisih keluaran perangkat melampaui ambang, metrik DS2 pada model \textit{float32} tidak dapat dipakai untuk mewakili model INT8 di perangkat. Aspek dengan target Dilaporkan dan target tanpa angka dibahas sebagai pembanding, bukan sebagai syarat lulus.
+Ambang berangka pada Tabel~\ref{tab:pengujian-model} hanya dipasang pada dua aspek yang menentukan apakah hasil evaluasi \textit{offline} berlaku bagi model yang berjalan di perangkat, yaitu dampak kuantisasi dan kesetaraan. Kesetaraan adalah uji fungsi yang membuktikan kode C menghitung hal yang sama dengan Python, dan toleransinya adalah ambang rancangan yang mengikuti data acuan pada uji unit. Bila F1 model INT8 atau keluaran perangkat melampaui ambang, metrik DS2 pada model \textit{float32} tidak dapat dipakai untuk mewakili model INT8 di perangkat. Latensi inferensi dibandingkan dengan interval antardetak, seperti pada penilaian klasifikasi ECG \textit{real-time} di mikrokontroler~\cite{tran_2025}, sedangkan pemakaian memori diukur dengan API \textit{arena} TensorFlow Lite Micro~\cite{david_2021}. Ukuran model dilaporkan tanpa ambang, karena acuan baku untuk batas ukuran tidak ditemukan. Aspek dengan target Dilaporkan dan target tanpa angka dibahas sebagai pembanding, bukan sebagai syarat lulus.
 
-Ambang selisih \textit{recall} 0,02 adalah ambang rancangan, karena acuan baku untuk batas penurunan akibat kuantisasi tidak ditemukan. Sebagai pembanding besaran, laporan kuantisasi INT8 untuk klasifikasi aritmia di mikrokontroler mencatat penurunan akurasi 0,7 poin dan menilainya dapat diabaikan~\cite{zambrano_2026}, walaupun angka itu diukur pada pembagian data per detak dan bukan per pasien. Ambang pada penelitian ini dipasang hampir tiga kali penurunan tersebut sebagai ruang aman, karena \textit{recall} dihitung pada kelas minoritas Aritmia dan lebih peka terhadap pergeseran probabilitas di sekitar \textit{threshold} daripada akurasi keseluruhan.
+Ambang dampak kuantisasi mengikuti MLPerf Inference, yang mensyaratkan model teroptimasi mencapai kualitas dalam 1\% dari model \textit{float32} acuan~\cite{reddi_2020}. Metrik kualitas yang dipakai adalah F1, karena \textit{threshold} model dikalibrasi dari F1 maksimum pada data validasi. Metrik lain tetap dilaporkan beserta rasionya terhadap \textit{float32}. Sebagai pembanding besaran, laporan kuantisasi INT8 untuk klasifikasi aritmia di mikrokontroler mencatat penurunan akurasi 0,7 poin~\cite{zambrano_2026}.
 % sumber: Zambrano-de la Torre dkk. 2026 Tabel 5 (Float32 98,3% vs INT8 97,6%, delta -0,7 poin, "negligible accuracy degradation (<0.7%)") dan hlm. 5 ("does not enforce inter-patient separation ... data leakage may occur"); docs/2026-11-01-crosscheck-metrik-bab4/klasifikasi.md butir 15 (tidak ditemukan standar ambang kuantisasi; MLPerf Inference memakai 1% dari FP32); model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02); model/docs/quantize-walkthrough.md (ambang ideal < 1-2% dari PRD)
 
 \subsubsection{Pengujian \textit{Pipeline}}

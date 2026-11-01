@@ -29,13 +29,13 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
     \textit{Recall} per kelas AAMI dan per pasien pada DS2 & Dilaporkan \\
     \midrule
     \multicolumn{2}{l}{\textit{b. Dampak kuantisasi, target dari Tabel~\ref{tab:pengujian-model}}} \\
-    Selisih tiap metrik antara \textit{float32} dan INT8 pada DS2 yang identik & $|\Delta \textit{recall}| < 0{,}02$ \\
+    Selisih dan rasio tiap metrik antara \textit{float32} dan INT8 pada DS2 yang identik & F1 INT8 $\geq$ 99\% F1 \textit{float32} \\
     % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-model; model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02)
     \midrule
     \multicolumn{2}{l}{\textit{c. Kinerja di perangkat, target dari Tabel~\ref{tab:pengujian-model}}} \\
     Latensi inferensi per detak & Lebih kecil dari interval antardetak \\
     \textit{Tensor arena}, \textit{heap} bebas, pemakaian RAM dan \textit{flash} & Muat di SRAM perangkat \\
-    Ukuran model INT8 (KB) & $<$ 25 \\
+    Ukuran model INT8 (KB) & Dilaporkan \\
     % sumber: model/config.py (MAX_MODEL_KB = 25 dan komentarnya); firmware/platformio.ini (ESP32-S3 N16R8, 16MB flash, 8MB PSRAM)
     \midrule
     \multicolumn{2}{l}{\textit{d. Preprocessing di mikrokontroler, target dari Tabel~\ref{tab:pengujian-model}}} \\
@@ -46,11 +46,10 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
     % sumber: laporan/buku-pa/bab/bab3.tex Subbab Akuisisi Sinyal ECG (antrean ISR, sampel tidak hilang); firmware/test/golden_ref.h
     \midrule
     \multicolumn{2}{l}{\textit{e. Akuisisi sinyal tubuh}} \\
-    Ayunan sinyal ADC (\textit{count} dan mV) & Ayunan tersaring mencapai 60 \textit{count} \\
-    Kontak elektroda sebelum fase pemantauan & Kontak baik 60 detik tanpa putus \\
-    Persentase dengung jala-jala 50 Hz & Dilaporkan \\
-    Jumlah R-\textit{peak} terdeteksi dan proporsi BPM dalam rentang wajar & Interval R-R 300--1500 ms dengan $|\Delta \mathrm{RR}| \leq 200$ ms selama 30 detik \\
-    % sumber: laporan/buku-pa/bab/bab3.tex gerbang kualitas (AMBANG_AYUN 60, RR 300-1500 ms, |dRR| <= 200 ms, 30 detik); model/CLAUDE.md Jebakan "Telemetri akuisisi bisa berbohong" butir (1)
+    Ayunan sinyal ADC (\textit{count} dan mV) & Dilaporkan \\
+    Persentase dengung jala-jala 50 Hz dan jumlah sampel jenuh & Dilaporkan \\
+    Indeks kualitas sinyal per jendela 10 detik & Detak per menit 40--180, jeda R-R $\leq$ 3 detik, rasio R-R $<$ 2,2, korelasi \textit{template} $\geq$ 0,66 \\
+    % sumber: Syversen dkk. 2024 bagian SQI1 (40-180 bpm, jeda < 3 s, rasio < 2,2, korelasi template 0,66); Gajdzik dkk. 2026 hlm. 59-60 (PLIratio = P 49-51 Hz / P 0,5-40 Hz, tanpa ambang lulus); ambang gerbang kalibrasi (AMBANG_AYUN 60, kontak 60 s, RR 300-1500 ms, |dRR| <= 200 ms) adalah hasil ukur sendiri dan dikeluarkan dari tabel parameter atas keputusan user 1 Nov 2026, diuji sebagai uji fungsi di butir Gerbang Kalibrasi
     \midrule
     \multicolumn{2}{l}{\textit{f. Pipeline edge-to-cloud, target dari Tabel~\ref{tab:pengujian-pipeline}}} \\
     PDSR (\%) & $\geq$ 95 \\
@@ -66,7 +65,9 @@ Parameter eksperimen dikelompokkan ke dalam enam kategori yang mengikuti tiga ja
 
 Lima dari enam kategori pada Tabel~\ref{tab:parameter-eksperimen}, yaitu kategori b sampai f, memiliki target yang dapat diverifikasi secara langsung, baik berupa ambang angka maupun syarat lulus seperti label akhir yang identik pada setiap detak acuan. Kategori a tidak memiliki ambang angka pada rencana pengujian. Kualitas klasifikasi karena itu dilaporkan pada titik operasi hasil kalibrasi data validasi dan dibandingkan dengan penelitian terkait yang memakai protokol \textit{inter-patient} pada analisis hasil. Target kategori f tetap dicantumkan sebagai rencana, tetapi hasil pengujian \textit{pipeline edge-to-cloud} belum termasuk dalam laporan tahap ini.
 
-Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Ambang selisih \textit{recall} akibat kuantisasi juga diperiksa otomatis oleh skrip daftar periksa \textit{proof of concept}, sehingga dampak kuantisasi diukur dan bukan diasumsikan. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}, sedangkan batas 25 KB adalah disiplin rancangan dan bukan kapasitas, karena \textit{flash} berukuran 16 MB. Data acuan keluaran Python memastikan kode C dan Python menghitung hal yang sama, dan sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
+Alasan pemilihan metrik dan target pada kategori a sampai d adalah sebagai berikut. Pembagian \textit{inter-patient} dan pengelompokan kelas AAMI mengikuti de Chazal~\cite{aami_ec57_2012, dechazal_2004} agar hasilnya sebanding dengan literatur. \textit{Accuracy} tetap dihitung tetapi tidak dijadikan acuan~\cite{chicco_2020}, karena 89,0\% detak DS2 berlabel Normal dan menebak Normal untuk seluruh detak sudah menghasilkan \textit{accuracy} sekitar 0,89. Dampak kuantisasi dinilai dengan syarat MLPerf Inference, yaitu kualitas model teroptimasi dalam 1\% dari model \textit{float32}~\cite{reddi_2020}, dengan F1 sebagai metrik kualitas. Inferensi harus selesai sebelum detak berikutnya agar \textit{real-time}~\cite{tran_2025}, dan pemrosesan per sampel harus selesai dalam satu periode cuplik~\cite{busia_2025}. Ukuran model dilaporkan tanpa target karena acuan baku untuk batas ukuran tidak ditemukan. Kesetaraan kode C dan Python serta jumlah sampel hilang adalah uji fungsi dengan ambang rancangan. Uji pertama memastikan angka DS2 yang diukur di komputer berlaku untuk perangkat, sedangkan sampel yang hilang merusak interval R-R yang menjadi masukan cabang ritme.
+
+% sumber: Reddi dkk. 2020 hlm. 5 ("within 1% of the FP32 reference model's accuracy"); Tran dkk. 2025 hlm. 541 (inferensi dibandingkan interval antardetak minimum 400 ms); Busia dkk. 2025 hlm. 10 ("0.77 ms for each newly acquired sample"); keputusan user 1 Nov 2026 (parameter tanpa rujukan dihapus, kesetaraan dipertahankan sebagai uji fungsi)
 
 Kinerja klasifikasi pada kategori a dinilai dari perbandingan prediksi dan label sebenarnya dengan kelas Aritmia sebagai kelas positif, yaitu \textit{true positive} (TP), \textit{false positive} (FP), \textit{true negative} (TN), dan \textit{false negative} (FN). Dari keempat nilai tersebut, \textit{recall}, \textit{precision}, \textit{specificity}, F1, dan \textit{Matthews correlation coefficient} (MCC) dirumuskan pada Persamaan~\ref{eq:metrik}~\cite{chicco_2020}.
 
@@ -147,7 +148,7 @@ Penempatan elektroda mengikuti konfigurasi Lead II sebagaimana ditunjukkan pada 
 Pada Gambar~\ref{fig:4-elektroda}, sumbu dari RA ke LA meniru sadapan MLII yang dipakai MIT-BIH, agar morfologi QRS rekaman perangkat sebanding dengan data latih.
 % sumber: model/docs/akuisisi-walkthrough.md §1 (RA bawah selangka kanan, LA bawah rusuk kiri, RL bawah rusuk kanan sebagai referensi; sumbu merah ke kuning meniru MLII)
 
-Rekaman yang tidak memenuhi kriteria kualitas sinyal tetap disimpan karena menjadi bukti dalam mendiagnosis gangguan akuisisi. Kualitas setiap rekaman dinilai dari ayunan sinyal ADC absolut, kandungan dengung jala-jala, dan jumlah R-\textit{peak} terdeteksi.
+Rekaman yang tidak memenuhi kriteria kualitas sinyal tetap disimpan karena menjadi bukti dalam mendiagnosis gangguan akuisisi. Kualitas setiap rekaman dinilai dari ayunan sinyal ADC absolut, kandungan dengung jala-jala, jumlah R-\textit{peak} terdeteksi, dan indeks kualitas sinyal per jendela 10 detik.
 % sumber: model/CLAUDE.md Jebakan "Telemetri akuisisi bisa berbohong"; model/docs/akuisisi-walkthrough.md §6 dan §8
 
 \subsubsection{Sumber Sinyal \textit{Replay}}
@@ -561,15 +562,15 @@ Segmentasi di perangkat dengan demikian layak, dan biayanya terletak pada detekt
 
 \subsubsection{Akuisisi Sinyal Tubuh}
 
-Sinyal tubuh dari modul AD8232 dinilai kelayakannya sebagai masukan jalur preprocessing. Rekaman diambil dengan konfigurasi Lead II, elektroda \textit{wet-gel}, dan daya dari \textit{powerbank} agar perangkat tidak tersambung ke jala-jala selama perekaman. Setiap rekaman dinilai dengan lima ukuran. Tiga ukuran pertama adalah ayunan sinyal ADC absolut, persentase dengung 50 Hz terhadap energi pita ECG 0,5--40 Hz, dan jumlah R-\textit{peak} yang ditemukan Pan-Tompkins. Dua ukuran lainnya adalah proporsi interval R-R yang setara 30 sampai 200 detak per menit dan autokorelasi energi pita QRS. Pada rekaman yang dijeda, R-\textit{peak}, interval R-R, dan autokorelasi dihitung per segmen agar tidak ada interval R-R yang melintasi jeda.
+Sinyal tubuh dari modul AD8232 dinilai kelayakannya sebagai masukan jalur preprocessing. Rekaman diambil dengan konfigurasi Lead II, elektroda \textit{wet-gel}, dan daya dari \textit{powerbank} agar perangkat tidak tersambung ke jala-jala selama perekaman. Setiap rekaman dilaporkan dengan empat ukuran, yaitu ayunan sinyal ADC absolut, persentase dengung 50 Hz terhadap energi pita ECG 0,5--40 Hz~\cite{gajdzik_2026}, jumlah R-\textit{peak} yang ditemukan Pan-Tompkins, dan jumlah sampel jenuh. Kelayakan rekaman dinilai dengan indeks kualitas sinyal per jendela 10 detik. Pada rekaman yang dijeda, R-\textit{peak} dan interval R-R dihitung per segmen agar tidak ada interval R-R yang melintasi jeda.
 
 Ayunan dalam mV dihitung sebagai ekuivalen masukan AD8232, yaitu jumlah \textit{count} dikalikan 0,757 mV per \textit{count} dari ADC 12-bit dengan atenuasi 11 dB, lalu dibagi \textit{gain} AD8232 sekitar 1.100. Dengan konversi ini, ECG sehat berayun sekitar 2 mV atau sekitar 3.000 \textit{count}, sedangkan ayunan di bawah sekitar 0,1 mV atau 150 \textit{count} berarti tidak ada biopotensial sama sekali.
 
-Status setiap rekaman ditentukan dari kelima ukuran tersebut. Sebuah rekaman diberi status Berhasil bila dengung kurang dari 15\%, autokorelasi lebih dari 0,25, dan lebih dari 90\% interval R-R berada pada rentang 30 sampai 200 detak per menit. Status Bersinyal diberikan pada rekaman yang berayun sebesar ECG sehat dan memiliki interval R-R yang wajar tetapi tidak memenuhi syarat autokorelasi. Status Gagal diberikan pada rekaman yang ayunannya di bawah 150 \textit{count}, yang dilaporkan \textit{lead-off} sepanjang rekaman, atau yang dengungnya mendominasi. Jumlah sampel jenuh, yaitu sampel di batas atas atau bawah ADC, dilaporkan sebagai keterangan dan bukan sebagai penentu status. Proporsi sampel jenuh di atas 0,1\% ditandai karena menunjukkan puncak sinyal yang terpotong secara berulang. Kriteria ini adalah kriteria analisis \textit{offline}. Gerbang kualitas waktu nyata pada Tabel~\ref{tab:parameter-eksperimen}, yaitu kontak elektroda dan interval R-R 300--1500 ms, dipakai sebelum detak diteruskan dan diuji tersendiri dengan sinyal tubuh.
+Ayunan, dengung, dan sampel jenuh dilaporkan tanpa ambang lulus, karena acuan baku untuk ambang ketiganya tidak ditemukan. Definisi rasio dengung mengikuti penelitian yang membandingkan jalur akuisisi AD8232 dengan ADC 12-bit ESP32, yang juga tidak menetapkan ambang lulus~\cite{gajdzik_2026}. Sampel jenuh adalah sampel di batas atas atau bawah ADC. Gerbang kualitas waktu nyata, yaitu kontak elektroda dan interval R-R, dipakai sebelum detak diteruskan dan diuji tersendiri dengan sinyal tubuh.
 % sumber: model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (konversi 12-bit + atten 11 dB = 0,757 mV/count, gain AD8232 sekitar 1100, EKG sehat sekitar 2 mV sekitar 3000 count, di bawah sekitar 0,1 mV sekitar 150 count tidak ada biopotensial); model/docs/akuisisi-walkthrough.md bagian 1 (USB laptop vs power bank) dan bagian 6 (ukuran dan ambang); firmware/src/perangkat.cpp (ADC_WIDTH_BIT_12, ADC_ATTEN_DB_12, nama lain atenuasi 11 dB); model/scripts/analyze_recording.py (masuk_akal 30-200 bpm; muat() dan analisis_segmen() memisah segmen pada baris jeda)
-% sumber: kriteria status: model/scripts/analyze_recording.py main() (dengung < 0,15 dari pita ECG, autokorelasi > 0,25, masuk_akal > 0,9; hitung_clipping(): rail ADC_ATAS 4090 dan ADC_BAWAH 5 sama dengan firmware, AMBANG_CLIPPING_PERSEN 0,1 di antara rekaman bersih <= 0,010% dan rekaman terganggu >= 0,135%) dan model/docs/akuisisi-walkthrough.md bagian 6; ambang 150 count dari model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong"; gerbang waktu nyata AMBANG_AYUN 60 dan RR 300-1500 ms dari baris sumber tab:parameter-eksperimen baris e (bab3.tex gerbang kualitas)
+% sumber: keputusan user 1 Nov 2026 (ambang tanpa rujukan dihapus: dengung < 15%, autokorelasi > 0,25, BPM wajar > 90%, jenuh 0,1%, status Berhasil/Bersinyal/Gagal; diganti indeks kualitas per jendela 10 detik); Gajdzik dkk. 2026 hlm. 59-63 (PLIratio tanpa ambang lulus); rail jenuh ADC_ATAS 4090 dan ADC_BAWAH 5 dari model/scripts/analyze_recording.py hitung_clipping(); gerbang waktu nyata dari bab3.tex gerbang kualitas
 
-Status per rekaman dapat menyembunyikan bagian rekaman yang buruk, karena itu setiap rekaman juga dipotong menjadi jendela 10 detik dan dinilai dengan indeks kualitas sinyal empat langkah~\cite{syversen_2024}. Tiga langkah pertama memeriksa kelayakan fisiologis, yaitu detak per menit 40 sampai 180, jeda antar-R-\textit{peak} paling lama 3 detik, dan rasio interval R-R terpanjang terhadap terpendek di bawah 2,2. Langkah keempat memotong setiap kompleks QRS selebar median interval R-R dan merata-ratakannya menjadi \textit{template}. Jendela dinyatakan lolos bila rerata korelasi setiap potongan terhadap \textit{template} minimal 0,66. Hasil pengujian rekaman resmi ditunjukkan pada Tabel~\ref{tab:kualitas-rekaman}.
+Kelayakan setiap rekaman dinilai per jendela 10 detik dengan indeks kualitas sinyal empat langkah~\cite{syversen_2024}, jadi bagian rekaman yang buruk tidak tersembunyi oleh nilai keseluruhan. Tiga langkah pertama memeriksa kelayakan fisiologis, yaitu detak per menit 40 sampai 180, jeda antar-R-\textit{peak} paling lama 3 detik, dan rasio interval R-R terpanjang terhadap terpendek di bawah 2,2. Langkah keempat memotong setiap kompleks QRS selebar median interval R-R dan merata-ratakannya menjadi \textit{template}. Jendela dinyatakan lolos bila rerata korelasi setiap potongan terhadap \textit{template} minimal 0,66. Hasil pengujian rekaman resmi ditunjukkan pada Tabel~\ref{tab:kualitas-rekaman}.
 % sumber: Syversen dkk. 2024 bagian SQI1 ("HR-check of 40 and <180 bpm, ... maximum space between subsequent R-peaks is <3 s ... ratio is <2.2 ... adaptive template matching threshold (0.66)"), metode asli Orphanidou dkk. 2015 hlm. 834-836 (potongan selebar median RR berpusat di R); model/scripts/kualitas_jendela.py; model/docs/akuisisi-walkthrough.md bagian 6 SQI per jendela 10 detik
 
 \begin{table}[!ht]
@@ -580,26 +581,24 @@ Status per rekaman dapat menyembunyikan bagian rekaman yang buruk, karena itu se
   \setlength{\tabcolsep}{2.5pt}
   \renewcommand{\arraystretch}{1.15}
   \footnotesize
-  \begin{tabular}{>{\centering\arraybackslash}p{1.5cm}>{\raggedleft\arraybackslash}p{1.1cm}>{\centering\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.4cm}>{\raggedleft\arraybackslash}p{1.1cm}>{\raggedleft\arraybackslash}p{1.3cm}>{\raggedleft\arraybackslash}p{1.2cm}>{\raggedleft\arraybackslash}p{1.1cm}>{\RaggedRight\arraybackslash}p{1.3cm}}
+  \begin{tabular}{>{\centering\arraybackslash}p{1.5cm}>{\raggedleft\arraybackslash}p{1.1cm}>{\centering\arraybackslash}p{1.8cm}>{\raggedleft\arraybackslash}p{1.4cm}>{\raggedleft\arraybackslash}p{1.1cm}>{\raggedleft\arraybackslash}p{1.0cm}>{\raggedleft\arraybackslash}p{1.2cm}>{\raggedleft\arraybackslash}p{1.3cm}>{\raggedleft\arraybackslash}p{1.5cm}}
     \toprule
-    \textbf{Rekaman} & \textbf{Durasi (detik)} & \textbf{Ayunan (\textit{count} / mV)} & \textbf{Dengung (\%)} & \textbf{R-\textit{peak}} & \textbf{Auto-\newline korelasi} & \textbf{BPM Wajar (\%)} & \textbf{Jenuh} & \textbf{Status} \\
+    \textbf{Rekaman} & \textbf{Durasi (detik)} & \textbf{Ayunan (\textit{count} / mV)} & \textbf{Dengung (\%)} & \textbf{R-\textit{peak}} & \textbf{Jenuh} & \textbf{Jendela} & \textbf{Jendela Lolos (\%)} & \textbf{Korelasi Mini\-mum} \\
     \midrule
     \multicolumn{9}{l}{\textit{Sesi 22 Oktober 2026, subjek S01, Lead II, catu powerbank}} \\
-    R1 & 300,0 & 2.928 / 2,01 & 1,9 & 402 & 0,37 & 100,0 & 1 & Berhasil \\
-    R2 & 300,0 & 3.012 / 2,07 & 3,1 & 408 & 0,38 & 100,0 & 5 & Berhasil \\
-    R3 & 300,0 & 3.104 / 2,14 & 2,9 & 425 & 0,33 & 100,0 & 9 & Berhasil \\
-    R4 & 27,1 & 2.919 / 2,01 & 3,8 & 40 & 0,28 & 100,0 & 1 & Berhasil \\
+    R1 & 300,0 & 2.928 / 2,01 & 1,9 & 402 & 1 & 30 & 100,0 & 0,981 \\
+    R2 & 300,0 & 3.012 / 2,07 & 3,1 & 408 & 5 & 30 & 100,0 & 0,967 \\
+    R3 & 300,0 & 3.104 / 2,14 & 2,9 & 425 & 9 & 30 & 100,0 & 0,967 \\
+    R4 & 27,1 & 2.919 / 2,01 & 3,8 & 40 & 1 & 2 & 100,0 & 0,980 \\
     \bottomrule
   \end{tabular}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: R1 sampai R4 adalah empat rekaman berurutan dari satu sesi tanpa jeda. Autokorelasi R1 sampai R3 adalah median per jendela 30 detik. Jenuh adalah jumlah sampel di batas ADC, paling banyak 0,010\% sampel rekaman. Status \textit{lead-off} 0\% pada keempat rekaman.\par}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: R1 sampai R4 adalah empat rekaman berurutan dari satu sesi tanpa jeda. Jenuh adalah jumlah sampel di batas ADC, paling banyak 0,010\% sampel rekaman. Jendela adalah jumlah jendela 10 detik utuh. Korelasi minimum adalah rerata korelasi \textit{template} terendah di antara jendela rekaman. Status \textit{lead-off} 0\% pada keempat rekaman.\par}
 \end{table}
+% sumber: jendela, jendela lolos, dan korelasi minimum dari model/scripts/kualitas_jendela.py -> model/artifacts/metrics/kualitas/jendela10s_20261022-*.csv (30/30/30/2 jendela, 100% lolos, korelasi minimum 0,981, 0,967, 0,967, 0,980)
 % sumber: keluaran make analisis FILE=data/recordings/<nama>.csv pada 20261022-1256-rekam-001 (ADC 1167..4095, dengung 1,9%, autokorelasi 0,37 median per 30 s, R-peak 402 dalam 300,0 detik, masuk akal 100%), -1256-rekam-002 (1083..4095, 3,1%, 0,38, 408), -1257-rekam-003 (991..4095, 2,9%, 0,33, 425), -1257-rekam-004 (1176..4095, 3,8%, 0,28 tanpa jendela, 40 dalam 27,1 detik); ayunan = maks - min (2.928, 3.012, 3.104, 2.919), mV = count x 0,757 / 1100 (2,01, 2,07, 2,14, 2,01); jenuh dengan rail firmware 4090/5 = 1, 5, 9, 1 sampel (0,001%, 0,005%, 0,008%, 0,010%); header lepas=0 (0%) pada keempat berkas; rekaman uji coba 10 Sep - 11 Okt 2026 tidak dimasukkan (arsip model/data/arsip/rekaman-uji-coba/, bukan hasil)
 
-Keempat rekaman resmi memenuhi kriteria Berhasil (Tabel~\ref{tab:kualitas-rekaman}). Ukuran yang paling dekat dengan batasnya adalah autokorelasi rekaman terpendek, yaitu 0,28 terhadap batas 0,25. Dengung pada seluruh rekaman jauh di bawah batas 15\%, dan ayunan sekitar 2 mV sesuai dengan ECG sehat. Sampel jenuh hanya muncul sesekali pada puncak R, paling banyak 0,010\% sampel. Sinyal tubuh pada sesi ini karena itu layak dijadikan masukan jalur preprocessing.
-% sumber: tab:kualitas-rekaman (autokorelasi R4 0,28; dengung maksimum 3,8%; ayunan 2,01-2,14 mV; jenuh maksimum 1 dari 9.771 = 0,010%); batas dari paragraf kriteria status
-
-Penilaian per jendela 10 detik tidak menemukan bagian rekaman yang buruk. Seluruh 92 jendela dari keempat rekaman lolos keempat langkah, dan korelasi \textit{template} terendah 0,967, jauh di atas batas 0,66. Penilai yang sama menolak seluruh jendela rekaman uji coba yang hanya berisi derau, jadi kelolosan ini bukan akibat syarat yang terlalu longgar.
-% sumber: model/scripts/kualitas_jendela.py atas keempat rekaman 22 Okt 2026 (jendela 30, 30, 30, 2 = 92; lolos 100% masing-masing; korelasi median/minimum 0,991/0,981, 0,987/0,967, 0,985/0,967, 0,982/0,980) -> model/artifacts/metrics/kualitas/jendela10s_20261022-*.csv; kontrol negatif rekaman uji coba arsip berayun 16-55 count lolos 0% jendela (model/docs/akuisisi-walkthrough.md bagian 6)
+Keempat rekaman resmi lolos indeks kualitas sinyal pada seluruh jendela 10 detik (Tabel~\ref{tab:kualitas-rekaman}). Korelasi \textit{template} terendah 0,967, jauh di atas batas 0,66, dan ayunan sekitar 2 mV sesuai dengan ECG sehat. Dengung paling besar 3,8\%, dan sampel jenuh hanya muncul sesekali pada puncak R. Penilai yang sama menolak seluruh jendela rekaman uji coba yang hanya berisi derau, jadi kelolosan ini bukan akibat syarat yang terlalu longgar. Sinyal tubuh pada sesi ini karena itu layak dijadikan masukan jalur preprocessing.
+% sumber: tab:kualitas-rekaman (92 jendela lolos 100%, korelasi minimum 0,967 pada R2 dan R3; dengung maksimum 3,8% pada R4; ayunan 2,01-2,14 mV; jenuh maksimum 1 dari 9.771 = 0,010%); kontrol negatif rekaman uji coba arsip berayun 16-55 count lolos 0% jendela (model/docs/akuisisi-walkthrough.md bagian 6)
 
 Bentuk sinyal rekaman yang berhasil ditunjukkan pada Gambar~\ref{fig:rekaman-berhasil}, yaitu enam detik pertama rekaman R1.
 
@@ -621,10 +620,10 @@ Prosedur perekaman pada pengujian ini, yaitu catu daya \textit{powerbank}, elekt
 Keberadaan R-\textit{peak} tidak dapat dijadikan penentu kualitas sinyal. Pan-Tompkins tetap melaporkan R-\textit{peak} karena ambangnya adaptif terhadap sinyal yang ada, dan keadaan tanpa sinyal bukan kondisi yang dikenalinya. Pada \textit{firmware}, tanpa elektroda dan tanpa \textit{replay}, alat mengeluarkan sekitar 2 detak per detik dengan 57\% di antaranya diklasifikasi Aritmia. Kualitas sinyal di perangkat karena itu dinilai dari kontak elektroda, yaitu status \textit{lead-off}, ayunan ADC, dan dengung 50 Hz.
 % sumber: model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% ARITMIA" dan "Telemetri akuisisi bisa berbohong"; model/docs/akuisisi-walkthrough.md bagian 6
 
-Hasil akuisisi tersebut adalah status fungsional, bukan akurasi. Jumlah R-\textit{peak} dan proporsi BPM wajar menunjukkan bahwa detektor menemukan detak dengan irama yang masuk akal. Namun, posisi R-\textit{peak} dan detak per menit belum dibandingkan dengan perangkat ECG acuan maupun anotasi manual. Rentang masukan juga terbatas. Dengan garis dasar sekitar 1.900 \textit{count}, ruang sampai batas atas ADC hanya sekitar 1,5 mV ekuivalen masukan, dan karena itu puncak R sesekali terpotong. Filter 0,5--40 Hz yang kausal dipilih untuk analisis ritme dan klasifikasi detak, jadi rekaman ini tidak dimaksudkan untuk analisis segmen ST.
+Hasil akuisisi tersebut adalah status fungsional, bukan akurasi. Jumlah R-\textit{peak} dan indeks kualitas sinyal menunjukkan bahwa detektor menemukan detak dengan irama yang masuk akal. Namun, posisi R-\textit{peak} dan detak per menit belum dibandingkan dengan perangkat ECG acuan maupun anotasi manual. Rentang masukan juga terbatas. Dengan garis dasar sekitar 1.900 \textit{count}, ruang sampai batas atas ADC hanya sekitar 1,5 mV ekuivalen masukan, dan karena itu puncak R sesekali terpotong. Filter 0,5--40 Hz yang kausal dipilih untuk analisis ritme dan klasifikasi detak, jadi rekaman ini tidak dimaksudkan untuk analisis segmen ST.
 % sumber: keputusan user 1 Nov 2026 (hasil akuisisi ditulis sebagai status fungsional karena belum ada alat medis acuan); docs/2026-11-01-crosscheck-metrik-bab4.md bagian 4 dan akuisisi.md butir 1, 2, 9; ruang atas (4.095 - 1.900) x 0,757 / 1.100 = 1,51 mV dari garis dasar Gambar rekaman R1; model/config.py BANDPASS_LOW 0.5, BANDPASS_HIGH 40.0, filter kausal sosfilt
 
-Dengan demikian, sinyal tubuh dari satu sesi perekaman layak secara fungsional sebagai masukan jalur preprocessing, dengan keempat rekamannya memenuhi kriteria kualitas dan target akuisisi pada Tabel~\ref{tab:parameter-eksperimen} terpenuhi.
+Dengan demikian, sinyal tubuh dari satu sesi perekaman layak secara fungsional sebagai masukan jalur preprocessing, dengan keempat rekamannya lolos indeks kualitas sinyal pada seluruh jendela dan target akuisisi pada Tabel~\ref{tab:parameter-eksperimen} terpenuhi.
 % sumber: tab:kualitas-rekaman (4 dari 4 Berhasil, satu sesi)
 
 \subsubsection{Gerbang Kalibrasi dan Kualitas Sinyal}
@@ -641,12 +640,12 @@ Gerbang diuji dengan sinyal tubuh pada 22 Oktober 2026 dalam tiga keadaan. Denga
 Pada sumber sinyal \textit{replay}, syarat lama kontak, syarat R-R, dan status \textit{lead-off} dilewati. Potongan 6,67 detik dari rekaman 208 bersifat aritmik dengan selisih R-R antardetak hingga $-$0,364 dan $+$0,478 detik, dan kriteria R-R tidak akan terpenuhi. Pelewatan tersebut melekat pada sumber \textit{replay}. Pada uji 22 Oktober 2026, sumber yang dikembalikan ke sensor tanpa elektroda tetap berada pada fase kalibrasi dengan ayunan 1 \textit{count}. Pada pengujian awal tanpa elektroda, 19 detak terdeteksi dengan tujuh di antaranya diklasifikasi Aritmia, dan seluruhnya ditahan sehingga tidak satu pun terkirim ke \textit{broker}.
 % sumber: model/docs/mqtt-walkthrough.md §3.1b (dRR rekaman 208 -0,364 s dan +0,478 s), §3.1c langkah 1 (replay ON lolos dengan LO 1 1; replay OFF tanpa elektroda: calibrating, ayun 1) dan bagian "Jalur data, terukur" (tanpa elektroda: beat 19 (7 aritmia, 19 ditahan), terkirim 0); firmware/src/gerbang.cpp nilai_kontak() (LO diabaikan saat akuisisi_replay())
 
-Uji tersebut menunjukkan bahwa gerbang menahan sinyal tanpa elektroda dan kontak yang buruk, lalu membuka pemantauan sekitar 60 detik setelah kontak baik pada satu subjek. Transisi pada kontak baik diamati langsung pada perangkat karena serial tidak tersambung selama catu \textit{powerbank}, dan belum tercatat sebagai log. Target kontak baik 60 detik pada Tabel~\ref{tab:parameter-eksperimen} karena itu terpenuhi pada sinyal tubuh satu subjek.
+Uji tersebut menunjukkan bahwa gerbang menahan sinyal tanpa elektroda dan kontak yang buruk, lalu membuka pemantauan sekitar 60 detik setelah kontak baik pada satu subjek. Transisi pada kontak baik diamati langsung pada perangkat karena serial tidak tersambung selama catu \textit{powerbank}, dan belum tercatat sebagai log. Gerbang kalibrasi karena itu berfungsi sesuai rancangan pada sinyal tubuh satu subjek.
 
 \subsection{Jalur Model TinyML \textit{On-Device}}
 \label{subsec:hasil-tujuan2}
 
-Model TinyML terkuantisasi INT8 diterapkan untuk deteksi aritmia secara \textit{on-device} pada ESP32-S3 tanpa ketergantungan pada komputasi \textit{cloud}. Targetnya mengikuti Tabel~\ref{tab:pengujian-model}. Target itu mencakup kualitas klasifikasi DS2 pada \textit{threshold} hasil kalibrasi VAL dan selisih \textit{recall} akibat kuantisasi di bawah 0,02. Target lainnya adalah latensi di bawah interval antardetak, serta model di bawah 25 KB yang muat di memori. Hasilnya dipaparkan dalam enam butir berikut.
+Model TinyML terkuantisasi INT8 diterapkan untuk deteksi aritmia secara \textit{on-device} pada ESP32-S3 tanpa ketergantungan pada komputasi \textit{cloud}. Targetnya mengikuti Tabel~\ref{tab:pengujian-model}. Target itu mencakup kualitas klasifikasi DS2 pada \textit{threshold} hasil kalibrasi VAL dan F1 model INT8 minimal 99\% F1 \textit{float32}. Target lainnya adalah latensi di bawah interval antardetak dan model yang muat di memori. Hasilnya dipaparkan dalam enam butir berikut.
 % sumber: laporan/buku-pa/bab/bab1.tex Tujuan butir 2; laporan/buku-pa/bab/bab3.tex tab:pengujian-model (|delta recall| < 0,02, ukuran < 25 KB, latensi < interval antardetak, daya per mode operasi)
 
 \subsubsection{Pelatihan dan Pemilihan Titik Operasi}
@@ -798,27 +797,27 @@ Dampak kuantisasi diukur dengan membandingkan model INT8 terhadap model \textit{
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.4cm}>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.2cm}>{\raggedleft\arraybackslash}p{2.2cm}}
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{3.0cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.0cm}>{\raggedleft\arraybackslash}p{2.6cm}}
     \toprule
-    \textbf{Metrik} & \textbf{\textit{Float32}} & \textbf{INT8} & \textbf{Selisih} \\
+    \textbf{Metrik} & \textbf{\textit{Float32}} & \textbf{INT8} & \textbf{Selisih} & \textbf{INT8 / \textit{Float32} (\%)} \\
     \midrule
-    \textit{Recall} & 0,6996 & 0,7105 & $+$0,0108 \\
-    F1 & 0,6594 & 0,6604 & $+$0,0010 \\
-    \textit{Precision} & 0,6235 & 0,6169 & $-$0,0067 \\
-    \textit{Specificity} & 0,9479 & 0,9456 & $-$0,0023 \\
-    MCC & 0,6160 & 0,6171 & $+$0,0011 \\
-    AUC & 0,9334 & 0,9344 & $+$0,0010 \\
-    \textit{Accuracy} & 0,9207 & 0,9198 & $-$0,0009 \\
+    F1 & 0,6594 & 0,6604 & $+$0,0010 & 100,14 \\
+    \textit{Recall} & 0,6996 & 0,7105 & $+$0,0108 & 101,55 \\
+    \textit{Precision} & 0,6235 & 0,6169 & $-$0,0067 & 98,93 \\
+    \textit{Specificity} & 0,9479 & 0,9456 & $-$0,0023 & 99,75 \\
+    MCC & 0,6160 & 0,6171 & $+$0,0011 & 100,18 \\
+    AUC & 0,9334 & 0,9344 & $+$0,0010 & 100,10 \\
+    \textit{Accuracy} & 0,9207 & 0,9198 & $-$0,0009 & 99,90 \\
     \bottomrule
   \end{tabular}
-  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: kedua model dinilai pada \textit{threshold} 0,80. \textit{Accuracy} dilaporkan tetapi bukan acuan. Ukuran model INT8 22,94 KB dicantumkan pada Tabel~\ref{tab:sumber-daya}.\par}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: kedua model dinilai pada \textit{threshold} 0,80. F1 adalah metrik kualitas yang menjadi target. \textit{Accuracy} dilaporkan tetapi bukan acuan. Ukuran model INT8 22,94 KB dicantumkan pada Tabel~\ref{tab:sumber-daya}.\par}
 \end{table}
-% sumber: model/artifacts/metrics/fase7_delta.csv (accuracy 0,920674 / 0,919788 / -0,000886; precision 0,623549 / 0,616855 / -0,006694; recall 0,699633 / 0,710459 / +0,010826; f1 0,659403 / 0,660356 / +0,000953; specificity 0,947926 / 0,945596 / -0,002330; auc 0,933448 / 0,934425 / +0,000977; ukuran_kb int8 22,94, float32 kosong); baris threshold tidak ditampilkan; MCC 0,615986 / 0,617110 / +0,001125 dari model/artifacts/metrics/fase7_metrik_tambahan.csv
+% sumber: model/artifacts/metrics/fase7_delta.csv (accuracy 0,920674 / 0,919788 / -0,000886; precision 0,623549 / 0,616855 / -0,006694; recall 0,699633 / 0,710459 / +0,010826; f1 0,659403 / 0,660356 / +0,000953; specificity 0,947926 / 0,945596 / -0,002330; auc 0,933448 / 0,934425 / +0,000977; ukuran_kb int8 22,94, float32 kosong); baris threshold tidak ditampilkan; MCC 0,615986 / 0,617110 / +0,001125 dari model/artifacts/metrics/fase7_metrik_tambahan.csv; rasio = int8 / float32 x 100 dari nilai 6 desimal (f1 100,14; recall 101,55; precision 98,93; specificity 99,75; mcc 100,18; auc 100,10; accuracy 99,90)
 
-Kuantisasi memenuhi target (Tabel~\ref{tab:delta-int8}). Seluruh selisih berada di bawah 0,01 kecuali \textit{recall} yang naik 0,0108, masih lebih kecil dari ambang $|\Delta \textit{recall}| < 0{,}02$, dan ukuran model 22,94 KB atau 23.488 byte berada di bawah batas 25 KB. Kedua \textit{confusion matrix} dibandingkan pada Gambar~\ref{fig:cm-ds2}.
+Kuantisasi memenuhi target, karena F1 model INT8 mencapai 100,14\% F1 \textit{float32}, di atas syarat 99\% (Tabel~\ref{tab:delta-int8}). Satu-satunya metrik di bawah 99\% adalah \textit{precision}, yaitu 98,93\%. Penurunan itu sejalan dengan kenaikan \textit{recall}, karena probabilitas yang bergeser di sekitar \textit{threshold} menangkap lebih banyak aritmia sekaligus menambah alarm palsu. Kedua \textit{confusion matrix} dibandingkan pada Gambar~\ref{fig:cm-ds2}.
 % sumber: fase7_delta.csv; model/artifacts/model_int8.tflite (stat 23.488 byte, 23.488 / 1.024 = 22,94 KB); firmware/include/model_int8.h (model_int8_tflite_len 23488); laporan/buku-pa/bab/bab3.tex tab:pengujian-model (|delta recall| < 0,02); model/config.py MAX_MODEL_KB = 25
 
-Selisih per kelas searah dengan selisih agregat, dan tidak ada kelas yang turun. \textit{Recall} kelas S, V, dan F masing-masing naik 0,0240, 0,0034, dan 0,0103. Selisih kelas S sedikit di atas besaran ambang agregat, tetapi arahnya kenaikan. Label akhir hanya berubah pada 272 detak, yaitu 0,55\% DS2, karena probabilitas INT8 yang bergeser sedikit di sekitar \textit{threshold}.
+Selisih per kelas searah dengan selisih agregat, dan tidak ada kelas yang turun. \textit{Recall} kelas S, V, dan F masing-masing naik 0,0240, 0,0034, dan 0,0103. Label akhir hanya berubah pada 272 detak, yaitu 0,55\% DS2, karena probabilitas INT8 yang bergeser sedikit di sekitar \textit{threshold}.
 % sumber: model/artifacts/metrics/fase7_metrik_tambahan.csv (recall_S 0,438998 / 0,462963 / +0,023965; recall_V 0,924821 / 0,928239 / +0,003417; recall_F 0,067010 / 0,077320 / +0,010309; label_berubah 272 dari 49.656 = 0,55%), model/scripts/metrik_tambahan.py; model/docs/quantize-walkthrough.md bagian 6
 
 \begin{figure}[H]
@@ -858,7 +857,7 @@ Model INT8 harus memenuhi batas waktu dan memori di ESP32-S3. Kesetaraan keluara
     \toprule
     \textbf{Besaran} & \textbf{Nilai} & \textbf{Kondisi Pengukuran} & \textbf{Target} \\
     \midrule
-    Ukuran model INT8 (byte) & 23.488 & Format TensorFlow Lite, \textit{window} 256 & $<$ 25 KB \\
+    Ukuran model INT8 (byte) & 23.488 & Format TensorFlow Lite, \textit{window} 256 & Dilaporkan \\
     Latensi inferensi per detak (ms) & 26,6 & Uji perangkat, 240 MHz, \textit{kernel} referensi, \textit{window} 256 & Lebih kecil dari interval antardetak \\
     \textit{Tensor arena} terpakai (byte) & 12.948 & Uji perangkat, alokasi 24.576 byte & Muat di SRAM \\
     \textit{Heap} bebas (byte) & 312.396 & Uji perangkat, \textit{window} 256 & Muat di SRAM \\
@@ -897,11 +896,10 @@ Hasil eksperimen pada laporan tahap ini dinilai terhadap dua tujuan penelitian, 
     \midrule
     \multirow{3}{=}{Preprocessing \textit{real-time}} & Setara dengan Python dalam toleransi data acuan & Seluruh tahap uji data acuan lulus & \multirow{3}{=}{\centering Tercapai} \\
     & Tanpa sampel hilang & Sampel hilang 0, beban 3,0\% anggaran & \\
-    & Sinyal tubuh memenuhi kriteria kualitas & 4 dari 4 rekaman Berhasil, satu sesi & \\
+    & Sinyal tubuh lolos indeks kualitas sinyal & 92 dari 92 jendela 10 detik, satu sesi & \\
     % sumber: bab4 tab:uji-kesetaraan-tahap, tab:beban-komputasi, tab:kualitas-rekaman; target dari bab3 tab:pengujian-model dan bab4 tab:parameter-eksperimen baris d dan e
     \midrule
-    \multirow{4}{=}{Model INT8 \textit{on-device}} & $|\Delta \textit{recall}| < 0{,}02$ & $+$0,0108 & \multirow{4}{=}{\centering Tercapai} \\
-    & Model $<$ 25~KB & 22,94~KB & \\
+    \multirow{3}{=}{Model INT8 \textit{on-device}} & F1 INT8 $\geq$ 99\% F1 \textit{float32} & 100,14\% & \multirow{3}{=}{\centering Tercapai} \\
     & Latensi di bawah interval antardetak & 26,6~ms per detak & \\
     & Muat di SRAM & \textit{Arena} 12.948 dari 24.576 byte & \\
     % sumber: bab4 tab:delta-int8, tab:sumber-daya; target dari bab3 tab:pengujian-model
@@ -918,13 +916,13 @@ Seluruh target jalur preprocessing dan jalur model, yaitu target komputasi, mode
 Jalur komputasi preprocessing terbukti setara dengan Python dan berjalan secara \textit{real-time}. Seluruh tahap pada Tabel~\ref{tab:uji-kesetaraan-tahap} lulus, termasuk 11 R-\textit{peak} yang sama dengan Python dalam toleransi 1 sampel dan keputusan akhir yang identik pada tujuh detak acuan. Beban rata-rata hanya 82 $\mu$s per sampel atau 3,0\% anggaran, dan sampel hilang tetap 0 walaupun puncak beban sesaat mencapai 33,4~ms (Tabel~\ref{tab:beban-komputasi}). Kesetaraan ini dipastikan oleh koefisien filter dan model yang dihasilkan otomatis dari Python lalu diuji tahap demi tahap. ADC yang dibaca di ISR dan antrean 256 sampel menyerap \textit{burst} deteksi dan inferensi, dan syarat pada Tabel~\ref{tab:pengujian-model} terpenuhi.
 % sumber: bab4 tab:uji-kesetaraan-tahap (11 puncak, toleransi 1 sampel, label identik 7 detak), tab:beban-komputasi (82 us, 3,0%, 33,4 ms, sampel hilang 0, antrean 256), sec:karakteristik-data butir penyelarasan (berkas ecg_preproc.h dan model_int8.h dihasilkan otomatis)
 
-Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi dari satu sesi perekaman memenuhi kriteria kualitas (Tabel~\ref{tab:kualitas-rekaman}). Segmentasi hasil detektor tidak merusak klasifikasi, dengan F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi (Tabel~\ref{tab:segmentasi-deteksi}). Catatannya, kesetaraan tahap demi tahap dibuktikan pada sinyal \textit{replay} sepanjang 6,67 detik tanpa kelas S, beban rata-rata diukur pada model \textit{window} 250, dan detektor menemukan kelas S dengan \textit{sensitivity} 0,6494 (Tabel~\ref{tab:sensitivity-detektor}). Sinyal tubuh juga baru berasal dari satu subjek dan satu sesi. Karena seluruh target jalur ini terpenuhi pada pengujian yang dilakukan, jalur preprocessing dinilai Tercapai dengan cakupan tersebut dicatat sebagai keterbatasan.
+Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi dari satu sesi perekaman lolos indeks kualitas sinyal pada seluruh jendela (Tabel~\ref{tab:kualitas-rekaman}). Segmentasi hasil detektor tidak merusak klasifikasi, dengan F1 0,6499 dibandingkan 0,6594 pada segmentasi anotasi (Tabel~\ref{tab:segmentasi-deteksi}). Catatannya, kesetaraan tahap demi tahap dibuktikan pada sinyal \textit{replay} sepanjang 6,67 detik tanpa kelas S, beban rata-rata diukur pada model \textit{window} 250, dan detektor menemukan kelas S dengan \textit{sensitivity} 0,6494 (Tabel~\ref{tab:sensitivity-detektor}). Sinyal tubuh juga baru berasal dari satu subjek dan satu sesi. Karena seluruh target jalur ini terpenuhi pada pengujian yang dilakukan, jalur preprocessing dinilai Tercapai dengan cakupan tersebut dicatat sebagai keterbatasan.
 % sumber: bab4 subsec:hasil-tujuan1 butir port C (rekaman 208, 6,67 detik, tanpa kelas S) dan butir alur hidup (window 250), tab:sensitivity-detektor (S 0,6494), tab:segmentasi-deteksi
 
 \subsection{Analisis Jalur Model TinyML \textit{On-Device}}
 \label{subsec:analisis-tujuan2}
 
-Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi hanya menggeser \textit{recall} sebesar $+$0,0108 dengan ukuran 22,94~KB, keduanya di bawah ambang rencana pengujian (Tabel~\ref{tab:delta-int8}). Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan dan hanya terungkap oleh uji data acuan.
+Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi mempertahankan F1 pada 100,14\% nilai \textit{float32} dengan ukuran model 22,94~KB (Tabel~\ref{tab:delta-int8}). Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan dan hanya terungkap oleh uji data acuan.
 % sumber: bab4 tab:delta-int8 (+0,0108, 22,94 KB), tab:sumber-daya dan paragraf sesudahnya (26,6 ms, 13,3% dari 200 ms, 12.948 dari 24.576 byte), subsec:hasil-tujuan1 butir Port ke Bahasa C (MEAN 0,336 vs 0,973)
 
 Kualitas klasifikasi, yang tidak memiliki ambang angka, mencapai \textit{recall} 0,6996, F1 0,6594, dan AUC 0,9334 pada model \textit{float32} (Tabel~\ref{tab:hasil-ds2}) dengan median \textit{recall} per pasien 0,9167. Kelemahan terbesarnya adalah kelas S dengan \textit{recall} 0,4390, karena QRS-nya mirip Normal dan pembedanya terletak pada waktu kedatangan serta gelombang P. Latensi inferensi diukur tanpa WiFi aktif. Jalur model dinilai Tercapai, karena target kuantisasi, ukuran, latensi, dan memori seluruhnya terpenuhi.
