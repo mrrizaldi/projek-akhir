@@ -1,6 +1,6 @@
 # Crosscheck metrik Bab 4 terhadap standar dan literatur (1 Nov 2026)
 
-**Status:** hasil riset, read-only. Aksi yang diambil dari sini dicatat di
+**Status:** aktif, menunggu keputusan user (bagian 4). Aksi yang diambil dari sini dicatat di
 [`2026-11-01-celah-target.md`](2026-11-01-celah-target.md) atau dokumen terkait.
 **Pertanyaan:** apakah metrik dan cara ukur di `laporan/buku-pa/bab/bab4.tex`
 (`tab:parameter-eksperimen`) sesuai standar baku dan praktik paper, dinilai dari

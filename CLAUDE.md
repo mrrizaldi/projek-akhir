@@ -10,6 +10,9 @@ Monorepo Proyek Akhir: **monitoring detak jantung kontinu, klasifikasi
 aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
 `README.md` untuk tabel & alur artefak.
 
+**Dokumen kerja yang sedang berjalan** lintas komponen ada di `docs/`
+(indeks `docs/README.md`); `docs/arsip/` hanya riwayat.
+
 **Pekerjaan terbuka** (bertanggal, jangan sampai lupa): daftar tunggal di
 [`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka) —
 konsumsi daya, **WiFi board sengaja OFF (darurat sejak 14 Okt 2026, kembalikan
@@ -164,9 +167,18 @@ terbukti tidak membeku jadi dogma.
   yang pernah dikoreksi cukup ditulis versi benarnya. Rasional desain dan
   alternatif yang ditolak tetap ditulis ("Alternatif X tidak dipakai karena ...").
   Tanggal hanya sebagai metadata pengukuran ("Kondisi uji: board N16R8, 19 Sep 2026").
+- **`docs/` = masih berlaku, `docs/arsip/` = catatan historis.** Dokumen
+  bertanggal yang masih berjalan (daftar kerja, riset yang aksinya belum
+  diputuskan, rencana yang belum selesai) ditaruh langsung di `docs/` (nama
+  `YYYY-MM-DD-<topik>.md`) dan didaftar di `docs/README.md`. Isi `docs/arsip/`
+  dan `model/docs/arsip/` **tidak berlaku sebagai acuan kerja**: hanya riwayat.
+  Jangan dibaca sebagai konteks kerja kecuali user merujuknya atau sedang
+  menelusuri asal sebuah keputusan; kondisi yang berlaku ada di README
+  komponen, walkthrough, `CLAUDE.md`, dan skill.
 - **Riwayat masuk arsip.** Rencana, desain, changelog, dan catatan revisi
-  bertanggal ditulis di `docs/arsip/` atau `model/docs/arsip/` (nama
-  `YYYY-MM-DD-<topik>.md`), atau dipindah ke sana setelah selesai. Riwayat yang
+  yang selesai dipindah ke `docs/arsip/` atau `model/docs/arsip/` lewat
+  `git mv` (prosedur di `docs/README.md`), setelah hasilnya tercatat di
+  dokumen yang berlaku. Riwayat yang
   dikeluarkan dari sebuah dokumen aktif → `arsip/riwayat-<nama-dokumen>.md`.
   Perubahan terhadap rencana awal dicatat dengan tanggalnya di changelog arsip.
 - **Alat sekali pakai → `*/arsip/`** (mis. `firmware/arsip/`), atau dihapus
