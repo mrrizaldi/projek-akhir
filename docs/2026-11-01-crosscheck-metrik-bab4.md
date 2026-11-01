@@ -114,7 +114,7 @@ Butir di luar cakupan buku tahap 1 (pipeline, daya) ditunda.
 
 | # | Pertanyaan | Keputusan |
 |---|---|---|
-| 1 | Butir A dimasukkan ke buku | `progres-pa-1`: A4, A5, A6, A7, A8 diterapkan (1 Nov 2026). B1–B3 dan B5 sudah dihitung (1 Nov 2026, `model/scripts/metrik_tambahan.py` dan `kualitas_jendela.py`; angka di `model/docs/evaluate-walkthrough.md` §3b, `quantize-walkthrough.md` §6, `akuisisi-walkthrough.md` §6) dan belum dimasukkan ke buku. A9 butuh angka maks latensi dari board. `buku-pa` belum disunting dan menyusul saat buku full dikerjakan |
+| 1 | Butir A dimasukkan ke buku | `progres-pa-1`: A4, A5, A6, A7, A8 diterapkan (1 Nov 2026). B1–B3 dan B5 sudah dihitung (1 Nov 2026, `model/scripts/metrik_tambahan.py` dan `kualitas_jendela.py`; angka di `model/docs/evaluate-walkthrough.md` §3b, `quantize-walkthrough.md` §6, `akuisisi-walkthrough.md` §6) dan dimasukkan ke `progres-pa-1` Bab 4 kecuali PR-AUC: MCC, rerata recall per rekaman, Δ INT8 per kelas, SQI per jendela (rujukan `syversen_2024`, `richardson_2024`, `chicco_2020`). PR-AUC tidak dilaporkan di buku karena Richardson dkk. 2024 menunjukkan ROC-AUC tahan ketidakseimbangan kelas sedangkan PR-AUC tidak. A9 butuh angka maks latensi dari board. `buku-pa` belum disunting dan menyusul saat buku full dikerjakan |
 | 2 | Target p95 latensi (opsi ITU-T G.1010 "acceptable < 4 s", p95 terburuk 3.304 ms) | Ditunda, di luar buku tahap 1 |
 | 3 | D1, config INA219 `0x39FF` + CNVR sebelum tangga daya | Ditunda, di luar buku tahap 1 |
 | 4 | Validasi R-peak/HR | A8: hasil akuisisi ditulis sebagai status fungsional, bukan akurasi, karena belum ada alat medis acuan. B6 dan C7 tidak dikerjakan. Penulisannya dikerjakan nanti bersama butir A lain |
