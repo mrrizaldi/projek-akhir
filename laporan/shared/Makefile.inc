@@ -5,6 +5,7 @@
 ## Variabel yang bisa di-override per projek:
 ##   MAIN   — nama file tex tanpa ekstensi (default: main)
 ##   OUTDIR — folder output (default: output)
+##   DOCX   — DOCX yang di-sync balik ke .tex (default: $(OUTDIR)/$(MAIN).docx)
 ##
 ## Ukuran kertas: TETAP per projek (diset di main.tex via documentclass +
 ## \input ../shared/size-aX). Tidak ada switch a4/a5 saat compile.
@@ -12,6 +13,9 @@
 ## Targets:
 ##   make pdf     — compile PDF
 ##   make docx    — konversi ke DOCX via WordCraft (wordcraft-cli; format dari ../wordcraft.toml)
+##   make sync    — tulis balik perubahan paragraf dari DOCX ke .tex (wordcraft-cli latex-sync);
+##                  tiap paragraf yang ditulis diberi penanda '% MANUAL'; make sync DOCX=file.docx
+##   make sync-dry — sama, tapi hanya tampilkan diff, tidak menulis
 ##   make view    — buka PDF
 ##   make clean   — hapus folder output
 ##   make rebuild — clean + pdf
@@ -21,10 +25,11 @@
 MAIN      ?= main
 OUTDIR    ?= output
 WORDCRAFT ?= wordcraft-cli
+DOCX      ?= $(OUTDIR)/$(MAIN).docx
 
 PDFLATEX = pdflatex -jobname=$(MAIN) -output-directory=$(OUTDIR) -interaction=nonstopmode
 
-.PHONY: pdf docx view clean rebuild check
+.PHONY: pdf docx sync sync-dry view clean rebuild check
 
 pdf:
 	mkdir -p $(OUTDIR)
@@ -38,6 +43,12 @@ docx:
 	mkdir -p $(OUTDIR)
 	$(WORDCRAFT) convert $(MAIN).tex $(OUTDIR)/$(MAIN).docx
 	@echo "DOCX tersimpan di $(OUTDIR)/$(MAIN).docx (jalankan make pdf dulu agar output/$(MAIN).bbl ada)"
+
+sync:
+	$(WORDCRAFT) latex-sync $(DOCX) --main $(MAIN).tex
+
+sync-dry:
+	$(WORDCRAFT) latex-sync $(DOCX) --main $(MAIN).tex --dry-run
 
 view: pdf
 	xdg-open $(OUTDIR)/$(MAIN).pdf &

@@ -150,6 +150,24 @@ Aturan penulisan paragraf akademik untuk proposal dan buku:
 - **Jangan pakai numbering inline** seperti `(1)`, `(2)`, `(3)` di dalam paragraf. Sebut secara naratif dengan koma dan konjungsi, atau gunakan environment `enumerate` jika butuh daftar bernomor
 - Pengecualian: titik koma dalam tabel (sel pendek) dan label heading terstruktur (misal "Tahap 1") diperbolehkan
 
+### Penanda `% MANUAL` (WordCraft sync)
+
+Kalau penulis menyunting dokumen di WordCraft (atau DOCX) lalu menyimpan balik ke `.tex`, setiap
+paragraf yang ditulis oleh sync diberi satu baris penanda di atasnya:
+
+```latex
+% MANUAL 2026-11-01 (wordcraft sync): teks penulis, jangan diubah otomatis
+Paragraf yang ditulis penulis dari WordCraft.
+```
+
+Aturan untuk agen dan skrip:
+
+- Paragraf tepat di bawah baris `% MANUAL <tanggal> (wordcraft sync): …` adalah **teks penulis sendiri**, ditulis apa adanya dari WordCraft. **Jangan ditulis ulang, dirapikan, atau dikoreksi**, termasuk oleh agen dan skrip (`cek_tabel.py` dan sejenisnya).
+- Agen dan skrip **boleh melaporkan** pelanggaran aturan di paragraf itu (titik dua, titik koma, istilah, desimal, dan seterusnya), lalu penulis yang memutuskan.
+- Hapus penanda hanya kalau penulis memintanya. Sync berikutnya mengganti penanda lama (tidak menumpuk).
+- Baris `% KOMENTAR [nama, tanggal]: …` (dengan lanjutan `%   …` untuk balasan) adalah catatan reviewer dari komentar Word. Kerjakan isinya, lalu hapus barisnya.
+- Sync tidak menulis tabel, gambar, persamaan, heading, atau baris/kolom tabel baru. Bagian itu ditambahkan di LaTeX dan dilaporkan sync sebagai "add it in LaTeX".
+
 ### Larangan Label Kerja Internal Repo (WAJIB)
 
 Proposal, progres, dan buku adalah dokumen akademik formal. Label kerja internal
@@ -256,5 +274,15 @@ DOCX dibuat oleh WordCraft dari proyek LaTeX (`make pdf docx`; `make pdf` dulu s
 `output/main.bbl` ada untuk nomor sitasi). Formatnya (heading BAB, caption, margin, spasi,
 daftar isi, pustaka) datang dari `laporan/wordcraft.toml`, bukan dari preamble: kalau
 `shared/preamble.tex` / `size-a4.tex` berubah, sesuaikan `wordcraft.toml` juga. Page break
-bisa geser 1–2 halaman dari PDF. DOCX untuk dibaca/review; submit tetap PDF. Fitur sync
-balik dari WordCraft ke `.tex` (dan aturan penanda `% MANUAL`) menyusul.
+bisa geser 1–2 halaman dari PDF. DOCX untuk dibaca/review; submit tetap PDF.
+
+Sync balik ke `.tex` sudah ada. Dua jalur:
+
+- Dari aplikasi WordCraft: buka `main.tex`, sunting, Ctrl+S. Hanya paragraf yang berubah
+  yang ditulis ulang, apa adanya, dengan penanda `% MANUAL` di atasnya (lihat "Penanda `% MANUAL`").
+- Dari DOCX yang disunting di Word/LibreOffice: `make sync DOCX=output/main.docx`
+  (`DOCX` default `output/main.docx`). `make sync-dry` hanya menampilkan diff tanpa menulis.
+
+Kalau `.tex` berubah setelah DOCX dibuat, sync menolak (guard hash): jalankan `make docx` lagi
+dan sunting ulang. Komentar Word menjadi baris `% KOMENTAR`. Tabel, gambar, persamaan, dan heading
+baru tidak ditulis balik. Detail: `wordcraft/docs/latex.md`.
