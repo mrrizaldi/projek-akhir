@@ -260,8 +260,9 @@ lintas basis data tidak ditulis walau hasilnya ada di repo (19 Okt 2026).
 Pustaka diutamakan terbitan 2020 ke atas, kecuali sumber asli metode/data
 dan standar yang masih berlaku (arahan dosen; rasional per entri di
 `docs/arsip/2026-10-19-referensi-pra-2020.md`). Buku full =
-`laporan/buku-pa` (dikerjakan), varian progres = `laporan/progres-pa-1`
-(dibekukan, dibahas ulang bersama user). **`laporan/proposal-pa` sudah
+`laporan/buku-pa` (dikerjakan), buku tahap 1 = `laporan/progres-pa-1`
+(buku-pa tanpa INA219 dan catu daya, isi 50–70% menurut pembimbing;
+prosedur regenerasi di `laporan/CLAUDE.md`). **`laporan/proposal-pa` sudah
 diserahkan dan dibekukan (15 Okt 2026): tidak disunting lagi, termasuk
 `.bib`-nya.** Buku tidak memuat tabel "perubahan dari proposal" dan tidak
 memberi label bernomor "Tujuan N" di judul atau kalimat; gaya mengikuti buku

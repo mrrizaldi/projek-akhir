@@ -1,18 +1,16 @@
 \chapter{Deskripsi Sistem}
 \label{chap:deskripsi-sistem}
 
-Bab ini menguraikan rancangan sistem pemantauan detak jantung kontinu dengan deteksi dini aritmia di perangkat \textit{edge}. Pembahasan diawali dengan deskripsi solusi, kemudian dilanjutkan dengan desain sistem yang mencakup rancangan perangkat keras, alur akuisisi dan preprocessing sinyal ECG, model klasifikasi beserta data dan proses pelatihannya, \textit{pipeline edge-to-cloud} yang resilien, serta antarmuka \textit{monitoring}. Bab ini ditutup dengan rencana pengujian yang menetapkan metrik dan target untuk memvalidasi setiap bagian sistem.
-
 \section{Deskripsi Solusi}
 \label{sec:deskripsi-solusi}
 
-Sistem pemantauan detak jantung berbasis IoT pada umumnya mengirimkan sinyal mentah secara langsung ke server \textit{cloud} untuk diproses~\cite{al_quayed_2026}. Pendekatan terpusat ini menimbulkan latensi yang tinggi, beban komputasi yang menumpuk pada server, serta ketergantungan besar terhadap kestabilan koneksi internet, sehingga sistem rentan kehilangan data ketika jaringan terganggu~\cite{resilient_edge_cloud}. Padahal, pemantauan kardiovaskular bersifat kontinu dan kritis terhadap waktu, sehingga keterlambatan maupun terputusnya aliran data dapat mengurangi efektivitas deteksi dini aritmia.
+Sistem pemantauan detak jantung berbasis IoT pada umumnya mengirimkan sinyal mentah secara langsung ke server \textit{cloud} untuk diproses~\cite{kim_2023, escobedo_2026}. Pendekatan terpusat ini menimbulkan latensi komunikasi, beban komputasi yang menumpuk pada server, serta ketergantungan besar terhadap kestabilan koneksi internet~\cite{al_quayed_2026, kim_2023}. Akibatnya, sistem rentan kehilangan data ketika jaringan terganggu~\cite{escobedo_2026}. Padahal, pemantauan kardiovaskular bersifat kontinu dan kritis terhadap waktu, sehingga keterlambatan maupun terputusnya aliran data dapat mengurangi efektivitas deteksi dini aritmia.
 
-Solusi yang ditawarkan pada penelitian ini adalah sistem pemantauan detak jantung kontinu yang melakukan deteksi dini aritmia secara langsung pada mikrokontroler (\textit{on-device inference}) dengan pendekatan \textit{edge computing}, serta didukung oleh \textit{pipeline edge-to-cloud} yang tahan terhadap gangguan koneksi. Dengan memindahkan proses inferensi ke perangkat, sistem tidak lagi bergantung sepenuhnya pada \textit{cloud} untuk mengambil keputusan.
+Solusi yang ditawarkan pada penelitian ini adalah sistem pemantauan detak jantung kontinu yang melakukan deteksi dini aritmia secara langsung pada mikrokontroler (\textit{on-device inference}) dengan pendekatan \textit{edge computing}. Sistem ini didukung oleh \textit{pipeline edge-to-cloud} yang tahan terhadap gangguan koneksi. Dengan memindahkan proses inferensi ke perangkat, sistem tidak lagi bergantung sepenuhnya pada \textit{cloud} untuk mengambil keputusan.
 
 Terdapat tiga fitur utama yang menjadi klaim orisinalitas solusi ini. Pertama, preprocessing sinyal ECG dilakukan secara \textit{real-time} di perangkat menggunakan filter Butterworth dan algoritma Pan-Tompkins. Kedua, inferensi aritmia dilakukan langsung di perangkat melalui model jaringan saraf konvolusional (CNN) yang dikuantisasi ke INT8 agar ringan dijalankan pada ESP32-S3. Ketiga, \textit{pipeline edge-to-cloud} dirancang resilien dengan mekanisme \textit{buffering} lokal dan protokol MQTT untuk menjaga kontinuitas serta keutuhan data.
 
-Ketiga fitur tersebut secara langsung menjawab permasalahan yang diuraikan pada Bab 1. Pemrosesan dan inferensi di sisi \textit{edge} menekan latensi serta mengurangi ketergantungan pada \textit{cloud}, sementara \textit{pipeline} yang resilien menjamin data tetap tersimpan dan terkirim utuh meskipun koneksi sempat terputus. Dengan demikian, sistem mampu menyediakan pemantauan aritmia yang efektif.
+Ketiga fitur tersebut secara langsung menjawab permasalahan penelitian. Pemrosesan dan inferensi di sisi \textit{edge} menekan latensi serta mengurangi ketergantungan pada \textit{cloud}, sementara \textit{pipeline} yang resilien menjaga data tetap tersimpan dan terkirim utuh meskipun koneksi sempat terputus. Dengan demikian, sistem mampu menyediakan pemantauan aritmia yang efektif.
 
 \section{Desain Sistem}
 \label{sec:desain-sistem}
@@ -30,53 +28,51 @@ Desain sistem merupakan penjelasan teknis dari solusi yang berisi urutan proses 
   \label{fig:arsitektur-sistem}
 \end{figure}
 
-Gambar~\ref{fig:arsitektur-sistem} menunjukkan bahwa sinyal ECG diakuisisi oleh sensor ECG single-lead lalu diproses sepenuhnya pada perangkat \textit{edge} berbasis ESP32-S3, mencakup preprocessing dan inferensi serta bufer data dan komunikasi MQTT. Hasil deteksi dikirim melalui jaringan WiFi menuju \textit{broker} MQTT di \textit{cloud} untuk ditampilkan pada \textit{dashboard} dan memicu notifikasi dini. Validasi performa perangkat keras dilakukan pada lapisan \textit{edge} terhadap proses preprocessing hingga inferensi. Uraian rinci tiap komponen dijelaskan pada sub-bagian berikut.
+Gambar~\ref{fig:arsitektur-sistem} menunjukkan bahwa sinyal ECG diakuisisi oleh sensor ECG single-lead lalu diproses sepenuhnya pada perangkat \textit{edge} berbasis ESP32-S3, mencakup preprocessing dan inferensi serta bufer data dan komunikasi MQTT. Hasil deteksi dikirim melalui jaringan WiFi menuju \textit{broker} MQTT di \textit{cloud} untuk ditampilkan pada \textit{dashboard} dan memicu notifikasi dini. Validasi performa perangkat keras dilakukan pada lapisan \textit{edge} terhadap proses preprocessing hingga inferensi.
 
 \subsection{Perancangan Perangkat Keras}
 \label{subsec:perangkat-keras}
 
-Perangkat \textit{edge} tersusun atas mikrokontroler ESP32-S3 sebagai pusat pemrosesan yang dikelilingi oleh sensor ECG, antarmuka keluaran, masukan pengguna, dan pengukur daya. Komponen yang digunakan beserta fungsinya diuraikan pada butir berikut.
+Perangkat \textit{edge} tersusun atas mikrokontroler ESP32-S3 sebagai pusat pemrosesan yang dikelilingi oleh sensor ECG, antarmuka keluaran, dan masukan pengguna. Komponen yang digunakan beserta fungsinya diuraikan pada butir berikut.
 
 \begin{enumerate}[label=\alph*.]
-  \item \textbf{ESP32-S3 N16R8.} Mikrokontroler ini menjalankan seluruh proses di sisi \textit{edge}, mulai dari akuisisi, preprocessing, inferensi model INT8, hingga komunikasi MQTT melalui WiFi. Varian N16R8 memiliki memori \textit{flash} 16 MB dan PSRAM 8 MB, dan dikonfigurasi pada PlatformIO dengan profil papan 4d\_systems\_esp32s3\_gen4\_r8n16.
-  % sumber: firmware/platformio.ini (board = 4d_systems_esp32s3_gen4_r8n16, komentar "16MB flash, 8MB PSRAM")
-  \item \textbf{AD8232 dan elektroda.} Modul AD8232 menguatkan dan menyaring biopotensial jantung yang ditangkap elektroda \textit{wet-gel} pada posisi RA, LA, dan RL dalam konfigurasi Lead II. Keluaran analognya (OUT) disambungkan ke kanal ADC1 yang tetap dapat digunakan ketika WiFi menyala, sedangkan keluaran \textit{lead-off} (LO+ dan LO$-$) disambungkan ke GPIO digital. Keluaran \textit{lead-off} tidak dijadikan dasar penilaian kualitas sinyal karena syaratnya dapat dipenuhi oleh satu jalur impedansi rendah saja, sehingga kualitas dinilai dari ayunan sinyal ADC sebagaimana diuraikan pada Subbab~\ref{subsec:pipeline-edge-cloud}.
-  % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §4 (OUT ke ADC1, LO-/LO+ ke GPIO); model/CLAUDE.md jebakan "Telemetri akuisisi bisa berbohong" (LO cuma butuh satu jalur impedansi rendah); firmware/src/main.cpp (gerbang AMBANG_AYUN)
-  \item \textbf{Layar TFT ST7789 1,47 inci.} Layar beresolusi 172$\times$320 piksel ini berantarmuka SPI dan menampilkan laju jantung, status elektroda, serta gelombang ECG tersaring langsung pada perangkat.
-  % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §1 (TFT ST7789 1,47" 172x320); firmware/src/hwtest.cpp (isi layar)
-  \item \textbf{\textit{Buzzer} pasif.} Modul \textit{buzzer} pasif A18009 memiliki tiga pin, yaitu VCC, GND, dan I/O, dengan transistor penggerak yang sudah berada di dalam modul. Modul ini tidak memiliki osilator sehingga harus digerakkan gelombang kotak 2--5 kHz yang dibangkitkan LEDC pada ESP32-S3, dan nadanya dapat diatur dari \textit{firmware} sehingga satu bip dapat dibunyikan untuk setiap detak. Masukan I/O bersifat aktif LOW, yaitu arus mengalir ke \textit{buzzer} ketika I/O berlogika LOW dan keadaan diam dicapai pada logika HIGH. Modul dicatu dari jalur 3V3, bukan 5 V, karena pada catu 5 V transistor modul tetap menyala ketika GPIO berlogika HIGH 3,3 V sehingga \textit{buzzer} tidak pernah diam.
-  % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §2 (modul pasif A18009 3 pin, aktif LOW, VCC 3V3 "Kenapa VCC harus 3V3", gelombang kotak 2-5 kHz); firmware/src/hwtest.cpp (PIN_BUZZ 13, BUZZER_PASIF 1, LEDC dengan keluaran terbalik, bip per beat)
-  \item \textbf{Tiga tombol.} Setiap tombol disambungkan antara GPIO dan GND dengan \textit{pull-up} internal yang diaktifkan oleh \textit{firmware}. Pada \textit{firmware} utama, satu tombol memulai dan menghentikan perekaman sinyal mentah (REC), satu tombol mengirim rekaman tersebut ke komputer melalui serial (DUMP), dan tombol ketiga disiapkan untuk fungsi tambahan.
-  % sumber: firmware/src/main.cpp (PIN_REC, PIN_DUMP, INPUT_PULLUP); model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §3 (SW1 belum dipakai)
-  \item \textbf{INA219.} Modul pengukur arus dan tegangan berantarmuka I2C ini ditempatkan pada jalur daya untuk mengukur konsumsi daya perangkat. Pembacaannya dirata-ratakan oleh modul karena arus perangkat berdenyut mengikuti beban komputasi yang datang sesaat.
-  % sumber: firmware/include/ina219.h (INA219_CONFIG, averaging 128 sampel); model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §6
-  \item \textbf{LED \textit{NeoPixel}.} LED RGB bawaan papan pada GPIO 48 ini dipakai \textit{firmware} utama sebagai indikator status, yaitu biru selama fase kalibrasi, hijau ketika ayunan sinyal mencukupi, oranye ketika ayunan sinyal di bawah ambang, dan merah selama perekaman sinyal mentah.
-  % sumber: firmware/src/main.cpp perbarui_led() (PIN_LED 48; rekam merah, FASE_KALIBRASI biru, ayun di bawah AMBANG_AYUN oranye, selain itu hijau); model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §5 (NeoPixel GPIO 48 onboard)
+  \item \textbf{ESP32-S3 N16R8.} Mikrokontroler ini menjalankan seluruh proses di sisi \textit{edge}, mulai dari akuisisi, preprocessing, inferensi model INT8, antarmuka pengguna, hingga komunikasi MQTT melalui WiFi. Varian N16R8 memiliki memori \textit{flash} 16 MB dan PSRAM 8 MB. Seluruh fungsi tersebut dijalankan oleh satu \textit{firmware} yang tersusun atas modul akuisisi, gerbang kualitas, klasifikasi, tampilan, tombol, menu, perekaman, dan konfigurasi jaringan. Karena itu, operasi normal dan pengujian perangkat memakai kode yang sama.
+  % sumber: firmware/platformio.ini (board = 4d_systems_esp32s3_gen4_r8n16, komentar "16MB flash, 8MB PSRAM"); firmware/README.md tabel Struktur (src/akuisisi.cpp, gerbang.cpp, klasifikasi.cpp, tampilan.cpp, tombol.cpp, menu.cpp, rekam.cpp, daya.cpp, konfig.cpp); git log 9ba6498 (main.cpp dipecah per modul)
+  \item \textbf{AD8232 dan elektroda.} Modul AD8232 menguatkan dan menyaring biopotensial jantung yang ditangkap elektroda \textit{wet-gel} pada posisi RA, LA, dan RL dalam konfigurasi Lead II. Keluaran analognya (OUT) disambungkan ke kanal ADC1 yang tetap dapat digunakan ketika WiFi menyala, sedangkan keluaran \textit{lead-off} (LO+ dan LO$-$) disambungkan ke GPIO digital. Keluaran \textit{lead-off} tidak dijadikan dasar penilaian kualitas sinyal karena syaratnya dapat dipenuhi oleh satu jalur impedansi rendah saja. Kualitas dinilai dari ayunan sinyal ADC.
+  % sumber: firmware/include/perangkat.h (KANAL_EKG ADC1_CHANNEL_0, PIN_LON 2, PIN_LOP 42); model/docs/akuisisi-walkthrough.md §1 (ADC2 mati begitu WiFi menyala) dan §2 (LO bukan jaminan sinyal); firmware/src/gerbang.cpp (AMBANG_AYUN)
+  \item \textbf{Layar TFT ST7789 1,47 inci.} Layar beresolusi 172$\times$320 piksel ini berantarmuka SPI dan dipasang dalam orientasi mendatar. Layar menampilkan laju jantung, gelombang ECG tersaring, waktu, dan status perekaman pada mode pemantauan, serta halaman menu ketika menu dibuka.
+  % sumber: firmware/include/perangkat.h (TFT_W 320, TFT_H 172, rotasi 1, CS ke GND); firmware/src/tampilan.cpp; firmware/README.md bagian Antarmuka alat
+  \item \textbf{\textit{Buzzer} pasif.} Modul \textit{buzzer} pasif A18009 memiliki tiga pin, yaitu VCC, GND, dan I/O, dengan transistor penggerak yang sudah berada di dalam modul. Modul ini tidak memiliki osilator dan harus digerakkan gelombang kotak 2--5 kHz yang dibangkitkan LEDC pada ESP32-S3. Nadanya dapat diatur dari \textit{firmware}, dan satu bip dapat dibunyikan untuk setiap detak. Masukan I/O bersifat aktif LOW, yaitu arus mengalir ke \textit{buzzer} ketika I/O berlogika LOW dan keadaan diam dicapai pada logika HIGH. Modul dicatu dari jalur 3V3, bukan 5 V, karena pada catu 5 V transistor modul tetap menyala ketika GPIO berlogika HIGH 3,3 V dan \textit{buzzer} tidak pernah diam. Pin \textit{buzzer} berimpit dengan pin MISO bawaan antarmuka SPI pada ESP32-S3. Karena itu, \textit{firmware} memasang SPI layar lebih dahulu sebelum memasang LEDC agar pin tersebut tidak direbut oleh SPI.
+  % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §2 (modul pasif A18009 3 pin, aktif LOW, VCC 3V3, gelombang kotak 2-5 kHz); firmware/include/perangkat.h (PIN_BUZZ 13, NADA_HZ 2000); firmware/README.md bagian Pin map (SPI.begin(9, -1, 8) sebelum LEDC, MISO bawaan FSPI = GPIO 13); firmware/src/perangkat.cpp perangkat_mulai()
+  \item \textbf{Tiga tombol.} Tombol B1, B2, dan B3 masing-masing disambungkan antara GPIO dan GND dengan \textit{pull-up} internal yang diaktifkan oleh \textit{firmware}. Setiap tombol membedakan tekan pendek dan tekan lama. Dengan pembedaan itu, tiga tombol cukup untuk mengoperasikan seluruh fungsi perangkat, mulai dari membisukan bip, merekam sinyal, hingga membuka menu.
+  % sumber: firmware/include/perangkat.h (PIN_BTN 4, 5, 6, pull-up internal); firmware/src/tombol.cpp (debounce 50 ms, ambang tekan lama 800 ms)
+  \item \textbf{LED \textit{NeoPixel}.} LED RGB bawaan \textit{board} pada GPIO 48 ini hanya menjadi indikator kualitas sinyal. Warnanya biru selama fase kalibrasi, hijau ketika kontak elektroda dinilai baik, dan oranye ketika kontak elektroda dinilai buruk. Warnanya tidak berubah ketika perekaman berlangsung, karena status perekaman ditampilkan di layar.
+  % sumber: firmware/src/tampilan.cpp perbarui_led() (arti LED = kualitas sinyal saja, status rekaman di layar kanan atas); model/docs/akuisisi-walkthrough.md §2
 \end{enumerate}
 
-Hubungan antarkomponen tersebut beserta jalur sinyal dan dayanya diilustrasikan pada Gambar~\ref{fig:blok-perangkat-keras}.
+Hubungan antarkomponen tersebut beserta jalur sinyalnya diilustrasikan pada Gambar~\ref{fig:blok-perangkat-keras}.
 
 % PLACEHOLDER-GAMBAR fig:blok-perangkat-keras  (digambar user, bukan Claude)
 % Jenis      : diagram blok perangkat keras, landscape
-% Pesan      : komponen dan jalur sinyal/daya di sekitar ESP32-S3
+% Pesan      : komponen dan jalur sinyal di sekitar ESP32-S3
 % Elemen     : ESP32-S3 N16R8; AD8232 (OUT ke ADC, LO+ LO-); elektroda RA LA RL;
-%              TFT ST7789 (SPI); modul buzzer pasif A18009 (VCC dari 3V3, I/O langsung ke GPIO, aktif LOW); 3 tombol;
-%              INA219 (I2C) di jalur daya; sumber daya USB
-% Alur baca  : sensor kiri -> ESP32-S3 tengah -> keluaran (TFT, buzzer, WiFi) kanan; daya bawah
+%              TFT ST7789 (SPI); modul buzzer pasif A18009 (VCC dari 3V3, I/O langsung ke GPIO, aktif LOW);
+%              tombol B1 B2 B3; LED NeoPixel; catu USB ke pin 5 V board
+% Alur baca  : sensor kiri -> ESP32-S3 tengah -> keluaran (TFT, buzzer, LED, WiFi) kanan; tombol atas
 % Teks       : nama komponen persis seperti di paragraf
-% Bahan repo : model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md; firmware/src/hwtest.cpp
+% Bahan repo : firmware/include/perangkat.h; firmware/README.md bagian Pin map; model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md
 \begin{figure}[H]
   \centering
-  \PlaceholderGambar{Diagram blok perangkat keras}{ESP32-S3, AD8232, TFT, \textit{buzzer}, tombol, INA219}
+  \PlaceholderGambar{Diagram blok perangkat keras}{ESP32-S3, AD8232, TFT, \textit{buzzer}, tombol, dan LED}
   \caption{Diagram blok perangkat keras}
   \label{fig:blok-perangkat-keras}
 \end{figure}
 
-Gambar~\ref{fig:blok-perangkat-keras} menunjukkan jalur sinyal yang dibaca dari kiri ke kanan. Di sisi kiri, elektroda RA, LA, dan RL menyalurkan biopotensial ke AD8232, yang meneruskan keluaran OUT ke ADC serta sinyal LO+ dan LO$-$ ke ESP32-S3. ESP32-S3 di bagian tengah juga menerima masukan dari tiga tombol. Di sisi kanan, ESP32-S3 menggerakkan TFT ST7789 melalui SPI, modul \textit{buzzer} pasif melalui satu pin GPIO dengan gelombang kotak, dan mengirim hasil klasifikasi melalui WiFi. Di bagian bawah, daya dari sumber USB mengalir melalui INA219 yang dibaca ESP32-S3 melalui I2C, sehingga konsumsi daya seluruh rangkaian dapat diukur oleh perangkat itu sendiri. Modul \textit{buzzer} pasif mendapat catu dari jalur 3V3, bukan dari jalur +5 V.
-% sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §2 (buzzer pasif langsung ke GPIO 13, VCC 3V3); firmware/src/hwtest.cpp (PIN_BUZZ 13, LEDC)
+Gambar~\ref{fig:blok-perangkat-keras} menunjukkan jalur sinyal yang dibaca dari kiri ke kanan. Di sisi kiri, elektroda RA, LA, dan RL menyalurkan biopotensial ke AD8232, yang meneruskan keluaran OUT ke ADC serta sinyal LO+ dan LO$-$ ke ESP32-S3. ESP32-S3 di bagian tengah juga menerima masukan dari tombol B1, B2, dan B3. Di sisi kanan, ESP32-S3 menggerakkan TFT ST7789 melalui SPI, modul \textit{buzzer} pasif melalui satu pin GPIO dengan gelombang kotak, dan LED \textit{NeoPixel}, serta mengirim hasil klasifikasi melalui WiFi. Modul \textit{buzzer} pasif mendapat catu dari jalur 3V3, bukan dari jalur 5 V.
+% sumber: firmware/README.md bagian Pin map; firmware/include/perangkat.h (PIN_BUZZ 13, LEDC)
 
-Pemetaan sinyal setiap komponen ke GPIO ESP32-S3 pada rangkaian \textit{breadboard} dan pada PCB ditunjukkan pada Tabel~\ref{tab:pin-map}. Kolom \textit{breadboard} memuat pin yang dipakai \textit{firmware} utama dan tanda ``--'' menandakan komponen yang tidak dipasang pada rangkaian tersebut. TFT, \textit{buzzer}, dan tombol diuji terpisah pada \textit{breadboard} dengan program uji perangkat keras yang memakai pemetaan pin PCB pada kolom terakhir.
-% sumber: firmware/src/hwtest.cpp baris 1-2 dan 15-22 (uji perangkat keras di breadboard, pin map PCB rev1); firmware/platformio.ini [env:hwtest] dan [env:esp32-s3] (build_src_filter memisahkan hwtest.cpp dari firmware utama)
+Pemetaan sinyal setiap komponen ke GPIO ESP32-S3 ditunjukkan pada Tabel~\ref{tab:pin-map}. Pemetaan ini menjadi satu-satunya acuan pin bagi \textit{firmware}, baik pada operasi normal maupun pada pengujian perangkat.
+% sumber: firmware/include/perangkat.h (sumber tunggal pin map, dipakai main dan test_hw_*)
 
 \begin{table}[!ht]
   \centering
@@ -85,53 +81,41 @@ Pemetaan sinyal setiap komponen ke GPIO ESP32-S3 pada rangkaian \textit{breadboa
   \small
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
-  \begin{tabular}{|>{\RaggedRight\arraybackslash}p{2.6cm}|>{\RaggedRight\arraybackslash}p{3.4cm}|>{\RaggedRight\arraybackslash}p{2.9cm}|>{\RaggedRight\arraybackslash}p{3.6cm}|}
-    \hline
-    \rowcolor{headgray}
-    \textbf{Komponen} & \textbf{Sinyal} & \textbf{Pin \textit{breadboard} (\textit{firmware} utama)} & \textbf{Pin PCB rev1/rev2} \\
-    \hline
-    % sumber: firmware/src/main.cpp baris 27-28 (KANAL_EKG ADC1_CHANNEL_7 = GPIO 8, PIN_LOP 17, PIN_LON 7)
-    % sumber: firmware/src/hwtest.cpp baris 18-19 (ADC1_CHANNEL_0 = GPIO 1, PIN_LON 2, PIN_LOP 42)
-    AD8232 & OUT (analog) & GPIO 8 (ADC1\_CH7) & GPIO 1 (ADC1\_CH0) \\
-    \hline
-    AD8232 & LO+ / LO$-$ & GPIO 17 / 7 & GPIO 42 / 2 \\
-    \hline
-    % sumber: firmware/src/hwtest.cpp baris 17, 20 (TFT_SCK 9, TFT_MOSI 8, TFT_RST 10, TFT_DC 11, CS ke GND)
-    % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §1 dan §5 (J2 1x8 dengan CS ke GND, BLK ke 3V3 atau GPIO 12 untuk PWM)
-    TFT ST7789 & SCK / MOSI (SPI) & -- & GPIO 9 / 8 \\
-    \hline
-    TFT ST7789 & RES / DC & -- & GPIO 10 / 11 \\
-    \hline
-    TFT ST7789 & CS & -- & GND (rev2: \textit{header} J2 8 pin) \\
-    \hline
-    TFT ST7789 & BLK & -- & rev2: 3V3 (opsional GPIO 12 untuk PWM) \\
-    \hline
-    % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §2 dan §5 (buzzer pasif aktif LOW, net BUZZ GPIO 12 menjadi GPIO 13); firmware/src/hwtest.cpp (PIN_BUZZ 13)
-    \textit{Buzzer} pasif (aktif LOW) & I/O & -- & GPIO 13 (rev1: GPIO 12 lewat 2N2222) \\
-    \hline
-    % sumber: firmware/src/main.cpp baris 29 (PIN_DUMP 5, PIN_REC 6); firmware/src/hwtest.cpp baris 22 (PIN_BTN 4, 5, 6)
-    % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §3 (BTN1 tetap GPIO 4 per 9 Okt 2026)
-    Tombol 1 / 2 / 3 & BTN1 / BTN2 (DUMP) / BTN3 (REC) & -- / GPIO 5 / GPIO 6 & GPIO 4 / 5 / 6 \\
-    \hline
-    % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §5 dan §6 (INA219 I2C ke GPIO 17/18, VCC ke 3V3)
-    INA219 & SDA / SCL (I2C) & -- & rev2: GPIO 17 / 18 \\
-    \hline
-    % sumber: firmware/src/main.cpp baris 29 (PIN_LED 48, neopixelWrite); model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §5 (NeoPixel GPIO 48 onboard)
-    LED \textit{NeoPixel} & Data (indikator status) & GPIO 48 (bawaan papan) & GPIO 48 (bawaan papan) \\
-    \hline
-  \end{tabular}
+  \begin{tabularx}{\linewidth}{>{\RaggedRight\arraybackslash}p{3.0cm}>{\RaggedRight\arraybackslash}p{3.4cm}>{\RaggedRight\arraybackslash}X}
+    \toprule
+    \textbf{Komponen} & \textbf{Sinyal} & \textbf{GPIO dan Keterangan} \\
+    \midrule
+    % sumber: firmware/include/perangkat.h (ADC1_CHANNEL_0 = GPIO 1, PIN_LON 2, PIN_LOP 42)
+    \multirow{2}{*}{AD8232} & OUT (analog) & GPIO 1 (ADC1\_CH0) \\
+    & LO+ / LO$-$ & GPIO 42 / 2, \textit{pull-up} internal \\
+    \midrule
+    % sumber: firmware/include/perangkat.h (TFT_SCK 9, TFT_MOSI 8, TFT_RST 10, TFT_DC 11, CS ke GND, BLK ke 3V3)
+    \multirow{3}{*}{TFT ST7789} & SCK / MOSI (SPI) & GPIO 9 / 8 \\
+    & RES / DC & GPIO 10 / 11 \\
+    & CS / BLK & Diikat ke GND / diikat ke 3V3 \\
+    \midrule
+    % sumber: firmware/include/perangkat.h (PIN_BUZZ 13, modul pasif A18009 aktif LOW, VCC 3V3)
+    \textit{Buzzer} pasif & I/O (aktif LOW) & GPIO 13, VCC modul dari 3V3 \\
+    \midrule
+    % sumber: firmware/include/perangkat.h (PIN_BTN 4, 5, 6)
+    Tombol & B1 / B2 / B3 & GPIO 4 / 5 / 6, ke GND dengan \textit{pull-up} internal \\
+    \midrule
+    % sumber: firmware/include/perangkat.h (PIN_LED 48 NeoPixel onboard)
+    LED \textit{NeoPixel} & Data & GPIO 48 (bawaan \textit{board}) \\
+    \bottomrule
+  \end{tabularx}
 \end{table}
 
-Berdasarkan Tabel~\ref{tab:pin-map}, perbedaan terpenting antara kedua versi terletak pada jalur ECG yang dipindahkan dari GPIO 8 ke GPIO 1 pada PCB, sehingga GPIO 8 dapat dipakai untuk SPI TFT sementara masukan ECG tetap berada pada kanal ADC1.
-% sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §4
+Dua penempatan pada Tabel~\ref{tab:pin-map} ditentukan oleh batasan ESP32-S3. Keluaran ECG ditempatkan pada GPIO 1 yang termasuk ADC1, karena kanal ADC2 tidak dapat dipakai ketika WiFi menyala, sedangkan GPIO 8 dipakai sebagai jalur data SPI layar. CS layar diikat ke GND agar satu-satunya perangkat SPI itu selalu terpilih tanpa menghabiskan satu pin GPIO.
+% sumber: model/docs/akuisisi-walkthrough.md §1 (OUTPUT wajib ADC1 GPIO1-10, ADC2 mati begitu WiFi menyala); firmware/include/perangkat.h (CS diikat ke GND, wajib SPI_MODE3)
 
-Pengujian yang dilaporkan pada Bab~\ref{chap:eksperimen} dijalankan pada rangkaian \textit{breadboard} dengan pemetaan pin pada kolom \textit{breadboard}. Desain PCB rev1 disusun oleh rekan, sedangkan revisi rev2 sedang dikerjakan untuk memperbaiki level tegangan GPIO pada \textit{pull-up} tombol, catu INA219, dan pembagi tegangan jalur TFT yang pada rev1 dirancang untuk logika 5 V, serta mengganti \textit{buzzer} aktif bertransistor 2N2222 pada rev1 dengan modul \textit{buzzer} pasif yang dicatu dari 3V3. Revisi tersebut berpegang pada prinsip bahwa ESP32-S3 adalah perangkat 3,3 V, sehingga setiap komponen yang menyentuh GPIO dicatu dari jalur 3V3, termasuk modul \textit{buzzer} yang memiliki transistor sendiri, sedangkan jalur +5 V hanya digunakan untuk beban daya pada VIN papan.
-% sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md (prinsip "Semua yang menyentuh GPIO ambil dari 3V3", tiga pelanggaran rev1) dan §2 (buzzer pasif A18009 di 3V3 menggantikan SFM-27 + Q2 2N2222)
+Seluruh komponen yang menyentuh GPIO dicatu dari jalur 3V3 karena ESP32-S3 adalah perangkat 3,3 V. Prinsip ini juga berlaku untuk modul \textit{buzzer} pasif yang memiliki transistor sendiri dan untuk \textit{pull-up} tombol, sedangkan jalur 5 V hanya digunakan untuk catu \textit{board}.
+% sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md (prinsip "Semua yang menyentuh GPIO ambil dari 3V3", tiga pelanggaran rev1, §2 buzzer pasif A18009 di 3V3 menggantikan SFM-27 + Q2 2N2222, §5 net BUZZ GPIO 12 menjadi GPIO 13, §6 INA219 VCC 3V3)
 
 \subsection{Akuisisi dan Preprocessing Sinyal ECG}
 \label{subsec:preprocessing-ecg}
 
-Bagian ini mencakup keseluruhan proses dari pengambilan sinyal ECG hingga sinyal siap diklasifikasi oleh model. Gambar~\ref{fig:alir-preprocessing} menunjukkan flowchart preprocessing pada perangkat.
+Preprocessing mencakup keseluruhan proses dari pengambilan sinyal ECG hingga sinyal siap diklasifikasi oleh model. Gambar~\ref{fig:alir-preprocessing} menunjukkan flowchart preprocessing pada perangkat.
 
 % PLACEHOLDER-GAMBAR fig:alir-preprocessing  REVISI dari gambar_3_2.png
 % Ubah : segmentasi "+-250 sampel di R" -> "256 sampel (128 sebelum, 128 sesudah R)"
@@ -149,24 +133,24 @@ Gambar~\ref{fig:alir-preprocessing} dibaca dari atas ke bawah. Sinyal dari AD823
 
 \subsubsection{Akuisisi Sinyal ECG}
 
-Sinyal ECG diperoleh menggunakan modul sensor AD8232 yang dikonfigurasi pada Lead II. Lead II dipilih karena vektor listrik jantung sejajar dengan sudut pandang sadapan tersebut sehingga gelombang R muncul paling tinggi dan tegak, menjadikannya paling andal untuk analisis irama~\cite{ecg_goldberger}. Konfigurasi single-lead ini memadai untuk deteksi aritmia sekaligus selaras dengan rekaman yang dipakai pada \textit{dataset}, yaitu \textit{Modified Lead II} yang dikenal sebagai MLII. Sinyal analog kemudian disampel oleh ADC (\textit{Analog-to-Digital Converter}) pada ESP32-S3, dengan laju sampel disesuaikan terhadap \textit{dataset} acuan, yaitu 360 Hz. Pencuplikan dilakukan di dalam \textit{timer interrupt} dan setiap sampel dimasukkan ke antrean sebelum diproses oleh \textit{loop} utama, sehingga beban komputasi yang datang sesaat ketika deteksi R-\textit{peak} dan inferensi berjalan bersamaan tidak menghilangkan sampel maupun merusak interval R-R.
-% sumber: firmware/src/main.cpp baris 1-7 (ADC dibaca di timer ISR 360 Hz lalu diantrekan); model/CLAUDE.md jebakan "Beban alur hidup bursty"
+Sinyal ECG diperoleh menggunakan modul sensor AD8232 yang dikonfigurasi pada Lead II. Lead II dipilih karena vektor listrik jantung sejajar dengan sudut pandang sadapan tersebut. Gelombang R dengan demikian muncul paling tinggi dan tegak, menjadikannya paling andal untuk analisis irama~\cite{ecg_goldberger}. Konfigurasi single-lead ini memadai untuk deteksi aritmia~\cite{dias_2021} sekaligus selaras dengan rekaman yang dipakai pada \textit{dataset}, yaitu \textit{Modified Lead II} yang dikenal sebagai MLII. Sinyal analog kemudian disampel oleh ADC (\textit{Analog-to-Digital Converter}) pada ESP32-S3, dengan laju sampel disesuaikan terhadap \textit{dataset} acuan, yaitu 360 Hz. Pencuplikan dilakukan di dalam \textit{timer interrupt} dan setiap sampel dimasukkan ke antrean sebelum diproses oleh \textit{loop} utama. Dengan antrean itu, beban komputasi yang datang sesaat ketika deteksi R-\textit{peak} dan inferensi berjalan bersamaan tidak menghilangkan sampel maupun merusak interval R-R.
+% sumber: firmware/src/akuisisi.cpp (ADC dibaca di timer ISR 360 Hz lalu diantrekan); model/CLAUDE.md jebakan "Beban alur hidup bursty"
 
 \subsubsection{Filter Butterworth}
 
-Sinyal ECG mentah mengandung \textit{noise} berupa pergeseran garis dasar (\textit{baseline wander}) pada frekuensi rendah serta \textit{noise} otot dan interferensi listrik pada frekuensi tinggi. Filter Butterworth \textit{bandpass} dengan frekuensi \textit{cutoff} 0,5--40 Hz digunakan untuk membuang kedua jenis \textit{noise} tersebut sambil mempertahankan pita ECG yang berguna~\cite{sornmo_laguna_2005}. Filter dirancang dengan orde 4 dan diimplementasikan sebagai rangkaian empat \textit{second-order section} (\textit{biquad}) yang bersifat kausal, sehingga ringan secara komputasi dan dapat diproses sampel demi sampel secara \textit{real-time} pada mikrokontroler.
+Sinyal ECG mentah mengandung \textit{noise} berupa pergeseran garis dasar (\textit{baseline wander}) pada frekuensi rendah serta \textit{noise} otot dan interferensi listrik pada frekuensi tinggi. Filter Butterworth \textit{bandpass} dengan frekuensi \textit{cutoff} 0,5--40 Hz digunakan untuk membuang kedua jenis \textit{noise} tersebut sambil mempertahankan pita ECG yang berguna~\cite{zambrano_2026, bui_2021}. Filter dirancang dengan orde 4 dan diimplementasikan sebagai rangkaian empat \textit{second-order section} (\textit{biquad}) yang bersifat kausal. Bentuk ini ringan secara komputasi dan dapat diproses sampel demi sampel secara \textit{real-time} pada mikrokontroler.
 % sumber: model/config.py (BANDPASS_ORDER = 4); firmware/include/ecg_preproc.h (ECG_N_SOS 4, "Butterworth bandpass 0.5-40.0 Hz orde 4, 4 second-order section")
-Karena kausal, filter ini menggeser sinyal dengan \textit{group delay} sebesar 4 sampel (sekitar 11 ms). Pergeseran tersebut tidak dikoreksi, melainkan dijaga identik antara data pelatihan di komputer dan pemrosesan di perangkat, karena keduanya memakai koefisien filter yang sama sehingga model mempelajari posisi R-\textit{peak} yang sama dengan yang dihasilkan perangkat.
+Karena kausal, filter ini menggeser sinyal dengan \textit{group delay} sebesar 4 sampel (sekitar 11 ms). Pergeseran tersebut tidak dikoreksi, melainkan dijaga identik antara data pelatihan di komputer dan pemrosesan di perangkat. Keduanya memakai koefisien filter yang sama, dan model karena itu mempelajari posisi R-\textit{peak} yang sama dengan yang dihasilkan perangkat.
 % sumber: model/CLAUDE.md Fase 1 ("Group delay +4 sampel") dan jebakan "Group delay filter kausal menggeser R-peak +4 sampel"; 4 sampel / 360 Hz = 11,1 ms
 
 \subsubsection{Deteksi R-\textit{peak} dengan Algoritma Pan-Tompkins}
 
-Algoritma Pan-Tompkins digunakan untuk menentukan lokasi R-\textit{peak} pada sinyal yang telah bersih. Algoritma ini menonjolkan energi kompleks QRS melalui rangkaian tahapan, yaitu \textit{bandpass} filter 5--15 Hz, turunan, pengkuadratan, integrasi jendela bergerak, serta \textit{threshold} adaptif dengan periode refraktori~\cite{pan_tompkins_1985}. Periode refraktori ditetapkan 200 ms, yaitu selang setelah sebuah R-\textit{peak} terdeteksi ketika puncak berikutnya tidak diterima, sehingga satu kompleks QRS tidak terhitung dua kali. Konsekuensinya, detak prematur yang datang sangat dekat dengan detak sebelumnya dapat ikut tertahan oleh periode ini. Keluaran algoritma berupa lokasi R-\textit{peak} yang selanjutnya menjadi titik acuan segmentasi.
+Algoritma Pan-Tompkins digunakan untuk menentukan lokasi R-\textit{peak} pada sinyal yang telah bersih. Algoritma ini menonjolkan energi kompleks QRS melalui rangkaian tahapan, yaitu \textit{bandpass} filter 5--15 Hz, turunan, pengkuadratan, integrasi jendela bergerak, serta \textit{threshold} adaptif dengan periode refraktori~\cite{pan_tompkins_1985, li_2020}. Periode refraktori ditetapkan 200 ms, yaitu selang setelah sebuah R-\textit{peak} terdeteksi ketika puncak berikutnya tidak diterima, agar satu kompleks QRS tidak terhitung dua kali. Konsekuensinya, detak prematur yang datang sangat dekat dengan detak sebelumnya dapat ikut tertahan oleh periode ini. Keluaran algoritma berupa lokasi R-\textit{peak} yang selanjutnya menjadi titik acuan segmentasi.
 % sumber: model/config.py (PT_REFRACTORY_MS = 200); model/CLAUDE.md jebakan "Refraktori 200 ms Pan-Tompkins memblokir beat prematur"
 
 \subsubsection{Segmentasi dan Normalisasi}
 
-Berdasarkan setiap lokasi R-\textit{peak}, sinyal dipotong menjadi \textit{window} berukuran tetap sepanjang 256 sampel, yaitu 128 sampel sebelum dan 128 sampel sesudah R-\textit{peak}, sehingga gelombang P di awal dan gelombang T di akhir detak ikut terekam.
+Berdasarkan setiap lokasi R-\textit{peak}, sinyal dipotong menjadi \textit{window} berukuran tetap sepanjang 256 sampel, yaitu 128 sampel sebelum dan 128 sampel sesudah R-\textit{peak}. Dengan rentang itu, gelombang P di awal dan gelombang T di akhir detak ikut terekam.
 % sumber: model/config.py (WIN_PRE = 128, WIN_POST = 128, WIN_LEN = 256); model/CLAUDE.md decision "Ukuran window"
 
 Posisi R-\textit{peak} keluaran detektor tidak langsung dipakai sebagai titik potong. Posisi tersebut terlebih dahulu dikompensasi sebesar 38 sampel, yaitu selisih median antara hasil deteksi dan anotasi yang dikalibrasi pada DS1, lalu diselaraskan ke puncak sinyal terdekat dalam rentang $\pm$25 sampel. Setelah itu R-\textit{peak} ditempatkan pada indeks 132 di dalam \textit{window}, yaitu 128 sampel ditambah \textit{group delay} 4 sampel, sama dengan posisi R-\textit{peak} pada data latih. Rangkaian koreksi ini diperlukan karena model sangat peka terhadap pergeseran posisi R-\textit{peak} beberapa sampel saja.
@@ -184,7 +168,7 @@ efek normalisasi \textit{z-score}.
   \label{fig:segmentasi}
 \end{figure}
 
-Pada Gambar~\ref{fig:segmentasi}, R-\textit{peak} menjadi titik acuan dan \textit{window} diambil sepanjang 128 sampel ke kiri serta 128 sampel ke kanan, sehingga gelombang P, kompleks QRS, dan gelombang T berada di dalam satu segmen. Efek normalisasi \textit{z-score} terlihat pada perubahan skala amplitudo, yaitu bentuk gelombang dipertahankan sedangkan rata-rata \textit{window} menjadi nol dan simpangan bakunya menjadi satu.
+Pada Gambar~\ref{fig:segmentasi}, R-\textit{peak} menjadi titik acuan dan \textit{window} diambil sepanjang 128 sampel ke kiri serta 128 sampel ke kanan, dan gelombang P, kompleks QRS, serta gelombang T berada di dalam satu segmen. Efek normalisasi \textit{z-score} terlihat pada perubahan skala amplitudo, yaitu bentuk gelombang dipertahankan sedangkan rata-rata \textit{window} menjadi nol dan simpangan bakunya menjadi satu.
 % sumber: model/config.py (WIN_PRE = 128, WIN_POST = 128, WIN_LEN = 256)
 
 Setiap \textit{window} selanjutnya dinormalisasi dengan \textit{z-score} sebagaimana ditunjukkan pada Persamaan~\ref{eq:normalisasi}, agar model berfokus pada bentuk sinyal dan tidak terpengaruh oleh perbedaan amplitudo antarperangkat maupun antarpasien.
@@ -199,56 +183,35 @@ Persamaan~\ref{eq:normalisasi} menunjukkan proses normalisasi, dengan $x$ adalah
 \subsection{Model Klasifikasi Aritmia}
 \label{subsec:model-tinyml}
 
-Bagian ini menguraikan model yang digunakan untuk mengklasifikasikan setiap detak, mulai dari penyiapan data, arsitektur model, hingga proses pelatihan dan kuantisasi.
+Model pengklasifikasi setiap detak disusun melalui penyiapan data, perancangan arsitektur, pelatihan, dan kuantisasi.
 
 \subsubsection{\textit{Dataset} dan Pelabelan}
 
-\textit{Dataset} yang digunakan adalah MIT-BIH \textit{Arrhythmia Database}, yang terdiri atas 48 rekaman berdurasi sekitar 30 menit, tersampel pada 360 Hz, dengan kanal rekaman utama berupa modifikasi sadapan Lead II (MLII) dan anotasi per-detak oleh kardiolog~\cite{moody_mark_2001}. Tugas klasifikasi dirumuskan secara biner, yaitu Normal dan Aritmia, sejalan dengan tujuan deteksi dini. Skema anotasi AAMI sebenarnya memungkinkan klasifikasi multi-kelas (N, S, V, F, Q), namun skema ini tidak diadopsi pada penelitian ini karena distribusi kelas F dan Q pada MIT-BIH sangat timpang antarpasien. Pada skema pembagian \textit{inter-patient} (DS1/DS2), sejumlah rekaman bahkan tidak memiliki representasi kedua kelas tersebut sama sekali, sehingga metrik evaluasi untuk kelas minoritas ini berpotensi tidak stabil dan tidak representatif. Klasifikasi biner dipilih agar evaluasi model tetap dapat diandalkan pada seluruh partisi data, sejalan dengan peran sistem sebagai \textit{early warning} yang membedakan kondisi normal dari kondisi yang memerlukan perhatian lanjut, tanpa mengklaim kemampuan diagnosis diferensial antarjenis aritmia. Pemetaan simbol anotasi MIT-BIH menjadi label biner ditunjukkan pada Tabel~\ref{tab:pemetaan-label}.
+\textit{Dataset} yang digunakan adalah MIT-BIH \textit{Arrhythmia Database} yang terdiri atas 48 rekaman berdurasi sekitar 30 menit dan tersampel pada 360 Hz~\cite{moody_mark_2001}. Kanal rekaman utamanya berupa modifikasi sadapan Lead II (MLII) dengan anotasi per-detak oleh kardiolog. Tugas klasifikasi dirumuskan secara biner, yaitu Normal dan Aritmia, sejalan dengan tujuan deteksi dini. Skema anotasi AAMI sebenarnya memungkinkan klasifikasi multi-kelas (N, S, V, F, Q), namun skema ini tidak diadopsi pada penelitian ini karena distribusi kelas F dan Q pada MIT-BIH sangat timpang antarpasien. Pada skema pembagian \textit{inter-patient} (DS1/DS2), sejumlah rekaman bahkan tidak memiliki representasi kedua kelas tersebut sama sekali. Metrik evaluasi untuk kelas minoritas ini karena itu berpotensi tidak stabil dan tidak representatif. Klasifikasi biner dipilih agar evaluasi model tetap dapat diandalkan pada seluruh partisi data. Pilihan ini sejalan dengan peran sistem sebagai \textit{early warning} yang membedakan kondisi normal dari kondisi yang memerlukan perhatian lanjut, tanpa mengklaim kemampuan diagnosis diferensial antarjenis aritmia. Pemetaan simbol anotasi MIT-BIH menjadi label biner ditunjukkan pada Tabel~\ref{tab:pemetaan-label}.
 
 \begin{table}[!ht]
   \centering
   \caption{Pemetaan simbol anotasi MIT-BIH menjadi label biner}
   \label{tab:pemetaan-label}
-  \begin{tabular}{|c|>{\RaggedRight\arraybackslash}p{7.2cm}|c|}
-    \hline
-    \rowcolor{headgray}
+  \begin{tabular}{c>{\RaggedRight\arraybackslash}p{7.2cm}c}
+    \toprule
     \textbf{Simbol Anotasi} & \textbf{Jenis Detak} & \textbf{Label Biner} \\
-    \hline
+    \midrule
     % sumber: model/config.py AAMI_MAP (N, L, R, e, j ke N; A, a, J, S ke S; V, E ke V; F ke F; /, f, Q ke Q) dan ARRHYTHMIA_SYMBOLS = {V, S, F, Q}
     N, L, R, e, j & Detak sinus normal, blok cabang berkas kiri, blok cabang berkas kanan, pelepasan atrium, dan pelepasan nodal & Normal \\
-    \hline
     A, a, J, S & Detak prematur atrium, atrium aberan, nodal, dan supraventrikular & Aritmia \\
-    \hline
     V, E & Kontraksi ventrikular prematur dan detak pelepasan ventrikular & Aritmia \\
-    \hline
     F & Detak fusi ventrikular dan normal & Aritmia \\
-    \hline
     /, f, Q & Detak terpacu, fusi terpacu dan normal, serta detak tidak terklasifikasi & Aritmia \\
-    \hline
+    \bottomrule
   \end{tabular}
 \end{table}
 
-Tabel~\ref{tab:pemetaan-label} menunjukkan bahwa kelas Normal mencakup detak sinus normal beserta detak blok cabang berkas dan detak pelepasan, sedangkan seluruh detak menyimpang lainnya dikategorikan sebagai Aritmia. Penggolongan simbol mengikuti pemetaan AAMI yang digunakan de Chazal~\cite{dechazal_2004}.
+Tabel~\ref{tab:pemetaan-label} menunjukkan bahwa kelas Normal mencakup detak sinus normal beserta detak blok cabang berkas dan detak pelepasan, sedangkan seluruh detak menyimpang lainnya dikategorikan sebagai Aritmia. Penggolongan simbol mengikuti pemetaan AAMI yang digunakan de Chazal~\cite{aami_ec57_2012, dechazal_2004}.
 % sumber: model/config.py AAMI_MAP (N, L, R, e, j dipetakan ke kelas N yang berlabel Normal; seluruh simbol lain berlabel Aritmia)
 
-Tidak seluruh rekaman MIT-BIH digunakan. Rekaman 102 dan 104 tidak memiliki kanal MLII, sedangkan rekaman 107 dan 217 berisi detak dari alat pacu jantung (\textit{paced}), sehingga keempatnya dikeluarkan dan tersisa 44 rekaman. Rekaman yang tersisa dibagi menjadi DS1 untuk pelatihan dan DS2 untuk pengujian mengikuti pembagian \textit{inter-patient} de Chazal~\cite{dechazal_2004}. Dari DS1, lima rekaman, yaitu 101, 114, 201, 220, dan 223, dipisahkan sebagai data validasi yang digunakan untuk memilih \textit{epoch} terbaik dan mengalibrasi \textit{threshold} klasifikasi, sehingga pemilihan \textit{epoch} dan penetapan \textit{threshold} tidak melibatkan DS2.
+Tidak seluruh rekaman MIT-BIH digunakan. Rekaman 102 dan 104 tidak memiliki kanal MLII, sedangkan rekaman 107 dan 217 berisi detak dari alat pacu jantung (\textit{paced}). Keempatnya dikeluarkan dan tersisa 44 rekaman. Rekaman yang tersisa dibagi menjadi DS1 untuk pelatihan dan DS2 untuk pengujian mengikuti pembagian \textit{inter-patient} de Chazal~\cite{dechazal_2004}. Dari DS1, lima rekaman, yaitu 101, 114, 201, 220, dan 223, dipisahkan sebagai data validasi yang digunakan untuk memilih \textit{epoch} terbaik dan mengalibrasi \textit{threshold} klasifikasi. Dengan pemisahan ini, pemilihan \textit{epoch} dan penetapan \textit{threshold} tidak melibatkan DS2.
 % sumber: model/config.py (PACED_EXCLUDED = [102, 104, 107, 217], VAL_RECORDS = [101, 114, 201, 220, 223]); model/CLAUDE.md decision "Record dibuang", "Validation set", Fase 2 (44 record)
-
-Selain MIT-BIH \textit{Arrhythmia Database} sebagai \textit{dataset} utama, dua basis data
-pelengkap digunakan sebagai data uji \textit{held-out} untuk mengevaluasi
-generalisasi model terhadap kondisi akuisisi yang berbeda~\cite{goldberger_2000_physionet}.
-MIT-BIH \textit{Supraventricular Arrhythmia Database} (SVDB) digunakan sebagai
-data uji karena memperkaya sampel detak supraventrikular (kelas S) sehingga menguji
-langsung efektivitas cabang ritme. St.~Petersburg INCART 12-\textit{lead
-Arrhythmia Database} digunakan sebagai data uji karena memuat proporsi detak ventrikular
-jauh lebih besar sehingga menguji ketahanan deteksi kelas ventrikular. Ketiga basis data memiliki frekuensi \textit{sampling} yang berbeda
-(MIT-BIH 360 Hz, INCART 257 Hz, SVDB 128 Hz), sehingga rekaman SVDB dan INCART
-terlebih dahulu diselaraskan (\emph{resample}) ke 360 Hz agar konsisten dengan
-ukuran \emph{window} 256 sampel dan \textit{pipeline} Pan-Tompkins. Pemetaan anotasi
-mengikuti standar AAMI yang sama pada ketiga basis data sehingga skema
-klasifikasi biner tetap berlaku. Kedua basis data tersebut hanya digunakan untuk
-ablasi dan evaluasi generalisasi, dan tidak digunakan untuk melatih model yang dikuantisasi dan dijalankan di perangkat.
-% sumber: model/config.py DATASETS (mitdb fs 360, svdb fs 128, incartdb fs 257); model/CLAUDE.md decision "Database LATIH" (svdb dan incartdb held-out sebagai TEST-B/TEST-C, latih mitdb saja); model/artifacts/metrics/ablasi/lintas_db.csv (set TEST-B svdb, TEST-C incartdb)
 
 Selain segmen \textit{window} 256 sampel, pada tahap penyiapan data juga dihitung fitur interval RR per-detak berupa RR\_prev, rasio RR, dan $\Delta$RR dari lokasi R-\textit{peak} keluaran algoritma Pan-Tompkins, untuk menjadi masukan cabang ritme pada model.
 
@@ -284,7 +247,7 @@ Gambar~\ref{fig:pipeline-training} menunjukkan arsitektur model \textit{hybrid} 
 Model yang diusulkan berbentuk arsitektur \textit{hybrid} dua cabang. Cabang
 pertama, yaitu cabang morfologi, berupa CNN
 (\textit{Convolutional Neural Network}) ringkas yang bekerja langsung
-pada \textit{window} ECG 256 sampel, terdiri atas tiga blok konvolusi dengan
+pada \textit{window} ECG 256 sampel. Cabang ini terdiri atas tiga blok konvolusi dengan
 16, 32, dan 32 \textit{filter} serta ukuran \textit{kernel} 7, 5, dan 3, yang
 masing-masing diikuti aktivasi ReLU dan \textit{max-pooling}. Lapisan-lapisan
 tersebut kemudian diringkas oleh \textit{Global Average Pooling} menjadi 32
@@ -293,7 +256,7 @@ fitur morfologi yang merepresentasikan bentuk gelombang PQRST tiap detak.
 
 Klasifikasi yang murni berbasis morfologi per-detak memiliki keterbatasan pada
 detak supraventrikular (kelas S). Morfologi detak supraventrikular kerap
-menyerupai detak normal, sehingga pembeda utamanya justru terletak pada
+menyerupai detak normal. Pembeda utamanya justru terletak pada
 \textit{timing} kemunculannya yang prematur, yaitu informasi yang tidak
 tertangkap oleh bentuk gelombang tunggal. Untuk mengatasi keterbatasan ini,
 penelitian ini menambahkan cabang kedua, yaitu cabang ritme, berupa fitur
@@ -303,10 +266,10 @@ memperbaiki deteksi kelas supraventrikular pada klasifikasi
 \textit{inter-patient}~\cite{dechazal_2004}.
 
 Fitur RR diturunkan langsung dari lokasi R-\textit{peak} keluaran algoritma
-Pan-Tompkins, sehingga tidak
+Pan-Tompkins dan tidak
 memerlukan komputasi tambahan yang berarti. Tiga fitur kausal digunakan agar
 sistem tetap beroperasi secara \textit{real-time} tanpa perlu menunggu detak
-berikutnya, yaitu RR\_prev sebagai interval ke detak sebelumnya, rasio RR
+berikutnya. Ketiganya adalah RR\_prev sebagai interval ke detak sebelumnya, rasio RR
 yang merupakan RR\_prev dibagi rata-rata RR berjalan untuk menangkap derajat
 prematuritas detak, serta $\Delta$RR sebagai perubahan interval antardetak
 berurutan. Ketiga fitur dinormalisasi terlebih dahulu agar skalanya sebanding
@@ -330,73 +293,74 @@ Persamaan~\ref{eq:sigmoid} menunjukkan fungsi \textit{sigmoid} pada lapisan
 keluaran, dengan $z$ adalah keluaran lapisan sebelumnya dan $\hat{y}$ adalah
 peluang sebuah detak tergolong aritmia. \textit{Threshold} klasifikasi ditetapkan
 0,80 melalui kalibrasi pada data validasi, yaitu nilai yang memberikan F1-\textit{score}
-maksimum dengan \textit{recall} sebagai penentu bila dua kandidat hampir setara,
-sehingga detak dengan $\hat{y} \geq 0{,}80$ diklasifikasikan sebagai Aritmia.
+maksimum dengan \textit{recall} sebagai penentu bila dua kandidat hampir setara.
+Detak dengan $\hat{y} \geq 0{,}80$ diklasifikasikan sebagai Aritmia.
 % sumber: model/config.py (THRESHOLD = 0.80); model/CLAUDE.md decision "Threshold" (F1 maksimum, tie-break recall)
 Penggunaan \textit{Global Average Pooling} dipilih
 untuk menekan jumlah parameter secara drastis dibandingkan perataan langsung
-(\textit{flatten}), sehingga model tetap berukuran kecil dan tahan terhadap
-\textit{overfitting}, sesuai pendekatan yang divalidasi oleh Mekhfioui
-et al.~\cite{mekhfioui_2025}. Penambahan cabang ritme hanya menambah sedikit
-parameter karena lapisan \textit{Dense} menerima 35 alih-alih 32 masukan,
-sehingga model latih memiliki 6.417 parameter dan ukuran model setelah
+(\textit{flatten}), sesuai pendekatan yang divalidasi oleh Mekhfioui
+et al.~\cite{mekhfioui_2025}. Model karena itu tetap berukuran kecil dan tahan terhadap
+\textit{overfitting}. Penambahan cabang ritme hanya menambah sedikit
+parameter karena lapisan \textit{Dense} menerima 35 alih-alih 32 masukan.
+Model latih memiliki 6.417 parameter dan ukuran model setelah
 kuantisasi INT8 sekitar 23 KB.
 % sumber: model/CLAUDE.md Fase 4 (6.417 param = 128+2.592+3.104+576+17); model/artifacts/metrics/fase7_delta.csv (ukuran_kb int8 22,94)
 
 Model yang dijalankan di perangkat adalah varian \textit{deploy} dari model
 hasil pelatihan. Pada varian ini, \textit{Global Average Pooling} diganti dengan
 lapisan \textit{DepthwiseConv1D} berukuran 32 yang seluruh bobotnya bernilai
-1/32, sehingga menghasilkan rata-rata yang sama, dan lapisan \textit{Dense}
-diganti dengan konvolusi berkernel 1 sehingga kepala klasifikasi tetap berbentuk
+1/32 dan menghasilkan rata-rata yang sama. Lapisan \textit{Dense}
+diganti dengan konvolusi berkernel 1 agar kepala klasifikasi tetap berbentuk
 tiga dimensi. Penggantian ini diperlukan karena TensorFlow Lite Micro menghitung
 operasi rata-rata global (MEAN) secara berbeda dari TensorFlow Lite di komputer tanpa
 memunculkan \textit{error} apa pun. Selain itu, lapisan \textit{Flatten} atau \textit{Reshape}
 pada kepala klasifikasi menghasilkan operasi SHAPE, PACK, dan STRIDED\_SLICE yang
-bergantung pada bentuk tensor dinamis, padahal TensorFlow Lite Micro tidak memiliki
-alokasi memori dinamis sehingga operasi tersebut menghasilkan keluaran yang keliru. Bobot model latih disalin apa adanya ke varian
-\textit{deploy} tanpa pelatihan ulang, sehingga kedua varian merepresentasikan
+bergantung pada bentuk tensor dinamis. TensorFlow Lite Micro tidak memiliki
+alokasi memori dinamis, dan operasi tersebut menghasilkan keluaran yang keliru. Bobot model latih disalin apa adanya ke varian
+\textit{deploy} tanpa pelatihan ulang, dan kedua varian merepresentasikan
 fungsi yang sama.
 % sumber: model/src/model.py build_deploy_model (kernel = panjang setelah 3 pooling = 32); model/artifacts/model_int8.tflite (filter gap_dw [1,1,32,32]); model/CLAUDE.md decision "Model yang dikuantisasi", "Flatten/Reshape di model deploy" (SHAPE, PACK, STRIDED_SLICE); jebakan "TFLite Micro menghitung op MEAN beda" (angka 31 di CLAUDE.md adalah sisa window 250)
 
 \subsubsection{Pelatihan dan Kuantisasi INT8}
 
-Model dilatih secara \textit{offline} pada komputer, kemudian hasilnya dikuantisasi agar ringan dijalankan di perangkat. Model bersifat \textit{hybrid} dengan dua masukan yang diimplementasikan menggunakan \textit{Functional API} Keras, yaitu satu masukan berupa \textit{window} ECG untuk cabang morfologi dan satu masukan berupa vektor fitur RR ternormalisasi untuk cabang ritme. Untuk memastikan evaluasi mencerminkan kondisi nyata, pembagian data dilakukan secara antarpasien (\textit{inter-patient}), yaitu rekaman yang dipakai untuk melatih dan menguji model berasal dari kelompok pasien yang berbeda sehingga tidak terjadi kebocoran data antarpasien. Pelatihan menggunakan \textit{optimizer} Adam dengan \textit{learning rate} $10^{-3}$ dan ukuran \textit{batch} 64. \textit{Early stopping} memantau AUC pada data validasi dengan \textit{patience} 8 \textit{epoch}, lalu mengembalikan bobot dari \textit{epoch} dengan AUC validasi terbaik. AUC dipilih karena tidak bergantung pada \textit{threshold} dan tidak dapat dinaikkan hanya dengan menebak satu kelas. Data latih DS1 juga diperkaya dengan augmentasi \textit{jitter} sebagaimana diuraikan pada Subbab~\ref{subsec:augmentasi-jitter}, yaitu setiap rekaman DS1 disertai dua salinan tambahan yang posisi R-\textit{peak}-nya digeser mengikuti sebaran \textit{error} detektor yang terukur, sedangkan DS2 tidak pernah diaugmentasi.
+Model dilatih secara \textit{offline} pada komputer, kemudian hasilnya dikuantisasi agar ringan dijalankan di perangkat. Model bersifat \textit{hybrid} dengan dua masukan yang diimplementasikan menggunakan \textit{Functional API} Keras, yaitu satu masukan berupa \textit{window} ECG untuk cabang morfologi dan satu masukan berupa vektor fitur RR ternormalisasi untuk cabang ritme. Untuk memastikan evaluasi mencerminkan kondisi nyata, pembagian data dilakukan secara antarpasien (\textit{inter-patient}), yaitu rekaman yang dipakai untuk melatih dan menguji model berasal dari kelompok pasien yang berbeda. Dengan pembagian ini tidak terjadi kebocoran data antarpasien. Pelatihan menggunakan \textit{optimizer} Adam dengan \textit{learning rate} $10^{-3}$ dan ukuran \textit{batch} 64. \textit{Early stopping} memantau AUC pada data validasi dengan \textit{patience} 8 \textit{epoch}, lalu mengembalikan bobot dari \textit{epoch} dengan AUC validasi terbaik. AUC dipilih karena tidak bergantung pada \textit{threshold} dan tidak dapat dinaikkan hanya dengan menebak satu kelas. Data latih DS1 juga diperkaya dengan augmentasi \textit{jitter}. Setiap rekaman DS1 disertai dua salinan tambahan yang posisi R-\textit{peak}-nya digeser mengikuti sebaran \textit{error} detektor yang terukur, sedangkan DS2 tidak pernah diaugmentasi.
 % sumber: model/config.py (BATCH_SIZE = 64, EARLY_STOP_PATIENCE = 8, JITTER_MODEL = "empiris", JITTER_SALINAN = 2); model/src/train.py (optimizer "adam" bawaan, EarlyStopping restore_best_weights); model/CLAUDE.md decision "Monitor EarlyStopping", "Learning rate", "Augmentasi jitter", Fase 2
 
 Distribusi kelas pada MIT-BIH sangat timpang, dengan detak normal yang mendominasi
-sementara detak supraventrikular sangat sedikit, sehingga penanganan ketidakseimbangan kelas
-menjadi bagian penting dari pelatihan. Ketidakseimbangan ini ditangani dengan pembobotan
+sementara detak supraventrikular sangat sedikit. Penanganan ketidakseimbangan kelas
+karena itu menjadi bagian penting dari pelatihan. Ketidakseimbangan ini ditangani dengan pembobotan
 kelas (\emph{class weighting}) pada fungsi \emph{loss} tanpa \emph{oversampling},
 dengan bobot setiap kelas $w_c = N/(2 n_c)$, di mana $N$ adalah jumlah sampel latih dan
 $n_c$ adalah jumlah sampel kelas $c$. Rumus ini menghasilkan bobot 0,556 untuk kelas
-Normal dan 4,947 untuk kelas Aritmia, sehingga model tidak bias terhadap kelas mayoritas.
+Normal dan 4,947 untuk kelas Aritmia agar model tidak bias terhadap kelas mayoritas.
 \emph{Oversampling} tidak digunakan karena menggandakan detak dari pasien yang sama
 berisiko membuat model menghafal individu. Selain itu, himpunan
 data representatif untuk kuantisasi pasca-pelatihan (\emph{post-training quantization})
-disusun agar mencakup seluruh kelas, bukan hanya kelas normal, sehingga rentang
+disusun mencakup seluruh kelas, bukan hanya kelas normal, agar rentang
 kuantisasi terkalibrasi dengan tepat untuk kelas langka.
 % sumber: model/CLAUDE.md decision "Strategi imbalance" (w_c = N/(2 n_c), Normal 0,556 / Aritmia 4,947, tanpa oversampling); model/src/train.py make_class_weights
 
-Setelah dilatih, varian \textit{deploy} model dikuantisasi ke INT8 agar ukurannya jauh berkurang dan dapat dikonversi ke format TensorFlow Lite Micro untuk dijalankan pada mikrokontroler~\cite{laiu_2026}. Kalibrasi kuantisasi menggunakan 300 sampel representatif yang diambil secara \textit{stratified} dari DS1 dengan \textit{seed} tetap, dan kuantisasi dilakukan penuh hingga tensor masukan dan keluaran juga bertipe INT8, sehingga tidak ada operasi \textit{floating-point} di dalam model. Ukuran model setelah kuantisasi dibatasi di bawah 25 KB, jauh lebih kecil dari kapasitas SRAM internal ESP32-S3 sekitar 512 KB (didukung PSRAM, yaitu \textit{Pseudo-Static RAM}, berkapasitas 8 MB), sehingga model muat dengan tetap menyisakan ruang yang memadai untuk \textit{tensor arena} dan bufer data.
+Setelah dilatih, varian \textit{deploy} model dikuantisasi ke INT8 agar ukurannya jauh berkurang dan dapat dikonversi ke format TensorFlow Lite Micro untuk dijalankan pada mikrokontroler~\cite{jacob_2018, david_2021}. Kalibrasi kuantisasi menggunakan 300 sampel representatif yang diambil secara \textit{stratified} dari DS1 dengan \textit{seed} tetap. Kuantisasi dilakukan penuh hingga tensor masukan dan keluaran juga bertipe INT8, dan tidak ada operasi \textit{floating-point} di dalam model. Ukuran model setelah kuantisasi dibatasi di bawah 25 KB, jauh lebih kecil dari kapasitas SRAM internal ESP32-S3 sekitar 512 KB yang didukung PSRAM (\textit{Pseudo-Static RAM}) berkapasitas 8 MB. Dengan batas itu model muat dan tetap menyisakan ruang yang memadai untuk \textit{tensor arena} dan bufer data.
 % sumber: model/config.py (REP_SAMPLES = 300, MAX_MODEL_KB = 25); model/src/quantize.py (stratified_indices, inference_input_type/output_type = tf.int8); model/CLAUDE.md decision "Sampel kalibrasi PTQ", "Tipe I/O INT8", "Batas ukuran model"
 
 \subsection{\textit{Pipeline Edge-to-Cloud} yang Resilien}
 \label{subsec:pipeline-edge-cloud}
 
-Bagian ini menjelaskan integrasi seluruh proses ke dalam alur kerja \textit{firmware} sekaligus mekanisme ketahanannya terhadap gangguan koneksi. Gambar~\ref{fig:alir-firmware} menunjukkan flowchart \textit{runtime firmware} beserta jalur penanganan kondisi daring dan luring. Berbeda dari pendekatan berbasis penyimpanan non-volatil (kartu SD atau SPIFFS), resiliensi pada penelitian ini dirancang sepenuhnya di memori volatil (PSRAM) dengan asumsi perangkat \textit{wearable} diisi daya secara rutin, sebagaimana perangkat \textit{smartwatch}. Pendekatan ini menghilangkan kompleksitas manajemen \textit{filesystem embedded} serta menekan konsumsi daya dan ruang PCB. Prinsip yang mendasari rancangan ini adalah mempertahankan kelengkapan data di sisi \textit{edge} selama gangguan berlangsung, alih-alih mengandalkan rekonstruksi data yang hilang di sisi \textit{cloud}. Strategi preventif semacam ini diutamakan karena teknik imputasi sulit memulihkan informasi yang hilang bertepatan dengan kejadian seperti deteksi aritmia~\cite{resilient_edge_cloud}.
+Seluruh proses diintegrasikan ke dalam alur kerja \textit{firmware} yang sekaligus memuat mekanisme ketahanan terhadap gangguan koneksi. Gambar~\ref{fig:alir-firmware} menunjukkan flowchart \textit{runtime firmware} beserta jalur penanganan kondisi daring dan luring. Berbeda dari pendekatan berbasis penyimpanan non-volatil (kartu SD atau SPIFFS), resiliensi pada penelitian ini dirancang sepenuhnya di memori volatil (PSRAM) dengan asumsi perangkat \textit{wearable} diisi daya secara rutin, sebagaimana perangkat \textit{smartwatch}. Pendekatan ini menghilangkan kompleksitas manajemen \textit{filesystem embedded} serta menekan konsumsi daya dan ruang PCB. Prinsip yang mendasari rancangan ini adalah mempertahankan kelengkapan data di sisi \textit{edge} selama gangguan berlangsung, alih-alih mengandalkan rekonstruksi data yang hilang di sisi \textit{cloud}. Strategi ini sejalan dengan skema simpan-lalu-teruskan pada pemantauan kesehatan jarak jauh, yaitu data disimpan di perangkat lalu diteruskan ke \textit{cloud} ketika konektivitas memungkinkan~\cite{yaacoub_2020}.
+% sumber: laporan/pustaka/yaacoub_2020.pdf hlm. 226 ("stored before being transmitted to the cloud whenever the wireless connectivity conditions ... permit")
 
 % PLACEHOLDER-GAMBAR fig:alir-firmware  REVISI dari gambar_3_5.png
 % Ubah : "Publikasi real-time per-rekaman" + "Baca 50-100 rekaman" -> "semua beat masuk antrean PSRAM, kirim batch <= 50, PUBACK dipungut tanpa blocking"
-% Ubah : tambah fase "calibrating" dan gerbang ayunan sebelum publikasi
+% Ubah : tambah fase kalibrasi (kontak baik 60 detik + R-R tenang 30 detik) dan penilaian kontak elektroda tiap detik (lead-off, ayunan, dengung) sebelum publikasi
 \begin{figure}[H]
   \centering
-  \PlaceholderGambar{Revisi gambar}{fase kalibrasi dan gerbang ayunan, semua detak masuk antrean PSRAM, kirim \textit{batch} $\leq$ 50, PUBACK dipungut tanpa \textit{blocking}}
+  \PlaceholderGambar{Revisi gambar}{fase kalibrasi dan penilaian kontak elektroda, semua detak masuk antrean PSRAM, kirim \textit{batch} $\leq$ 50, PUBACK dipungut tanpa \textit{blocking}}
   \caption{Flowchart \textit{runtime firmware} dan jalur resilien (bufer PSRAM, \textit{batch offload}, deteksi \textit{half-open})}
   \label{fig:alir-firmware}
 \end{figure}
 
-Gambar~\ref{fig:alir-firmware} dibaca dari atas ke bawah. Setiap detak yang terdeteksi lebih dulu dinilai oleh fase kalibrasi dan gerbang ayunan sinyal, dan hanya detak yang lolos kedua gerbang tersebut yang rekamannya dimasukkan ke antrean PSRAM. Dari antrean itu perangkat mengirim rekaman tertua dalam paket \textit{batch} berisi paling banyak 50 rekaman melalui MQTT, memungut PUBACK tanpa menahan putaran \textit{loop} utama, dan baru menghapus rekaman dari antrean setelah konfirmasi diterima. Apabila konfirmasi berhenti datang, perangkat memutus lalu membentuk ulang sambungan, dan rekaman yang sama dikirim kembali dari antrean.
-% sumber: firmware/include/ecg_mqtt.h (ECG_MQTT_BATCH_N 50); firmware/src/main.cpp nilai_fase() dan publikasi() (gerbang sebelum ecg_mqtt_antre_isi); firmware/src/ecg_mqtt.cpp ecg_mqtt_layani()
+Gambar~\ref{fig:alir-firmware} dibaca dari atas ke bawah. Setiap detak yang terdeteksi lebih dulu dinilai oleh fase kalibrasi dan penilaian kontak elektroda, dan hanya detak yang lolos kedua gerbang tersebut yang rekamannya dimasukkan ke antrean PSRAM. Dari antrean itu perangkat mengirim rekaman tertua dalam paket \textit{batch} berisi paling banyak 50 rekaman melalui MQTT, memungut PUBACK tanpa menahan putaran \textit{loop} utama, dan baru menghapus rekaman dari antrean setelah konfirmasi diterima. Apabila konfirmasi berhenti datang, perangkat memutus lalu membentuk ulang sambungan, dan rekaman yang sama dikirim kembali dari antrean.
+% sumber: firmware/include/ecg_mqtt.h (ECG_MQTT_BATCH_N 50); firmware/src/gerbang.cpp gerbang_nilai_fase() dan publikasi() (gerbang sebelum ecg_mqtt_antre_isi); firmware/src/ecg_mqtt.cpp ecg_mqtt_layani()
 
 \subsubsection{\textit{Ring Buffer} FIFO di PSRAM}
 
@@ -406,20 +370,20 @@ Sebagian dari kapasitas ini dialokasikan sebagai struktur data
 \textit{ring buffer} (FIFO) yang menampung hasil inferensi sebelum dikirim, sementara
 sisanya tetap tersedia untuk kebutuhan lain seperti bufer perekaman sinyal mentah.
 Setiap entri \textit{ring buffer} disimpan sebagai struktur biner berukuran 40 byte,
-bukan sebagai teks JSON, sehingga kapasitas 27.000 entri hanya memakan sekitar 1,08 MB
+bukan sebagai teks JSON. Kapasitas 27.000 entri karena itu hanya memakan sekitar 1,08 MB
 PSRAM. Kapasitas tersebut setara $\pm$4--7 jam pemantauan kontinu pada laju rata-rata
 60--100 bpm.
-% sumber: firmware/include/ecg_mqtt.h baris 29-34 (ECG_MQTT_ANTRE_TARGET 27000, 40 byte/entri, 27.000 x 40 = 1,08 MB, 4-7 jam @60-100 bpm); firmware/src/main.cpp (ps_malloc ring dan rekam_buf)
+% sumber: firmware/include/ecg_mqtt.h baris 29-34 (ECG_MQTT_ANTRE_TARGET 27000, 40 byte/entri, 27.000 x 40 = 1,08 MB, 4-7 jam @60-100 bpm); firmware/src/main.cpp (ps_malloc ring) dan firmware/src/rekam.cpp (ps_malloc buffer rekaman)
 Kapasitas ini jauh melebihi target durasi gangguan jaringan pada skenario
-pengujian \textit{pipeline}, sehingga penyimpanan
-non-volatil tidak diperlukan untuk memenuhi target resiliensi jaringan yang ditetapkan.
+pengujian \textit{pipeline}. Penyimpanan
+non-volatil dengan demikian tidak diperlukan untuk memenuhi target resiliensi jaringan yang ditetapkan.
 
 Apabila durasi gangguan jaringan melampaui kapasitas \textit{ring buffer}, mekanisme
 yang diterapkan adalah \textit{overwrite} data terlama (rekaman tertua ditimpa oleh
 rekaman terbaru). Mekanisme ini dipilih karena, dalam konteks pemantauan kontinu,
 ketersediaan data terkini lebih relevan bagi tujuan deteksi dini dibandingkan lengkapnya
 histori yang sudah kedaluwarsa. Jumlah rekaman yang tertimpa dicatat oleh \textit{firmware}
-sehingga kehilangan data akibat kapasitas penuh tetap dapat diketahui.
+agar kehilangan data akibat kapasitas penuh tetap dapat diketahui.
 % sumber: firmware/src/ecg_mqtt.cpp baris 27-36 (antre penuh: buang yang tertua, antre_hilang++)
 
 \subsubsection{Antrean Tunggal dan Pengiriman \textit{Batch}}
@@ -429,33 +393,33 @@ Seluruh hasil inferensi yang lolos gerbang kualitas dimasukkan terlebih dahulu k
 terputus. Proses pengiriman kemudian mengambil isi antrean mulai dari rekaman
 tertua dan mengemasnya menjadi satu paket berisi paling banyak 50 rekaman,
 mengikuti format \textit{multiple timestamped key-value pairs} yang didukung
-secara \textit{native} oleh ThingsBoard. Saat koneksi normal, antrean hampir selalu kosong
-sehingga setiap paket hanya berisi satu atau beberapa rekaman dan \textit{dashboard}
+secara \textit{native} oleh ThingsBoard. Saat koneksi normal, antrean hampir selalu kosong.
+Setiap paket karena itu hanya berisi satu atau beberapa rekaman, dan \textit{dashboard}
 tetap diperbarui dengan latensi rendah. Saat koneksi pulih setelah terputus,
-rekaman yang tertahan dikuras per 50 rekaman, sehingga jumlah \textit{round-trip}
+rekaman yang tertahan dikuras per 50 rekaman. Jumlah \textit{round-trip}
 \textit{request}-PUBACK (PUBACK adalah \textit{Publish Acknowledgement}, paket konfirmasi
 penerimaan pesan oleh \textit{broker}) jauh lebih sedikit dibandingkan pengiriman per
-rekaman dan proses \textit{flush} \textit{backlog} berlangsung lebih cepat. Ukuran satu
+rekaman, dan proses \textit{flush} \textit{backlog} berlangsung lebih cepat. Ukuran satu
 paket penuh sekitar 10 KB dengan bufer pengirim yang dialokasikan 16 KB, masih jauh di bawah batas ukuran pesan
 MQTT pada \textit{broker}. Dengan satu jalur antrean untuk kedua kondisi, perangkat tidak
 memerlukan peralihan mode antara transmisi \textit{real-time} dan pengurasan
 \textit{backlog}.
-% sumber: firmware/src/main.cpp publikasi() (setiap beat ke ecg_mqtt_antre_isi); firmware/include/ecg_mqtt.h baris 45-52 (ECG_MQTT_BATCH_N 50); firmware/src/ecg_mqtt.cpp baris 147 (paket_buf = header 72 byte + ECG_MQTT_BATCH_N * 320 byte + 8 = 16.080 byte) dan ecg_mqtt_payload (diukur di PC: 50 rekaman terburuk 10.801 byte, tipikal 50 x 200 byte = 10 KB) dan baris 417-422 (antre_intip maks 50 lalu kirim_batch)
+% sumber: firmware/src/klasifikasi.cpp publikasi() (setiap beat ke ecg_mqtt_antre_isi); firmware/include/ecg_mqtt.h baris 45-52 (ECG_MQTT_BATCH_N 50); firmware/src/ecg_mqtt.cpp baris 147 (paket_buf = header 72 byte + ECG_MQTT_BATCH_N * 320 byte + 8 = 16.080 byte) dan ecg_mqtt_payload (diukur di PC: 50 rekaman terburuk 10.801 byte, tipikal 50 x 200 byte = 10 KB) dan baris 417-422 (antre_intip maks 50 lalu kirim_batch)
 
 Setiap paket dikirim dengan MQTT QoS-1 (\textit{Quality of Service} tingkat 1).
 Perangkat tidak menunggu PUBACK di tempat, melainkan memeriksa kedatangannya
 setiap 20 ms melalui putaran \textit{loop} utama, karena menunggu di tempat akan menahan proses
-yang menguras antrean sampel ADC sehingga sampel hilang dan interval R-R rusak.
+yang menguras antrean sampel ADC, membuat sampel hilang dan interval R-R rusak.
 Selama satu paket belum terkonfirmasi, paket berikutnya tidak dikirim. Rekaman
 baru dihapus dari antrean, atau dengan kata lain \textit{read pointer} baru
 digeser, setelah PUBACK untuk paket tersebut diterima. Apabila PUBACK tidak
 diterima dalam 5 detik, sambungan diputus dan dibentuk ulang, lalu rekaman yang
-sama dikirim kembali karena masih berada di antrean. Prinsip pemisahan
-antara proses akuisisi data dan proses pengiriman data melalui bufer perantara ini
-menerapkan pendekatan \textit{intermediate buffering}, karena bufer internal MQTT
+sama dikirim kembali karena masih berada di antrean. Pemisahan
+proses akuisisi data dari proses pengiriman data melalui bufer perantara ini
+menerapkan pendekatan \textit{intermediate buffering}~\cite{tipparaju_2021}. Bufer internal MQTT
 (\textit{default} $\pm$10 pesan \textit{in-flight}) tidak memadai untuk gangguan koneksi yang
-berlangsung lebih dari beberapa detik, sehingga dibutuhkan lapisan bufer aplikasi
-tambahan yang memisahkan proses pembuatan data dari proses pengirimannya~\cite{resilient_edge_cloud}.
+berlangsung lebih dari beberapa detik. Karena itu dibutuhkan lapisan bufer aplikasi
+tambahan yang memisahkan proses pembuatan data dari proses pengirimannya.
 % sumber: firmware/src/ecg_mqtt.cpp ecg_mqtt_layani() baris 362-369 (dilayani tiap 20 ms) dan baris 129-136 (PUBACK ditunggu lintas iterasi loop), baris 300 (antre_buang hanya setelah PUBACK), baris 406-413 (timeout 5000 ms lalu putus)
 
 \subsubsection{Deteksi Koneksi \textit{Half-Open} dan Pemicu \textit{Flush}}
@@ -471,8 +435,8 @@ dibentuk (paket CONNACK, yaitu \textit{Connection Acknowledgement}, diterima), p
 dijalankan. Agar konfirmasi tidak tertahan oleh lapisan jaringan perangkat sendiri,
 algoritma Nagle pada soket TCP dimatikan melalui setNoDelay dan mode hemat daya WiFi
 dinonaktifkan melalui setSleep. Algoritma Nagle menahan paket kecil seukuran satu
-rekaman, sedangkan mode hemat daya menidurkan radio sehingga paket masuk dapat hilang
-dan harus dikirim ulang, dan keduanya membuat PUBACK datang terlambat seolah-olah
+rekaman, sedangkan mode hemat daya menidurkan radio dan membuat paket masuk hilang
+lalu dikirim ulang. Keduanya membuat PUBACK datang terlambat seolah-olah
 koneksi bermasalah.
 % sumber: firmware/src/ecg_mqtt.cpp baris 322-330 (WiFi.setSleep(false)) dan 392-399 (sock.setNoDelay(true)); model/CLAUDE.md HW-6 dan jebakan "Nagle menahan segmen kecil"
 
@@ -480,15 +444,15 @@ koneksi bermasalah.
 
 Paket \textit{batch} yang diterima \textit{broker} diteruskan ke Rule Chain ThingsBoard tanpa memerlukan
 layanan \textit{backend} tambahan di luar platform. Node \textit{Save Timeseries} bawaan
-ThingsBoard menerima langsung format \textit{array} [\{ts, values\}, \{ts, values\}, ...],
-mengekstrak ts milik masing-masing rekaman sebagai waktu kejadian (\textit{event time}),
-dan menyimpannya ke tabel \textit{time-series} (ts\_kv) sesuai urutan kronologis aslinya, terlepas
+ThingsBoard menerima langsung format \textit{array} [\{ts, values\}, \{ts, values\}, ...]
+dan mengekstrak ts milik masing-masing rekaman sebagai waktu kejadian (\textit{event time}).
+Rekaman kemudian disimpan ke tabel \textit{time-series} (ts\_kv) sesuai urutan kronologis aslinya, terlepas
 dari urutan kedatangan paket di \textit{broker}.
 
 Deduplikasi terhadap kemungkinan duplikat akibat pengiriman ulang QoS-1 dilakukan secara
-implisit oleh model penyimpanan ThingsBoard, karena setiap baris pada ts\_kv
-diidentifikasi oleh kombinasi (\textit{entity}, \textit{key}, ts), sehingga publikasi
-ulang rekaman dengan ts yang identik akan menimpa (\textit{upsert}) baris yang sama, bukan
+implisit oleh model penyimpanan ThingsBoard. Setiap baris pada ts\_kv
+diidentifikasi oleh kombinasi (\textit{entity}, \textit{key}, ts). Publikasi
+ulang rekaman dengan ts yang identik karena itu menimpa (\textit{upsert}) baris yang sama, bukan
 menghasilkan baris duplikat. Dengan demikian, mekanisme deduplikasi tidak memerlukan
 komponen tambahan di luar konfigurasi Rule Chain standar.
 
@@ -513,104 +477,240 @@ yang dikirimkan beserta tipe data dan fungsinya.
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{longtable}{|p{3.6cm}|p{2.0cm}|p{7.4cm}|}
+  \begin{longtable}{p{3.6cm}p{2.0cm}p{7.4cm}}
     \caption{Struktur \textit{field} \textit{payload} JSON telemetri}
     \label{tab:payload-json} \\
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{\textit{Field}} &
     \textbf{Tipe} &
     \textbf{Keterangan} \\
-    \hline
+    \midrule
     \endfirsthead
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{\textit{Field}} &
     \textbf{Tipe} &
     \textbf{Keterangan} \\
-    \hline
+    \midrule
     \endhead
-    \hline
+    \bottomrule
     \endfoot
     ts &
     int64 &
-    \textit{Unix timestamp} dalam milidetik berupa waktu kejadian detak,
-    dihitung dari jam sistem (\textit{gettimeofday}) yang disinkronkan
-    melalui SNTP dan posisi R-\textit{peak} detak tersebut \\
-    % sumber: firmware/src/main.cpp publikasi() (t.ms dari beat.r_abs); firmware/src/ecg_mqtt.cpp sinkron_jam() (gettimeofday, configTime SNTP); model/CLAUDE.md jebakan "time() beresolusi 1 detik"
-    \hline
+    Waktu kejadian detak sebagai \textit{Unix timestamp} milidetik, dari jam
+    sistem tersinkron SNTP dan posisi R-\textit{peak} detak tersebut \\
+    % sumber: firmware/src/klasifikasi.cpp publikasi() (t.ms dari beat.r_abs); firmware/src/ecg_mqtt.cpp sinkron_jam() (gettimeofday, configTime SNTP); model/CLAUDE.md jebakan "time() beresolusi 1 detik"
     bpm &
     float &
     Laju jantung dalam denyut per menit, dihitung dari interval R-R
     terakhir \\
-    \hline
     rr\_interval\_ms &
     float &
     Interval R-R terakhir dalam milidetik, keluaran algoritma
     Pan-Tompkins \\
-    \hline
     label &
     int &
     Hasil inferensi CNN: 0 = Normal, 1 = Aritmia \\
-    \hline
     label\_str &
     string &
     Label teks hasil inferensi (``Normal'' atau
     ``Aritmia''), untuk keterbacaan \textit{dashboard} \\
-    \hline
     confidence &
     float &
-    Peluang kelas yang menjadi keputusan klasifikasi (0,0--1,0), yaitu
-    keluaran \textit{sigmoid} untuk label Aritmia atau satu dikurangi
-    keluaran \textit{sigmoid} untuk label Normal \\
-    % sumber: firmware/src/main.cpp publikasi() (t.confidence = aritmia ? p : 1.0f - p)
-    \hline
+    Peluang kelas hasil keputusan (0,0--1,0), yaitu keluaran
+    \textit{sigmoid} untuk Aritmia atau komplemennya untuk Normal \\
+    % sumber: firmware/src/klasifikasi.cpp publikasi() (t.confidence = aritmia ? p : 1.0f - p)
     signal\_quality &
     string &
-    Indikator kualitas sinyal hasil gerbang ayunan sinyal per detak.
-    Rekaman hanya dikirim setelah lolos kedua gerbang kualitas sehingga
-    nilai yang dikirim perangkat adalah ``good'', sedangkan nilai ``poor''
-    disediakan pada format \textit{payload} bagi rekaman yang tidak lolos \\
-    % sumber: firmware/src/main.cpp publikasi() (quality_ok = 1 setelah fase BAIK, beat di luar fase BAIK ditahan); firmware/src/ecg_mqtt.cpp satu() (quality_ok ? "good" : "poor")
-    \hline
+    Status kontak elektroda saat detak dinilai, ``good'' atau ``poor'' \\
+    % sumber: firmware/src/klasifikasi.cpp publikasi() (quality_ok = 1 setelah fase BAIK, beat di luar fase BAIK ditahan); firmware/src/ecg_mqtt.cpp satu() (quality_ok ? "good" : "poor")
     ecg\_snippet &
     int[] &
     \textit{Array} 8 titik yang dicuplik merata dari \textit{window}
-    ECG ternormalisasi (nilai \textit{z-score} dikali 1000), disediakan
-    untuk visualisasi cuplikan gelombang, bukan untuk merepresentasikan
-    keseluruhan sinyal \\
-    % sumber: firmware/src/main.cpp publikasi() (snippet = window z-score x1000, dicuplik merata); firmware/include/ecg_mqtt.h (ECG_SNIPPET_N 8)
+    ECG ternormalisasi (nilai \textit{z-score} dikali 1000) untuk
+    visualisasi cuplikan gelombang \\
+    % sumber: firmware/src/klasifikasi.cpp publikasi() (snippet = window z-score x1000, dicuplik merata); firmware/include/ecg_mqtt.h (ECG_SNIPPET_N 8)
   \end{longtable}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: jam sistem dibaca melalui \textit{gettimeofday}. Rekaman hanya dikirim setelah lolos kedua gerbang kualitas, dan nilai signal\_quality yang dikirim perangkat adalah ``good'', sedangkan ``poor'' disediakan pada format \textit{payload} bagi rekaman yang tidak lolos. Cuplikan ecg\_snippet tidak merepresentasikan keseluruhan sinyal.\par}
 \end{center}
 
-Desain \textit{payload} ini dirancang secara minimal namun cukup informatif.
-Inferensi CNN diselesaikan sepenuhnya di sisi perangkat sebelum
-pengiriman, sehingga \textit{cloud} hanya menerima hasil klasifikasi
-beserta metadata pendukung, bukan sinyal mentah 360 Hz. Pendekatan
-ini secara signifikan mereduksi ukuran paket yang harus ditransmisikan
-(satu rekaman di dalam paket berukuran sekitar 200 byte, dengan bufer
-pengirim yang dialokasikan 320 byte per rekaman), dibandingkan sekitar 2 KB
-jika seluruh \textit{window} 256 sampel dikirimkan sebagai teks. Selain itu,
-\textit{field} signal\_quality menyertakan status kualitas pada setiap
-rekaman sehingga \textit{dashboard} dapat menampilkannya.
-% sumber: firmware/src/ecg_mqtt.cpp ecg_mqtt_payload (diukur di PC: satu rekaman 200 byte tipikal, 215 byte terburuk) dan baris 147 (paket_buf dialokasikan 320 byte per rekaman); 2 KB adalah perkiraan 256 nilai bilangan bulat berpemisah koma; firmware/src/main.cpp publikasi() (quality_ok = 1 setelah fase BAIK)
+Seluruh \textit{field} pada Tabel~\ref{tab:payload-json} berisi hasil
+klasifikasi beserta metadata pendukung, bukan sinyal mentah 360 Hz, karena
+inferensi CNN diselesaikan sepenuhnya di sisi perangkat sebelum pengiriman.
+Satu rekaman di dalam paket berukuran sekitar 200 byte, dengan bufer
+pengirim yang dialokasikan 320 byte per rekaman, dibandingkan sekitar 2 KB
+jika seluruh \textit{window} 256 sampel dikirimkan sebagai teks. \textit{Field}
+signal\_quality menyertakan status kualitas pada setiap rekaman agar
+\textit{dashboard} dapat menampilkannya.
+% sumber: firmware/src/ecg_mqtt.cpp ecg_mqtt_payload (diukur di PC: satu rekaman 200 byte tipikal, 215 byte terburuk) dan baris 147 (paket_buf dialokasikan 320 byte per rekaman); 2 KB adalah perkiraan 256 nilai bilangan bulat berpemisah koma; firmware/src/klasifikasi.cpp publikasi() (quality_ok = 1 setelah fase BAIK)
 
 Rekaman hanya dihasilkan dan dimasukkan ke antrean setelah sinyal melewati dua
-gerbang kualitas. Gerbang pertama adalah fase kalibrasi di awal sesi, yaitu
-inferensi CNN belum dijalankan dan tidak ada rekaman yang dikirim sampai tiga
-syarat terpenuhi bersamaan. Ketiga syarat tersebut meliputi waktu stabilisasi
-elektroda selama 10 menit, interval R-R yang berada dalam rentang 300--1500 ms
-dengan $|\Delta \mathrm{RR}| \leq 200$ ms secara stabil selama 30 detik, dan
-ayunan sinyal yang cukup. Kriteria R-R ini hanya berfungsi sebagai gerbang masuk
-dan tidak ditegakkan terus-menerus, karena detak aritmia justru datang dengan
-perubahan interval yang besar sehingga penegakan terus-menerus akan membungkam
-aritmia yang ingin dideteksi. Gerbang kedua adalah gerbang ayunan sinyal per
-detak, yaitu detak hanya dikirim apabila ayunan sinyal tersaring dalam satu detik
-terakhir mencapai ambang 60 \textit{count} ADC. Gerbang
-kedua ini diperlukan karena \textit{threshold} adaptif Pan-Tompkins tetap
-menemukan puncak pada derau ketika elektroda terlepas, sehingga tanpa gerbang ini
-elektroda yang lepas akan menghasilkan alarm aritmia palsu.
-% sumber: firmware/src/main.cpp baris 39-57 (AMBANG_AYUN 60, STABIL_MS 10 menit, RR_TENANG_MS 30 s, RR 0,300-1,500 s, DRR_MAKS 0,200 s) dan nilai_fase(); model/CLAUDE.md HW-6 dan jebakan "Tanpa elektroda, alat mengarang aritmia"
+gerbang kualitas yang sama-sama bertumpu pada penilaian kontak elektroda.
+Kontak dinilai setiap detik dan dinyatakan baik bila tiga syarat terpenuhi
+bersamaan. Pertama, kedua pin \textit{lead-off} AD8232 tidak menandai elektroda
+lepas pada satu sampel pun di detik tersebut. Kedua, ayunan bersih mencapai 60
+\textit{count} ADC. Ketiga, dengung 50 Hz puncak-ke-puncak tidak melebihi 500
+\textit{count}. Ketiga syarat dipakai bersama karena masing-masing menutup
+kelemahan syarat lain. Pin \textit{lead-off} dapat menyatakan elektroda menempel
+walaupun biopotensial tidak terbaca, sedangkan ayunan sinyal ECG yang kuat tetap
+tinggi ketika kontak salah satu elektroda memburuk dan dengungnya naik.
+% sumber: firmware/src/gerbang.cpp nilai_kontak() (q.lepas = n_lepas > 0 per jendela 1 detik, ayun_bersih >= AMBANG_AYUN, hum50 <= AMBANG_DENGUNG); firmware/include/gerbang.h (AMBANG_AYUN 60, AMBANG_DENGUNG 500); model/docs/akuisisi-walkthrough.md §2 dan §3 (LO 0% bukan jaminan ada sinyal); model/docs/mqtt-walkthrough.md §3.1 (ayunan tetap tinggi saat kontak memburuk)
+
+Gerbang pertama adalah fase kalibrasi di awal sesi. Selama fase ini inferensi
+CNN belum dijalankan dan tidak ada rekaman yang dikirim. Fase kalibrasi berakhir
+apabila kontak baik bertahan tanpa putus selama 60 detik dan interval R-R berada
+dalam rentang 300--1500 ms dengan $|\Delta \mathrm{RR}| \leq 200$ ms secara
+stabil selama 30 detik. Waktu 60 detik dihitung sejak kontak terbentuk, bukan
+sejak perangkat dinyalakan, dan kontak yang putus mengulang hitungan dari nol.
+Kriteria R-R hanya berfungsi sebagai gerbang masuk dan tidak ditegakkan
+terus-menerus, karena detak aritmia justru datang dengan perubahan interval yang
+besar. Penegakan terus-menerus akan membungkam aritmia yang ingin dideteksi.
+% sumber: firmware/src/gerbang.cpp gerbang_nilai_fase() (gerbang_kontak_ms() >= PEMANASAN_MS && rr_tenang && q.kontak); firmware/include/gerbang.h (PEMANASAN_MS 60 s, RR_TENANG_MS 30 s); firmware/src/gerbang.cpp (RR_MIN_S 0,300, RR_MAKS_S 1,500, DRR_MAKS_S 0,200)
+
+Gerbang kedua adalah penilaian kontak yang terus berjalan setelah fase
+kalibrasi berakhir. Kontak yang memburuk memindahkan perangkat ke fase buruk dan
+detak ditahan, lalu perangkat kembali ke fase pemantauan begitu kontak pulih
+tanpa mengulang waktu 60 detik. Penilaian ini berjalan per detik dan tidak
+menunggu detak berikutnya, jadi elektroda yang lepas seluruhnya tetap terdeteksi
+walaupun detektor berhenti menemukan detak. Gerbang ini diperlukan karena
+\textit{threshold} adaptif Pan-Tompkins tetap menemukan puncak pada derau ketika
+elektroda terlepas. Tanpa gerbang ini, elektroda yang lepas akan menghasilkan
+alarm aritmia palsu.
+% sumber: firmware/src/gerbang.cpp nilai_kontak() (fase BAIK/BURUK tiap detik sesudah kalibrasi, tanpa pemanasan ulang); model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia"
+
+Ayunan yang dinilai pada kontak elektroda adalah ayunan bersih, yaitu ayunan sinyal tersaring dikurangi kontribusi dengung jala-jala 50 Hz yang masih lolos filter \textit{bandpass} dengan redaman sekitar 9,3 dB. Amplitudo dengung tersebut diukur per detik dengan algoritma Goertzel agar kabel yang hanya menangkap dengung tidak terbaca sebagai sinyal yang kuat. Syarat lama kontak, syarat R-R, dan status \textit{lead-off} dilewati secara otomatis selama sumber sinyal adalah \textit{replay}. Sinyal yang diputar ulang tidak berasal dari elektroda, sedangkan rekaman acuan bersifat aritmik dan tidak akan memenuhi kriteria R-R. Pelewatan ini melekat pada sumber \textit{replay} dan berhenti begitu sumber kembali ke sensor, dan karena itu tidak dapat terbawa ke pemantauan sinyal tubuh. Syarat ayunan dan dengung tidak pernah dilewati.
+% sumber: firmware/src/gerbang.cpp (GAIN_50HZ 0,342 = -9,3 dB, Goertzel 50 Hz per 1 detik, ayun_bersih; nilai_kontak(): akuisisi_replay() || !q.lepas; gerbang_nilai_fase(): lewati_kalibrasi || replay || (hangat && rr_tenang), selalu && q.kontak); model/docs/akuisisi-walkthrough.md §2 (tabel pelewatan, bypass hilang begitu sumber kembali ke Sensor)
+
+\subsection{Antarmuka Pengguna pada Perangkat}
+\label{subsec:antarmuka-perangkat}
+
+Selain mengirim hasil klasifikasi ke \textit{cloud}, perangkat menampilkan hasil pemantauan secara lokal dan dapat dioperasikan sepenuhnya tanpa komputer melalui layar TFT, LED \textit{NeoPixel}, \textit{buzzer}, dan tiga tombol. Antarmuka ini dirancang agar tidak mengganggu jalur utama, yaitu akuisisi, deteksi, inferensi, perekaman, dan publikasi MQTT tetap berjalan ketika pengguna menekan tombol atau membuka menu, karena menu hanya mengganti isi layar dan arti tombol. Antarmuka tersebut terdiri atas tata letak layar, indikator LED dan \textit{buzzer}, tombol dan menu, sumber sinyal, alur perekaman sinyal mentah, serta konfigurasi jaringan.
+% sumber: firmware/README.md bagian Antarmuka alat dan Pemakaian di perangkat ("Menu hanya mengganti isi layar dan arti tombol. Akuisisi, deteksi, inferensi, rekaman, publikasi MQTT, NeoPixel, dan bip detak tetap berjalan selama menu terbuka")
+
+\subsubsection{Tata Letak Layar Pemantauan}
+
+Layar pemantauan dibagi menjadi tiga pita, yaitu pita atas untuk angka dan status, pita tengah untuk gelombang ECG, dan pita bawah untuk label tombol, sebagaimana ditunjukkan pada Gambar~\ref{fig:3-tata-letak-layar}.
+
+% PLACEHOLDER-GAMBAR fig:3-tata-letak-layar  (digambar user, bukan Claude)
+% Jenis      : mockup/wireframe layar TFT 320x172 landscape (boleh juga foto layar asli yang diberi anotasi)
+% Pesan      : apa yang tampil di setiap area layar pemantauan
+% Elemen     : kiri atas "HR" (angka bpm); tengah atas "Waktu" (jam WIB HH:MM:SS + tanggal, atau uptime bila belum sinkron);
+%              kanan atas "Status rekaman" dengan contoh REC00:12 merah, JEDA kuning, SIMPAN hijau, RP 208 kuning;
+%              tengah "Gelombang ECG"; bawah tiga kotak "B1", "B2", "B3" berlabel BUNYI/BISU, JALAN/BEKU, REC/JEDA/LANJUT
+% Alur baca  : atas kiri ke kanan, lalu gelombang di tengah, lalu kotak tombol di bawah
+% Teks       : label anotasi persis "HR", "Waktu", "Status rekaman", "Gelombang ECG", "B1", "B2", "B3"
+% Bahan repo : firmware/README.md bagian Antarmuka alat; firmware/src/tampilan.cpp (gambar_tengah, gambar_kanan, label tombol)
+% Ukuran     : width=\linewidth,keepaspectratio
+\begin{figure}[!ht]
+  \centering
+  \PlaceholderGambar{Mockup layar}{tata letak layar pemantauan, yaitu HR, waktu, status rekaman, gelombang ECG, dan kotak tombol B1, B2, B3}
+  \caption{Tata letak layar pemantauan pada perangkat}
+  \label{fig:3-tata-letak-layar}
+\end{figure}
+
+Pada Gambar~\ref{fig:3-tata-letak-layar}, area HR di kiri atas menampilkan laju jantung dari interval R-R detak terakhir yang ayunan bersihnya mencapai 60 \textit{count}. Angkanya berwarna merah bila detak terakhir diklasifikasi Aritmia dan berganti menjadi tanda strip bila tidak ada detak selama 3 detik. Area tengah atas menampilkan waktu, yaitu jam WIB beserta tanggal setelah jam perangkat tersinkron melalui SNTP, sedangkan sebelum itu yang tampil adalah \textit{uptime} perangkat. Area status rekaman di kanan atas menampilkan tulisan REC berwarna merah beserta panjang sinyal yang sudah tersimpan selama perekaman dan JEDA berwarna kuning selama perekaman dijeda. Setelah rekaman tersimpan, area ini menampilkan SIMPAN berwarna hijau beserta nomor berkas selama 3 detik. Bila sumber sinyal adalah \textit{replay}, area ini menampilkan label sumber berwarna kuning, dan bila sebuah perintah ditolak, area ini menampilkan pesan penolakan berwarna oranye selama 2 detik. Kualitas sinyal sengaja tidak ditulis di layar, karena LED menjadi satu-satunya indikatornya.
+
+Pita tengah dan pita bawah pada Gambar~\ref{fig:3-tata-letak-layar} melayani gelombang dan tombol. Area gelombang ECG menampilkan sinyal tersaring 0,5--40 Hz dengan skala otomatis per sapuan. Tiga kotak di bawahnya memuat label B1, B2, dan B3 sesuai keadaan saat itu, misalnya BISU atau BUNYI, agar arti setiap tombol terbaca dari layar.
+% sumber: firmware/README.md bagian Antarmuka alat (HR merah bila aritmia, "--" bila tidak ada detak 3 detik; tengah atas bergantian tiap 3 detik INA219 dan waktu WIB/uptime; kanan atas RECmm:ss merah, JEDAm:ss kuning, SIMPAN hijau 3 detik, RP 208 dan RP#NNN kuning; gelombang 0,5-40 Hz skala otomatis; kotak tombol berlabel keadaan); firmware/src/tampilan.cpp (HR_BASI_MS 3000, tampilan_pesan oranye PESAN_MS 2000)
+
+Gelombang dan bip detak sengaja ditunda sama rata sekitar 1,46 detik dari posisi R-\textit{peak}, yaitu sebesar selang deteksi, panjang \textit{window} sesudah R, dan sedikit margin. Penundaan yang seragam ini membuat jarak antarbip sama dengan interval R-R sebenarnya dan membuat puncak R tergambar tepat ketika bipnya berbunyi, walaupun detak baru diketahui setelah deteksi berjalan.
+% sumber: firmware/src/tampilan.cpp (TUNDA_BIP = ECG_LIVE_TIAP + ECG_WIN_POST + ECG_FS / 10, komentar "semua bip telat sama rata (1,46 detik), jarak antar-bip = RR persis"; gelombang ikut ditunda TUNDA_BIP)
+
+\subsubsection{Indikator LED dan \textit{Buzzer}}
+
+LED \textit{NeoPixel} hanya menyatakan kualitas sinyal dengan tiga warna tanpa kedip, yaitu biru selama fase kalibrasi, oranye ketika kontak elektroda dinilai buruk, dan hijau ketika kontak elektroda dinilai baik. Sinyal yang terpotong di batas ADC tidak memiliki warna tersendiri agar satu warna tidak menanggung dua arti. Pemotongan sinyal karena itu diperiksa melalui laporan kualitas.
+% sumber: firmware/src/tampilan.cpp perbarui_led() (biru kalibrasi, oranye fase BURUK, hijau; tanpa kedip; clipping tanpa pola LED); model/docs/akuisisi-walkthrough.md §2
+
+\textit{Buzzer} berbunyi 50 ms untuk setiap detak dan 250 ms untuk detak yang diklasifikasi Aritmia agar irama dan kejadian aritmia dapat dikenali tanpa melihat layar. Bip detak hanya muncul bila ayunan sinyal mencapai ambang, yaitu gerbang yang sama dengan publikasi MQTT, dan senyap selama fase kalibrasi karena inferensi belum dijalankan. Bunyi panjang 600 ms menandai dimulainya fase kalibrasi, baik saat perangkat dinyalakan, saat sumber sinyal diganti, maupun saat kalibrasi dimulai ulang dari menu, dan menandai berakhirnya fase kalibrasi ketika perangkat masuk ke fase pemantauan. Selain itu, setiap tekanan tombol berbunyi klik 20 ms, tercapainya tekan lama ditandai bip 60 ms, dan berkas rekaman yang sudah tertulis ditandai bip 400 ms.
+% sumber: firmware/src/tampilan.cpp (BIP_MS 50, BIP_ARITMIA_MS 250, bip hanya bila fase != KALIBRASI); firmware/src/gerbang.cpp (BIP_KALIB_MS 600 di gerbang_mulai_sesi dan saat calibrating -> good); firmware/src/main.cpp (KLIK_MS 20, BIP_LAMA_MS 60, BIP_SIMPAN_MS 400); firmware/README.md bagian Antarmuka alat
+
+\subsubsection{Tombol dan Menu}
+
+Setiap tombol membedakan dua jenis tekanan. Tekan pendek adalah tekanan yang dilepas sebelum 800 ms, dan aksinya dijalankan saat tombol dilepas. Tekan lama adalah tekanan yang masih ditahan ketika 800 ms tercapai, dan aksinya dijalankan saat itu juga tanpa menunggu tombol dilepas. Arti setiap tombol pada layar pemantauan dan pada menu ditunjukkan pada Tabel~\ref{tab:peta-tombol}.
+% sumber: firmware/src/tombol.cpp (debounce 50 ms, ambang lama 800 ms); firmware/README.md bagian Pemakaian di perangkat
+
+\begin{table}[!ht]
+  \centering
+  \caption{Arti tombol pada layar pemantauan dan menu}
+  \label{tab:peta-tombol}
+  \setstretch{1.0}
+  \setlength{\tabcolsep}{4pt}
+  \renewcommand{\arraystretch}{1.15}
+  \small
+  \begin{tabular}{>{\RaggedRight\arraybackslash}p{2.4cm}>{\RaggedRight\arraybackslash}p{3.1cm}>{\RaggedRight\arraybackslash}p{3.1cm}>{\RaggedRight\arraybackslash}p{3.8cm}}
+    \toprule
+    \textbf{Konteks} & \textbf{B1} & \textbf{B2} & \textbf{B3} \\
+    \midrule
+    Pemantauan, tekan pendek & Membisukan atau membunyikan bip detak & Membekukan atau menjalankan gelombang dan bip & Mulai merekam; saat merekam menjeda, saat dijeda melanjutkan \\
+    Pemantauan, tekan lama & Tidak ada aksi & Membuka menu & Saat merekam atau dijeda, berhenti dan menyimpan rekaman \\
+    Menu, tekan pendek & Sorotan turun & Kembali satu tingkat; di tingkat teratas menutup menu & Sorotan naik \\
+    Menu, tekan lama & Langsung ke layar pemantauan & Memilih atau masuk & Langsung ke layar pemantauan \\
+    \bottomrule
+  \end{tabular}
+\end{table}
+% sumber: firmware/README.md bagian Peta tombol; firmware/src/main.cpp (pemetaan event tombol mode monitor) dan firmware/src/menu.cpp (navigasi)
+
+Berdasarkan Tabel~\ref{tab:peta-tombol}, fungsi yang paling sering dipakai selama pemantauan, yaitu membisukan bip, membekukan gelombang, dan merekam, cukup memakai tekan pendek. Aksi yang tidak boleh terpicu tanpa sengaja, yaitu membuka menu dan menyimpan rekaman, memerlukan tekan lama. Struktur menu yang dibuka dengan menahan B2 ditunjukkan pada Gambar~\ref{fig:3-pohon-menu}.
+
+% PLACEHOLDER-GAMBAR fig:3-pohon-menu  (digambar user, bukan Claude)
+% Jenis      : diagram pohon (hierarki) menu, landscape
+% Pesan      : lima menu utama dan pilihan di bawah masing-masing
+% Elemen     : akar "Menu"; anak "Sumber sinyal" (Sensor (ADC), REPLAY 208, Replay rekaman -> daftar berkas);
+%              "Kalibrasi" (Mulai ulang, Lewati (bench), Status); "Tes perangkat" (Buzzer, Layar, ADC & lead-off, Tombol);
+%              "Jaringan" (WiFi -> daftar, Broker -> daftar, MQTT ON/OFF, Status); "Info"
+% Alur baca  : akar di kiri, menu utama satu kolom, pilihan di kolom kanan
+% Teks       : nama menu persis seperti di paragraf
+% Bahan repo : firmware/README.md bagian Pohon menu; firmware/src/menu.cpp (H_AKAR, I_SUMBER, I_KALIB, I_TES, I_JARINGAN)
+% Ukuran     : width=\linewidth,keepaspectratio
+\begin{figure}[!ht]
+  \centering
+  \PlaceholderGambar{Diagram pohon menu}{menu Sumber sinyal, Kalibrasi, Tes perangkat, Jaringan, dan Info beserta pilihannya}
+  \caption{Struktur menu pada perangkat}
+  \label{fig:3-pohon-menu}
+\end{figure}
+
+Gambar~\ref{fig:3-pohon-menu} memperlihatkan lima menu utama. Menu Sumber sinyal memilih masukan pemrosesan, yaitu sensor, \textit{replay} sinyal acuan, atau \textit{replay} rekaman yang tersimpan. Menu Kalibrasi memulai ulang sesi kalibrasi dan menampilkan status kalibrasi yang diperbarui setiap detik, yaitu lama kontak baik, waktu R-R tenang, ayunan dan dengung terhadap ambangnya, dan sampel hilang. Menu ini juga menyediakan pelewatan manual untuk pengujian di meja kerja yang tidak dipakai pada perekaman resmi. Menu Tes perangkat menjalankan uji satu komponen, yaitu \textit{buzzer}, layar, ADC dan \textit{lead-off}, atau tombol, lalu menampilkan hasil lulus atau gagal beserta ringkasan bacaannya. Menu Jaringan memilih jaringan WiFi dan \textit{broker}, menyalakan atau mematikan publikasi MQTT, dan menampilkan status koneksi. Menu Info menampilkan alamat IP, kekuatan sinyal WiFi, \textit{broker} aktif, \textit{uptime}, dan versi \textit{firmware}. Pilihan sumber sinyal, WiFi, dan \textit{broker} disimpan pada memori non-volatil (NVS) dan tetap berlaku setelah perangkat dinyalakan ulang.
+% sumber: firmware/README.md bagian Pohon menu dan tabel Halaman (Sumber sinyal, Kalibrasi, Tes perangkat, Ukur daya, Jaringan, Info; pilihan disimpan di NVS); firmware/src/menu.cpp; firmware/src/diagnosa.cpp (diag_buzzer, diag_layar, diag_adc, diag_ina219, diag_tombol)
+
+\subsubsection{Sumber Sinyal}
+
+Pemrosesan di perangkat dapat menerima sampel dari tiga sumber. Sumber sensor membaca ADC yang tersambung ke AD8232. Sumber \textit{replay} acuan memutar berulang sinyal mentah rekaman 208 MIT-BIH yang juga menjadi data acuan uji kesetaraan. Sumber \textit{replay} rekaman memuat paling banyak 300 detik pertama sebuah rekaman tersimpan ke PSRAM lalu memutarnya berulang, dengan segmen-segmen rekaman diputar bersambung. Ketiga sumber bertemu di titik yang sama, yaitu \textit{timer interrupt} 360 Hz yang menaruh sampel ke antrean. Filter, deteksi, inferensi, dan publikasi karena itu tidak membedakan asal sampelnya. Setiap pergantian sumber memulai sesi kalibrasi baru dan mengenolkan hitungan detak, dan rekaman yang terlalu pendek untuk dimuat tidak mengubah sumber yang sedang aktif.
+% sumber: firmware/src/akuisisi.cpp (timer ISR 360 Hz -> antrean; SUMBER_ADC, SUMBER_ACUAN golden_raw record 208, SUMBER_REKAM /rekam/NNN.csv dimuat ke PSRAM); firmware/README.md tabel Halaman baris Sumber sinyal (maksimal 300 detik pertama, baris # dilewati sehingga segmen bersambung, < 1 detik gagal dimuat tidak mengubah sumber, ganti sumber = sesi kalibrasi baru dan hitungan beat nol)
+
+\subsubsection{Alur Perekaman Sinyal Mentah}
+
+Perangkat dapat merekam sinyal ADC mentah untuk dianalisis di komputer, dengan alur keadaan yang ditunjukkan pada Gambar~\ref{fig:3-alur-rekam}.
+
+% PLACEHOLDER-GAMBAR fig:3-alur-rekam  (digambar user, bukan Claude)
+% Jenis      : diagram keadaan (state diagram), landscape
+% Pesan      : tiga keadaan perekaman dan tombol yang memindahkannya
+% Elemen     : keadaan "Tidak merekam", "Merekam", "Dijeda"; aksi "Simpan berkas" (berkas bernomor di flash);
+%              panah Tidak merekam -> Merekam: "B3 pendek (sumber sensor)"; Merekam -> Dijeda: "B3 pendek"; Dijeda -> Merekam: "B3 pendek";
+%              Merekam -> Simpan berkas dan Dijeda -> Simpan berkas: "B3 lama"; Simpan berkas -> Tidak merekam;
+%              catatan pada Merekam dan Dijeda: "menu dan pergantian pengaturan terkunci"; catatan pada transisi Dijeda -> Merekam: "penanda jeda ditulis"
+% Alur baca  : kiri ke kanan, Tidak merekam -> Merekam <-> Dijeda -> Simpan berkas -> kembali ke Tidak merekam
+% Teks       : label persis seperti di Elemen
+% Bahan repo : firmware/src/rekam.cpp (rekam_toggle, jeda, rekam_tolak); firmware/README.md bagian Merekam; model/docs/akuisisi-walkthrough.md §3
+% Ukuran     : width=\linewidth,keepaspectratio
+\begin{figure}[!ht]
+  \centering
+  \PlaceholderGambar{Diagram keadaan}{keadaan Tidak merekam, Merekam, dan Dijeda beserta tombol B3 yang memindahkannya}
+  \caption{Diagram keadaan perekaman sinyal mentah}
+  \label{fig:3-alur-rekam}
+\end{figure}
+
+Gambar~\ref{fig:3-alur-rekam} dibaca dari kiri ke kanan. Tekan pendek B3 pada layar pemantauan memulai perekaman, tekan pendek berikutnya menjeda, dan tekan pendek sesudahnya melanjutkan. Dengan jeda itu, gangguan sesaat seperti subjek bergerak atau kabel tersenggol tidak perlu ikut tersimpan. Tekan lama B3 dari keadaan merekam maupun dijeda menghentikan perekaman dan menyimpan berkas. Sampel ditampung di PSRAM selama perekaman, dengan batas 300 detik sinyal tersimpan yang tidak menghitung waktu jeda. Ketika disimpan, sampel ditulis ke memori \textit{flash} sebagai berkas bernomor baru, dan rekaman bertahan walaupun perangkat dimatikan tanpa menimpa rekaman lama. Berkas diawali baris keterangan yang memuat frekuensi sampel, jumlah sampel, jumlah sampel yang hilang, dan persentase \textit{lead-off}, lalu satu nilai ADC per baris. Setiap jeda dicatat sebagai baris penanda di antara dua segmen, karena dua segmen yang bersebelahan tidak kontinu dalam waktu. Analisis di komputer karena itu menghitung interval R-R per segmen, dan tidak ada interval R-R yang melintasi jeda.
+% sumber: firmware/src/rekam.cpp (buffer PSRAM, REKAM_SAMPEL_MAKS = 360 x 300, berkas /rekam/NNN.csv di LittleFS, baris "# jeda"); firmware/README.md bagian Merekam dan format berkas (# fs=360 n=... lewat=... lepas=...); model/scripts/analyze_recording.py muat() dan analisis_segmen() (segmen dipisah baris jeda, R-peak dan RR per segmen); model/docs/akuisisi-walkthrough.md §3
+
+Perekaman hanya dapat dimulai dari layar pemantauan dengan sumber sensor. Rekaman karena itu tidak pernah berisi sinyal \textit{replay}. Selama sesi perekaman berlangsung, termasuk ketika dijeda, menu terkunci dan perintah yang mengubah kondisi akuisisi ditolak, yaitu pergantian sumber sinyal, pelewatan kalibrasi, serta pergantian WiFi dan \textit{broker}. Penolakan ditandai pesan di layar dan bip pendek. Penguncian ini membuat seluruh isi satu berkas direkam pada kondisi yang sama, dan untuk mengubah pengaturan rekaman harus disimpan lebih dahulu.
+% sumber: git log 5088bb6 (kunci sesi rekam, rekam hanya dari sensor); firmware/src/rekam.cpp rekam_toggle() (tolak bila sumber bukan ADC, mode daya aktif, atau menu terbuka) dan rekam_tolak(); firmware/src/menu.cpp menu_buka() (TERKUNCI selama rekam); firmware/src/akuisisi.cpp akuisisi_set_sumber(), firmware/src/gerbang.cpp gerbang_set_lewati(), firmware/src/daya.cpp daya_set_mode() dan daya_tangga_mulai(), firmware/src/konfig.cpp konfig_pilih_wifi() dan konfig_pilih_broker() (rekam_tolak); firmware/src/tampilan.cpp tampilan_pesan() (BIP_TOLAK_MS 150)
+
+\subsubsection{Konfigurasi Jaringan}
+
+Perangkat tersambung ke satu jaringan WiFi dan satu \textit{broker} MQTT pada satu waktu. Keduanya dipilih dari daftar yang ditanam saat \textit{firmware} dibangun, yaitu daftar jaringan berisi nama dan sandi serta daftar \textit{broker} berisi nama tampilan, alamat, \textit{port}, dan \textit{access token} perangkat ThingsBoard. Indeks pilihan aktif disimpan di NVS. Berpindah di antara entri yang sudah ada karena itu cukup dilakukan dari menu Jaringan tanpa membangun ulang \textit{firmware}, dan entri pertama dipakai bila belum pernah ada pilihan. Tanpa daftar kredensial, perangkat tetap berjalan dengan publikasi MQTT nonaktif.
+% sumber: firmware/src/konfig.cpp (WIFI_DAFTAR {ssid, sandi}, BROKER_DAFTAR {nama, host, port, token}, indeks di NVS Preferences, entri 0 bawaan); firmware/README.md bagian Konfigurasi jaringan dan broker (tanpa wifi_secrets.h MQTT nonaktif)
+
+Alamat \textit{broker} wajib berupa alamat IP, karena \textit{firmware} tidak melakukan resolusi nama domain. Resolusi DNS adalah panggilan yang menahan \textit{loop} utama tanpa batas waktu yang dapat dikendalikan, sedangkan \textit{loop} utama tidak boleh tertahan lebih lama dari kapasitas antrean sampel ADC. Pada pengujian, \textit{broker} adalah ThingsBoard yang berjalan di komputer. Alamatnya karena itu adalah alamat IP komputer tersebut, dan perangkat serta komputer harus berada pada jaringan WiFi yang sama. Jaringan yang menerapkan isolasi antarklien, yang umum pada titik akses publik, memblokir lalu lintas tersebut dan tidak dapat dipakai.
+% sumber: firmware/README.md bagian Konfigurasi jaringan dan broker (host wajib alamat IP, nama host tidak di-resolve; board dan laptop harus satu SSID; troubleshooting AP/client isolation); model/CLAUDE.md jebakan "Menunggu jaringan di dalam loop" (resolusi DNS panggilan blocking terpisah, antrean 256 sampel = 711 ms)
 
 \subsection{Antarmuka \textit{Monitoring} Berbasis ThingsBoard}
 \label{subsec:dashboard-thingsboard}
@@ -618,11 +718,11 @@ elektroda yang lepas akan menghasilkan alarm aritmia palsu.
 Hasil inferensi dan data telemetri yang dikirimkan oleh ESP32-S3
 divisualisasikan melalui \textit{dashboard} berbasis ThingsBoard
 Community Edition. Platform ini dipilih karena mendukung penerimaan
-data via protokol MQTT secara langsung, menyediakan sistem \textit{widget}
+data via protokol MQTT secara langsung dan menyediakan sistem \textit{widget}
 berbasis \textit{telemetry key} yang dapat dikonfigurasi tanpa
-pemrograman \textit{frontend}, serta menggunakan WebSocket internal
-untuk memperbarui tampilan secara otomatis setiap paket baru diterima
-sehingga \textit{dashboard} berperilaku \textit{real-time} dengan
+pemrograman \textit{frontend}. Platform ini juga menggunakan WebSocket internal
+untuk memperbarui tampilan secara otomatis setiap paket baru diterima.
+\textit{Dashboard} karena itu berperilaku \textit{real-time} dengan
 interval pembaruan mengikuti frekuensi \textit{publish} MQTT ($\approx$1 detik).
 
 Tabel~\ref{tab:widget-thingsboard} merinci \textit{widget} yang dikonfigurasi
@@ -634,24 +734,22 @@ dari \textit{field} \textit{payload} JSON dan fungsi masing-masing \textit{widge
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{longtable}{|p{4.0cm}|p{3.1cm}|p{6.0cm}|}
+  \begin{longtable}{p{4.0cm}p{3.1cm}p{6.0cm}}
     \caption{Konfigurasi \textit{widget} pada \textit{dashboard} ThingsBoard}
     \label{tab:widget-thingsboard} \\
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{\textit{Widget}} &
     \textbf{\textit{Telemetry key}} &
     \textbf{Fungsi} \\
-    \hline
+    \midrule
     \endfirsthead
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{\textit{Widget}} &
     \textbf{\textit{Telemetry key}} &
     \textbf{Fungsi} \\
-    \hline
+    \midrule
     \endhead
-    \hline
+    \bottomrule
     \endfoot
     % sumber: dashboard/dashboard_ekg.json (7 widget: value_card bpm, label_value_card label_str,
     %   label_value_card signal_quality, value_card confidence, time_series_chart bpm,
@@ -659,28 +757,22 @@ dari \textit{field} \textit{payload} JSON dan fungsi masing-masing \textit{widge
     \textit{Value card} &
     bpm &
     Menampilkan laju jantung terkini dalam BPM secara \textit{real-time}\\
-    \hline
     \textit{Label value card} &
     label\_str &
     Menampilkan hasil klasifikasi ``Normal'' atau
     ``Aritmia'' sesuai keluaran inferensi \\
-    \hline
     \textit{Label value card} &
     signal\_quality &
     Menampilkan status kualitas sinyal dari rekaman terakhir \\
-    \hline
     \textit{Value card} &
     confidence &
     Menampilkan peluang kelas yang menjadi keputusan model dalam rentang 0--1 \\
-    \hline
     \textit{Time-series chart} &
     bpm &
     Menampilkan tren laju jantung selama sesi pemantauan \\
-    \hline
     \textit{Time-series chart} &
     rr\_interval\_ms &
     Menampilkan tren interval R-R selama sesi pemantauan \\
-    \hline
     \textit{Timeseries table} &
     bpm, label\_str, confidence &
     Menampilkan riwayat rekaman beserta \textit{timestamp} untuk
@@ -688,21 +780,21 @@ dari \textit{field} \textit{payload} JSON dan fungsi masing-masing \textit{widge
   \end{longtable}
 \end{center}
 
+\textit{Widget} pada Tabel~\ref{tab:widget-thingsboard} menampilkan data
+\textit{real-time} dan historis sekaligus. \textit{Widget} \textit{time-series chart}
+dan \textit{timeseries table} menampilkan seluruh rekaman sesi yang tersimpan dalam basis data
+ThingsBoard, dan data itu dapat diekspor untuk keperluan analisis
+lanjutan. Selama fase kalibrasi, inferensi CNN tidak dijalankan dan
+tidak ada rekaman yang dikirim. \textit{Dashboard} karena itu hanya menerima
+detak yang telah lolos gerbang kualitas dan terhindar dari \textit{false
+positive} akibat artefak kontak elektroda.
+
 Mekanisme alarm dirancang menggunakan \textit{alarm rule engine} bawaan
 platform. Aturan yang dirancang membuat entri alarm secara otomatis ketika
 \textit{field} label bernilai 1 pada paket yang masuk, dengan notifikasi yang
 dapat dikonfigurasi. Aturan ini belum dipasang pada \textit{dashboard} yang
 digunakan pada pengujian.
 % sumber: dashboard/README.md bagian "Rule chain" (folder baru akan berisi export JSON begitu ada alarm rule); dashboard/dashboard_ekg.json (hanya 7 widget, tanpa alarm)
-
-Data yang ditampilkan pada \textit{dashboard} bersifat
-\textit{real-time} dan historis sekaligus. \textit{Widget} \textit{time-series chart}
-dan \textit{timeseries table} menampilkan seluruh rekaman sesi yang tersimpan dalam basis data
-ThingsBoard, sehingga data dapat diekspor untuk keperluan analisis
-lanjutan. Selama fase kalibrasi, inferensi CNN tidak dijalankan dan
-tidak ada rekaman yang dikirim, sehingga \textit{dashboard} hanya menerima
-detak yang telah lolos gerbang kualitas dan terhindar dari \textit{false
-positive} akibat artefak kontak elektroda.
 
 % \subsection{Teknik Pengumpulan Data}
 % \label{sec:teknik-pengumpulan-data}
@@ -712,23 +804,15 @@ positive} akibat artefak kontak elektroda.
 \subsection{Rencana Pengujian}
 \label{sec:rencana-pengujian}
 
-Pengujian pada penelitian ini dilakukan melalui dua jalur. Jalur pertama adalah pengujian model yang menjadi klaim ilmiah utama, sedangkan jalur kedua adalah pengujian \textit{pipeline} yang bersifat fungsional untuk memverifikasi bahwa seluruh alur sistem berjalan sebagaimana mestinya. Kedua jalur pengujian ini bertujuan memverifikasi kinerja model dan eksekusi sistem, bukan untuk menegakkan diagnosis klinis.
+Pengujian pada penelitian ini dilakukan melalui dua jalur. Jalur pertama adalah pengujian model yang menjadi klaim ilmiah utama, sedangkan jalur kedua adalah pengujian \textit{pipeline} yang bersifat fungsional untuk memverifikasi bahwa seluruh alur sistem berjalan sebagaimana mestinya. Kedua jalur dilengkapi pengujian perangkat keras untuk memastikan setiap komponen perangkat berfungsi. Kedua jalur pengujian ini bertujuan memverifikasi kinerja model dan eksekusi sistem, bukan untuk menegakkan diagnosis klinis.
 
 \subsubsection{Pengujian Model}
 
-Pengujian model dilakukan secara \textit{offline} menggunakan partisi data uji DS2 dari MIT-BIH \textit{Arrhythmia Database}, yang telah dipisahkan dari data latih DS1 berdasarkan skema antarpasien (\textit{inter-patient split}) sehingga tidak ada tumpang tindih subjek antara data latih dan data uji. Pemisahan ini memastikan metrik yang dihasilkan mencerminkan kemampuan generalisasi model terhadap pasien baru, bukan sekadar menghafal pola dari data latih.
+Pengujian model dilakukan secara \textit{offline} menggunakan partisi data uji DS2 dari MIT-BIH \textit{Arrhythmia Database}. Partisi ini telah dipisahkan dari data latih DS1 berdasarkan skema antarpasien (\textit{inter-patient split}), dan tidak ada tumpang tindih subjek antara data latih dan data uji. Pemisahan ini memastikan metrik yang dihasilkan mencerminkan kemampuan generalisasi model terhadap pasien baru, bukan sekadar menghafal pola dari data latih.
 
-Model bersifat \textit{hybrid} dua cabang, sehingga setiap detak pada DS2 dievaluasi dengan kedua masukan secara bersamaan, yaitu \textit{window} ECG untuk cabang morfologi dan fitur interval RR (RR\_prev, rasio RR, $\Delta$RR) untuk cabang ritme. Evaluasi dilakukan dalam dua tahap. Pertama, model hasil pelatihan dalam format \textit{float32} diuji pada seluruh detak dalam DS2 untuk menghasilkan \textit{confusion matrix} beserta nilai \textit{accuracy}, \textit{precision}, \textit{recall}, dan F1-\textit{score}, dengan \textit{recall} kelas Aritmia sebagai indikator utama karena berkaitan langsung dengan tujuan deteksi dini. Kedua, model yang sama dikuantisasi ke INT8 melalui \textit{post-training quantization}, kemudian diuji ulang pada partisi data uji yang identik. Kedua hasil pengujian ini dibandingkan secara berpasangan untuk mengukur selisih (\textit{delta}) tiap metrik, sehingga dampak kuantisasi terhadap kualitas deteksi dapat dikuantifikasi secara langsung, bukan diasumsikan.
+Karena model bersifat \textit{hybrid} dua cabang, setiap detak pada DS2 dievaluasi dengan kedua masukan secara bersamaan, yaitu \textit{window} ECG untuk cabang morfologi dan fitur interval RR (RR\_prev, rasio RR, $\Delta$RR) untuk cabang ritme. Evaluasi dilakukan dalam dua tahap. Pertama, model hasil pelatihan dalam format \textit{float32} diuji pada seluruh detak dalam DS2 untuk menghasilkan \textit{confusion matrix} beserta nilai \textit{accuracy}, \textit{precision}, \textit{recall}, dan F1-\textit{score}. \textit{Recall} kelas Aritmia menjadi indikator utama karena berkaitan langsung dengan tujuan deteksi dini. Kedua, model yang sama dikuantisasi ke INT8 melalui \textit{post-training quantization}, kemudian diuji ulang pada partisi data uji yang identik. Kedua hasil pengujian ini dibandingkan secara berpasangan untuk mengukur selisih (\textit{delta}) tiap metrik agar dampak kuantisasi terhadap kualitas deteksi terkuantifikasi secara langsung, bukan diasumsikan.
 
-Selain evaluasi pada DS2, model diuji pada data \textit{held-out} SVDB dan
-INCART, yang selanjutnya disebut data uji SVDB dan data uji INCART, setelah \emph{resample} ke 360 Hz, dengan \textit{window} 256 sampel yang
-sama, untuk mengukur generalisasi terhadap kondisi akuisisi dan distribusi kelas yang
-berbeda. SVDB secara khusus digunakan untuk menilai \emph{recall} kelas
-supraventrikular sebagai pembuktian manfaat cabang ritme RR. Hasil kedua basis data ini
-dilaporkan sebagai pembanding ablasi dan tidak digunakan untuk memilih \textit{epoch} maupun menetapkan \textit{threshold}.
-% sumber: model/CLAUDE.md decision "Database LATIH"; model/artifacts/metrics/ablasi/lintas_db.csv; model/config.py (VAL_RECORDS dari DS1 untuk epoch dan threshold)
-
-Selain metrik klasifikasi, performa perangkat keras diukur pada model INT8 yang telah di-\textit{deploy} ke ESP32-S3, meliputi latensi inferensi per detak (dari \textit{timestamp} internal MCU), penggunaan RAM (dari alokasi \textit{tensor arena} TensorFlow Lite Micro dan \textit{heap} bebas), ukuran berkas model hasil kuantisasi, serta konsumsi daya rata-rata menggunakan modul INA219 atau \textit{USB power meter}. Pengukuran ini memastikan model yang telah teruji akurat secara \textit{offline} juga layak dijalankan dalam batasan sumber daya perangkat \textit{edge}.
+Selain metrik klasifikasi, performa perangkat keras diukur pada model INT8 yang telah di-\textit{deploy} ke ESP32-S3. Pengukuran meliputi latensi inferensi per detak dari \textit{timestamp} internal MCU, serta penggunaan RAM dari alokasi \textit{tensor arena} TensorFlow Lite Micro dan \textit{heap} bebas. Ukuran berkas model hasil kuantisasi ikut diukur. Pengukuran ini memastikan model yang telah teruji akurat secara \textit{offline} juga layak dijalankan dalam batasan sumber daya perangkat \textit{edge}.
 
 Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujian model, mulai dari kualitas klasifikasi dan dampak kuantisasi hingga performa perangkat keras, beserta metrik, cara pengukuran, dan target indikatif masing-masing.
 
@@ -737,73 +821,61 @@ Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujia
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{longtable}{|>{\RaggedRight\arraybackslash}p{2.5cm}|>{\RaggedRight\arraybackslash}p{3.2cm}|>{\RaggedRight\arraybackslash}p{4.6cm}|>{\RaggedRight\arraybackslash}p{2.5cm}|}
+  \begin{longtable}{>{\RaggedRight\arraybackslash}p{2.5cm}>{\RaggedRight\arraybackslash}p{3.2cm}>{\RaggedRight\arraybackslash}p{4.6cm}>{\RaggedRight\arraybackslash}p{2.5cm}}
     \caption{Rencana pengukuran pada pengujian model}
     \label{tab:pengujian-model} \\
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{Aspek} & \textbf{Metrik} & \textbf{Cara Pengukuran} & \textbf{Target Indikatif} \\
-    \hline
+    \midrule
     \endfirsthead
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{Aspek} & \textbf{Metrik} & \textbf{Cara Pengukuran} & \textbf{Target Indikatif} \\
-    \hline
+    \midrule
     \endhead
-    \hline
+    \bottomrule
     \endfoot
     Kualitas model (\textit{float32}) &
     \textit{Accuracy}, \textit{precision}, \textit{recall}, F1-\textit{score}, dan \textit{confusion matrix} &
     Evaluasi \textit{offline} pada seluruh detak partisi uji DS2 (skema \textit{inter-patient}) &
     Dilaporkan pada \textit{threshold} hasil kalibrasi data validasi (F1 maksimum) \\
-    \hline
     Dampak kuantisasi INT8 &
     Selisih (\textit{delta}) tiap metrik antara \textit{float32} dan INT8 &
     \textit{Post-training quantization} lalu uji ulang pada DS2 yang identik &
     $|\Delta \textit{recall}| < 0{,}02$ \\
     % sumber: model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02)
-    \hline
-    Generalisasi lintas basis data &
-    F1 dan \textit{recall} kelas S &
-    Evaluasi \textit{held-out} pada SVDB dan INCART setelah \textit{resample} 360 Hz &
-    Dilaporkan sebagai pembanding ablasi \\
-    \hline
     Kesetaraan preprocessing dan inferensi &
     Selisih keluaran perangkat terhadap Python &
     Data acuan keluaran Python diputar ulang di perangkat &
-    Label akhir identik pada setiap detak acuan, selisih probabilitas $\leq$ 0,02, serta selisih filter dan \textit{z-score} $\leq 10^{-3}$ \\
+    Label identik per detak acuan, selisih probabilitas $\leq$ 0,02, selisih filter dan \textit{z-score} $\leq 10^{-3}$ \\
     % sumber: firmware/test/golden_ref.h (GOLDEN_TOL_FILTER 1e-3, GOLDEN_TOL_ZSCORE 1e-3, GOLDEN_TOL_PROB 2e-2); firmware/test/test_inference/test_inference.cpp (TEST_ASSERT_EQUAL golden_label terhadap keputusan perangkat)
-    \hline
     Latensi inferensi \textit{on-device} &
     Waktu inferensi per detak (ms) &
     \textit{Timestamp} internal MCU pada model INT8 ter-\textit{deploy} di ESP32-S3 &
     Lebih kecil dari interval antardetak (\textit{real-time}) \\
-    \hline
     Penggunaan RAM &
     Alokasi \textit{tensor arena} dan \textit{heap} bebas (KB) &
     API \textit{arena} TensorFlow Lite Micro dan \textit{heap} ESP32-S3 &
     Muat di SRAM perangkat \\
-    \hline
     Ukuran model &
     Ukuran berkas model INT8 (KB) &
     Ukuran berkas TFLite hasil kuantisasi &
     $<$ 25 KB \\
     % sumber: model/config.py (MAX_MODEL_KB = 25)
-    \hline
-    Konsumsi daya &
-    Arus dan daya rata-rata (mA/mW) &
-    Modul INA219 atau \textit{USB power meter} pada tiap mode operasi &
-    Dilaporkan per mode operasi \\
-    \hline
   \end{longtable}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: Dilaporkan berarti aspek dilaporkan sebagai pembanding tanpa syarat lulus. \textit{Threshold} kualitas model adalah hasil kalibrasi data validasi dengan F1 maksimum. Toleransi kesetaraan mengikuti data acuan keluaran Python.\par}
 \end{center}
+
+Ambang berangka pada Tabel~\ref{tab:pengujian-model} hanya dipasang pada aspek yang menentukan apakah hasil evaluasi \textit{offline} berlaku bagi model yang berjalan di perangkat, yaitu dampak kuantisasi, kesetaraan, dan ukuran model. Batas ukuran model mengikuti ruang yang harus disisakan di SRAM untuk \textit{tensor arena} dan bufer data, sedangkan toleransi kesetaraan mengikuti toleransi data acuan yang dipakai uji unit. Bila selisih \textit{recall} atau selisih keluaran perangkat melampaui ambang, metrik DS2 pada model \textit{float32} tidak dapat dipakai untuk mewakili model INT8 di perangkat. Aspek dengan target Dilaporkan dan target tanpa angka dibahas sebagai pembanding, bukan sebagai syarat lulus.
+
+Ambang selisih \textit{recall} 0,02 berpijak pada laporan kuantisasi INT8 untuk klasifikasi aritmia di mikrokontroler, yang mencatat penurunan akurasi 0,7 poin dan menilainya dapat diabaikan~\cite{zambrano_2026}. Ambang pada penelitian ini dipasang hampir tiga kali penurunan tersebut sebagai ruang aman, karena \textit{recall} dihitung pada kelas minoritas Aritmia dan lebih peka terhadap pergeseran probabilitas di sekitar \textit{threshold} daripada akurasi keseluruhan.
+% sumber: Zambrano-de la Torre dkk. 2026 Tabel 5 (Float32 98,3% vs INT8 97,6%, delta -0,7 poin, "negligible accuracy degradation (<0.7%)"); model/scripts/check_poc.py tabel_delta() (abs(d_recall) < 0.02); model/docs/quantize-walkthrough.md (ambang ideal < 1-2% dari PRD)
 
 \subsubsection{Pengujian \textit{Pipeline}}
 
 Pengujian \textit{pipeline} dilakukan secara fungsional menggunakan subjek sehat untuk memverifikasi bahwa keseluruhan alur berjalan sesuai rancangan tanpa melakukan klaim klinis apa pun terhadap kondisi subjek. Pengujian ini terdiri dari tiga tahap berurutan.
 
-Tahap pertama adalah stabilisasi elektroda, yaitu subjek duduk diam minimal 10--15 menit setelah elektroda \textit{wet-gel} ditempelkan pada posisi Lead II, agar impedansi kontak elektroda dan respons transien filter Butterworth mencapai kondisi stabil. Selama periode ini perangkat berada pada fase kalibrasi dan inferensi CNN belum dijalankan. Tahap kedua adalah verifikasi kualitas sinyal, yaitu sinyal dinyatakan layak untuk fase pemantauan apabila interval R-R berada dalam rentang fisiologis 300--1500~ms dan selisih antardetak (\(\Delta\)RR) tidak melebihi 200~ms secara konsisten selama minimal 30 detik, setelah kriteria ini terpenuhi perangkat beralih ke fase pemantauan dan inferensi mulai dijalankan per detak. Tahap ketiga adalah rekaman dan observasi \textit{pipeline}, yaitu setiap hasil inferensi diamati keberhasilannya dalam terkirim ke \textit{broker} MQTT, tampil pada \textit{dashboard} ThingsBoard, dan tercatat pada \textit{log} historis, dengan parameter yang dicatat berupa \textit{Packet Delivery Success Rate} (PDSR), latensi rata-rata dari akuisisi hingga pembaruan \textit{dashboard}, jumlah entri pada \textit{ring buffer} lokal, serta waktu pemulihan setelah skenario putus koneksi.
-% sumber: firmware/src/main.cpp baris 53-56 (STABIL_MS = 10 menit, RR_TENANG_MS = 30 detik, RR_MIN_S = 0,300, RR_MAKS_S = 1,500, DRR_MAKS_S = 0,200); Tahap kedua dan ketiga mengikuti nilai_fase() dan publikasi()
+Tahap pertama adalah pemanasan elektroda, yaitu subjek duduk diam setelah elektroda \textit{wet-gel} ditempelkan pada posisi Lead II sampai kontak elektroda dinilai baik tanpa putus selama 60 detik. Selama periode ini perangkat berada pada fase kalibrasi dan inferensi CNN belum dijalankan. Tahap kedua adalah verifikasi kualitas sinyal. Sinyal dinyatakan layak untuk fase pemantauan apabila interval R-R berada dalam rentang fisiologis 300--1500~ms dan selisih antardetak (\(\Delta\)RR) tidak melebihi 200~ms secara konsisten selama minimal 30 detik. Setelah kriteria ini terpenuhi, perangkat beralih ke fase pemantauan dan inferensi mulai dijalankan per detak. Tahap ketiga adalah rekaman dan observasi \textit{pipeline}. Setiap hasil inferensi diamati keberhasilannya dalam terkirim ke \textit{broker} MQTT, tampil pada \textit{dashboard} ThingsBoard, dan tercatat pada \textit{log} historis. Parameter yang dicatat berupa \textit{Packet Delivery Success Rate} (PDSR), latensi rata-rata dari akuisisi hingga pembaruan \textit{dashboard}, jumlah entri pada \textit{ring buffer} lokal, serta waktu pemulihan setelah skenario putus koneksi.
+% sumber: firmware/include/gerbang.h dan firmware/src/gerbang.cpp (PEMANASAN_MS = 60 detik sejak kontak, RR_TENANG_MS = 30 detik, RR_MIN_S = 0,300, RR_MAKS_S = 1,500, DRR_MAKS_S = 0,200); Tahap kedua dan ketiga mengikuti nilai_fase() dan publikasi()
 
 % Skenario ketahanan diuji dengan menjalankan sistem pada kondisi \textit{streaming} normal, memutus koneksi WiFi secara paksa selama durasi tertentu, lalu memulihkannya kembali; selama proses ini diamati apakah data tetap tersimpan secara lokal dan apakah seluruh data tertunda berhasil terkirim utuh setelah koneksi pulih. Target kinerja yang ditetapkan untuk pengujian pipeline adalah PDSR $\geq$ 95\%, latensi \textit{edge}-ke-\textit{broker} $\leq$ 2 detik, dan bufer terkuras habis (\textit{flush} sempurna) dalam waktu $\leq$ 60 detik setelah koneksi pulih. Target waktu pemulihan ini dicapai dengan margin yang lebih besar berkat mekanisme \textit{batch offloading}, karena pengurasan backlog dalam kelompok 50--100 rekaman per paket menekan jumlah \textit{round-trip} PUBACK secara signifikan dibandingkan pendekatan pengiriman per-rekaman.
 
@@ -814,54 +886,74 @@ Tabel~\ref{tab:pengujian-pipeline} merangkum rencana pengukuran pada jalur pengu
   \setlength{\tabcolsep}{4pt}
   \renewcommand{\arraystretch}{1.15}
   \small
-  \begin{longtable}{|>{\RaggedRight\arraybackslash}p{2.5cm}|>{\RaggedRight\arraybackslash}p{3.2cm}|>{\RaggedRight\arraybackslash}p{4.6cm}|>{\RaggedRight\arraybackslash}p{2.5cm}|}
+  \begin{longtable}{>{\RaggedRight\arraybackslash}p{2.5cm}>{\RaggedRight\arraybackslash}p{3.2cm}>{\RaggedRight\arraybackslash}p{4.6cm}>{\RaggedRight\arraybackslash}p{2.5cm}}
     \caption{Rencana pengukuran pada pengujian \textit{pipeline}}
     \label{tab:pengujian-pipeline} \\
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{Aspek} & \textbf{Metrik} & \textbf{Cara Pengukuran} & \textbf{Target Indikatif} \\
-    \hline
+    \midrule
     \endfirsthead
-    \hline
-    \rowcolor{headgray}
+    \toprule
     \textbf{Aspek} & \textbf{Metrik} & \textbf{Cara Pengukuran} & \textbf{Target Indikatif} \\
-    \hline
+    \midrule
     \endhead
-    \hline
+    \bottomrule
     \endfoot
     Keberhasilan pengiriman &
-    \textit{Packet Delivery Success Rate} (PDSR) &
+    \textit{Packet Delivery Success Rate}, PDSR (\%) &
     Rasio paket ber-PUBACK terhadap total paket dari \textit{log} MQTT &
-    $\geq$ 95\% \\
-    \hline
+    $\geq$ 95 \\
     Latensi \textit{end-to-end} &
     Waktu dari akuisisi hingga pembaruan \textit{dashboard} (detik) &
     Selisih \textit{timestamp} \textit{edge} dan waktu tampil di ThingsBoard &
-    $\leq$ 2 detik \\
-    \hline
+    $\leq$ 2 \\
     Pemenuhan bufer lokal &
     Jumlah entri \textit{ring buffer} PSRAM &
     Hitung entri saat \textit{streaming} normal dan saat putus koneksi &
     Tidak \textit{overflow} dalam kapasitas $\pm$27.000 rekaman \\
-    \hline
     Integritas data saat putus koneksi &
     Jumlah data hilang &
     Skenario putus WiFi paksa lalu pemulihan koneksi, dalam batas
     kapasitas \textit{ring buffer} PSRAM ($\pm$4--7 jam) &
     Tanpa kehilangan data \\
-    \hline
     Waktu pemulihan bufer &
     Durasi \textit{flush} hingga bufer terkuras (detik) &
     Diukur sejak koneksi pulih hingga \textit{read pointer} habis &
-    $\leq$ 60 detik \\
-    \hline
+    $\leq$ 60 \\
     Deduplikasi \textit{cloud} &
     Jumlah paket ganda yang dikenali &
     Pemeriksaan kunci \textit{timestamp} idempoten di sisi \textit{cloud} &
     Duplikat dari QoS-1 dikenali dan diabaikan \\
-    \hline
   \end{longtable}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: satuan target mengikuti satuan pada kolom Metrik. Skenario kehilangan daya perangkat berada di luar cakupan pengujian ini.\par}
 \end{center}
 % \footnotetext{Diuji dalam batas kapasitas \textit{ring buffer} PSRAM
 % ($\pm$6--7 jam). Skenario kehilangan daya perangkat berada di luar
 % cakupan pengujian resiliensi ini.}
+
+Target pada Tabel~\ref{tab:pengujian-pipeline} berpasangan dengan mekanisme ketahanan \textit{pipeline}. Kapasitas \textit{ring buffer} jauh melebihi durasi putus koneksi yang diuji, dan pengiriman \textit{batch} menekan jumlah \textit{round-trip} PUBACK saat pengurasan, yang menjadi dasar target waktu pemulihan bufer. Bila keberhasilan pengiriman atau integritas data tidak terpenuhi, antrean tunggal atau konfirmasi PUBACK tidak bekerja sebagaimana dirancang dan \textit{pipeline} tidak dapat dinyatakan resilien.
+
+Pada kebutuhan teknis jaringan sensor untuk pemantauan kesehatan, aliran ECG menuntut laju kesalahan bit di bawah $10^{-10}$, sehingga praktis tidak boleh ada data yang hilang~\cite{zhong_2022}. Syarat itu dipenuhi oleh pengiriman ulang QoS 1 pada target integritas data, sedangkan PDSR mengukur keberhasilan percobaan pertama. Ambang PDSR 95\% adalah ambang rancangan, yaitu paling banyak satu dari 20 paket memerlukan pengiriman ulang. Setiap paket tanpa PUBACK membebani perangkat satu siklus tunggu 5 detik dan penyambungan ulang. Pada laju satu sampai dua paket per detik, ambang itu membatasi siklus tunggu tersebut paling banyak satu kali tiap 10--20 detik.
+% sumber: Zhong dkk. 2022 Tabel 3 (ECG: BER < 10^-10, P2P latency < 250 ms); Skorin-Kapov dan Matijasevic 2010 Tabel 3 (ECG: maximum delay approx. 1 s), dipakai untuk paragraf anggaran latensi; firmware/src/ecg_mqtt.cpp ecg_mqtt_layani() (PUBACK timeout 5000 ms lalu putus(), paket_ack dan paket_kirim per paket PUBLISH); model/docs/mqtt-walkthrough.md §7 (laju beat replay 1,60 per detik, PDSR per paket); 1/20 = 5%, pada 1-2 paket/detik gagal paling banyak tiap 10-20 detik
+
+Ambang latensi 2 detik adalah ambang rancangan dari anggaran sisi perangkat. Deteksi R-\textit{peak} berjalan tiap 1 detik dan detak baru dikeluarkan 128 sampel atau 0,36 detik sesudah puncak R, jadi penundaan di perangkat berkisar 0,36--1,36 detik dengan rerata sekitar 0,86 detik. Sisa anggaran untuk jaringan lokal, \textit{broker}, dan \textit{dashboard} karena itu masih di atas 1 detik, yaitu batas RTT PUBACK yang dicatat perangkat sebagai lambat. Anggaran 2 detik ini lebih longgar daripada batas sekitar 1 detik untuk transmisi ECG darurat, dan sejalan dengan penggolongan pemantauan jarak jauh (\textit{telemonitoring}) sebagai layanan yang toleran terhadap \textit{delay}~\cite{skorinkapov_2010}.
+% sumber: firmware/include/ecg_live.h (ECG_LIVE_TIAP = ECG_FS = 1 detik, ECG_LIVE_RING = 4 detik, beat keluar ECG_WIN_POST = 128 sampel sesudah R; 128/360 = 0,356 s; rerata 0,356 + 0,5 = 0,856 s; 2 - 0,86 = 1,14 s); firmware/src/ecg_mqtt.cpp (rtt > 1000 ms dihitung rtt_lambat); Skorin-Kapov dan Matijasevic 2010 Tabel 1 (tele-monitoring: small delay No) dan Tabel 3 (ECG maximum delay approx. 1 s)
+
+Kapasitas \textit{ring buffer} 27.000 entri setara 4--7 jam pemantauan pada 60--100 detak per menit, dan pengujian putus koneksi dirancang jauh di bawah batas itu. Ambang 60 detik untuk waktu pemulihan bufer adalah ambang rancangan. Satu paket \textit{batch} memuat sampai 50 rekaman dan hanya satu paket terbang sebelum PUBACK-nya diterima, jadi pada RTT 1 detik yang menjadi batas lambat, 60 detik cukup untuk menguras 60 paket atau sekitar 3.000 rekaman. Jumlah itu setara \textit{backlog} dari putus koneksi 30--50 menit pada 60--100 detak per menit.
+% sumber: firmware/include/ecg_mqtt.h (ECG_MQTT_ANTRE_TARGET 27000, ECG_MQTT_BATCH_N 50); firmware/src/ecg_mqtt.cpp ecg_mqtt_layani() (satu batch terbang sampai PUBACK, menunggu_ack; rtt > 1000 ms = lambat); 27.000/100 = 270 menit = 4,5 jam, 27.000/60 = 450 menit = 7,5 jam; 60 paket x 50 = 3.000 rekaman; 3.000/100 = 30 menit, 3.000/60 = 50 menit
+
+\subsubsection{Pengujian Perangkat Keras}
+
+Pengujian perangkat keras memastikan setiap komponen pada Tabel~\ref{tab:pin-map} berfungsi sebelum perangkat dipakai merekam. Setiap komponen diuji oleh satu fungsi diagnosa yang dipakai bersama oleh dua jalur, yaitu rangkaian uji otomatis yang dijalankan di ESP32-S3 dan menu Tes perangkat, dan tidak ada salinan logika uji yang dapat berbeda. Uji otomatis hanya menjadikan syarat lulus hal yang dapat diukur tanpa manusia dan tanpa elektroda. Syarat tersebut meliputi lima hal berikut.
+\begin{enumerate}[label=\alph*.]
+  \item Pin \textit{buzzer} tersambung ke pembangkit nada setelah SPI layar terpasang dan diam pada logika HIGH.
+  \item Transfer SPI satu layar penuh selesai.
+  \item ADC terbaca dengan pewaktu yang menghasilkan 360 sampel per detik.
+  \item Ketiga pin tombol berlogika HIGH saat tidak ditekan.
+\end{enumerate}
+Hal yang memerlukan pengamatan manusia, yaitu bunyi \textit{buzzer}, pola warna layar, dan respons tombol yang ditekan, dinilai melalui menu Tes perangkat.
+% sumber: firmware/README.md bagian Test (test_hw_buzzer, test_hw_tft, test_hw_adc, test_hw_tombol; "Test perangkat hanya menjadikan syarat lulus hal yang dapat diukur tanpa manusia dan tanpa elektroda"; fungsi diag_* di src/diagnosa.cpp dipakai bersama suite test_hw_* dan menu Tes perangkat)
+
+Uji integrasi di ESP32-S3 memutar sinyal acuan melalui jalur yang sama dengan operasi normal, yaitu \textit{timer interrupt} 360 Hz, antrean, alur deteksi, perhitungan laju jantung, dan inferensi, sementara layar dan \textit{buzzer} ikut aktif. Syarat lulusnya adalah tidak ada sampel yang hilang, detak terdeteksi pada setiap putaran sinyal acuan, laju jantung berselisih paling banyak 3 bpm dari interval R-R anotasi, dan label setiap detak sama dengan label dari komputer. Toleransi 3 bpm lebih ketat daripada batas kesalahan laju jantung pada standar monitor jantung IEC 60601-2-27, yaitu $\pm$10\% atau $\pm$5 bpm, mana yang lebih besar~\cite{iec_60601_2_27_2011}. Toleransi itu tetap di atas pengaruh \textit{jitter} detektor, karena pergeseran dua sampel pada kedua puncak R hanya mengubah laju jantung kurang dari 1 bpm pada 60 bpm.
+% sumber: perhitungan 60/(1 - 4/360) - 60 = 0,67 bpm pada RR 1 detik; firmware/src/klasifikasi.cpp (bpm = 60 / rr[0])
+% sumber: firmware/test/test_hw_integrasi/ (test_jalankan_replay_tanpa_sampel_hilang n_lewat == 0, test_beat_terdeteksi_tiap_putaran, test_hr_sama_dengan_anotasi HR beda <= 3 bpm, test_prediksi_sama_dengan_pc); firmware/README.md tabel Test baris test_hw_integrasi

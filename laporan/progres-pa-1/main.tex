@@ -1,7 +1,7 @@
 % ============================================================
-% VARIAN PROGRES 1 (dibekukan 13 Okt 2026, salinan buku-pa setelah
-% pembersihan istilah internal). Buku PA full ada di ../buku-pa.
-% Varian ini belum disempurnakan; dibahas ulang bersama user.
+% BUKU TAHAP 1 (progres, target 50-70% isi menurut pembimbing).
+% Diregenerasi dari ../buku-pa pada 1 Nov 2026, lalu INA219 dan catu
+% daya baterai dibuang dari seluruh bab. Buku PA full ada di ../buku-pa.
 % ============================================================
 % ============================================================
 % PAPER SIZE — A4 (tetap, 1 config per projek)
@@ -35,12 +35,6 @@
 \newcommand{\NIPDua}{199208262022031007}
 \newcommand{\Tahun}{2026}
 
-% ============================================================
-% TAHAP DOKUMEN: progres (true) atau buku final (false)
-% ============================================================
-\newif\ifprogres
-\progrestrue
-
 % Gambar: milik buku dulu, lalu gambar proposal yang masih berlaku.
 % Entri ketiga ({../proposal-pa/}) supaya "gambar/logo-pens.png" di sampul
 % ikut terselesaikan ke ../proposal-pa/gambar/logo-pens.png.
@@ -54,6 +48,19 @@
     \textbf{[PLACEHOLDER GAMBAR]}\\[3pt]
     #1: #2\\
     Spesifikasi lengkap ada di komentar sumber.}}}
+
+% ============================================================
+% TAHAP DOKUMEN: progres (true) atau buku final (false)
+% ============================================================
+\newif\ifprogres
+\progrestrue
+
+% Placeholder data hasil yang menunggu pengujian resmi (rekaman sinyal tubuh
+% resmi dimulai 13 Okt 2026; rekaman sebelumnya = uji coba, diarsipkan).
+% Setiap pemakaian disertai komentar "% PLACEHOLDER-DATA <id>: ..." berisi data
+% apa, prosedur, skrip penghasil, dan kolom yang dibutuhkan.
+% Cari: grep -rn PLACEHOLDER-DATA laporan/buku-pa
+\newcommand{\PlaceholderData}[1]{\textbf{[PLACEHOLDER DATA: #1]}}
 
 % Halaman kosong pengisi (agar bab mulai di halaman ganjil) tanpa nomor halaman.
 \makeatletter
@@ -76,6 +83,9 @@
 \pagenumbering{roman}
 \pagestyle{plain}
 \input{bab/abstrak}
+
+\cleardoublepage
+\input{bab/abstract}
 
 \cleardoublepage
 \phantomsection

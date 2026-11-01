@@ -39,15 +39,51 @@ laporan/
 │   └── bab/              <- halaman-judul, bab1, bab2, bab3, abstrak, etc.
 ├── buku-pa/              <- Buku Proyek Akhir FULL (A4, mode buku final, tanpa sakelar progres)
 │                            front matter: abstrak + abstract; Bab 4–5 register capaian
-├── progres-pa-1/         <- Varian laporan Progres 1 (salinan buku-pa yang dibekukan
-│                            13 Okt 2026, \progrestrue). Belum disempurnakan, dibahas
-│                            ulang bersama user. Jangan disinkronkan otomatis dengan buku-pa.
+├── progres-pa-1/         <- Buku tahap 1 (\progrestrue, judul "PROGRES PROYEK AKHIR"):
+│                            buku-pa tanpa INA219 dan catu daya baterai, target isi
+│                            50-70% (arahan pembimbing). Tidak disinkronkan otomatis.
 └── surat-magang/         <- surat (article 12pt, berdiri sendiri)
 ```
 
 Kedua folder memakai `../shared/` dan `\graphicspath` ke `../proposal-pa/gambar/`.
 Perubahan isi buku dikerjakan di `buku-pa/`; `progres-pa-1/` hanya diubah atas
 permintaan eksplisit user.
+
+### Buku tahap 1 (`progres-pa-1/`)
+
+Buku tahap 1 adalah salinan `buku-pa/` yang dipangkas sesuai arahan pembimbing
+(isi 50–70%). Yang dibuang: INA219 dan catu daya baterai di seluruh bab, yaitu
+teori INA219 (Bab 2), butir perangkat keras, pin, layar, menu Ukur daya, dan
+rencana uji daya (Bab 3), butir hasil Konsumsi Daya, baris ketercapaian daya,
+dan keterbatasan daya (Bab 4), saran daya (Bab 5), serta kalimat status daya di
+abstrak. Akibatnya ketiga tujuan berstatus Tercapai dan tidak ada
+`PLACEHOLDER-DATA`. Satu-satunya beda di `main.tex` adalah blok
+`\newif\ifprogres \progrestrue` dan komentar kepala; halaman judul memakai
+`\ifprogres PROGRES\\\fi PROYEK AKHIR`.
+
+Meregenerasi dari `buku-pa/` (misalnya sesudah `buku-pa` diperbarui):
+
+1. Salin isi:
+   ```bash
+   cd laporan
+   cp buku-pa/bab/*.tex progres-pa-1/bab/
+   cp buku-pa/referensi.bib progres-pa-1/
+   cp -r buku-pa/gambar/. progres-pa-1/gambar/
+   ```
+2. Kembalikan baris `\ifprogres PROGRES\\\fi` di `progres-pa-1/bab/halaman-judul.tex`.
+   Bila `buku-pa/main.tex` berubah, salin lalu sisipkan lagi blok `\progrestrue`.
+3. Buang INA219 dan catu daya seperti daftar di atas, lalu pastikan bersih:
+   ```bash
+   grep -rn -iE "INA219|TP4056|18650|konsumsi daya|ukur daya|tangga-daya" progres-pa-1/bab/*.tex | grep -v ":[0-9]*:\s*%"
+   ```
+   Yang tersisa hanya kalimat tentang penelitian lain di Bab 2.
+4. Periksa dan buat keluaran:
+   ```bash
+   cd progres-pa-1 && make pdf && make docx
+   python3 ../../scripts/cek_tabel.py bab/*.tex
+   ```
+   Hasil yang diharapkan: `undefined` 0, `Overfull` 0, cek_tabel 0 galat.
+   Kondisi 1 Nov 2026: 132 halaman, 0 galat, 0 saran, `output/main.docx` terbentuk.
 
 ### Paper Size Mechanism
 
