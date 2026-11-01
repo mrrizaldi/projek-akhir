@@ -166,7 +166,7 @@ Aturan untuk agen dan skrip:
 - Agen dan skrip **boleh melaporkan** pelanggaran aturan di paragraf itu (titik dua, titik koma, istilah, desimal, dan seterusnya), lalu penulis yang memutuskan.
 - Hapus penanda hanya kalau penulis memintanya. Sync berikutnya mengganti penanda lama (tidak menumpuk).
 - Baris `% KOMENTAR [nama, tanggal]: …` (dengan lanjutan `%   …` untuk balasan) adalah catatan reviewer dari komentar Word. Kerjakan isinya, lalu hapus barisnya.
-- Sync tidak menulis tabel, gambar, persamaan, heading, atau baris/kolom tabel baru, tidak menulis perubahan rumus (inline maupun display, sunting di LaTeX), dan tidak menulis komentar pada sel tabel. Bagian itu ditambahkan di LaTeX dan dilaporkan sync sebagai "add it in LaTeX".
+- Sync tidak menulis tabel, gambar, persamaan, heading, atau baris/kolom tabel baru, tidak menulis perubahan rumus (inline maupun display, sunting di LaTeX), dan tidak menulis komentar pada sel tabel. Bagian itu ditambahkan di LaTeX dan dilaporkan sync (daftar skipped); rumus tidak pernah ditulis dan tidak dilaporkan. Paragraf yang tidak bisa ditulis (misal berisi `\small`, `\hspace*`, `\textsc`, atau dibungkus grup `{...}`) tetap di dokumen yang belum disimpan dan hanya dilaporkan; `\emph` ditulis kembali sebagai `\textit`.
 
 ### Larangan Label Kerja Internal Repo (WAJIB)
 
