@@ -518,7 +518,9 @@ Detektor tidak melewatkan detak dengan peluang yang sama pada semua kelas, sebag
     Seluruh detak & 47.074 terdeteksi dan 2.638 terlewat & 0,9469 \\
     \bottomrule
   \end{tabular}
+  \par\vspace{2pt}{\footnotesize\raggedright Keterangan: deteksi dipasangkan dengan anotasi dalam jendela 150 ms. Detektor juga menghasilkan 2.194 deteksi tanpa pasangan anotasi, jadi \textit{positive predictivity} seluruh detak 0,9555.\par}
 \end{table}
+% sumber: model/src/evaluate.py pair_detected dan model/scripts/eval_detected_segmentation.py (TOLERANSI_MS = 150); model/docs/segmentasi-deteksi-walkthrough.md bagian 3 (2.194 deteksi palsu); 47.074 / (47.074 + 2.194) = 0,9555; QRS Se dan +P dengan jendela 150 ms mengikuti PhysioNet bxb (docs/2026-11-01-crosscheck-metrik-bab4/klasifikasi.md butir 12)
 % sumber: model/docs/segmentasi-deteksi-walkthrough.md bagian 3 dan 4 (47.074 terdeteksi, 2.638 terlewat, sensitivity 0,9469; per kelas N 0,9614, S 0,6494, V 0,9146, F 0,9820, Normal vs Aritmia 0,9614 vs 0,8296); model/scripts/eval_detected_segmentation.py (aritmia = S V F Q); diukur dengan detektor yang sama sebelum window dikunci 256, perhitungannya hanya dari pasangan deteksi dan anotasi sehingga tidak melibatkan model
 
 Detektor menemukan 96,14\% detak Normal tetapi hanya 82,96\% detak aritmia (Tabel~\ref{tab:sensitivity-detektor}), dan kelas S menjadi yang paling sering terlewat dengan \textit{sensitivity} 0,6494. Penjelasan yang paling sesuai bersifat struktural. Detak supraventrikular datang prematur, sedangkan Pan-Tompkins menutup deteksi selama periode refraktori 200~ms sesudah detak sebelumnya, jadi detak yang datang terlalu cepat berpeluang terblokir. Penjelasan ini belum diuji dengan mengubah periode refraktori.
@@ -611,7 +613,10 @@ Prosedur perekaman pada pengujian ini, yaitu catu daya \textit{powerbank}, elekt
 Keberadaan R-\textit{peak} tidak dapat dijadikan penentu kualitas sinyal. Pan-Tompkins tetap melaporkan R-\textit{peak} karena ambangnya adaptif terhadap sinyal yang ada, dan keadaan tanpa sinyal bukan kondisi yang dikenalinya. Pada \textit{firmware}, tanpa elektroda dan tanpa \textit{replay}, alat mengeluarkan sekitar 2 detak per detik dengan 57\% di antaranya diklasifikasi Aritmia. Kualitas sinyal di perangkat karena itu dinilai dari kontak elektroda, yaitu status \textit{lead-off}, ayunan ADC, dan dengung 50 Hz.
 % sumber: model/CLAUDE.md jebakan "Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% ARITMIA" dan "Telemetri akuisisi bisa berbohong"; model/docs/akuisisi-walkthrough.md bagian 6
 
-Dengan demikian, sinyal tubuh dari satu sesi perekaman layak sebagai masukan jalur preprocessing, dengan keempat rekamannya memenuhi kriteria kualitas dan target akuisisi pada Tabel~\ref{tab:parameter-eksperimen} terpenuhi.
+Hasil akuisisi tersebut adalah status fungsional, bukan akurasi. Jumlah R-\textit{peak} dan proporsi BPM wajar menunjukkan bahwa detektor menemukan detak dengan irama yang masuk akal. Namun, posisi R-\textit{peak} dan detak per menit belum dibandingkan dengan perangkat ECG acuan maupun anotasi manual. Rentang masukan juga terbatas. Dengan garis dasar sekitar 1.900 \textit{count}, ruang sampai batas atas ADC hanya sekitar 1,5 mV ekuivalen masukan, dan karena itu puncak R sesekali terpotong. Filter 0,5--40 Hz yang kausal dipilih untuk analisis ritme dan klasifikasi detak, jadi rekaman ini tidak dimaksudkan untuk analisis segmen ST.
+% sumber: keputusan user 1 Nov 2026 (hasil akuisisi ditulis sebagai status fungsional karena belum ada alat medis acuan); docs/2026-11-01-crosscheck-metrik-bab4.md bagian 4 dan akuisisi.md butir 1, 2, 9; ruang atas (4.095 - 1.900) x 0,757 / 1.100 = 1,51 mV dari garis dasar Gambar rekaman R1; model/config.py BANDPASS_LOW 0.5, BANDPASS_HIGH 40.0, filter kausal sosfilt
+
+Dengan demikian, sinyal tubuh dari satu sesi perekaman layak secara fungsional sebagai masukan jalur preprocessing, dengan keempat rekamannya memenuhi kriteria kualitas dan target akuisisi pada Tabel~\ref{tab:parameter-eksperimen} terpenuhi.
 % sumber: tab:kualitas-rekaman (4 dari 4 Berhasil, satu sesi)
 
 \subsubsection{Gerbang Kalibrasi dan Kualitas Sinyal}
@@ -656,8 +661,9 @@ Gambar~\ref{fig:hasil-latih} memperlihatkan kurva data latih berwarna biru yang 
 
 \subsubsection{Evaluasi pada DS2}
 
-Kemampuan model diukur pada pasien yang tidak pernah dilihat saat pelatihan. Model \textit{float32} dievaluasi pada 49.656 detak DS2 dari 22 pasien, termasuk 5.450 detak Aritmia, pada \textit{threshold} 0,80 dengan metrik pada Persamaan~\ref{eq:metrik}. Hasilnya ditunjukkan pada Tabel~\ref{tab:hasil-ds2}, sedangkan \textit{confusion matrix}-nya ditampilkan bersama model INT8 pada Gambar~\ref{fig:cm-ds2}.
+Kemampuan model diukur pada pasien yang tidak pernah dilihat saat pelatihan. Model \textit{float32} dievaluasi pada 49.656 detak DS2 dari 22 pasien, termasuk 5.450 detak Aritmia, pada \textit{threshold} 0,80 dengan metrik pada Persamaan~\ref{eq:metrik}. Seluruh detak setiap rekaman dipakai, termasuk lima menit pertama yang pada protokol evaluasi AAMI dikecualikan sebagai periode belajar~\cite{aami_ec57_2012}. Periode belajar tidak relevan karena model tidak beradaptasi per pasien, dan pembagian \textit{inter-patient} de Chazal juga memakai rekaman penuh~\cite{dechazal_2004}. Hasilnya ditunjukkan pada Tabel~\ref{tab:hasil-ds2}, sedangkan \textit{confusion matrix}-nya ditampilkan bersama model INT8 pada Gambar~\ref{fig:cm-ds2}.
 % sumber: model/artifacts/metrics/fase6_per_record_fp32.csv (22 rekaman, jumlah n_beat 49.656, jumlah n_aritmia 5.450); model/scripts/eval_fp32.py (threshold dari config.THRESHOLD, tidak disetel di DS2)
+% sumber: periode belajar 5 menit dari PhysioNet WAG "Evaluating ECG Analyzers" dan bxb (default -f 5 menit, mengacu EC38/EC57); de Chazal 2004 dan Luz 2016 Tabel 6 memakai seluruh detak DS2; docs/2026-11-01-crosscheck-metrik-bab4/klasifikasi.md butir 4
 
 \begin{table}[!ht]
   \centering
@@ -966,6 +972,7 @@ Walaupun jalur komputasi dan model INT8 telah terukur di perangkat, sistem ini b
   \item \textit{Recall} kelas S masih rendah. \textit{Learning rate} $10^{-3}$ tetap dipakai demi kelas S karena $10^{-4}$ menurunkan \textit{recall} S DS2 dari 0,4473 menjadi 0,3126 walaupun AUC naik (Tabel~\ref{tab:ablasi}), dengan konsekuensi model akhir hasil satu \textit{epoch}.
   \item Angka DS2 berpotensi sedikit optimistis karena DS2 ikut menilai ablasi \textit{window} dan \textit{jitter}.
   \item Gerbang kualitas dengan sinyal tubuh diuji pada satu subjek, dan transisi fase pada kontak baik diamati pada perangkat tanpa log serial.
+  \item Deteksi R-\textit{peak} pada sinyal tubuh belum divalidasi terhadap perangkat ECG acuan, jadi hasil akuisisi berupa status fungsional dan bukan akurasi.
 \end{enumerate}
 % sumber: bab4 sec:karakteristik-data butir data primer, tab:kualitas-rekaman, tab:ablasi (0,4473 dan 0,3126) dan butir Ablasi (satu epoch), butir Evaluasi DS2 (DS2 ikut menilai ablasi window dan jitter, berpotensi sedikit optimistis), subsec:hasil-tujuan1 butir Gerbang Kalibrasi dan butir Segmentasi (0,6661 menjadi 0,5656, window 250)
 
