@@ -58,7 +58,14 @@ perangkat keras dan gambar.
 | D3 | 12 gambar placeholder (9 di Bab 3, 3 di Bab 4) | User | `laporan/buku-pa/gambar/daftar-placeholder.md`. `fig:4-bufer` adalah plot data, perlu keputusan apakah skrip plotnya ditulis |
 | D4 | Aturan alarm ThingsBoard dan widget `ecg_snippet` | Claude | Keduanya disebut belum ada di Bab 3/4; opsional |
 
-## E. Isi buku yang basi (menunggu izin sunting `laporan/`)
+## E. Isi buku yang basi di `buku-pa`
+
+Keputusan user 1 Nov 2026: `buku-pa` (buku full) dibiarkan apa adanya. Buku
+tahap 1 `progres-pa-1` sudah bersih dari INA219 dan catu daya, jadi E1–E3
+tidak muncul di sana. Kalimat "waktu stabil" di paragraf menu Bab 3 `buku-pa`
+juga dibiarkan (di `progres-pa-1` sudah diperbaiki). Butir ini dikerjakan saat
+`buku-pa` disiapkan untuk tahap berikutnya.
+
 
 | # | Lokasi | Isi sekarang | Fakta | Usulan |
 |---|---|---|---|---|
