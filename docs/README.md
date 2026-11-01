@@ -10,7 +10,7 @@ acuan kerja.
 | Tanggal | Dokumen | Isi | Status |
 |---|---|---|---|
 | 2026-11-01 | [celah-target](2026-11-01-celah-target.md) | Celah terhadap target Bab 1, Bab 3, dan PRD: target yang belum diukur, target dengan cakupan sempit, temuan firmware terbuka | Daftar kerja aktif; butir dicoret saat ditutup |
-| 2026-11-01 | [crosscheck-metrik-bab4](2026-11-01-crosscheck-metrik-bab4.md) | Crosscheck metrik dan cara ukur Bab 4 terhadap standar (AAMI EC57, MLPerf Tiny, IEC 60601, IETF IPPM, ITU-T G.1010/H.810), laporan rinci per kategori di subfolder | Menunggu empat keputusan user (bagian 4), lalu aksi A–D |
+| 2026-11-01 | [crosscheck-metrik-bab4](2026-11-01-crosscheck-metrik-bab4.md) | Crosscheck metrik dan cara ukur Bab 4 terhadap standar (AAMI EC57, MLPerf Tiny, IEC 60601, IETF IPPM, ITU-T G.1010/H.810), laporan rinci per kategori di subfolder | Fokus buku tahap 1; A8 diputuskan (status fungsional), sisanya ditunda (bagian 4) |
 
 ## Kapan dokumen dipindah ke arsip
 

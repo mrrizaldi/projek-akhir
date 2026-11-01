@@ -107,16 +107,17 @@ Empat butir dari laporan rinci sudah ditangani Bab 4 dan tidak perlu aksi:
 | D4 | Metrik tambahan: energi per inferensi ≈ (P_p3 − P_p2) × T / N_beat; waktu operasi dari uji habis-baterai di `p5` | MLPerf Tiny µJ/inferensi; derating baterai tidak ditemukan bersumber |
 | D5 | Angka "+30 mA" untuk `setSleep(false)` dihapus dari rencana dan diukur | Tidak bersumber; datasheet ESP32-S3 Tabel 5-7 dan 5-9 mengisyaratkan selisih lebih besar |
 
-## 4. Keputusan untuk user
+## 4. Keputusan user
 
-1. Apakah butir A dimasukkan ke `buku-pa` (izin sunting laporan) dan
-   `progres-pa-1` (pipeline sudah dibuang di sana, jadi hanya A4–A9 yang relevan).
-2. Apakah p95 diberi target. ITU-T G.1010 Tabel I.2 "acceptable < 4 s"
-   menampung p95 terburuk 3.304 ms.
-3. Apakah D1 dikerjakan sekarang. Perubahan ini kecil dan harus selesai sebelum
-   tangga daya (celah-target A1) dijalankan.
-4. Apakah B6 (anotasi manual) atau C7 (Polar H10) dipakai untuk validasi
-   R-peak/HR, atau cukup A8.
+Fokus kerja: buku tahap 1 `progres-pa-1` lebih dulu (keputusan user 1 Nov 2026).
+Butir di luar cakupan buku tahap 1 (pipeline, daya) ditunda.
+
+| # | Pertanyaan | Keputusan |
+|---|---|---|
+| 1 | Butir A dimasukkan ke buku | Belum diputuskan. Yang relevan untuk `progres-pa-1` hanya A4–A9 dan B1–B3, B5, karena pipeline dan daya tidak ada di buku tahap 1 |
+| 2 | Target p95 latensi (opsi ITU-T G.1010 "acceptable < 4 s", p95 terburuk 3.304 ms) | Ditunda, di luar buku tahap 1 |
+| 3 | D1, config INA219 `0x39FF` + CNVR sebelum tangga daya | Ditunda, di luar buku tahap 1 |
+| 4 | Validasi R-peak/HR | A8: hasil akuisisi ditulis sebagai status fungsional, bukan akurasi, karena belum ada alat medis acuan. B6 dan C7 tidak dikerjakan. Penulisannya dikerjakan nanti bersama butir A lain |
 
 ## 5. Rujukan kandidat `referensi.bib`
 
