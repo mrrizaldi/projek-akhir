@@ -58,6 +58,39 @@ Dalam penelitian ini, perbedaan karakteristik pada
 Tabel~\ref{tab:perbandingan-irama} digunakan sebagai landasan klasifikasi
 biner Normal dan Aritmia pada pemetaan anotasi dataset MIT-BIH.
 
+\subsection{Filter Butterworth}
+\label{subsec:teori-butterworth}
+
+Filter Butterworth merupakan filter yang memiliki respons amplitudo datar pada pita lolos tanpa riak. Karakteristik tersebut mempertahankan komponen sinyal di dalam pita yang dipilih dan meredam komponen di luarnya secara bertahap~\cite{bui_2021}. Filter \textit{bandpass} dibentuk dengan menggabungkan batas bawah dan batas atas agar hanya rentang frekuensi yang dibutuhkan yang diteruskan. Pada ECG, batas bawah mengurangi \textit{baseline wander}, sedangkan batas atas meredam gangguan berfrekuensi tinggi~\cite{zambrano_2026, bui_2021}.
+
+Filter digital berorde tinggi dapat direalisasikan sebagai rangkaian \textit{second-order section} atau \textit{biquad}. Bentuk ini memecah fungsi transfer menjadi beberapa bagian berorde dua dan mengurangi kepekaan perhitungan terhadap pembulatan koefisien. Pemrosesan kausal menghasilkan keluaran dari sampel saat ini dan sampel sebelumnya sehingga dapat dijalankan sampel demi sampel secara \textit{real-time}. Konsekuensinya adalah \textit{group delay} yang menggeser posisi fitur sinyal terhadap masukan. Dalam penelitian ini, filter Butterworth \textit{bandpass} digunakan untuk mempertahankan pita ECG 0,5--40 Hz sebelum deteksi R-\textit{peak} dan klasifikasi pada ESP32-S3.
+
+\subsection{Algoritma Pan-Tompkins}
+\label{subsec:teori-pan-tompkins}
+
+Algoritma Pan-Tompkins merupakan metode deteksi kompleks QRS secara \textit{real-time} yang mengubah sinyal ECG menjadi deret puncak energi~\cite{pan_tompkins_1985}. Tahap \textit{bandpass} menekan pergeseran garis dasar dan gangguan di luar pita QRS. Operasi turunan kemudian menonjolkan kemiringan tajam, sedangkan pengkuadratan membuat seluruh nilai positif dan memperbesar perbedaan antara kompleks QRS dan komponen beramplitudo kecil. Integrasi jendela bergerak menggabungkan informasi kemiringan dan lebar menjadi satu bentuk pulsa yang dapat dibandingkan dengan ambang.
+
+Ambang Pan-Tompkins diperbarui dari estimasi tingkat sinyal dan gangguan agar detektor mengikuti perubahan amplitudo ECG~\cite{pan_tompkins_1985, li_2020}. Sesudah satu puncak diterima, periode refraktori mencegah kompleks QRS yang sama dihitung lebih dari sekali. Nilai refraktori yang terlalu panjang dapat menahan detak prematur, sedangkan nilai yang terlalu pendek meningkatkan risiko deteksi ganda. Dalam penelitian ini, Pan-Tompkins digunakan untuk menentukan lokasi R-\textit{peak} sebagai acuan segmentasi detak dan perhitungan interval R-R.
+
+\subsection{Indeks Kualitas Sinyal ECG}
+\label{subsec:teori-sqi}
+
+Indeks kualitas sinyal ECG atau \textit{signal quality index} (SQI) menilai apakah sinyal cukup layak untuk dianalisis tanpa memerlukan label irama klinis. Pendekatan berbasis aturan memeriksa kelayakan fisiologis detak dan konsistensi morfologi kompleks QRS pada potongan waktu tertentu~\cite{syversen_2024}. Penilaian per jendela mencegah bagian sinyal yang buruk tertutupi oleh ringkasan satu rekaman penuh.
+
+SQI yang digunakan terdiri atas empat pemeriksaan. Tiga pemeriksaan fisiologis mensyaratkan laju jantung 40 sampai 180 detak per menit, jarak antar-R-\textit{peak} paling lama 3 detik, serta rasio interval R-R terpanjang terhadap terpendek di bawah 2,2~\cite{syversen_2024}. Pemeriksaan morfologi memotong kompleks QRS di sekitar setiap R-\textit{peak}, membentuk \textit{template} dari rerata potongan, lalu menghitung korelasi setiap potongan terhadap \textit{template}. Jendela dinilai layak apabila rerata korelasinya minimal 0,66. Dalam penelitian ini, SQI diterapkan pada jendela 10 detik untuk menilai kelayakan rekaman tubuh sebagai masukan jalur preprocessing.
+
+\subsection{Algoritma Goertzel}
+\label{subsec:teori-goertzel}
+
+Algoritma Goertzel menghitung satu komponen frekuensi dari sekumpulan sampel tanpa membentuk seluruh spektrum~\cite{goertzel_1958}. Perhitungan ini menggunakan relasi rekursif orde dua pada Persamaan~\ref{eq:goertzel-rekursif}.
+
+\begin{equation}
+\label{eq:goertzel-rekursif}
+s[n] = x[n] + 2\cos(\omega_0)s[n-1] - s[n-2]
+\end{equation}
+
+\noindent di mana $x[n]$ adalah sampel masukan, $s[n]$ adalah keadaan rekursif, dan $\omega_0$ adalah frekuensi sudut yang diperiksa. Setelah seluruh sampel diproses, magnitudo komponen diperoleh dari dua keadaan terakhir. Kebutuhan memori metode ini tetap kecil karena tidak menyimpan seluruh keluaran transformasi frekuensi. Dalam penelitian ini, Goertzel digunakan untuk mengukur amplitudo dengung jala-jala 50 Hz setiap detik sebagai bagian dari penilaian kontak elektroda.
+
 \subsection{IoT Edge Computing}
 \label{subsec:iot-edge}
 
