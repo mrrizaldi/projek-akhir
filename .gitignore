@@ -53,3 +53,6 @@ firmware/include/wifi_secrets.h
 # PDF daftar pustaka (hak cipta penerbit) — unduh ulang: python3 scripts/unduh_pustaka.py
 laporan/pustaka/
 .playwright-mcp/
+
+# Cache respons API (Scopus)
+.cache/
