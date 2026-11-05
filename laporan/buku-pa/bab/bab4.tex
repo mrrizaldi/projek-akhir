@@ -1,8 +1,6 @@
 \chapter{Eksperimen dan Analisis}
-\label{chap:eksperimen}
 
 \section{Parameter Eksperimen}
-\label{sec:parameter-eksperimen}
 
 Parameter eksperimen dikelompokkan ke dalam tujuh kategori yang mengikuti tiga jalur pada tujuan penelitian. Target setiap metrik diambil dari rencana pengujian pada Tabel~\ref{tab:pengujian-model} dan Tabel~\ref{tab:pengujian-pipeline} serta uraian pengujian \textit{pipeline}, agar hasil pada bab ini dapat dinilai langsung terhadap rencana tersebut. Metrik dan target setiap kategori dirangkum pada Tabel~\ref{tab:parameter-eksperimen}, sedangkan alasan pemilihannya diuraikan sesudahnya.
 
@@ -87,7 +85,6 @@ Kinerja klasifikasi pada kategori a dinilai dari perbandingan prediksi dan label
 Pada kategori e sampai g, \textit{flag lead-off} AD8232 tidak menjamin adanya sinyal, karena itu ayunan ADC absolut dijadikan acuan kualitas sinyal. Bufer lokal di sisi \textit{edge} mempertahankan kontinuitas data ketika koneksi putus~\cite{escobedo_2026, tipparaju_2021}, sedangkan detak yang hilang bertepatan dengan kejadian aritmia tidak dapat direkonstruksi di sisi \textit{cloud}. Target latensi dinilai pada median, sesuai pencatatan latensi rata-rata pada rencana pengujian, sedangkan p95 dilaporkan agar ekor sebarannya ikut terlihat. Konsumsi daya diukur sebagai acuan awal dan tidak dioptimasi.
 
 \section{Karakteristik Data}
-\label{sec:karakteristik-data}
 
 Karakteristik data diuraikan dalam lima butir. Butir pertama membahas data sekunder untuk pelatihan dan pengujian model, lalu berturut-turut data primer hasil rekaman perangkat, sumber sinyal \textit{replay}, penyelarasan pemrosesan antara komputer dan perangkat, dan data telemetri yang dikirim ke \textit{cloud}.
 
@@ -174,7 +171,6 @@ Data telemetri adalah hasil klasifikasi per detak yang dikirim perangkat ke Thin
 % sumber: firmware/include/ecg_mqtt.h (ecg_mqtt_beat_t 40 byte, ts = ts_base_ms + beat.ms, PDSR dihitung per paket); dashboard/ukur_pipeline.py (docstring: latensi dari REST ThingsBoard, PDSR dari pencacah firmware lewat serial)
 
 \section{Tempat Ujicoba}
-\label{sec:tempat-ujicoba}
 
 Seluruh uji dilakukan di lingkungan non-klinis. Perekaman sinyal tubuh dilakukan di Laboratorium MSECT, Politeknik Elektronika Negeri Surabaya, dengan subjek duduk diam dan perangkat dicatu \textit{powerbank}, jadi tidak ada sambungan listrik ke jala-jala selama perekaman. Uji \textit{pipeline} dilakukan pada jaringan WiFi rumah, yaitu ESP32-S3 terhubung ke titik akses yang sama dengan komputer yang menjalankan ThingsBoard di dalam \textit{container} Docker. \textit{Broker} MQTT karena itu berada di jaringan lokal, bukan di server publik. Lingkungan ini dipilih karena seluruh komponen \textit{pipeline} dapat dikendalikan sendiri, termasuk pembekuan \textit{broker} untuk meniru putusnya koneksi. Jaringan WiFi tersebut tidak terisolasi dari perangkat lain, dan \textit{channel contention} tetap dapat terjadi.
 % sumber: dashboard/docker-compose.yml (thingsboard/tb-postgres, port 1883 MQTT dan 8080 UI di komputer lokal); model/docs/mqtt-walkthrough.md §7 ("broker ThingsBoard CE di laptop pada jaringan WiFi rumah") dan §7c (kontensi kanal WiFi rumah); model/docs/akuisisi-walkthrough.md §1 dan §3 (powerbank, USB laptop dicabut, subjek duduk diam)
@@ -184,7 +180,6 @@ Pelatihan model, ablasi, kuantisasi, dan uji unit kode C yang tidak memerlukan p
 
 
 \section{Waktu Ujicoba}
-\label{sec:waktu-ujicoba}
 
 Kegiatan eksperimen berlangsung sejak Agustus 2026. Rentang setiap kegiatan pada Tabel~\ref{tab:waktu-ujicoba} disusun dari catatan pengembangan, yaitu riwayat \textit{commit} repositori dan nama berkas rekaman, dan dapat berbeda beberapa hari dari tanggal percobaan yang sebenarnya.
 
@@ -232,7 +227,6 @@ Pengembangan model mendahului pekerjaan perangkat keras (Tabel~\ref{tab:waktu-uj
 
 
 \section{Spesifikasi Peralatan Ujicoba}
-\label{sec:spesifikasi-peralatan}
 
 Peralatan yang digunakan terdiri atas perangkat keras dan perangkat lunak. Spesifikasi perangkat keras beserta kegunaannya ditunjukkan pada Tabel~\ref{tab:perangkat-keras-uji}.
 
@@ -331,7 +325,6 @@ Tabel~\ref{tab:perangkat-lunak-uji} mencantumkan versi setiap perangkat lunak se
 % sumber: model/requirements.txt (numpy, scipy, wfdb, tensorflow tanpa nomor versi)
 
 \subsection{Validitas Pengukuran}
-\label{subsec:validitas-pengukuran}
 
 Beberapa alat ukur pada eksperimen ini terbukti dapat memberi angka yang salah tanpa pesan kesalahan apa pun. Empat sumber \textit{error} pengukuran yang ditemukan selama pengembangan beserta penanganannya diuraikan pada butir berikut, agar angka pada hasil eksperimen dapat dinilai keabsahannya.
 \begin{enumerate}
@@ -348,12 +341,10 @@ Beberapa alat ukur pada eksperimen ini terbukti dapat memberi angka yang salah t
 Keempat butir tersebut memiliki pola yang sama, yaitu alat ukur gagal tanpa memberi tanda. Oleh karena itu, keadaan alat ukur diverifikasi sebelum angkanya diterima, dan satu kesimpulan awal tentang latensi dikoreksi setelah verifikasi tersebut.
 
 \section{Hasil Eksperimen}
-\label{sec:hasil-eksperimen}
 
 Hasil eksperimen disusun per tujuan penelitian, bukan per urutan waktu pengerjaan, agar setiap hasil dapat langsung dinilai terhadap tujuan yang dijawabnya. Urutannya adalah jalur preprocessing \textit{real-time}, jalur model TinyML \textit{on-device}, dan jalur \textit{pipeline edge-to-cloud} yang resilien.
 
 \subsection{Jalur Preprocessing \textit{Real-Time}}
-\label{subsec:hasil-tujuan1}
 
 Algoritma preprocessing ECG ringan diimplementasikan untuk berjalan secara \textit{real-time} pada ESP32-S3. Keberhasilannya dinilai dari keluaran kode C yang identik dengan Python dalam toleransi pada Tabel~\ref{tab:pengujian-model}, beban pemrosesan yang lebih kecil daripada anggaran waktu per sampel, dan tidak adanya sampel yang hilang. Hasilnya mencakup verifikasi preprocessing di Python, \textit{port} ke bahasa C beserta uji kesetaraannya, serta alur hidup beserta beban komputasi. Pengujian berikutnya meliputi uji perangkat dan integrasi di \textit{board}, segmentasi di perangkat, dan akuisisi sinyal tubuh.
 
@@ -635,7 +626,6 @@ Dengan demikian, sinyal tubuh dari satu sesi perekaman layak sebagai masukan jal
 % sumber: tab:kualitas-rekaman (4 dari 4 Berhasil, satu sesi)
 
 \subsection{Jalur Model TinyML \textit{On-Device}}
-\label{subsec:hasil-tujuan2}
 
 Model TinyML terkuantisasi INT8 diterapkan untuk deteksi aritmia secara \textit{on-device} pada ESP32-S3 tanpa ketergantungan pada komputasi \textit{cloud}. Targetnya mengikuti Tabel~\ref{tab:pengujian-model}. Target itu mencakup kualitas klasifikasi DS2 pada \textit{threshold} hasil kalibrasi VAL dan selisih \textit{recall} akibat kuantisasi di bawah 0,02. Target lainnya adalah latensi di bawah interval antardetak, model di bawah 25 KB yang muat di memori, serta daya per mode operasi. Hasilnya dipaparkan dalam tujuh butir berikut.
 % sumber: laporan/buku-pa/bab/bab1.tex Tujuan butir 2; laporan/buku-pa/bab/bab3.tex tab:pengujian-model (|delta recall| < 0,02, ukuran < 25 KB, latensi < interval antardetak, daya per mode operasi)
@@ -871,7 +861,6 @@ Pengukuran yang sah memerlukan beban yang identik pada setiap ulangan, karena it
 % sumber: model/docs/firmware-walkthrough.md §5c "Sumber sinyal replay" (beban kerja identik tiap ulangan) dan §5d (sumber wajib replay, p5 setSleep(false)); firmware/README.md bagian Ukur daya tanpa laptop (ADC dialihkan ke replay acuan lalu kembali, WiFi dan broker harus terjangkau); model/docs/mqtt-walkthrough.md §7c dan §10 (setSleep(false) sekitar +30 mA)
 
 \subsection{Jalur \textit{Pipeline Edge-to-Cloud} Resilien}
-\label{subsec:hasil-tujuan3}
 
 \textit{Pipeline edge-to-cloud} dibangun dengan protokol MQTT dan bufer lokal untuk menjaga kontinuitas data saat koneksi terputus. Keberhasilannya dinilai pada enam target di Tabel~\ref{tab:pengujian-pipeline}, dengan latensi dinilai pada median dan p95 dilaporkan (Tabel~\ref{tab:parameter-eksperimen}). Pengukuran pengiriman dilakukan pada 19 September 2026 dan diulang pada 23 Oktober 2026 dengan sumber sinyal \textit{replay} rekaman 208. Sinyal yang deterministik membuat hasil antarulangan dapat dibandingkan dan jumlah detak yang dikirim dapat dihitung secara pasti. Pengukuran tersebut karena itu menguji jalur dari pemrosesan di perangkat sampai \textit{dashboard}, sedangkan gerbang kualitas juga diuji dengan sinyal tubuh pada 21--22 Oktober 2026. Hasilnya dipaparkan dalam lima butir, yaitu gerbang kualitas, \textit{streaming} normal, putus koneksi, latensi, dan \textit{dashboard}.
 % sumber: laporan/buku-pa/bab/bab1.tex Tujuan butir 3; laporan/buku-pa/bab/bab3.tex tab:pengujian-pipeline (enam aspek); bab4.tex tab:parameter-eksperimen baris f (latensi dinilai pada median, p95 dilaporkan) dan tab:lingkup-progres (pipeline MQTT dengan sinyal replay); model/docs/mqtt-walkthrough.md (19 September 2026); git log 6fc426c (2026-09-19)
@@ -1022,7 +1011,6 @@ Dengan demikian keenam target terukur dengan sinyal \textit{replay}, tiga di ant
 % sumber: tab:target-pipeline; butir a sampai d pada subbab ini; tiga target pada dua ulangan adalah PDSR, latensi, dan deduplikasi (model/docs/mqtt-walkthrough.md §7c, kolom Run 1 dan Run 2), sedangkan bufer lokal, integritas, dan pemulihan bersumber dari konfigurasi dan skenario yang tidak diulang
 
 \section{Analisis Hasil Eksperimen}
-\label{sec:analisis}
 
 Hasil eksperimen dinilai terhadap ketiga tujuan penelitian. Status Tercapai diberikan bila seluruh target pada rencana pengujian terukur dan terpenuhi, sedangkan Sebagian tercapai diberikan bila ada target yang belum terukur. Jalur preprocessing dan jalur \textit{pipeline} berstatus Tercapai. Jalur model berstatus Sebagian tercapai karena konsumsi daya per mode operasi belum diukur, walaupun seluruh target model dan kinerja di perangkat terpenuhi. Penilaian per target dirangkum pada Tabel~\ref{tab:ketercapaian}.
 % sumber: tab:kualitas-rekaman (4 dari 4 rekaman resmi Berhasil) melengkapi target jalur preprocessing
@@ -1065,7 +1053,6 @@ Hasil eksperimen dinilai terhadap ketiga tujuan penelitian. Status Tercapai dibe
 Seluruh target yang bergantung pada komputasi, pengiriman data, dan kualitas sinyal tubuh terpenuhi (Tabel~\ref{tab:ketercapaian}). Target yang belum dapat dinilai adalah konsumsi daya per mode operasi pada jalur model.
 
 \subsection{Analisis Jalur Preprocessing \textit{Real-Time}}
-\label{subsec:analisis-tujuan1}
 
 Jalur komputasi preprocessing terbukti setara dengan Python dan berjalan secara \textit{real-time}. Seluruh tahap pada Tabel~\ref{tab:uji-kesetaraan-tahap} lulus, termasuk 11 R-\textit{peak} yang sama dengan Python dalam toleransi 1 sampel dan keputusan akhir yang identik pada tujuh detak acuan. Beban rata-rata hanya 82 $\mu$s per sampel atau 3,0\% anggaran, dan sampel hilang tetap 0 walaupun puncak beban sesaat mencapai 33,4~ms (Tabel~\ref{tab:beban-komputasi}). Kesetaraan ini dipastikan oleh koefisien filter dan model yang dihasilkan otomatis dari Python lalu diuji tahap demi tahap. ADC yang dibaca di ISR dan antrean 256 sampel menyerap \textit{burst} deteksi dan inferensi, dan syarat pada Tabel~\ref{tab:pengujian-model} terpenuhi.
 % sumber: bab4 tab:uji-kesetaraan-tahap (11 puncak, toleransi 1 sampel, label identik 7 detak), tab:beban-komputasi (82 us, 3,0%, 33,4 ms, sampel hilang 0, antrean 256), sec:karakteristik-data butir penyelarasan (berkas ecg_preproc.h dan model_int8.h dihasilkan otomatis)
@@ -1074,7 +1061,6 @@ Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi 
 % sumber: bab4 subsec:hasil-tujuan1 butir port C (rekaman 208, 6,67 detik, tanpa kelas S) dan butir alur hidup (window 250), tab:sensitivity-detektor (S 0,6494), tab:segmentasi-deteksi
 
 \subsection{Analisis Jalur Model TinyML \textit{On-Device}}
-\label{subsec:analisis-tujuan2}
 
 Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi hanya menggeser \textit{recall} sebesar $+$0,0108 dengan ukuran 22,94~KB, keduanya di bawah ambang rencana pengujian (Tabel~\ref{tab:delta-int8}). Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan dan hanya terungkap oleh uji data acuan.
 % sumber: bab4 tab:delta-int8 (+0,0108, 22,94 KB), tab:sumber-daya dan paragraf sesudahnya (26,6 ms, 13,3% dari 200 ms, 12.948 dari 24.576 byte), subsec:hasil-tujuan1 butir Port ke Bahasa C (MEAN 0,336 vs 0,973)
@@ -1083,7 +1069,6 @@ Kualitas klasifikasi, yang tidak memiliki ambang angka, mencapai \textit{recall}
 % sumber: bab4 tab:hasil-ds2 (0,6996, 0,6594, 0,9334), subsec:hasil-tujuan2 butir Evaluasi DS2 (median per pasien 0,9167, recall S 0,4390, alasan QRS mirip Normal), butir Konsumsi Daya (INA219 belum dirakit di sisi baterai), paragraf sesudah tab:sumber-daya (latensi tanpa WiFi aktif)
 
 \subsection{Analisis Jalur \textit{Pipeline Edge-to-Cloud} Resilien}
-\label{subsec:analisis-tujuan3}
 
 \textit{Pipeline} MQTT dengan bufer lokal memenuhi target \textit{streaming} pada tiga ulangan dengan sumber \textit{replay}, yaitu PDSR 99,2\% sampai 100,0\% serta median latensi 939 sampai 1.108~ms, sedangkan p95 tidak stabil. Pada satu uji putus koneksi tidak ada detak hilang dan pengurasan selesai paling lama 24,6 detik. \textit{Timestamp} ganda tidak ditemukan pada ketiga ulangan (Tabel~\ref{tab:target-pipeline}). Kontinuitas pada uji putus koneksi berasal dari antrean yang baru melepas detak setelah PUBACK diterima dan dari \textit{timestamp} berisi waktu kejadian, dan jeda terbesar pada deret waktu hanya 911~ms selama \textit{broker} beku 24 detik. Median latensi dibatasi arsitektur deteksi dan bukan jaringan, karena sekitar 87\% latensi, atau 78\% sampai 93\% menurut ulangan, berasal dari sisi perangkat dan \textit{broker} hanya 1,1~ms (Tabel~\ref{tab:dekomposisi-latensi}).
 % sumber: bab4 tab:target-pipeline (100,0% dan 99,2%, 939 dan 1.108 ms, p95 tidak stabil, hilang 0 dan flush <= 24,6 detik dari satu uji, ts ganda 0 pada dua ulangan), subsec:hasil-tujuan3 butir Streaming Normal (dihapus setelah PUBACK, ThingsBoard menimpa ts sama) dan butir Putus Koneksi (jeda 911 ms, beku 24 detik, antrean pada uji itu masih berkapasitas 64 detak), tab:dekomposisi-latensi (87%, rentang 78% sampai 93%, 1,1 ms)
@@ -1092,7 +1077,6 @@ Cakupan pengujiannya perlu dicatat. Seluruh pengukuran pengiriman memakai sinyal
 % sumber: bab4 sec:karakteristik-data butir replay (sekitar 1,6 detak per detik), subsec:hasil-tujuan3 butir Gerbang (hanya gerbang ayunan), butir Putus Koneksi (satu kali, antrean 64 detak, konfigurasi akhir 27.000 entri dan paket 50 detak), tab:target-pipeline (p95 1.404 dan 3.304 ms), butir Latensi (dugaan kontensi kanal)
 
 \subsection{Perbandingan dengan Penelitian Terkait}
-\label{subsec:analisis-perbandingan}
 
 Perbandingan dibatasi pada penelitian terkait yang skema evaluasinya diketahui, yaitu Zambrano-de la Torre et al.~\cite{zambrano_2026} dan penelitian pendahulu~\cite{mulyawan_2026} yang memakai platform sensor dan \textit{dashboard} yang sama. Protokol ketiganya disandingkan pada Tabel~\ref{tab:perbandingan-protokol}.
 
@@ -1137,7 +1121,6 @@ Penelitian pendahulu mendeteksi atrial fibrilasi dengan SVM di sisi \textit{clou
 % sumber: bab2 subsec:related-mulyawan2026 (SVM di backend cloud, AFib); bab4 tab:sumber-daya (26,6 ms), tab:target-pipeline (data hilang 0), subsec:hasil-tujuan2 butir Evaluasi DS2 (DS2 menilai ablasi window dan jitter, berpotensi sedikit optimistis), tab:uji-kesetaraan-tahap
 
 \subsection{Keterbatasan dan Status \textit{Proof of Concept}}
-\label{subsec:analisis-keterbatasan}
 
 Walaupun jalur komputasi, model INT8, dan \textit{pipeline} telah terukur di perangkat, sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis, dengan keterbatasan yang diuraikan pada butir berikut.
 \begin{enumerate}

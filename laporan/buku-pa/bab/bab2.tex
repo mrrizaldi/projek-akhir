@@ -1,18 +1,14 @@
 \chapter{Kajian Pustaka}
-\label{chap:kajian-pustaka}
 
 \section{Deskripsi Permasalahan}
-\label{sec:deskripsi-permasalahan}
 
 Sistem monitoring detak jantung berbasis IoT yang ada saat ini umumnya mengadopsi paradigma \textit{cloud-centric}, di mana perangkat sensor hanya bertugas mengumpulkan data fisiologis mentah untuk kemudian dikirimkan ke server pusat guna diproses dan dianalisis. Kondisi ini menyebabkan dua permasalahan mendasar, yaitu latensi sistem yang tinggi akibat \textit{round-trip} data ke server yang dapat mencapai 152,3 ms~\cite{al_quayed_2026}, serta ketidakmampuan sistem untuk beroperasi secara mandiri ketika koneksi jaringan terganggu atau terputus.
 
 Model kecerdasan buatan untuk deteksi aritmia umumnya dijalankan pada perangkat keras desktop atau server, dan baru sedikit yang dibuktikan mampu melakukan inferensi \textit{real-time} pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{zambrano_2026}. Pada sisi pengiriman, platform yang mengalirkan sinyal ECG mentah langsung ke server belum menyimpan data secara lokal ketika koneksi terputus, dan mekanisme tersebut masih ditempatkan sebagai pengembangan lanjutan~\cite{escobedo_2026}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
 
 \section{Teori Penunjang}
-\label{sec:teori-penunjang}
 
 \subsection{Aritmia dan Elektrokardiogram (ECG)}
-\label{subsec:aritmia-ecg}
 
 Aritmia merupakan gangguan irama listrik jantung yang menyebabkan detak jantung tidak teratur, terlalu cepat (takikardia), atau terlalu lambat (bradikardia)~\cite{ecg_goldberger}. Kondisi ini dapat dideteksi melalui elektrokardiogram (ECG), yaitu rekaman aktivitas listrik jantung yang menangkap gelombang P, kompleks QRS, dan gelombang T dalam satu siklus detak jantung~\cite{ecg_goldberger}. Penyimpangan morfologi atau durasi pada komponen-komponen tersebut menjadi penanda klinis adanya aritmia. Dalam implementasi \textit{wearable}, sinyal ECG rentan terhadap tiga jenis gangguan utama, yaitu \textit{baseline wander} (frekuensi $< 0{,}5$ Hz), \textit{high-frequency noise} ($> 40$ Hz), serta \textit{muscle artifact} dan \textit{motion artifact}~\cite{zambrano_2026, jia_2024}. \textit{Muscle artifact} yang berasal dari aktivitas listrik otot paling sulit ditangani karena sifatnya tidak stasioner dan spektrum frekuensinya tumpang tindih dengan sinyal ECG ($0{,}5$--$40$ Hz)~\cite{jia_2024}.
 % sumber: jia_2024 (PMC11591354) "The identification of EMG noise presents a greater challenge compared to PLI and BW noises, given its non-stationary nature and substantial overlaps across entire frequency bands with ECG data"; daftar singkatan: MAs = Muscle Artifacts, EMs = Electrode Motion Artifacts
@@ -59,12 +55,10 @@ Tabel~\ref{tab:perbandingan-irama} digunakan sebagai landasan klasifikasi
 biner Normal dan Aritmia pada pemetaan anotasi dataset MIT-BIH.
 
 \subsection{IoT Edge Computing}
-\label{subsec:iot-edge}
 
 IoT \textit{edge computing} adalah pendekatan arsitektur yang menempatkan kapabilitas komputasi langsung pada perangkat \textit{edge}, alih-alih mengandalkan server terpusat. Dengan paradigma ini, data diproses secara lokal sehingga latensi berkurang dan privasi data lebih terjaga~\cite{cao_2020}. Data yang diproses di perangkat juga tetap dapat dipertahankan ketika koneksi internet terputus~\cite{yaacoub_2020}. Arsitektur yang umum digunakan terdiri dari tiga lapisan, yaitu lapisan perangkat (\textit{device layer}) untuk akuisisi dan pemrosesan lokal, lapisan \textit{edge/fog} untuk agregasi, serta lapisan \textit{cloud} untuk penyimpanan dan pemantauan jangka panjang. Dalam konteks monitoring kesehatan, \textit{edge computing} memungkinkan perangkat \textit{wearable} menghasilkan diagnosis secara \textit{real-time} tanpa harus mengirimkan seluruh data mentah ke \textit{cloud}~\cite{tinyml_iot_review}. Dalam penelitian ini, \textit{edge computing} digunakan untuk menempatkan preprocessing dan klasifikasi aritmia pada lapisan perangkat, yaitu ESP32-S3, sedangkan lapisan \textit{cloud} berperan untuk pemantauan dan penyimpanan hasil.
 
 \subsection{Tiny Machine Learning (TinyML)}
-\label{subsec:tinyml}
 
 TinyML adalah subdisiplin \textit{machine learning} yang berfokus pada
 \textit{deployment} model inferensi pada perangkat dengan sumber daya
@@ -79,7 +73,6 @@ penelitian ini, TinyML digunakan untuk menjalankan model deteksi aritmia
 pada ESP32-S3 melalui TFLite Micro.
 
 \subsection{Jaringan Saraf Konvolusional Satu Dimensi (1D-CNN)}
-\label{subsec:cnn-1d}
 
 Jaringan saraf konvolusional (\textit{Convolutional Neural Network}, CNN)
 adalah arsitektur \textit{deep learning} yang secara otomatis mengekstrak fitur
@@ -117,7 +110,6 @@ cabang morfologi model deteksi aritmia yang membaca segmen ECG di sekitar puncak
 dan dilengkapi cabang ritme berbasis interval R-R.
 
 \subsection{Kuantisasi Model CNN}
-\label{subsec:kuantisasi}
 
 Kuantisasi adalah teknik kompresi model \textit{neural network} yang mengubah
 representasi numerik bobot dari \textit{floating-point} 32-bit (float32) menjadi
@@ -144,7 +136,6 @@ Lite. Hasilnya berupa model berformat \textit{FlatBuffer} (.h) yang langsung
 dapat dikompilasi bersama \textit{firmware} ESP32-S3 menggunakan TFLite Micro.
 
 \subsection{Mikrokontroler ESP32-S3}
-\label{subsec:esp32}
 
 ESP32-S3 adalah mikrokontroler 32-bit dari Espressif Systems dengan prosesor \textit{dual-core} Xtensa LX7, instruksi vektor (SIMD) untuk mempercepat algoritma kecerdasan buatan, serta WiFi dan Bluetooth LE terintegrasi~\cite{espressif_esp32s3_datasheet}. \textit{Board} yang digunakan adalah \textit{board} kompatibel ESP32-S3-DevKitC-1 dengan modul ESP32-S3-WROOM-1-N16R8, yaitu modul dengan memori Flash 16 MB dan PSRAM 8 MB~\cite{espressif_esp32s3_wroom1}. Spesifikasi modul tersebut dirangkum pada Tabel~\ref{tab:spesifikasi-esp32}, dan \textit{board}-nya ditunjukkan pada Gambar~\ref{fig:esp32}.
 
@@ -189,7 +180,6 @@ ESP32-S3 menjadi satu-satunya perangkat \textit{edge} dalam penelitian ini dan m
 % sumber: model/artifacts/metrics/fase7_delta.csv (ukuran_kb 22.94); model/CLAUDE.md HW-1 (arena 12.948 B), HW-6 (backlog 27.000 beat di PSRAM); firmware/include/perangkat.h (KANAL_EKG = ADC1_CHANNEL_0)
 
 \subsection{Modul Sensor AD8232}
-\label{subsec:ad8232}
 
 AD8232 adalah \textit{front-end} analog terintegrasi untuk akuisisi sinyal ECG \textit{single-lead}. Chip ini memuat penguat instrumentasi \textit{low-noise}, filter \textit{high-pass} untuk meredam \textit{baseline wander}, filter \textit{low-pass} untuk meredam \textit{high-frequency noise}, serta deteksi lepasnya elektroda (\textit{lead-off detection})~\cite{analog_ad8232}. Keluarannya berupa sinyal analog yang dapat dicuplik langsung oleh ADC mikrokontroler. Modul AD8232 beserta elektrodanya ditunjukkan pada Gambar~\ref{fig:ad8232}.
 
@@ -203,7 +193,6 @@ AD8232 adalah \textit{front-end} analog terintegrasi untuk akuisisi sinyal ECG \
 Dalam penelitian ini, AD8232 digunakan untuk menangkap sinyal ECG melalui tiga elektroda pada sadapan \textit{Modified Lead II} (MLII), karena gelombang R pada sadapan ini paling tinggi sehingga andal untuk deteksi R-\textit{peak}. Modul ini dipilih karena penguatan dan penyaringan sinyalnya sudah terintegrasi, keluarannya dapat langsung dicuplik ADC ESP32-S3, dan modul yang sama dipakai pada penelitian terkait yang menjadi pembanding~\cite{zambrano_2026, mulyawan_2026}.
 
 \subsection{Layar TFT ST7789}
-\label{subsec:tft-st7789}
 
 ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar TFT LCD 262 ribu warna dengan memori bingkai (\textit{frame memory}) internal berukuran 240$\times$320 piksel, sehingga mikrokontroler hanya perlu mengirim data piksel untuk area yang berubah. Chip ini menerima data melalui antarmuka paralel, RGB, maupun SPI tiga atau empat jalur~\cite{sitronix_st7789v3}. Contoh modul layar TFT 1,47 inci dengan \textit{driver} ST7789 ditunjukkan pada Gambar~\ref{fig:tft-st7789}.
 
@@ -218,7 +207,6 @@ ST7789 adalah \textit{controller} sekaligus \textit{driver} tunggal untuk layar 
 Dalam penelitian ini, layar TFT 1,47 inci beresolusi 172$\times$320 piksel dengan \textit{driver} ST7789 digunakan untuk menampilkan laju jantung, gelombang ECG, pembacaan daya, waktu, status perekaman, dan menu. Layar ini dipilih karena ukurannya ringkas untuk perangkat yang dikenakan, resolusinya cukup untuk menampilkan gelombang ECG, dan antarmuka SPI hanya membutuhkan sedikit pin.
 
 \subsection{Sensor Arus dan Tegangan INA219}
-\label{subsec:ina219}
 
 INA219 adalah pemantau arus dan daya dua arah berantarmuka I2C. Chip ini mengukur jatuh tegangan pada resistor \textit{shunt} hingga $\pm$320 mV dan tegangan bus 0--26 V, lalu menghitung arus dan daya dari kedua besaran tersebut. Konversinya memakai ADC 12 bit yang dapat merata-ratakan hingga 128 sampel~\cite{ti_ina219}. Contoh modul INA219 beserta resistor \textit{shunt}-nya ditunjukkan pada Gambar~\ref{fig:ina219}.
 
@@ -233,7 +221,6 @@ INA219 adalah pemantau arus dan daya dua arah berantarmuka I2C. Chip ini menguku
 Dalam penelitian ini, INA219 dengan resistor \textit{shunt} 0,1 ohm digunakan untuk mengukur arus, tegangan, dan daya yang ditarik perangkat dari baterai. INA219 dipilih karena hasil ukurnya dapat dibaca langsung oleh ESP32-S3 melalui I2C, sehingga konsumsi daya dapat diukur oleh perangkat itu sendiri tanpa alat ukur eksternal.
 
 \subsection{Modul \textit{Buzzer} Pasif}
-\label{subsec:buzzer-pasif}
 
 \textit{Buzzer} pasif, atau \textit{buzzer} transduser, tidak memiliki rangkaian penggerak internal sehingga harus digerakkan gelombang kotak dari luar, dan frekuensi bunyinya mengikuti frekuensi gelombang tersebut. Sebaliknya, \textit{buzzer} aktif atau \textit{buzzer} indikator berbunyi pada satu frekuensi tetap begitu diberi tegangan searah~\cite{cui_buzzer_basics}. Contoh modul \textit{buzzer} pasif tiga pin dengan transistor penggerak ditunjukkan pada Gambar~\ref{fig:buzzer-pasif}.
 
@@ -248,12 +235,10 @@ Dalam penelitian ini, INA219 dengan resistor \textit{shunt} 0,1 ohm digunakan un
 Dalam penelitian ini, modul \textit{buzzer} pasif tiga pin dengan transistor penggerak digunakan sebagai indikator bunyi. \textit{Buzzer} pasif dipilih karena gelombang kotaknya dapat dibangkitkan periferal PWM ESP32-S3, sehingga nada dapat diatur dan satu bip dapat dibunyikan untuk setiap detak.
 
 \subsection{Protokol MQTT}
-\label{subsec:mqtt}
 
 MQTT (\textit{Message Queuing Telemetry Transport}) adalah protokol komunikasi \textit{publish-subscribe} yang dirancang untuk perangkat IoT dengan \textit{overhead} \textit{header} minimal (2 byte) sehingga efisien dalam penggunaan \textit{bandwidth}~\cite{oasis_mqtt5}. MQTT mendukung tiga tingkat \textit{Quality of Service}, yaitu QoS-0 (\textit{at most once}), QoS-1 (\textit{at least once}), dan QoS-2 (\textit{exactly once}). Pada aplikasi kesehatan berbasis MQTT, QoS-1 menjadi kompromi terbaik antara latensi \textit{end-to-end} yang rendah dan variasi latensi yang kecil~\cite{akshatha_2022}. Dalam penelitian ini, MQTT digunakan untuk mengirim hasil klasifikasi per detak dari ESP32-S3 ke \textit{broker} ThingsBoard pada QoS-1, dan duplikat akibat pengiriman ulang dikenali di sisi \textit{cloud}.
 
 \subsection{Platform Dashboard ThingsBoard}
-\label{subsec:thingsboard}
 
 ThingsBoard adalah platform IoT \textit{open-source} yang menyediakan
 infrastruktur lengkap untuk pengumpulan, pemrosesan, visualisasi, dan
@@ -291,7 +276,6 @@ ketika label = 1 (Aritmia terdeteksi). Dalam penelitian ini, ThingsBoard CE
 \textit{dashboard} pemantauan hasil klasifikasi dari ESP32-S3.
 
 \subsection{MIT-BIH \textit{Arrhythmia Database}}
-\label{subsec:mitbih}
 
 % NOTE: sloppypar dipakai karena "elektrokardiogram" bikin overfull hbox
 \begin{sloppypar}
@@ -335,7 +319,6 @@ kemampuan generalisasi terhadap pasien baru yang tidak pernah dilihat
 selama pelatihan, dan bukan sekadar hafalan pola dari pasien yang sama.
 
 \subsection{Simulasi \textit{Error} Deteksi R-\textit{peak} dengan \textit{Jitter}}
-\label{subsec:augmentasi-jitter}
 
 Klasifikasi per detak memotong sinyal ECG menjadi \textit{window} di sekitar puncak R. Pada MIT-BIH posisi tersebut berasal dari anotasi kardiolog, sedangkan pada perangkat posisi itu dihasilkan detektor R-\textit{peak} yang dapat meleset, sehingga evaluasi dengan posisi anotasi belum mewakili pemakaian nyata~\cite{dias_2021}. Dias et al.~\cite{dias_2021} mensimulasikan \textit{error} tersebut dengan \textit{jitter}, yaitu menggeser setiap puncak R menjadi $r'_i = r_i + u_i$. Nilai $u_i$ diambil acak dari sebaran seragam pada rentang $\pm\delta$ sampel, lalu \textit{window} dipotong dan fitur R-R dihitung dari posisi baru. Batas $\delta = 18$ sampel setara dengan toleransi \textit{error} 50 ms pada studi kinerja detektor QRS. Pada batas tersebut, sensitivitas kelas N, S, dan V hanya turun dari 94,5\%, 92,5\%, dan 88,6\% menjadi 93,7\%, 89,7\%, dan 87,9\%~\cite{dias_2021}.
 % sumber: Dias 2021 (CMPB 202:105948) sec. 4.2 hlm. 3 (uniform -delta..+delta, delta 0..18, 18 sampel = 50 ms, 128+127 sampel), sec. 4.3.1 (RR dari posisi tersegmentasi), sec. 5.2 hlm. 6 (33 ulangan), Tabel 3 hlm. 5 (Se N/S/V delta 0: 94,5/92,5/88,6; delta 18: 93,7/89,7/87,9)
@@ -344,73 +327,62 @@ Dias et al.\ memakai \textit{jitter} sebagai uji ketahanan. Dalam penelitian ini
 % sumber: model/docs/jitter-walkthrough.md bagian 2 (DS1 50.601 pasangan, 79,85% <=1 sampel, |p99| 26, maks 54); model/config.py (JITTER_MODEL = "empiris", JITTER_SALINAN = 2); model/scripts/prep_beats.py (1 bersih + 2 jitter, hanya DS1 mitdb)
 
 \section{Penelitian Terkait}
-\label{sec:penelitian-terkait}
 
 \subsection{A Multistage Denoising Framework for Ambulatory ECG Signal Based on Domain Knowledge and Motion Artifact Detection}
-\label{subsec:related-xie2021}
 
 Xie et al.~\cite{xie_2021} mengusulkan kerangka preprocessing multi-tahap untuk sinyal ECG \textit{ambulatory}. Kerangka tersebut menggabungkan \textit{Frequency-Adaptive Noise Estimation} (FANE) berbasis \textit{wavelet} untuk menekan \textit{motion artifact}, \textit{Morphological Analysis and Detection} (MAD), \textit{Singular Value Thresholding} (SVT), serta \textit{Complete Ensemble Empirical Mode Decomposition} (CEEMD) untuk mengatasi \textit{baseline wander}. Kombinasi metode ini terbukti meningkatkan \textit{Signal-to-Noise Ratio} (SNR) sebesar 7\%--25\% dibandingkan metode konvensional pada \textit{dataset} ECG \textit{ambulatory}. Namun, seluruh eksperimen dilakukan pada perangkat PC server tanpa pelaporan latensi pemrosesan atau penggunaan memori. Penelitian tersebut memberikan referensi penting untuk memahami tantangan \textit{noise} pada ECG \textit{ambulatory}, sekaligus menunjukkan \textit{gap} bahwa algoritma preprocessing yang efektif belum divalidasi pada MCU \textit{low-power}.
 
 Berbeda dengan penelitian tersebut yang menumpukan penekanan \textit{noise} pada CEEMD dan \textit{wavelet} yang beban komputasinya berat dan belum dikuantisasi untuk mikrokontroler, penelitian ini memakai filter Butterworth dan deteksi R-\textit{peak} Pan-Tompkins yang ringan. Pilihan itu diambil agar preprocessing dapat berjalan \textit{real-time} pada mikrokontroler hemat daya dan beban komputasinya terukur.
 
 \subsection{A Real-Time Embedded System to Detect QRS-Complex and Arrhythmia Classification Using LSTM Through Hybridized Features}
-\label{subsec:related-karri2023}
 
 Karri dan Annavarapu~\cite{karri_2023} merancang sistem \textit{embedded} \textit{real-time} untuk deteksi kompleks QRS dan klasifikasi aritmia menggunakan pendekatan \textit{hybrid} yang menggabungkan \textit{Discrete Wavelet Transform} (DWT), \textit{Delta-Sigma Modulation} (DSM), dan model LSTM. Sistem DWT+DSM mampu mendeteksi kompleks QRS dalam 17,2 ms dengan konsumsi daya 680 nW pada chip DSM, dan diuji pada Raspberry Pi 4 (ARM Cortex-A72, RAM 4 GB). Meskipun berhasil menunjukkan kelayakan pemrosesan ECG secara \textit{embedded}, penggunaan Raspberry Pi 4 tidak mewakili batasan MCU \textit{low-power} yang sesungguhnya. \textit{Gap} pada penelitian tersebut adalah absennya implementasi dan validasi pada MCU kelas ESP32 atau Cortex-M4.
 
 Berbeda dengan penelitian tersebut yang tidak mengukur daya total maupun RAM dan belum terhubung ke \textit{cloud}, penelitian ini menjalankan seluruh jalur pada mikrokontroler ESP32-S3 dan melaporkan beban komputasi serta memori yang terpakai di perangkat. Hasil klasifikasinya kemudian diteruskan ke \textit{cloud} melalui MQTT.
 
 \subsection{Real-Time Fetal Arrhythmia Detection Using Deep Learning on an Embedded fECG Monitoring System}
-\label{subsec:related-mekhfioui2025}
 
 Mekhfioui et al.~\cite{mekhfioui_2025} mengembangkan sistem deteksi aritmia jantung janin berbasis sinyal fECG. Sistem tersebut memakai \textit{Independent Component Analysis} (ICA) untuk separasi sinyal, diikuti \textit{bandpass filtering} dan segmentasi ke dalam jendela 3 detik, serta klasifikasi menggunakan model 1D-CNN ringan yang diimplementasikan pada Raspberry Pi. Sistem mencapai akurasi 98,2\%, sensitivitas 98,8\%, dan F1-\textit{score} 98,1\% pada \textit{dataset} Kaggle dan NIFECGDB. Penelitian tersebut menjadi acuan arsitektur 1D-CNN untuk klasifikasi sinyal kardiovaskular pada \textit{embedded system}. Namun, implementasinya masih pada Raspberry Pi, dan ICA belum dievaluasi pada MCU dengan batasan RAM dan daya yang jauh lebih ketat.
 
 Berbeda dengan penelitian tersebut yang memakai ICA yang sensitif terhadap \textit{noise} dan tidak melaporkan konsumsi daya baterai, penelitian ini memakai jalur preprocessing deterministik yang beban komputasinya diukur langsung di mikrokontroler. Konsumsi daya pada penelitian ini tetap menjadi target yang belum diukur.
 
 \subsection{TinyML-Based Classification in an ECG Monitoring Embedded System}
-\label{subsec:related-kim2023}
 
 Kim et al.~\cite{kim_2023} mengusulkan TinyCES, sebuah model 1D-CNN terkuantisasi yang dirancang khusus untuk monitoring ECG pada perangkat \textit{embedded} dengan sumber daya terbatas. Model berhasil di-\textit{deploy} pada Arduino Nano 33 BLE Sense (ARM Cortex-M4) dengan ukuran model 27 KB dan akurasi klasifikasi biner sebesar 97\% menggunakan \textit{dataset} MIT-BIH dan PTB ECG. Penelitian tersebut merupakan salah satu dari sedikit studi yang benar-benar menjalankan inferensi ECG di MCU fisik \textit{low-power}. Namun, TinyCES masih terbatas pada klasifikasi biner dan tidak menyertakan laporan latensi inferensi, penggunaan RAM saat \textit{runtime}, maupun konsumsi daya aktual selama operasi kontinu.
 
 Penelitian tersebut paling dekat dengan pendekatan penelitian ini. Berbeda dengan penelitian tersebut yang berhenti pada inferensi di perangkat, penelitian ini melengkapi inferensi INT8 di ESP32-S3 dengan pengukuran latensi dan memori di perangkat serta \textit{pipeline} \textit{edge-to-cloud} yang resilien, sedangkan klasifikasinya sama-sama biner.
 
 \subsection{Designing Resilient IoT and Edge Computing with Federated TinyML}
-\label{subsec:related-laiu2026}
 
 Laiu et al.~\cite{laiu_2026} mengusulkan arsitektur DRIFT (\textit{Distributed Resilient IoT Federated TinyML}), sebuah kerangka tiga-lapisan yang mengintegrasikan TinyML dan \textit{Federated Learning} untuk meningkatkan keamanan dan ketahanan sistem IoT/MCU. Penelitian tersebut menunjukkan bahwa kuantisasi float32 ke INT8 menghasilkan kompresi model $4\times$ dengan degradasi akurasi kurang dari $0{,}01\%$, serta membuktikan bahwa beban komputasi pada MCU dapat dikurangi melalui preprocessing terdistribusi di lapisan \textit{edge}. Fokus penelitian tersebut adalah pada keamanan siber IoT, bukan pada monitoring sinyal biomedis, dan evaluasinya dilakukan secara simulasi tanpa pengujian \textit{streaming} data ECG kontinu pada \textit{hardware} MCU fisik.
 
 Berbeda dengan penelitian tersebut yang mengevaluasi kuantisasi pada deteksi intrusi jaringan secara simulasi, penelitian ini menerapkan kuantisasi INT8 pada model deteksi aritmia. Selisih metrik dan latensinya diukur langsung di ESP32-S3 dengan \textit{streaming} ECG kontinu.
 
 \subsection{Implementing TinyML in Internet of Things Devices: A Systematic Literature Review}
-\label{subsec:related-solispino2026}
 
 Solis Pino et al.~\cite{tinyml_iot_review} melakukan tinjauan literatur sistematis terhadap 114 studi primer tentang implementasi TinyML pada perangkat IoT menggunakan protokol PRISMA dan strategi pencarian multi-\textit{database}. Hasil \textit{review} mengungkapkan bahwa CNN adalah arsitektur yang paling sering digunakan, ESP32 dan Arduino Nano 33 BLE Sense adalah platform \textit{hardware} yang paling umum, serta \textit{healthcare} adalah domain aplikasi yang paling banyak diteliti. Tinjauan ini juga mengidentifikasi tantangan utama yang belum terselesaikan, meliputi keterbatasan memori/CPU, kerentanan keamanan, dan absennya standardisasi implementasi TinyML antar platform.
 
 Berbeda dengan tinjauan tersebut yang memetakan praktik lintas studi tanpa eksperimen, penelitian ini memakai temuannya sebagai dasar pemilihan CNN, ESP32, dan TFLite Micro, lalu menguji pilihan itu secara eksperimental pada satu perangkat.
 
 \subsection{Advanced IoT-Enabled Embedded Wearable System for Continuous Cardiovascular Health Monitoring Using Edge Intelligence}
-\label{subsec:related-sheebarani2026}
 
 Sheeba Rani et al.~\cite{sheeba_rani_2026} mengusulkan sistem \textit{wearable} monitoring kardiovaskular kontinu yang mengimplementasikan model \textit{hybrid} 1D-TA-DSC (kombinasi 1D \textit{Depthwise Separable Convolution} dan \textit{Temporal Attention}-GRU) pada ARM Cortex-M4 menggunakan TFLite. Setelah kuantisasi \textit{post-training}, model dikompres dari 22 KB menjadi 11 KB dengan latensi inferensi 7 ms, akurasi 99,8\%, dan AUROC 0,997 pada \textit{dataset} MIMIC-III (rekaman ICU). Penelitian tersebut adalah salah satu yang paling detail dalam melaporkan metrik \textit{hardware} untuk monitoring kardiovaskular di MCU. Namun, penelitian tersebut tidak menyertakan evaluasi konsumsi daya pada kondisi operasi kontinu maupun mekanisme resiliensi \textit{pipeline} \textit{edge-to-cloud}.
 
 Berbeda dengan penelitian tersebut yang dilatih pada rekaman ICU MIMIC-III yang belum tentu mewakili kondisi \textit{ambulatory}, penelitian ini dilatih dan diuji secara \textit{inter-patient} pada MIT-BIH. Penelitian ini juga menambahkan \textit{pipeline} \textit{edge-to-cloud} yang resilien yang tidak dibahas pada penelitian tersebut.
 
 \subsection{An On-Device Machine Learning Assisted System for Unobtrusive Cardiac Auscultation}
-\label{subsec:related-chowdhury2023}
 
 Chowdhury dan Chattopadhyay~\cite{chowdhury_2023} mengembangkan sistem auskultasi jantung berbasis \textit{on-device machine learning} yang diimplementasikan pada Arduino Nano 33 BLE Sense (ARM Cortex-M4, 64 MHz) untuk klasifikasi suara jantung secara \textit{real-time} tanpa koneksi internet. Sistem melaporkan latensi \textit{pipeline} DSP sebesar 23,19 ms untuk ekstraksi fitur MFCC, dengan konsumsi arus puncak 8,6 mA pada 3,3 V (sekitar 28,38 mW) dan daya tahan baterai 11,5 jam menggunakan baterai 240 mAh. Penelitian tersebut memberikan referensi \textit{benchmark} konsumsi daya aktual untuk \textit{inference on-device} pada MCU Cortex-M4, meskipun fokusnya pada auskultasi suara jantung, bukan sinyal ECG.
 
 Berbeda dengan penelitian tersebut yang mengolah suara jantung (PCG), penelitian ini mengolah sinyal ECG dengan jalur inferensi yang serupa di perangkat. Konsumsi daya pada penelitian ini belum diukur, sehingga angka arus tersebut menjadi acuan besaran bagi pengukuran yang disarankan.
 
 \subsection{AI-Powered Anomaly Detection and Cybersecurity in Healthcare IoT with Fog/Edge}
-\label{subsec:related-alquayed2026}
 
 Al-Quayed~\cite{al_quayed_2026} mengusulkan kerangka FE-ACS yang mendistribusikan pemrosesan dan deteksi anomali ke lapisan \textit{fog} dan \textit{edge} pada ekosistem IoT kesehatan. Pengukuran performa menunjukkan bahwa arsitektur \textit{fog-edge} mencapai latensi total rata-rata 18,7 ms dibandingkan 152,3 ms pada arsitektur \textit{cloud-centric}, mempresentasikan peningkatan 87,7\% dengan efisiensi \textit{bandwidth} $8{,}5\times$ lebih tinggi. Penelitian tersebut membuktikan secara kuantitatif keunggulan arsitektur \textit{edge} atas \textit{cloud-centric} untuk aplikasi IoT kesehatan. Namun, fokus penelitian tersebut adalah pada keamanan siber, bukan pada \textit{streaming} data ECG kontinu, dan tidak membahas mekanisme resiliensi saat koneksi terputus.
 
 Berbeda dengan penelitian tersebut yang mengukur keunggulan latensi \textit{fog-edge} untuk deteksi anomali keamanan, penelitian ini memakai bukti kuantitatif itu sebagai dasar pemindahan inferensi ke perangkat. Penelitian ini juga menambahkan mekanisme bufer lokal untuk \textit{streaming} ECG saat koneksi terputus.
 
 \subsection[Resilient Edge-to-Cloud Architecture with Self-Healing and Self-Correcting Mechanisms for Industrial Data Continuity]{Resilient Edge-to-Cloud Architecture with Self-Healing and\\ Self-Correcting Mechanisms for Industrial Data Continuity}
-\label{subsec:related-boluda2026}
 
 Boluda-Prieto et al.~\cite{resilient_edge_cloud} mengusulkan arsitektur E2C (\textit{Edge-to-Cloud}) berbasis \textit{microservices} dengan mekanisme \textit{self-healing} dan \textit{self-correcting} menggunakan \textit{stack} Kubernetes, Rancher, Prometheus, Grafana, dan Node-RED. Sistem menggunakan MQTT sebagai protokol transmisi dengan mekanisme \textit{edge buffering} yang mempertahankan \textit{Recovery Point Objective} (RPO) mendekati nol untuk aliran data kritis saat terjadi saturasi jaringan. Pengujian \textit{stress test} dengan kondisi \textit{overload} CPU dan saturasi jaringan menunjukkan kemampuan sistem mendeteksi \textit{threshold}, melakukan \textit{scaling}, dan mengisolasi \textit{node} bermasalah secara otomatis. Meskipun prinsip resiliensi pada penelitian tersebut relevan untuk \textit{streaming} ECG, seluruh implementasi berfokus pada data \textit{time-series} industri manufaktur dan menggunakan infrastruktur berbasis Kubernetes yang terlalu berat untuk MCU \textit{low-power}.
 
@@ -418,7 +390,6 @@ Berbeda dengan arsitektur tersebut yang mengandalkan \textit{microservices} Kube
 
 \subsection{Real-Time Cardiac Arrhythmia Classification Using TinyML on
 Ultra-Low-Cost Microcontrollers}
-\label{subsec:related-zambrano2026}
 
 Zambrano-de la Torre et al.~\cite{zambrano_2026} menunjukkan klasifikasi aritmia \emph{real-time} menggunakan
 1D-CNN terkuantisasi INT8 yang di-\emph{deploy} pada mikrokontroler Arduino UNO 8-bit
@@ -444,7 +415,6 @@ cabang ritme berbasis interval R-R, dan perangkatnya dilengkapi \textit{pipeline
 
 \subsection{Rancang Bangun Smart Wearables Terintegrasi IoT untuk Deteksi Dini
 Atrial Fibrilasi Menggunakan SVM Berbasis Cloud}
-\label{subsec:related-mulyawan2026}
 
 Mulyawan~\cite{mulyawan_2026} merancang perangkat \emph{wearable} berbasis ESP32 yang mengintegrasikan
 sensor EKG AD8232, sensor SpO\textsubscript{2} MAX30102, dan sensor suhu MLX90614 untuk
@@ -474,7 +444,6 @@ ini menambahkan mekanisme resiliensi \emph{pipeline} saat koneksi terputus yang 
 disertakan pada penelitian terdahulu.
 
 \subsection{Perbandingan Penelitian Terkait}
-\label{subsec:perbandingan-penelitian}
 
 Berdasarkan ulasan kedua belas penelitian tersebut, Tabel~\ref{tab:perbandingan-penelitian} merangkum perbandingan metode, platform, dan perbedaan utama setiap penelitian terhadap penelitian ini.
 

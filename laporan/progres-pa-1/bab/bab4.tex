@@ -1,8 +1,6 @@
 \chapter{Eksperimen dan Analisis}
-\label{chap:eksperimen}
 
 \section{Parameter Eksperimen}
-\label{sec:parameter-eksperimen}
 
 Parameter eksperimen ditetapkan untuk mengukur pencapaian tujuan penelitian secara objektif. Pengukuran dikelompokkan ke dalam lima kategori yang mengikuti dua jalur yang dilaporkan, yaitu jalur preprocessing \textit{real-time} dan jalur model TinyML \textit{on-device}, serta satu jalur \textit{pipeline edge-to-cloud} yang dicantumkan sebagai rencana. Target setiap parameter diambil dari rencana pengujian pada Tabel~\ref{tab:pengujian-model} dan Tabel~\ref{tab:pengujian-pipeline}, sedangkan ambangnya bersumber dari standar, jurnal, atau spesifikasi resmi perangkat. Rincian parameter yang diukur adalah sebagai berikut.
 
@@ -80,7 +78,6 @@ Parameter ini menilai kontinuitas data hasil klasifikasi dari perangkat ke \text
 % sumber: laporan/buku-pa/bab/bab3.tex tab:pengujian-pipeline
 
 \section{Karakteristik Data}
-\label{sec:karakteristik-data}
 
 Karakteristik data diuraikan dalam empat butir. Butir pertama membahas data sekunder untuk pelatihan dan pengujian model, lalu berturut-turut data primer hasil rekaman perangkat, sumber sinyal \textit{replay}, dan penyelarasan pemrosesan antara komputer dan perangkat.
 
@@ -162,7 +159,6 @@ Di perangkat, posisi R-\textit{peak} berasal dari detektor Pan-Tompkins, bukan d
 % sumber: firmware/include/ecg_preproc.h (ECG_PT_OFFSET 38, ECG_PT_REFINE 25, ECG_GROUP_DELAY 4); model/CLAUDE.md decision "Segmentasi on-device"; firmware/test/golden_ref.h
 
 \section{Tempat Ujicoba}
-\label{sec:tempat-ujicoba}
 
 Seluruh uji dilakukan di lingkungan non-klinis. Perekaman sinyal tubuh dilakukan di Laboratorium MSECT, Politeknik Elektronika Negeri Surabaya, dengan subjek duduk diam dan perangkat dicatu \textit{powerbank}, jadi tidak ada sambungan listrik ke jala-jala selama perekaman.
 % sumber: model/docs/akuisisi-walkthrough.md §1 dan §3 (powerbank, USB laptop dicabut, subjek duduk diam)
@@ -172,7 +168,6 @@ Pelatihan model, ablasi, kuantisasi, dan uji unit kode C yang tidak memerlukan p
 
 
 \section{Waktu Ujicoba}
-\label{sec:waktu-ujicoba}
 
 Kegiatan eksperimen berlangsung sejak Agustus 2026. Rentang setiap kegiatan pada Tabel~\ref{tab:waktu-ujicoba} disusun dari catatan pengembangan, yaitu riwayat \textit{commit} repositori dan nama berkas rekaman, dan dapat berbeda beberapa hari dari tanggal percobaan yang sebenarnya.
 
@@ -218,7 +213,6 @@ Pengembangan model mendahului pekerjaan perangkat keras (Tabel~\ref{tab:waktu-uj
 
 
 \section{Spesifikasi Peralatan Ujicoba}
-\label{sec:spesifikasi-peralatan}
 
 Peralatan yang digunakan terdiri atas perangkat keras dan perangkat lunak. Spesifikasi perangkat keras beserta kegunaannya ditunjukkan pada Tabel~\ref{tab:perangkat-keras-uji}.
 
@@ -310,7 +304,6 @@ Tabel~\ref{tab:perangkat-lunak-uji} mencantumkan versi setiap perangkat lunak se
 % sumber: model/requirements.txt (numpy, scipy, wfdb, tensorflow tanpa nomor versi)
 
 \subsection{Validitas Pengukuran}
-\label{subsec:validitas-pengukuran}
 
 Beberapa alat ukur pada eksperimen ini terbukti dapat memberi angka yang salah tanpa pesan kesalahan apa pun. Tiga sumber \textit{error} pengukuran yang ditemukan selama pengembangan beserta penanganannya diuraikan pada butir berikut, agar angka pada hasil eksperimen dapat dinilai keabsahannya.
 \begin{enumerate}
@@ -325,12 +318,10 @@ Beberapa alat ukur pada eksperimen ini terbukti dapat memberi angka yang salah t
 Ketiga butir tersebut memiliki pola yang sama, yaitu alat ukur gagal tanpa memberi tanda. Oleh karena itu, keadaan alat ukur diverifikasi sebelum angkanya diterima.
 
 \section{Hasil Eksperimen}
-\label{sec:hasil-eksperimen}
 
 Hasil eksperimen disusun per tujuan penelitian, bukan per urutan waktu pengerjaan, agar setiap hasil dapat langsung dinilai terhadap tujuan yang dijawabnya. Laporan tahap ini memuat hasil jalur preprocessing \textit{real-time} dan jalur model TinyML \textit{on-device}. Jalur \textit{pipeline edge-to-cloud} yang resilien telah dirancang, dan hasil pengujiannya belum termasuk dalam laporan tahap ini.
 
 \subsection{Jalur Preprocessing \textit{Real-Time}}
-\label{subsec:hasil-tujuan1}
 
 Algoritma preprocessing ECG ringan diimplementasikan untuk berjalan secara \textit{real-time} pada ESP32-S3. Keberhasilannya dinilai dari beban pemrosesan yang lebih kecil daripada anggaran waktu per sampel dan tidak adanya sampel yang hilang. Hasilnya mencakup verifikasi preprocessing di Python serta alur hidup beserta beban komputasi. Pengujian berikutnya meliputi uji perangkat dan integrasi di \textit{board}, segmentasi di perangkat, akuisisi sinyal tubuh, dan gerbang kalibrasi.
 
@@ -596,7 +587,6 @@ Pada sumber sinyal \textit{replay}, syarat lama kontak, syarat R-R, dan status \
 Uji tersebut menunjukkan bahwa gerbang menahan sinyal tanpa elektroda dan kontak yang buruk, lalu membuka pemantauan sekitar 60 detik setelah kontak baik pada satu subjek. Transisi pada kontak baik diamati langsung pada perangkat karena serial tidak tersambung selama catu \textit{powerbank}, dan belum tercatat sebagai log. Gerbang kalibrasi karena itu berfungsi sesuai rancangan pada sinyal tubuh satu subjek.
 
 \subsection{Jalur Model TinyML \textit{On-Device}}
-\label{subsec:hasil-tujuan2}
 
 Model TinyML terkuantisasi INT8 diterapkan untuk deteksi aritmia secara \textit{on-device} pada ESP32-S3 tanpa ketergantungan pada komputasi \textit{cloud}. Targetnya mengikuti Tabel~\ref{tab:pengujian-model}. Target itu mencakup kualitas klasifikasi DS2 pada \textit{threshold} hasil kalibrasi VAL dan F1 model INT8 minimal 99\% F1 \textit{float32}. Target lainnya adalah latensi di bawah interval antardetak dan model yang muat di memori. Hasilnya dipaparkan dalam enam butir berikut.
 % sumber: laporan/buku-pa/bab/bab1.tex Tujuan butir 2; laporan/buku-pa/bab/bab3.tex tab:pengujian-model (|delta recall| < 0,02, ukuran < 25 KB, latensi < interval antardetak, daya per mode operasi)
@@ -806,7 +796,6 @@ RAM statis naik dari 22,7\% menjadi 37,0\% dan Flash dari 6,6\% menjadi 13,5\% k
 % sumber: tab:sumber-daya; firmware/include/ecg_preproc.h ECG_PT_REFRACTORY 72 sampel = 200 ms pada 360 Hz dan model/config.py PT_REFRACTORY_MS 200; 26,6 / 200 = 0,133; model/CLAUDE.md status HW-7 Replay dan model/docs/firmware-walkthrough.md §5c (11 detak per putaran 6,67 detik = 1,65 detak per detik), 26,6 x 11 / 6.670 = 0,044; 12.948 / 24.576 = 0,527; model/docs/firmware-walkthrough.md bagian 6 (320 KB, 6,25 MB)
 
 \section{Analisis Hasil Eksperimen}
-\label{sec:analisis}
 
 Hasil eksperimen pada laporan tahap ini dinilai terhadap dua tujuan penelitian, yaitu jalur preprocessing \textit{real-time} dan jalur model TinyML \textit{on-device}. Status Tercapai diberikan bila seluruh target pada rencana pengujian terukur dan terpenuhi, sedangkan Sebagian tercapai diberikan bila ada target yang belum terukur. Kedua jalur berstatus Tercapai. Penilaian per target dirangkum pada Tabel~\ref{tab:ketercapaian}.
 % sumber: tab:kualitas-rekaman (4 dari 4 rekaman resmi Berhasil) melengkapi target jalur preprocessing
@@ -839,7 +828,6 @@ Hasil eksperimen pada laporan tahap ini dinilai terhadap dua tujuan penelitian, 
 Seluruh target jalur preprocessing dan jalur model, yaitu target komputasi, model, dan kualitas sinyal tubuh, terpenuhi (Tabel~\ref{tab:ketercapaian}). Target pengiriman data pada rencana pengujian \textit{pipeline}, yaitu PDSR, latensi, bufer lokal, waktu \textit{flush}, dan deduplikasi, belum dinilai karena hasil pengujiannya belum termasuk dalam laporan tahap ini.
 
 \subsection{Analisis Jalur Preprocessing \textit{Real-Time}}
-\label{subsec:analisis-tujuan1}
 
 Jalur komputasi preprocessing berjalan secara \textit{real-time} di ESP32-S3. Beban rata-rata hanya 82 $\mu$s per sampel atau 3,0\% anggaran, dan sampel hilang tetap 0 walaupun puncak beban sesaat mencapai 33,4~ms (Tabel~\ref{tab:beban-komputasi}). ADC yang dibaca di ISR dan antrean 256 sampel menyerap \textit{burst} deteksi dan inferensi, dan syarat pada Tabel~\ref{tab:pengujian-model} terpenuhi.
 % sumber: bab4 tab:beban-komputasi (82 us, 3,0%, 33,4 ms, sampel hilang 0, antrean 256), sec:karakteristik-data butir penyelarasan (berkas ecg_preproc.h dan model_int8.h dihasilkan otomatis)
@@ -848,7 +836,6 @@ Sinyal tubuh juga layak sebagai masukan jalur ini, karena keempat rekaman resmi 
 % sumber: bab4 subsec:hasil-tujuan1 butir port C (rekaman 208, 6,67 detik, tanpa kelas S) dan butir alur hidup (window 250), tab:sensitivity-detektor (S 0,6494), tab:segmentasi-deteksi
 
 \subsection{Analisis Jalur Model TinyML \textit{On-Device}}
-\label{subsec:analisis-tujuan2}
 
 Model INT8 berjalan secara \textit{on-device} di ESP32-S3 dalam batas waktu dan memori yang ditargetkan. Kuantisasi mempertahankan F1 pada 100,14\% nilai \textit{float32} dengan ukuran model 22,94~KB. Inferensi memakan 26,6~ms per detak atau paling banyak 13,3\% dari interval antardetak terpendek 200~ms, dan \textit{tensor arena} terpakai 12.948 dari 24.576 byte (Tabel~\ref{tab:sumber-daya}). Hasil ini bergantung pada varian \textit{deploy} berbasis DepthwiseConv1D, karena operasi MEAN pada TensorFlow Lite Micro salah hitung tanpa pesan kesalahan.
 % sumber: bab4 tab:delta-int8 (+0,0108, 22,94 KB), tab:sumber-daya dan paragraf sesudahnya (26,6 ms, 13,3% dari 200 ms, 12.948 dari 24.576 byte), subsec:hasil-tujuan1 336 vs 0,973)
@@ -857,7 +844,6 @@ Kualitas klasifikasi, yang tidak memiliki ambang angka, mencapai \textit{recall}
 % sumber: bab4 tab:hasil-ds2 (0,6996, 0,6594, 0,9334), subsec:hasil-tujuan2 butir Evaluasi DS2 (median per pasien 0,9167, recall S 0,4390, alasan QRS mirip Normal), butir Konsumsi Daya (INA219 belum dirakit di sisi baterai), paragraf sesudah tab:sumber-daya (latensi tanpa WiFi aktif)
 
 \subsection{Perbandingan dengan Penelitian Terkait}
-\label{subsec:analisis-perbandingan}
 
 Perbandingan dibatasi pada penelitian terkait yang skema evaluasinya diketahui, yaitu Zambrano-de la Torre et al.~\cite{zambrano_2026} dan penelitian pendahulu~\cite{mulyawan_2026} yang memakai platform sensor dan \textit{dashboard} yang sama. Protokol ketiganya disandingkan pada Tabel~\ref{tab:perbandingan-protokol}.
 
@@ -902,7 +888,6 @@ Penelitian pendahulu mendeteksi atrial fibrilasi dengan SVM di sisi \textit{clou
 % sumber: bab2 subsec:related-mulyawan2026 (SVM di backend cloud, AFib); bab4 tab:sumber-daya (26,6 ms), subsec:hasil-tujuan2 butir Evaluasi DS2 (DS2 menilai ablasi window dan jitter, berpotensi sedikit optimistis), tab:uji-kesetaraan-tahap
 
 \subsection{Keterbatasan dan Status \textit{Proof of Concept}}
-\label{subsec:analisis-keterbatasan}
 
 Walaupun jalur komputasi dan model INT8 telah terukur di perangkat, sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis, dengan keterbatasan yang diuraikan pada butir berikut.
 \begin{enumerate}

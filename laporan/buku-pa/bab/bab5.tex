@@ -1,8 +1,6 @@
 \chapter{Penutup}
-\label{chap:penutup}
 
 \section{Kesimpulan}
-\label{sec:kesimpulan}
 
 Penelitian ini membangun sistem monitoring detak jantung single-lead berbasis \textit{edge computing} dengan model CNN \textit{hybrid} INT8 yang berjalan \textit{on-device} pada ESP32-S3. Preprocessing sinyal ECG dan klasifikasi aritmia dijalankan di perangkat, lalu hasil klasifikasi per detak dikirim melalui \textit{pipeline} MQTT dengan bufer lokal di PSRAM. Berdasarkan perancangan, implementasi, dan eksperimen yang telah dilakukan, kesimpulan terhadap ketiga tujuan penelitian diuraikan sebagai berikut.
 
@@ -31,7 +29,6 @@ Keempat, telemetri akuisisi dapat menyesatkan, sehingga kualitas sinyal tidak bo
 Secara keseluruhan, tujuan preprocessing \textit{real-time} dan tujuan membangun \textit{pipeline} resilien tercapai, sedangkan tujuan model \textit{on-device} tercapai sebagian (Tabel~\ref{tab:ketercapaian}). Model tercapai pada seluruh target model dan kinerja di perangkat kecuali konsumsi daya yang belum diukur. Sistem ini berstatus \textit{proof of concept} di lingkungan non-klinis dan bukan alat diagnosis.
 
 \section{Saran}
-\label{sec:saran}
 
 Berdasarkan keterbatasan sistem, saran pengembangan selanjutnya diuraikan pada butir berikut.
 \begin{enumerate}

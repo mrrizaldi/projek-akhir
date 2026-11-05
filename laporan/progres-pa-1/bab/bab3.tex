@@ -1,8 +1,6 @@
 \chapter{Deskripsi Sistem}
-\label{chap:deskripsi-sistem}
 
 \section{Deskripsi Solusi}
-\label{sec:deskripsi-solusi}
 
 Sistem pemantauan detak jantung berbasis IoT pada umumnya mengirimkan sinyal mentah secara langsung ke server \textit{cloud} untuk diproses~\cite{kim_2023, escobedo_2026}. Pendekatan terpusat ini menimbulkan latensi komunikasi, beban komputasi yang menumpuk pada server, serta ketergantungan besar terhadap kestabilan koneksi internet~\cite{al_quayed_2026, kim_2023}. Akibatnya, sistem rentan kehilangan data ketika jaringan terganggu~\cite{escobedo_2026}. Padahal, pemantauan kardiovaskular bersifat kontinu dan kritis terhadap waktu, sehingga keterlambatan maupun terputusnya aliran data dapat mengurangi efektivitas deteksi dini aritmia.
 
@@ -13,7 +11,6 @@ Terdapat tiga fitur utama yang menjadi klaim orisinalitas solusi ini. Pertama, p
 Ketiga fitur tersebut secara langsung menjawab permasalahan penelitian. Pemrosesan dan inferensi di sisi \textit{edge} menekan latensi serta mengurangi ketergantungan pada \textit{cloud}, sementara \textit{pipeline} yang resilien menjaga data tetap tersimpan dan terkirim utuh meskipun koneksi sempat terputus. Dengan demikian, sistem mampu menyediakan pemantauan aritmia yang efektif.
 
 \section{Desain Sistem}
-\label{sec:desain-sistem}
 
 Desain sistem merupakan penjelasan teknis dari solusi yang berisi urutan proses untuk menyelesaikan permasalahan. Gambar~\ref{fig:arsitektur-sistem} menunjukkan arsitektur sistem secara \textit{high-level view} yang tersusun atas tiga lapisan, yaitu perangkat \textit{edge}, jaringan, dan \textit{cloud}.
 
@@ -31,7 +28,6 @@ Desain sistem merupakan penjelasan teknis dari solusi yang berisi urutan proses 
 Gambar~\ref{fig:arsitektur-sistem} menunjukkan bahwa sinyal ECG diakuisisi oleh sensor ECG single-lead lalu diproses sepenuhnya pada perangkat \textit{edge} berbasis ESP32-S3, mencakup preprocessing dan inferensi serta bufer data dan komunikasi MQTT. Hasil deteksi dikirim melalui jaringan WiFi menuju \textit{broker} MQTT di \textit{cloud} untuk ditampilkan pada \textit{dashboard} dan memicu notifikasi dini. Validasi performa perangkat keras dilakukan pada lapisan \textit{edge} terhadap proses preprocessing hingga inferensi.
 
 \subsection{Perancangan Perangkat Keras}
-\label{subsec:perangkat-keras}
 
 Perangkat \textit{edge} tersusun atas mikrokontroler ESP32-S3 sebagai pusat pemrosesan yang dikelilingi oleh sensor ECG, antarmuka keluaran, dan masukan pengguna. Komponen yang digunakan beserta fungsinya diuraikan pada butir berikut.
 
@@ -113,7 +109,6 @@ Seluruh komponen yang menyentuh GPIO dicatu dari jalur 3V3 karena ESP32-S3 adala
 % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md (prinsip "Semua yang menyentuh GPIO ambil dari 3V3", tiga pelanggaran rev1, §2 buzzer pasif A18009 di 3V3 menggantikan SFM-27 + Q2 2N2222, §5 net BUZZ GPIO 12 menjadi GPIO 13, §6 INA219 VCC 3V3)
 
 \subsection{Akuisisi dan Preprocessing Sinyal ECG}
-\label{subsec:preprocessing-ecg}
 
 Preprocessing mencakup keseluruhan proses dari pengambilan sinyal ECG hingga sinyal siap diklasifikasi oleh model. Gambar~\ref{fig:alir-preprocessing} menunjukkan flowchart preprocessing pada perangkat.
 
@@ -181,7 +176,6 @@ x' = \frac{x-\mu}{\sigma}
 Persamaan~\ref{eq:normalisasi} menunjukkan proses normalisasi, dengan $x$ adalah nilai sampel, $\mu$ adalah rata-rata \textit{window}, dan $\sigma$ adalah simpangan baku \textit{window}. Penambahan konstanta kecil pada penyebut dilakukan untuk menghindari pembagian dengan nol.
 
 \subsection{Model Klasifikasi Aritmia}
-\label{subsec:model-tinyml}
 
 Model pengklasifikasi setiap detak disusun melalui penyiapan data, perancangan arsitektur, pelatihan, dan kuantisasi.
 
@@ -344,7 +338,6 @@ Setelah dilatih, varian \textit{deploy} model dikuantisasi ke INT8 agar ukuranny
 % sumber: model/config.py (REP_SAMPLES = 300, MAX_MODEL_KB = 25); model/src/quantize.py (stratified_indices, inference_input_type/output_type = tf.int8); model/CLAUDE.md decision "Sampel kalibrasi PTQ", "Tipe I/O INT8", "Batas ukuran model"
 
 \subsection{\textit{Pipeline Edge-to-Cloud} yang Resilien}
-\label{subsec:pipeline-edge-cloud}
 
 Seluruh proses diintegrasikan ke dalam alur kerja \textit{firmware} yang sekaligus memuat mekanisme ketahanan terhadap gangguan koneksi. Gambar~\ref{fig:alir-firmware} menunjukkan flowchart \textit{runtime firmware} beserta jalur penanganan kondisi daring dan luring. Berbeda dari pendekatan berbasis penyimpanan non-volatil (kartu SD atau SPIFFS), resiliensi pada penelitian ini dirancang sepenuhnya di memori volatil (PSRAM) dengan asumsi perangkat \textit{wearable} diisi daya secara rutin, sebagaimana perangkat \textit{smartwatch}. Pendekatan ini menghilangkan kompleksitas manajemen \textit{filesystem embedded} serta menekan konsumsi daya dan ruang PCB. Prinsip yang mendasari rancangan ini adalah mempertahankan kelengkapan data di sisi \textit{edge} selama gangguan berlangsung, alih-alih mengandalkan rekonstruksi data yang hilang di sisi \textit{cloud}. Strategi ini sejalan dengan skema simpan-lalu-teruskan pada pemantauan kesehatan jarak jauh, yaitu data disimpan di perangkat lalu diteruskan ke \textit{cloud} ketika konektivitas memungkinkan~\cite{yaacoub_2020}.
 % sumber: laporan/pustaka/yaacoub_2020.pdf hlm. 226 ("stored before being transmitted to the cloud whenever the wireless connectivity conditions ... permit")
@@ -457,7 +450,6 @@ menghasilkan baris duplikat. Dengan demikian, mekanisme deduplikasi tidak memerl
 komponen tambahan di luar konfigurasi Rule Chain standar.
 
 \subsubsection{Struktur Data Telemetri}
-\label{subsubsec:payload-json}
 
 Setiap paket data yang dikirimkan oleh ESP32-S3 ke \textit{broker} MQTT
 dikemas dalam format JSON dengan struktur yang konsisten.
@@ -581,7 +573,6 @@ Ayunan yang dinilai pada kontak elektroda adalah ayunan bersih, yaitu ayunan sin
 % sumber: firmware/src/gerbang.cpp (GAIN_50HZ 0,342 = -9,3 dB, Goertzel 50 Hz per 1 detik, ayun_bersih; nilai_kontak(): akuisisi_replay() || !q.lepas; gerbang_nilai_fase(): lewati_kalibrasi || replay || (hangat && rr_tenang), selalu && q.kontak); model/docs/akuisisi-walkthrough.md §2 (tabel pelewatan, bypass hilang begitu sumber kembali ke Sensor)
 
 \subsection{Antarmuka Pengguna pada Perangkat}
-\label{subsec:antarmuka-perangkat}
 
 Selain mengirim hasil klasifikasi ke \textit{cloud}, perangkat menampilkan hasil pemantauan secara lokal dan dapat dioperasikan sepenuhnya tanpa komputer melalui layar TFT, LED \textit{NeoPixel}, \textit{buzzer}, dan tiga tombol. Antarmuka ini dirancang agar tidak mengganggu jalur utama, yaitu akuisisi, deteksi, inferensi, perekaman, dan publikasi MQTT tetap berjalan ketika pengguna menekan tombol atau membuka menu, karena menu hanya mengganti isi layar dan arti tombol. Antarmuka tersebut terdiri atas tata letak layar, indikator LED dan \textit{buzzer}, tombol dan menu, sumber sinyal, alur perekaman sinyal mentah, serta konfigurasi jaringan.
 % sumber: firmware/README.md bagian Antarmuka alat dan Pemakaian di perangkat ("Menu hanya mengganti isi layar dan arti tombol. Akuisisi, deteksi, inferensi, rekaman, publikasi MQTT, NeoPixel, dan bip detak tetap berjalan selama menu terbuka")
@@ -713,7 +704,6 @@ Alamat \textit{broker} wajib berupa alamat IP, karena \textit{firmware} tidak me
 % sumber: firmware/README.md bagian Konfigurasi jaringan dan broker (host wajib alamat IP, nama host tidak di-resolve; board dan laptop harus satu SSID; troubleshooting AP/client isolation); model/CLAUDE.md jebakan "Menunggu jaringan di dalam loop" (resolusi DNS panggilan blocking terpisah, antrean 256 sampel = 711 ms)
 
 \subsection{Antarmuka \textit{Monitoring} Berbasis ThingsBoard}
-\label{subsec:dashboard-thingsboard}
 
 Hasil inferensi dan data telemetri yang dikirimkan oleh ESP32-S3
 divisualisasikan melalui \textit{dashboard} berbasis ThingsBoard
@@ -802,7 +792,6 @@ digunakan pada pengujian.
 % Pengumpulan data dilakukan melalui dua jenis sumber. Pertama, data sekunder berupa rekaman ECG dari MIT-BIH \textit{Arrhythmia Database} yang digunakan untuk pelatihan dan pengujian model. Kedua, data primer berupa hasil pengukuran perangkat keras saat sistem beroperasi, meliputi latensi inferensi, penggunaan memori, dan konsumsi daya, dengan instrumen serta cara pengukuran yang dirangkum pada Tabel~\ref{tab:pengujian-model}.
 
 \subsection{Rencana Pengujian}
-\label{sec:rencana-pengujian}
 
 Pengujian pada penelitian ini dilakukan melalui dua jalur. Jalur pertama adalah pengujian model yang menjadi klaim ilmiah utama, sedangkan jalur kedua adalah pengujian \textit{pipeline} yang bersifat fungsional untuk memverifikasi bahwa seluruh alur sistem berjalan sebagaimana mestinya. Kedua jalur dilengkapi pengujian perangkat keras untuk memastikan setiap komponen perangkat berfungsi. Kedua jalur pengujian ini bertujuan memverifikasi kinerja model dan eksekusi sistem, bukan untuk menegakkan diagnosis klinis.
 
