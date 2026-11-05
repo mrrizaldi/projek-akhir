@@ -16,7 +16,7 @@ jebakan warna hex, layout, bullet) mengikuti skill `pptx`
   `NODE_PATH=~/.local/lib/node_modules node deck.js`. Tanpa `NODE_PATH`,
   `require('pptxgenjs')` gagal. Bila hilang: `npm i -g --prefix ~/.local pptxgenjs`
   (bukan `sudo npm i -g`).
-- Render: `soffice` dan `pdftoppm` sudah ada di sistem.
+- Render: `deckcraft-cli` (paket .deb DeckCraft) dan `pdftoppm` sudah ada di sistem.
 - `scripts/office/validate.py` milik skill `pptx` butuh `defusedxml` yang
   belum terpasang. Memasangnya = dependency baru → tanya user dulu. Tanpa itu,
   bukti berkas sehat = render PDF sukses + semua slide terlihat benar.
@@ -81,7 +81,7 @@ jebakan warna hex, layout, bullet) mengikuti skill `pptx`
    resmi tidak ditanyakan (aturan 4 skill `buku-ikut-proposal`).
 9. **Verifikasi sendiri sebelum diserahkan.**
    1. `cd presentasi/<folder> && NODE_PATH=~/.local/lib/node_modules node deck.js`
-   2. `python3 ~/.claude/plugins/marketplaces/anthropic-agent-skills/skills/pptx/scripts/office/soffice.py --headless --convert-to pdf --outdir output output/deck.pptx`
+   2. `deckcraft-cli convert output/deck.pptx output/deck.pdf`
    3. `pdftoppm -png -r 60 output/deck.pdf output/slide`
    4. Buka SETIAP `output/slide-*.png` dengan Read dan periksa: teks tidak
       keluar bingkai atau terpotong, tidak ada tumpang tindih, gambar tidak

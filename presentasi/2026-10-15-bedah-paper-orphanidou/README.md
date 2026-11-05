@@ -13,7 +13,7 @@ pdftoppm -png -r 200 -f 3 -l 3 -x 855 -y 165 -W 790 -H 830 $P output/fig1 && mv 
 pdftoppm -png -r 200 -f 4 -l 4 -x 93  -y 165 -W 740 -H 418 $P output/fig2 && mv output/fig2-4.png output/fig2_template.png
 pdftoppm -png -r 200 -f 6 -l 6 -x 93  -y 583 -W 740 -H 362 $P output/fig6 && mv output/fig6-6.png output/fig6_mae.png
 NODE_PATH=~/.local/lib/node_modules node deck.js
-python3 ~/.claude/plugins/cache/anthropic-agent-skills/document-skills/dbd4588f9e10/skills/pptx/scripts/office/soffice.py --headless --convert-to pdf --outdir output output/deck.pptx
+deckcraft-cli convert output/deck.pptx output/deck.pdf
 pdftoppm -png -r 60 output/deck.pdf output/slide
 ```
 
