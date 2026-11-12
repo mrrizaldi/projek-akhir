@@ -12,9 +12,10 @@ sumber dengan kutipan persis dan halaman, serta lima celah teratas, ada di folde
 PDF dan teks unduhan (gitignored) ada di
 `laporan/pustaka/belum-dirujuk/riset-pengukuran/{klasifikasi,tinyml,akuisisi,pipeline,daya}/`.
 Sumber yang kuncinya sudah ada di `referensi.bib` disimpan di `laporan/pustaka/<kunci>.pdf`.
-Indeks kutipan dan halaman rujukan pengukuran `progres-pa-1`, dengan tautan ke PDF lokal,
-ada di `laporan/pustaka/indeks-rujukan-pengukuran.pdf` (sumber `.tex` di folder yang sama,
-dibangun dengan `pdflatex indeks-rujukan-pengukuran.tex`).
+Indeks kutipan dan halaman rujukan pengukuran `progres-pa-1`, dengan tautan ke PDF lokal
+tepat di halaman kutipan, ada di `laporan/pustaka/indeks-rujukan-pengukuran.html` (dibuka
+di browser dari folder itu). Indeksnya berbentuk HTML karena viewer PDF Chrome tidak
+menjalankan tautan `file://` dari dalam PDF.
 
 | Kategori Bab 4 | Laporan rinci | Sumber teks lengkap |
 |---|---|---|
