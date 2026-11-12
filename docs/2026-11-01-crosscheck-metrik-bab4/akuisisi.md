@@ -61,7 +61,7 @@ Konversi yang dipakai di bawah (dari angka di brief): 1 count = 0,757 mV / 1.100
 
 ### Signal Quality Index
 
-**orphanidou2015** — Orphanidou C, Bonnici T, Charlton P, Clifton D, Vallance D, Tarassenko L. Signal-Quality Indices for the Electrocardiogram and Photoplethysmogram: Derivation and Applications to Wireless Monitoring. *IEEE J Biomed Health Inform* 19(3):832–838, 2015. DOI 10.1109/JBHI.2014.2338351. Scopus 84929377665. **[TL]**. PDF: `laporan/pustaka/orphanidou_2015.pdf`.
+**orphanidou2015** — Orphanidou C, Bonnici T, Charlton P, Clifton D, Vallance D, Tarassenko L. Signal-Quality Indices for the Electrocardiogram and Photoplethysmogram: Derivation and Applications to Wireless Monitoring. *IEEE J Biomed Health Inform* 19(3):832–838, 2015. DOI 10.1109/JBHI.2014.2338351. Scopus 84929377665. **[TL]**. PDF: `laporan/pustaka/belum-dirujuk/orphanidou_2015.pdf`.
 - hlm. 834: "Rule 1: The HR extrapolated from the 10-s sample must be between 40 and 180 beats per minute (bpm)."
 - hlm. 834: "Rule 2: The maximum acceptable gap between successive R-peaks/PPG pulse-peaks is 3 s."
 - hlm. 834: "Rule 3: The ratio of the maximum beat-to-beat interval to the minimum beat-to-beat interval within the sample should be less than 2.2."
@@ -101,16 +101,16 @@ Konversi yang dipakai di bawah (dari angka di brief): 1 count = 0,757 mV / 1.100
 **rahman2022** — Rahman S, Karmakar C, Natgunanathan I, Yearwood J, Palaniswami M. Robustness of electrocardiogram signal quality indices. *J R Soc Interface* 19:20220012, 2022. DOI 10.1098/rsif.2022.0012. PMC9006023. Scopus 85128156811. **[TL, full text PMC]**. Teks: `.../akuisisi/rahman_2022.txt`.
 - Pendahuluan: "A few researchers have sought to determine the standard threshold and window sizes for SSQI measurements in diverse datasets; however, they have not found a gold standard that works for multiple datasets".
 
-**syversen2024** — Syversen AB, Zhang Z, Batty JA, Kaisti M, Jayne D, Wong DC. Assessment of ECG Signal Quality Index Algorithms Using Synthetic ECG Data. *Computing in Cardiology* 2024. DOI 10.22489/CinC.2024.270. Scopus 105028373590. **[TL]**. PDF: `.../akuisisi/syversen_2024.pdf`.
+**syversen2024** — Syversen AB, Zhang Z, Batty JA, Kaisti M, Jayne D, Wong DC. Assessment of ECG Signal Quality Index Algorithms Using Synthetic ECG Data. *Computing in Cardiology* 2024. DOI 10.22489/CinC.2024.270. Scopus 105028373590. **[TL]**. PDF: `laporan/pustaka/syversen_2024.pdf`.
 - Tabel 1 (hlm. 3): ambang PLI menuju "unacceptable": Orphanidou 4,13 dB, Zhao 10,71 dB, Kramer 0,70 dB, Elgendi 0,70 dB.
 - hlm. 3: "the tested SQIs were inconsistent with each other and with an expert opinion."
 
-**lueken2023** — Lueken M, Gramlich M, Leonhardt S, Marx N, Zink MD. Automated Signal Quality Assessment of Single-Lead ECG Recordings for Early Detection of Silent Atrial Fibrillation. *Sensors* 23:5618, 2023. DOI 10.3390/s23125618. Scopus 85163942520. **[TL]**. PDF: `laporan/pustaka/lueken_2023.pdf`.
+**lueken2023** — Lueken M, Gramlich M, Leonhardt S, Marx N, Zink MD. Automated Signal Quality Assessment of Single-Lead ECG Recordings for Early Detection of Silent Atrial Fibrillation. *Sensors* 23:5618, 2023. DOI 10.3390/s23125618. Scopus 85163942520. **[TL]**. PDF: `laporan/pustaka/belum-dirujuk/lueken_2023.pdf`.
 - Tabel fitur (hlm. 12): basSQI dan qrsSQI "according to [15]" (Clifford 2012), "pliSQI SQI for power-line interference according to [38]", "mean R-peak amplitude".
 
 ### Pengukuran SNR dan interferensi jala-jala
 
-**gajdzik2026** — Gajdzik F, Kimbar M, Krowicki P. Comparative assessment of AD8232- and MAX30003-based ECG acquisition paths using synthetic ECG signals. *Acta Bioeng Biomech* 28(3):54–69, 2026. DOI 10.37190/abb/231067. Scopus 105054295912. **[TL]**. PDF: `.../akuisisi/gajdzik_2026.pdf`.
+**gajdzik2026** — Gajdzik F, Kimbar M, Krowicki P. Comparative assessment of AD8232- and MAX30003-based ECG acquisition paths using synthetic ECG signals. *Acta Bioeng Biomech* 28(3):54–69, 2026. DOI 10.37190/abb/231067. Scopus 105054295912. **[TL]**. PDF: `laporan/pustaka/gajdzik_2026.pdf`.
 - Tabel spesifikasi: AD8232 "Nominal voltage gain Approximately 1,100 V/V", ADC "12 bit" ESP32 dengan atenuasi 11 dB.
 - hlm. 59–60: "P50 Hz denotes the power in the 49.00–51.00 Hz band corresponding to power-line interference"; PLIratio = P50Hz/PECG, PECG = daya 0,50–40,00 Hz.
 - hlm. 59–60: sampel invalid bila "the RMS value fell below 25% of the median moving RMS"; "A 10 s segment was rejected if the proportion of samples marked as invalid exceeded 30%".
@@ -118,7 +118,7 @@ Konversi yang dipakai di bawah (dari angka di brief): 1 count = 0,757 mV / 1.100
 - hlm. 62–63: "For AD8232, its values ranged from 0.0028% to 0.0046%" (PLIratio, sinyal simulator).
 - Catatan: tidak ada subjek manusia; tidak ada ambang lulus PLIratio.
 
-**joutsen2024** — Joutsen A, Cömert A, Kaappa E, Vanhatalo K, Riistama J, et al. ECG signal quality in intermittent long-term dry electrode recordings with controlled motion artifacts. *Sci Rep* 14:8882, 2024. DOI 10.1038/s41598-024-56595-0. Scopus 85190649731. **[TL]**. PDF: `laporan/pustaka/joutsen_2024.pdf`.
+**joutsen2024** — Joutsen A, Cömert A, Kaappa E, Vanhatalo K, Riistama J, et al. ECG signal quality in intermittent long-term dry electrode recordings with controlled motion artifacts. *Sci Rep* 14:8882, 2024. DOI 10.1038/s41598-024-56595-0. Scopus 85190649731. **[TL]**. PDF: `laporan/pustaka/belum-dirujuk/joutsen_2024.pdf`.
 - hlm. 5: "The SNR assessments were conducted in this 0.5 to 40 Hz frequency range."; komponen 10 dan 50 Hz beserta harmonik pertama dikecualikan dari pita.
 - hlm. 5: sinyal = rentang QRS dalam jendela 100 ms; derau = RMS kanal referensi 2 s; SNRdB = 20·log10(SNR).
 - Subjek: 9 sukarelawan sehat (hlm. 3).

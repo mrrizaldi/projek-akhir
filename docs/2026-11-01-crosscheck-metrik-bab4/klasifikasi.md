@@ -57,7 +57,7 @@ Status: **TL** = teks lengkap dibaca; **AB** = hanya abstrak; **SK** = hanya lew
 
 ### Protokol inter-patient dan survei
 
-**dechazal_2004** — P. de Chazal, M. O'Dwyer, R. B. Reilly, "Automatic classification of heartbeats using ECG morphology and heartbeat interval features", IEEE TBME 51(7):1196–1206, 2004. DOI 10.1109/TBME.2004.827359. Scopus 2942709662. Status: TL. PDF: `belum-dirujuk/riset-pengukuran/klasifikasi/dechazal_2004.pdf` (repositori TARA, TCD). Kutipan:
+**dechazal_2004** — P. de Chazal, M. O'Dwyer, R. B. Reilly, "Automatic classification of heartbeats using ECG morphology and heartbeat interval features", IEEE TBME 51(7):1196–1206, 2004. DOI 10.1109/TBME.2004.827359. Scopus 2942709662. Status: TL. PDF: `dechazal_2004.pdf` (repositori TARA, TCD). Kutipan:
 - hlm. 1198: "This study did not investigate the problem of heartbeat detection from the ECG; instead we have utilized the heartbeat fiducial point times provided with the MIT-BIH arrhythmia database."
 - hlm. 1201: "In accordance with the AAMI recommendations, two sets of performance measurements were calculated. These performance measures focus on the ability of algorithms to distinguish VEBs from non-VEBs [Table V(a)] and SVEBs from non-SVEBS [Table V(b)]. It is worth noting that the AAMI-recommended calculations ... do not reward or penalize a classifier for the classification of ventricular fusion (F) or unknown beats (Q) as VEBs."
 - hlm. 1202: "All aggregate performance measures for a dataset were calculated by giving each heartbeat equal weighting (the so-called 'gross' statistics in [13])." ([13] = EC57:1998)
@@ -114,11 +114,11 @@ Status: **TL** = teks lengkap dibaca; **AB** = hanya abstrak; **SK** = hanya lew
 
 ### Metrik untuk data tak seimbang
 
-**saito_2015** — T. Saito, M. Rehmsmeier, "The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets", PLoS ONE 10(3):e0118432, 2015. DOI 10.1371/journal.pone.0118432. Scopus 84928911070. Status: TL. PDF: `saito_2015.pdf` (sudah di repo). Kutipan:
+**saito_2015** — T. Saito, M. Rehmsmeier, "The Precision-Recall Plot Is More Informative than the ROC Plot When Evaluating Binary Classifiers on Imbalanced Datasets", PLoS ONE 10(3):e0118432, 2015. DOI 10.1371/journal.pone.0118432. Scopus 84928911070. Status: TL. PDF: `belum-dirujuk/saito_2015.pdf` (sudah di repo). Kutipan:
 - hlm. 1: "the visual interpretability of ROC plots in the context of imbalanced datasets can be deceptive with respect to conclusions about the reliability of classification performance, owing to an intuitive but wrong interpretation of specificity."
 - hlm. 19: "The results of our study strongly recommend PRC plots as the most informative visual analysis tool."
 
-**chicco_2020** — D. Chicco, G. Jurman, "The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation", BMC Genomics 21:6, 2020. DOI 10.1186/s12864-019-6413-7. Scopus 85077436560. Status: TL (Europe PMC PMC6941312, XML). Berkas: `.../klasifikasi/chicco_2020.xml`. Kutipan (Background):
+**chicco_2020** — D. Chicco, G. Jurman, "The advantages of the Matthews correlation coefficient (MCC) over F1 score and accuracy in binary classification evaluation", BMC Genomics 21:6, 2020. DOI 10.1186/s12864-019-6413-7. Scopus 85077436560. Status: TL (Europe PMC PMC6941312, XML). Berkas: `chicco_2020.pdf`. Kutipan (Background):
 - "we suggest ... evaluations by checking both the PR AUC and the ROC AUC, focusing on the former [48, 97]. If a confusion matrix threshold is at disposal, instead, we recommend the usage of the Matthews correlation coefficient over F1 score, and accuracy." (frasa awal dipotong di XML; inti kalimat persis)
 - "ROC AUC presents several flaws [92], and it is sensitive to class imbalance [93]."
 
@@ -133,7 +133,7 @@ Status: **TL** = teks lengkap dibaca; **AB** = hanya abstrak; **SK** = hanya lew
 - hlm. 14: "a near-perfect linear relationship (R2 = 0.992)" antara keluaran float dan INT8.
 - hlm. 5: "this strategy does not enforce inter-patient separation ... data leakage may occur, and the reported performance can be optimistically biased".
 
-**busia_2024** — P. Busia, M. A. Scrugli, V. J.-B. Jung, L. Benini, P. Meloni, "A Tiny Transformer for Low-Power Arrhythmia Classification on Microcontrollers", IEEE TBioCAS (cover 2025). DOI 10.1109/TBCAS.2024.3401858. Scopus 85193472268. Status: TL (arXiv 2402.10748v2; halaman = PDF arXiv). PDF: `.../klasifikasi/busia_2024.pdf`. Kutipan:
+**busia_2024** — P. Busia, M. A. Scrugli, V. J.-B. Jung, L. Benini, P. Meloni, "A Tiny Transformer for Low-Power Arrhythmia Classification on Microcontrollers", IEEE TBioCAS (cover 2025). DOI 10.1109/TBCAS.2024.3401858. Scopus 85193472268. Status: TL (arXiv 2402.10748v2; halaman = PDF arXiv). PDF: `busia_2025.pdf`. Kutipan:
 - hlm. 8: "obtaining an average test accuracy of 98.97% on the clean noiseless signal, with a limited 0.1% drop from the accuracy of the full-precision models"; "The accuracy drop resulted from restricting all computations to the integer type, and it mostly affects the sensitivity of the S class".
 - Catatan: evaluasi intra-patient (Tabel I: "intra-patient").
 

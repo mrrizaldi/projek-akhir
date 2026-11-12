@@ -9,8 +9,12 @@ metode di teks lengkap, bukan dari abstrak.
 unduhan teks lengkap. Laporan rinci per kategori, berisi tabel crosscheck, daftar
 sumber dengan kutipan persis dan halaman, serta lima celah teratas, ada di folder
 [`2026-11-01-crosscheck-metrik-bab4/`](2026-11-01-crosscheck-metrik-bab4/).
-PDF dan teks unduhan (127 berkas, gitignored) ada di
+PDF dan teks unduhan (gitignored) ada di
 `laporan/pustaka/belum-dirujuk/riset-pengukuran/{klasifikasi,tinyml,akuisisi,pipeline,daya}/`.
+Sumber yang kuncinya sudah ada di `referensi.bib` disimpan di `laporan/pustaka/<kunci>.pdf`.
+Indeks kutipan dan halaman rujukan pengukuran `progres-pa-1`, dengan tautan ke PDF lokal,
+ada di `laporan/pustaka/indeks-rujukan-pengukuran.pdf` (sumber `.tex` di folder yang sama,
+dibangun dengan `pdflatex indeks-rujukan-pengukuran.tex`).
 
 | Kategori Bab 4 | Laporan rinci | Sumber teks lengkap |
 |---|---|---|

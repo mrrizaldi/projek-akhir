@@ -73,7 +73,7 @@ saya dari sumber, bukan kalimat sumber.
 | mlperftiny_rules | MLPerf Tiny Inference Rules | MLCommons | – | github.com/mlcommons/tiny | – | – | TL (tidak memuat rincian metode energi; merujuk ke runner) | `.../tinyml/mlperftiny_rules.adoc`, `.../tinyml/mlperftiny_runner_README.md` |
 | ti_ina219 | INA219 Zerø-Drift, Bidirectional Current/Power Monitor With I2C Interface (SBOS448G) | Texas Instruments | 2015 | datasheet | – | – | TL | `.../riset-pengukuran/daya/ti_ina219_2015.pdf` |
 | ti_ina226 | INA226 (SBOS547C) | Texas Instruments | 2026 (rev.) | datasheet | – | – | TL, dipakai hanya untuk alternatif (konversi 140 µs–8,244 ms, rata-rata hingga 1024, galat gain 0,1 % maks) | `.../daya/ti_ina226_2026.pdf` |
-| espressif_2026 | ESP32-S3 Series Datasheet v2.2 | Espressif | 2026 | datasheet | – | – | TL | `.../daya/espressif_2026.pdf` |
+| espressif_2026 | ESP32-S3 Series Datasheet v2.2 | Espressif | 2026 | datasheet | – | – | TL | `laporan/pustaka/espressif_esp32s3_datasheet.pdf` |
 | espidf_current | Current Consumption Measurement of Modules (ESP32-S3, ESP-IDF v6.1) | Espressif | 2026 | dokumentasi web | – | – | TL | `.../daya/espidf_current_measurement.html/.txt` |
 | espidf_lowpower_wifi | Low Power Mode in Wi-Fi Scenarios (ESP32-S3, ESP-IDF v6.1) | Espressif | 2026 | dokumentasi web | – | – | TL | `.../daya/espidf_lowpower_wifi.html/.txt` |
 | akbari_2025 | Atrial Fibrillation Detection on the Embedded Edge: Energy-Efficient Inference on a Low-Power Microcontroller | Y. Akbari, ..., O. Faust | 2025 | Sensors 25(21):6601 | 10.3390/s25216601 | 105021612220 | TL (XML Europe PMC PMC12608751; PDF MDPI terblokir) | `.../daya/akbari_2025.xml/.txt` |
