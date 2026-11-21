@@ -12,8 +12,8 @@ Bab 1 buku mengikuti proposal karena proposal sudah disetujui dan dibekukan; buk
 1. Samakan kerangka `laporan/buku-pa/bab/bab1.tex` dengan `laporan/proposal-pa/bab/bab1.tex`: Latar Belakang, Permasalahan (3 butir "Bagaimana ...?"), Tujuan (3 butir), Manfaat (3 butir), Sistematika Penulisan. Jumlah butir Permasalahan dan Tujuan tetap 3, supaya benang merah ke hasil dan kesimpulan tidak bergeser.
 2. Akhiri subbab Tujuan pada daftar tujuan, tanpa kalimat sesudahnya, karena proposal tidak memilikinya.
 3. Jangan menambah subbab Bab 1 yang tidak ada di proposal (Batasan Masalah, Ruang Lingkup, Kontribusi, dan sejenisnya), walau laporan acuan AFIB memilikinya. Keputusan user: Bab 1 buku mengikuti proposal.
-4. Perbarui isi subbab Bab 1 (angka, sitasi, istilah) bila faktanya berubah. Yang diikuti dari proposal adalah garis besar, bukan kalimat: tiga hal yang dipermasalahkan, tiga tujuan, dan apa yang diuji. Tulis kalimat buku dengan skill `tulis-tanpa-slop`; kalimatnya tidak harus identik dengan proposal.
-5. Saat mengoreksi fakta di Bab 1, pakai fakta yang sudah dibuktikan di Bab 2 beserta sumbernya, bukan klaim baru, supaya Bab 1 tidak memuat sesuatu yang tidak dibuktikan di bab lain.
+4. Perbarui isi subbab Bab 1 (angka, sitasi, istilah) bila faktanya berubah. Yang diikuti dari proposal adalah garis besar, bukan kalimat: tiga hal yang dipermasalahkan, tiga tujuan, dan apa yang diuji (Rencana Pengujian di Bab 3). Tulis kalimat buku dengan skill `tulis-tanpa-slop`; kalimatnya tidak harus identik dengan proposal.
+5. Saat mengoreksi fakta di Bab 1, pakai fakta yang sudah dibuktikan di Bab 2 beserta sumbernya, bukan klaim baru, karena Bab 1 tidak boleh membawa klaim yang tidak dibuktikan di bab sesudahnya (koreksi Bab 1 yang disetujui user).
 
 ## Proposal tidak disunting
 
@@ -25,9 +25,9 @@ Bab 1 buku mengikuti proposal karena proposal sudah disetujui dan dibekukan; buk
 
 Tulis lingkup di subbab tetap berikut, tanpa `\ref` ke subbab Bab 1 yang tidak ada:
 
-- subjek sehat anonim, non-klinis, data primer: Bab 4 Karakteristik Data (`sec:karakteristik-data`) dan Tempat Ujicoba;
-- klasifikasi biner, bukan alat diagnosis, daya tidak dioptimasi: Bab 4 Keterbatasan (`subsec:analisis-keterbatasan`);
-- data latih mitdb inter-patient DS1/DS2: Bab 3 Dataset dan Pelabelan.
+- subjek sehat anonim, non-klinis, data primer: Bab 4 `\section{Karakteristik Data}` dan `\section{Tempat Ujicoba}`;
+- klasifikasi biner, bukan alat diagnosis, daya tidak dioptimasi: Bab 4 `\subsection{Keterbatasan dan Status Proof of Concept}`;
+- data latih mitdb inter-patient DS1/DS2: Bab 3 `\subsubsection{\textit{Dataset} dan Pelabelan}`.
 
 Aturan penulisan rujukan:
 
