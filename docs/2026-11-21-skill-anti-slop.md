@@ -47,3 +47,27 @@ Pekerjaan anti-slop dimulai dari kode (skill `antislop-code` untuk komentar
 kode WordCraft dan skrip yang disentuh). Skill penulisan laporan dibahas
 terpisah sesudahnya; diskusi kandidat di atas dilanjutkan nanti.
 
+## Hasil riset dan uji coba (21 Nov 2026)
+
+Katalog riset (74 pola, profil dan lisensi sumber, konflik dengan aturan
+rumah, celah): `2026-11-21-skill-anti-slop/katalog.md`. Atas keputusan user,
+`narasi-pa` diabaikan untuk uji coba ini dan dibuat skill baru
+`tulis-tanpa-slop` beserta pemeriksa `scripts/cek_slop.py`. Uji coba hanya di
+`laporan/progres-pa-1` Bab 2 sampai Bab 4; Bab 1, bagian depan, dan Bab 5
+tidak disentuh. Cadangan sebelum uji coba: tag git
+`backup/pra-antislop-20261121-1127` dan arsip
+`~/backups/projek-akhir/progres-pa-1-20261121-1127.tar.gz`.
+
+Baseline `cek_slop.py --ringkas` sebelum penyuntingan:
+
+| Bab | Kata | Rerata kalimat (sb) | galat | tinjau | karena itu sisipan | paragraf yaitu ≥ 2 |
+|---|---|---|---|---|---|---|
+| 2 | 4.545 | 20,3 (7,9) | 8 | 8 | 1 | 2 |
+| 3 | 7.472 | 17,2 (7,8) | 2 | 37 | 18 | 10 |
+| 4 | 7.674 | 16,3 (8,1) | 7 | 41 | 25 | 7 |
+
+Temuan yang tidak ada di sumber mana pun: larangan titik dua dan larangan
+pembuka "Oleh karena itu" di aturan lama melahirkan kebiasaan baru, yaitu
+"karena itu" yang disisipkan di tengah klausa dan "yaitu" berderet. Keduanya
+masuk skill sebagai pola utama.
+

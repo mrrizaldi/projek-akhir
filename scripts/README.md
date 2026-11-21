@@ -148,3 +148,23 @@ make pdf docx
 make cek-docx                                  # memakai wordcraft-cli di PATH
 make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build branch
 ```
+
+## Pemeriksa pola tulisan AI
+
+`cek_slop.py` memeriksa paragraf prosa laporan PA terhadap pola tulisan AI
+(skill `tulis-tanpa-slop`, katalog di `docs/2026-11-21-skill-anti-slop/katalog.md`).
+Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati; `\cite`,
+`\ref`, `\textit` diratakan sebelum dicocokkan. Temuan bertingkat `galat`
+(pola pasti, kode keluar 1) dan `tinjau` (perlu penilaian). Metrik per berkas:
+jumlah kata dan kalimat, rerata dan simpangan baku panjang kalimat, serta
+kepadatan konektor per 100 kata. Mode `--banding` membandingkan dua versi
+berkas dan gagal bila angka, kunci `\cite`/`\ref`/`\label`, atau baris komentar
+`%` berubah.
+
+```bash
+cd laporan/progres-pa-1
+python3 ../../scripts/cek_slop.py --ringkas bab/bab2.tex bab/bab3.tex bab/bab4.tex
+python3 ../../scripts/cek_slop.py bab/bab3.tex
+python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
+python3 ../../scripts/cek_slop.py --uji
+```
