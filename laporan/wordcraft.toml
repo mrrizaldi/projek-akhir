@@ -87,5 +87,5 @@ float = "[!ht]"
 
 [sync]
 comments = true
-marker = "% MANUAL {date} (wordcraft sync): teks penulis, jangan diubah otomatis"
+marker = ""
 style_warnings = [";", ":", "—"]

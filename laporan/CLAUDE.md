@@ -157,21 +157,15 @@ Aturan penulisan paragraf akademik untuk proposal dan buku:
 - **Jangan pakai numbering inline** seperti `(1)`, `(2)`, `(3)` di dalam paragraf. Sebut secara naratif dengan koma dan konjungsi, atau gunakan environment `enumerate` jika butuh daftar bernomor
 - Pengecualian: titik koma dalam tabel (sel pendek) dan label heading terstruktur (misal "Tahap 1") diperbolehkan
 
-### Penanda `% MANUAL` (WordCraft sync)
+### Ingest suntingan WordCraft
 
-Kalau penulis menyunting dokumen di WordCraft (atau DOCX) lalu menyimpan balik ke `.tex`, setiap
-paragraf yang ditulis oleh sync diberi satu baris penanda di atasnya:
+Penulis menyunting `output/main.docx` di WordCraft, lalu perubahan ditulis balik ke `.tex`
+dengan `make sync` sesudah `make sync-dry` ditinjau dan dikonfirmasi penulis. Sync tidak
+memasang penanda di `.tex` (`[sync] marker = ""` di `laporan/wordcraft.toml`). Riwayat
+suntingan penulis tercatat di commit ingest.
 
-```latex
-% MANUAL 2026-11-01 (wordcraft sync): teks penulis, jangan diubah otomatis
-Paragraf yang ditulis penulis dari WordCraft.
-```
-
-Aturan untuk agen dan skrip:
-
-- Paragraf tepat di bawah baris `% MANUAL <tanggal> (wordcraft sync): …` adalah **teks penulis sendiri**, ditulis apa adanya dari WordCraft. **Jangan ditulis ulang, dirapikan, atau dikoreksi**, termasuk oleh agen dan skrip (`cek_tabel.py` dan sejenisnya).
-- Agen dan skrip **boleh melaporkan** pelanggaran aturan di paragraf itu (titik dua, titik koma, istilah, desimal, dan seterusnya), lalu penulis yang memutuskan.
-- Hapus penanda hanya kalau penulis memintanya. Sync berikutnya mengganti penanda lama (tidak menumpuk).
+- Paragraf hasil ingest boleh dirapikan formatnya (tanda baca, istilah miring, desimal)
+  sesudah penulis mengonfirmasi daftar perbaikannya. Isi kalimat penulis tidak ditulis ulang.
 - Baris `% KOMENTAR [nama, tanggal]: …` (dengan lanjutan `%   …` untuk balasan) adalah catatan reviewer dari komentar Word. Kerjakan isinya, lalu hapus barisnya.
 - Sync tidak menulis tabel, gambar, persamaan, heading, atau baris/kolom tabel baru, tidak menulis perubahan rumus (inline maupun display, sunting di LaTeX), dan tidak menulis komentar pada sel tabel. Bagian itu ditambahkan di LaTeX dan dilaporkan sync (daftar skipped); rumus tidak pernah ditulis dan tidak dilaporkan. Paragraf yang tidak bisa ditulis (misal berisi `\small`, `\hspace*`, `\textsc`, atau dibungkus grup `{...}`) tetap di dokumen yang belum disimpan dan hanya dilaporkan; `\emph` ditulis kembali sebagai `\textit`.
 
@@ -286,7 +280,7 @@ bisa geser 1–2 halaman dari PDF. DOCX untuk dibaca/review; submit tetap PDF.
 Sync balik ke `.tex` sudah ada. Dua jalur:
 
 - Dari aplikasi WordCraft: buka `main.tex`, sunting, Ctrl+S. Hanya paragraf yang berubah
-  yang ditulis ulang, apa adanya, dengan penanda `% MANUAL` di atasnya (lihat "Penanda `% MANUAL`").
+  yang ditulis ulang, apa adanya, tanpa penanda (lihat "Ingest suntingan WordCraft").
 - Dari DOCX yang disunting di Word/LibreOffice: `make sync DOCX=output/main.docx`
   (`DOCX` default `output/main.docx`). `make sync-dry` hanya menampilkan diff tanpa menulis.
 

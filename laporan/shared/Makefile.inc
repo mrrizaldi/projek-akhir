@@ -14,7 +14,7 @@
 ##   make pdf     — compile PDF
 ##   make docx    — konversi ke DOCX via WordCraft (wordcraft-cli; format dari ../wordcraft.toml)
 ##   make sync    — tulis balik perubahan paragraf dari DOCX ke .tex (wordcraft-cli latex-sync);
-##                  tiap paragraf yang ditulis diberi penanda '% MANUAL'; make sync DOCX=file.docx
+##                  tanpa penanda di .tex; make sync DOCX=file.docx
 ##   make sync-dry — sama, tapi hanya tampilkan diff, tidak menulis
 ##   make view    — buka PDF
 ##   make clean   — hapus folder output
