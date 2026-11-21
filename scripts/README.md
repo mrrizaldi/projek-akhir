@@ -200,6 +200,32 @@ python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
 python3 ../../scripts/cek_slop.py --uji
 ```
 
+## cek_skill.py
+
+`cek_skill.py` memeriksa struktur setiap skill di `.claude/skills/*/`
+(`.claude/skills-arsip/` tidak diperiksa). Yang diperiksa:
+
+- `SKILL.md`: frontmatter hanya `name` dan `description`, `name` sama dengan
+  nama folder, `description` satu baris dan paling banyak 1.024 karakter,
+  badan kurang dari 500 baris.
+- `evals/<kasus>/`: `prompt.md` (frontmatter dan teks), `case.yaml`
+  (`schema_version: "1.1"`, `name` sama dengan nama folder,
+  `expected_outcome`), dan minimal satu `graders/*.md` berfrontmatter
+  `type`, `focus`, `weight`.
+- `triggers/evals.json`: daftar `{query, should_trigger}` dengan kelas true
+  dan false.
+- Skill yang tidak punya `evals/` atau `triggers/`, atau yang masih punya
+  `eval.md`, dianggap galat. Opsi `--lewati-eval-lama` melewati pemeriksaan
+  eval untuk skill yang masih memakai `eval.md` (masa transisi).
+
+Kode keluar 1 bila ada galat. CI menjalankan `--uji` dan `--lewati-eval-lama`.
+
+```bash
+python3 scripts/cek_skill.py
+python3 scripts/cek_skill.py --lewati-eval-lama
+python3 scripts/cek_skill.py --uji
+```
+
 ## rilis.py
 
 `rilis.py` membekukan PDF dan DOCX `buku-pa` atau `progres-pa-1` sebagai rilis
