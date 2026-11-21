@@ -207,8 +207,9 @@ Teksnya diatur di `UKIRAN` dan `POSISI_UKIRAN` (`tata_letak.py`).
 Perubahan rangkaian:
 
 1. Buka `mainboard.kicad_pro` di KiCad 9 atau lebih baru.
-2. Ubah skematik. Penerapan ke board lewat skrip pcbnew (lihat skill
-   `kicad-pcb-pa` aturan 5), bukan F8, agar nama net tetap `/NAMA`.
+2. Ubah skematik. Penerapan ke board lewat skrip pcbnew (lihat skill user
+   `kicad-mcp-pcb` bagian *Net names match the schematic*), bukan F8, agar
+   nama net tetap `/NAMA`.
 
 Rute ulang seluruh papan (posisi di `POSISI`, rute manual di fungsi `rute_*`
 pada `tata_letak.py`), dijalankan dari `hardware/mainboard/`:

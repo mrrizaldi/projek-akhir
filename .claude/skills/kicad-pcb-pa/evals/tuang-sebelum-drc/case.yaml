@@ -1,4 +1,4 @@
 schema_version: "1.1"
 name: tuang-sebelum-drc
 expected_outcome: |
-  Dari hardware/mainboard: `/usr/bin/python3 tata_letak.py bersih`, `solid`, `teks`, lalu `/usr/bin/python3 tata_letak.py tuang` sebagai langkah tersendiri tepat sebelum `kicad-cli pcb drc --schematic-parity --severity-all`.
+  Dari hardware/mainboard: `/usr/bin/python3 tata_letak.py bersih`, `solid`, `teks`, `ukiran`, lalu `/usr/bin/python3 tata_letak.py tuang` sebagai langkah tersendiri tepat sebelum `kicad-cli pcb drc --schematic-parity --severity-all`; bila ada `unconnected`, sambungan ditambahkan ke fungsi `rute_*` lalu urutan diulang dari `hapus`.

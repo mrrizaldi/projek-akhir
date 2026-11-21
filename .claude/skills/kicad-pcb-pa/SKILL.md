@@ -9,7 +9,7 @@ Muat skill user `kicad-mcp-pcb` lebih dulu; skill ini hanya menambah hal khusus 
 
 ## Dokumen yang dibaca sebelum bertanya ke user
 
-Baca `hardware/mainboard/README.md` (peta pin, urutan pin header, catu daya, layout, netclass, footprint, daftar "Yang belum terverifikasi") dan `firmware/include/perangkat.h` (pin map tunggal firmware). Tanyakan ke user hanya pilihan yang keduanya tidak menetapkan, karena keputusan desain milik user.
+Baca `hardware/mainboard/README.md` (peta pin, urutan pin header, catu daya, layout, netclass, footprint, daftar "Yang belum terverifikasi") dan `firmware/include/perangkat.h` (pin map tunggal firmware). Tanyakan ke user hanya pilihan yang keduanya tidak menetapkan, karena keputusan desain milik user. Pertanyaannya membawa satu rekomendasi yang dipilih sekarang; data yang belum ada ditulis "berubah ke X bila ...", bukan menunda pilihan, karena menunda pilihan berulang kali menahan pekerjaan.
 
 ## Lokasi
 
@@ -39,13 +39,20 @@ cd hardware/mainboard
 kicad-cli pcb drc --schematic-parity --severity-all -o /tmp/drc.rpt mainboard.kicad_pcb
 ```
 
+Bila DRC melapor `unconnected`, sambungan sisa ditambahkan ke fungsi `rute_*` di `tata_letak.py`, lalu urutan diulang dari `hapus` (README bagian "Mengubah desain"), karena Freerouting bisa melapor sukses sambil meninggalkan sambungan.
+
 Penerapan perubahan skematik ke board lewat skrip pcbnew sesuai skill user ("Net names match the schematic"), bukan F8 dan bukan `sync_schematic_to_board`, supaya nama net tetap `/NAMA`.
 
 ## Selesai = `cek_board.py` LULUS
 
 ```bash
+cd hardware/mainboard
+/usr/bin/python3 tata_letak.py tuang
+cd ../..
 python3 hardware/mainboard/cek_board.py
 ```
+
+`tuang` dijalankan dulu karena `cek_board.py` memanggil `kicad-cli pcb drc` (`cek_board.py` baris 86), dan `kicad-cli` tidak menuang zona sehingga DRC atas zona kosong memberi hasil palsu.
 
 Yang diperiksa: peta pin terhadap netlist (`PIN_U1` dan `PIN_LAIN` di skrip), `+5V` hanya menyentuh `U1`, `C1`, `C2`, `D2` (`BOLEH_5V`), ERC, DRC error, unconnected, paritas skematik, lalu `cek_tata_letak.py` (lebar per netclass, courtyard ≥ 1 mm, teks). Baris terakhir yang diharapkan `LULUS`; tempel keluarannya di pesan commit.
 
