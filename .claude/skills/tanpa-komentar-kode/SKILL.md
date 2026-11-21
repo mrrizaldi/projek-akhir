@@ -24,7 +24,7 @@ CI menjalankannya untuk seluruh repo lewat `.github/workflows/cek.yml`. Pelangga
 
 ## Nama yang sudah ada di repo
 
-Konstanta bersama tinggal di header `firmware/include/` (mis. `AMBANG_AYUN` di `gerbang.h`, `NADA_`/`BIP_` di berkas tampilan), jadi `grep -rn "AMBANG\|BIP_\|NADA_" firmware/include firmware/src` dan include header-nya, jangan definisikan ulang. Nama yang ada dengan arti lain (`BIP_TOLAK_MS` di `tampilan.cpp` adalah lama bip, bukan jeda) jangan dipakai ulang atau ditiru dengan nama mirip, karena firmware satu namespace.
+Konstanta bersama tinggal di header `firmware/include/` (mis. `AMBANG_AYUN` di `gerbang.h`, `NADA_HZ` di `perangkat.h`), jadi cari dulu dengan `grep -rn "AMBANG\|BIP_\|NADA_" firmware/include firmware/src model/config.py` dan include header-nya, jangan definisikan ulang. Konstanta `BIP_*_MS` bersifat lokal per berkas (`tampilan.cpp`, `rekam.cpp`, `gerbang.cpp`, `main.cpp`), jadi baca prefiks konstanta di berkas tujuan sebelum menamai. Nilai model (FS, window, ambang) ada di `model/config.py`; pakai dari sana, bukan salinan. Nama yang ada dengan arti lain (`BIP_TOLAK_MS` di `tampilan.cpp` adalah lama bip, bukan jeda) jangan dipakai ulang atau ditiru dengan nama mirip, karena firmware satu namespace.
 
 Literal yang dikirim ke API driver diberi nama yang menyebut efeknya, mis. `LEVEL_PIN_DIAM_HIGH` untuk level pin saat buzzer diam, bukan `1` dan bukan nama internal seperti `..._TERBALIK`. Alasannya: buzzer modul aktif LOW, jadi arti angka 1 tidak terbaca dari kodenya.
 
@@ -35,17 +35,18 @@ Baca bagian tujuan dulu dan jangan menggandakan isinya; rujuk yang sudah ada.
 | Sumber kode | Dokumen tujuan |
 |---|---|
 | Jebakan firmware | `firmware/README.md` §Jebakan (bagian sudah ada; bukan §Pin map) |
+| Port, golden, TFLM | `model/docs/firmware-walkthrough.md` (masih aktif, dirujuk `firmware/README.md`) |
 | Pipeline model | walkthrough tahapnya di `model/docs/` (peta di `model/docs/README.md`, mis. `features-rr-walkthrough.md`); keputusan di `model/CLAUDE.md` |
 | Skrip `model/scripts/` | `model/README.md` §Skrip |
 | Skrip `scripts/` | `scripts/README.md` |
 | Dashboard | `dashboard/README.md` |
 
-Di §Jebakan firmware, satu butir masuk ke satu sub-daftar sesuai subsistemnya, karena butir yang melintas subsistem sulit ditemukan lagi:
+Di §Jebakan firmware, satu butir masuk ke satu sub-daftar sesuai subsistemnya, karena butir yang melintas subsistem sulit ditemukan lagi. Sub-daftar yang ada: Perangkat, Akuisisi dan pipeline, TFLite Micro, Jaringan dan jam, LittleFS (cek dengan `grep -n "^\*\*" firmware/README.md`).
 
 - **Akuisisi dan pipeline**: perilaku loop, ISR, antrean, buzzer yang memblok `loop()`.
 - **Perangkat**: pin, buzzer, layar, LED, INA219 (contoh: `SPI.begin` harus sebelum `pasang_buzzer` karena SPI merebut GPIO13).
 
-Bila tidak ada bagian yang cocok, tambahkan bagian baru di berkas itu.
+Tambahkan bagian baru hanya bila tidak ada satu pun sub-daftar yang cocok.
 
 ## Klaim di dokumen
 
