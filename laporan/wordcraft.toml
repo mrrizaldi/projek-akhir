@@ -12,6 +12,7 @@ twoside = true
 font = "Times New Roman"
 size = 12
 line_spacing = 1.5
+baseline_pt = 21.75
 first_line_in = 0.5
 parskip = 0
 indent_first = true

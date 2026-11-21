@@ -51,42 +51,47 @@ Penyuntingan repo `~/dev/wordcraft` diizinkan user, dikerjakan di branch lokal
 `fix/latex-env-scopes-declarations` tanpa push (aturan repo itu: `main` hanya
 lewat PR, publikasi ditanyakan dulu).
 
-Penyebab yang sudah ditemukan dan diperbaiki:
+Perbaikan di branch WordCraft (opsi A, keputusan user 21 Nov 2026):
 
-1. Deklarasi ukuran di dalam lingkungan `center`, `flushleft`, `flushright`,
-   `quote`, dan daftar bocor keluar `\end`. `\small` pembungkus `longtable`
-   Tabel 3.3 membuat seluruh paragraf sesudahnya 9 pt. Perbaikan di
-   `crates/formats/src/latex/parser.rs` `environment()`, commit `f9bea92d`.
+| Commit | Perbaikan |
+|---|---|
+| `f9bea92d` | Deklarasi di dalam lingkungan (`\small` di `center` pembungkus `longtable`) tidak lagi bocor keluar `\end` |
+| `b56b69fc` | Ukuran `\small` dan sejenisnya mengikuti kelas 12 pt; kunci baru `[body] baseline_pt`; sel tabel mewarisi ukuran font sekitarnya, tanpa indentasi baris pertama, dengan jarak baris `\setstretch` yang berlaku; kolom `L{3.5cm}` terukur |
+| `f2cab4fb` | `\addcontentsline{toc}` menjadi entri Daftar Isi (ABSTRAK, ABSTRACT, DAFTAR ISI); entri daftar memakai jarak baris badan teks |
+| `f90eb8af` | `\parbox[c][5cm][c]{...}` menjadi kotak satu sel setinggi 5 cm, bergaris di dalam `\fbox` (placeholder gambar) |
+| `3384a6a5` | `\begin{enumerate}[label=\alph*.]` bernomor a. b. c. |
 
-Hasil `make cek-docx` buku-pa:
+`laporan/wordcraft.toml` memakai `baseline_pt = 21.75` (`\setstretch{1.5}`
+pada kelas 12 pt: 1,5 × 14,5 pt).
 
-| Ukuran | wordcraft-cli 0.18.1 | branch `f9bea92d` |
-|---|---|---|
-| Jumlah halaman (PDF 139) | 123 | 144 |
-| Selisih awal Bab 1 | −4 | −4 |
-| Selisih awal Bab 3 | 0 | 0 |
-| Selisih awal Bab 4 | −4 | 0 |
-| Selisih awal Bab 5 | −10 | +8 |
-| Halaman berawal sama | 6 | 7 |
+Hasil `make cek-docx` (WordCraft branch `3384a6a5`):
 
-Penyebab yang tersisa (teramati, belum diperbaiki):
+| Ukuran | buku-pa, 0.18.1 | buku-pa, branch | progres-pa-1, 0.18.1 | progres-pa-1, branch |
+|---|---|---|---|---|
+| Jumlah halaman | 123 (PDF 139) | 140 (PDF 139) | 111 (PDF 127) | 128 (PDF 127) |
+| Selisih awal Bab 1 | −4 | 0 | −6 | 0 |
+| Selisih awal Bab 2 | −4 | 0 | −6 | 0 |
+| Selisih awal Bab 3 | 0 | 0 | −2 | 0 |
+| Selisih awal Bab 4 | −4 | 0 | −6 | 0 |
+| Selisih awal Bab 5 | −10 | +2 | −12 | +2 |
+| Halaman berawal sama | 6 | 23 | 3 | 26 |
 
-1. Daftar Isi, Daftar Gambar, dan Daftar Tabel. PDF 8 halaman, DOCX 4 halaman.
-   Judul PDF "Daftar Isi" (huruf awal kapital), DOCX "DAFTAR ISI". Entri ABSTRAK
-   ada di Daftar Isi PDF dan tidak ada di DOCX.
-2. Abstrak terpotong di titik lain (halaman 4 dan 6).
-3. Bab 4 di DOCX 8 halaman lebih panjang (penempatan tabel dan gambar).
-4. Jarak baris badan teks 21 pt di DOCX dan 22 pt di PDF (`\setstretch{1.5}`
-   pada 12 pt = 21,75 pt, sedangkan 1,5 baris Word untuk Times New Roman 12 pt
-   sekitar 20,7 pt).
-5. Ukuran `\small` dan `\footnotesize` di `crates/formats/src/latex/units.rs`
-   memakai kelas 10 pt (9 dan 8 pt), padahal kelas 12 pt memakai 10,95 dan
-   10 pt.
-6. Pemotongan baris berbeda (Knuth-Plass dan pemenggalan LaTeX terhadap
-   pemotongan baris WordCraft). Penyebab ini tidak hilang dengan memperbaiki
-   butir 1 sampai 5. Isi per halaman yang identik membutuhkan pemutus halaman
-   paksa di DOCX pada posisi halaman PDF LaTeX (keputusan desain, menunggu
-   user).
+Penyebab yang tersisa:
+
+1. Penempatan float. LaTeX memindahkan tabel dan gambar `[!ht]` ke halaman
+   berikutnya dan mengisi sisa halaman dengan teks, sedangkan DOCX meletakkan
+   tabel tepat di posisi sumbernya. Selisih di Bab 4 naik turun antara −1 dan
+   +2 halaman di sekitar float.
+2. Pemotongan baris (Knuth-Plass dan pemenggalan LaTeX terhadap pemotongan
+   baris WordCraft). Halaman abstrak terpotong beberapa kata lebih awal, dan
+   Daftar Isi DOCX memuat satu entri lebih banyak per halaman.
+3. Judul Daftar Isi di PDF tercetak "Daftar Isi" walaupun
+   `laporan/shared/preamble.tex` menulis `\renewcommand{\contentsname}{DAFTAR ISI}`.
+   Ini perilaku sisi LaTeX (kemungkinan ditimpa babel), bukan konverter.
+
+Butir 1 dan 2 tidak bisa ditutup dengan memperbaiki konverter per bug. Isi per
+halaman yang identik membutuhkan pemutus halaman paksa di DOCX pada posisi
+halaman PDF (opsi B), keputusan user.
 
 ## Fase 3: skill `ingest-word`
 
@@ -124,4 +129,7 @@ Skill ingest langkah 6 nantinya ikut memakai pemeriksaan dari sana.
 
 ## Keputusan yang menunggu user
 
-1. Cara mencapai isi per halaman identik (Fase 2 butir sisa 6).
+1. Opsi B (pemutus halaman paksa dari PDF) untuk sisa pergeseran float dan
+   pemotongan baris di Fase 2.
+2. Memasang `wordcraft-cli` dari branch ke `~/.cargo/bin` supaya `make docx`
+   dan `make sync` memakai perbaikan Fase 2.
