@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: abstrak-dan-sisa-versi-lama
+expected_outcome: |
+  Abstrak ditulis ulang sebagai abstrak hasil berurutan (masalah, tujuan, perangkat dan metode, angka Bab 4, status dan keterbatasan maksimal dua kalimat) dengan angka persis dan daya ditulis belum diukur. 'proposal ini' diganti, label rev1/rev2 dan riwayat siapa mendesain dibuang dari Bab 3 dan diganti rancangan akhir.

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: gambar-state-machine-placeholder
+expected_outcome: |
+  Gambar berupa placeholder LaTeX dengan kartu spesifikasi lengkap (ID fig:{bab}-{slug}, bahan repo ecg_mqtt.cpp, teks persis), tanpa TikZ atau diagram lain. Caption, label, ref, pengantar, penjelas final. Penjelas menyebut hanya elemen kartu dan ditutup tepat satu kalimat makna.

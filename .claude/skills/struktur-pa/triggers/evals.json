@@ -1,0 +1,82 @@
+[
+  {
+    "query": "tambah subbab 4.8 Dokumentasi buat foto-foto di Bab 4 buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "cek benang merah permasalahan, tujuan, hasil, dan kesimpulan di buku PA",
+    "should_trigger": true
+  },
+  {
+    "query": "tulis abstrak buku full dari angka Bab 4",
+    "should_trigger": true
+  },
+  {
+    "query": "pasang placeholder gambar arsitektur sistem di Bab 3 laporan",
+    "should_trigger": true
+  },
+  {
+    "query": "susun tabel ketercapaian di 4.7 dan kesimpulan Bab 5",
+    "should_trigger": true
+  },
+  {
+    "query": "QA struktur laporan sebelum dikumpulkan ke pembimbing",
+    "should_trigger": true
+  },
+  {
+    "query": "hapus semua penunjuk 'pada Bab 3' dan 'Subbab ref' di teks laporan",
+    "should_trigger": true
+  },
+  {
+    "query": "audit 4.6 dan 4.7 apakah urutannya mengikuti tujuan penelitian",
+    "should_trigger": true
+  },
+  {
+    "query": "Review the chapter structure of my final-project report and check the thesis thread from problems to conclusions",
+    "should_trigger": true
+  },
+  {
+    "query": "add a figure placeholder card for the state machine in chapter 4 of the PA book",
+    "should_trigger": true
+  },
+  {
+    "query": "rapikan gaya tulis paragraf Bab 2 biar tidak terdengar seperti AI",
+    "should_trigger": false
+  },
+  {
+    "query": "bikin tabel pembanding penelitian terkait dengan gaya tiga garis",
+    "should_trigger": false
+  },
+  {
+    "query": "sunting suntingan Word ke tex lewat wordcraft latex-sync",
+    "should_trigger": false
+  },
+  {
+    "query": "buat deck presentasi sidang PA dari buku",
+    "should_trigger": false
+  },
+  {
+    "query": "compile buku-pa dan perbaiki Overfull hbox di tabel",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah sitasi baru ke references.bib untuk paper 2023",
+    "should_trigger": false
+  },
+  {
+    "query": "gambar diagram arsitektur pakai TikZ di laporan",
+    "should_trigger": false
+  },
+  {
+    "query": "write the MQTT reconnect logic in the firmware",
+    "should_trigger": false
+  },
+  {
+    "query": "regenerate golden_ref.h from model scripts",
+    "should_trigger": false
+  },
+  {
+    "query": "explain how to structure a React app's folder layout",
+    "should_trigger": false
+  }
+]

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: hapus-label-tujuan-dan-penunjuk
+expected_outcome: |
+  Judul diganti nama isi tanpa label bernomor, 'Subbab ini menjawab' dibuang, 5.1 tidak dibuka 'Tujuan pertama', tabel perubahan dari proposal dihapus, pembuka Bab 4 dihapus seluruhnya, kalimat sesudah daftar Tujuan dihapus, dan penunjuk subbab dibuang dari 4.6.1 tanpa menyisakan penunjuk bab/subbab lain di kalimat .tex.
