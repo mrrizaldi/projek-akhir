@@ -6,7 +6,7 @@ dokumen yang memuat rinciannya. Pekerjaan perangkat keras dan model tetap di
 
 | # | Pekerjaan | Status | Rincian |
 |---|---|---|---|
-| 1 | Gaya skill provenfix untuk sembilan skill lain | menunggu tinjauan pilot `ingest-word`; akan dilebur ke rework skill dan codebase | `docs/2026-11-21-rencana-rilis-dan-gaya-skill.md` §Tindak lanjut user butir 1 |
+| 1 | Gaya skill provenfix untuk sembilan skill lain | digantikan rework skill (format skill-creator, keputusan user 21 Nov 2026) | `docs/2026-11-21-rencana-rework-skill-codebase.md` |
 | 2 | Lingkungan WordCraft: target wasm, `cargo xtask ci`, GUI dari branch | ditunda user | rencana yang sama, butir 2; `docs/2026-11-21-pipeline-word-latex.md` §Sisa pekerjaan |
 | 3 | Eval `ingest-word`: langkah 2 meminta kalimat bahwa berkas berubah sesudah DOCX dibuat | usulan, 9/10 | `.claude/skills/ingest-word/eval.md` baris putaran 4 |
 | 4 | Penyetelan `tulis-tanpa-slop` dengan aturan `narasi-pa` yang belum punya padanan (7 dari 12) | belum dimulai | `docs/2026-11-21-skill-anti-slop.md` §Sisa pekerjaan |

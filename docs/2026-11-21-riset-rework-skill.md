@@ -88,3 +88,12 @@ berupa bahasa Inggris, pangkas riwayat, dan `deadcode`.
 | `kicad-pcb-pa` | ekstrak alur KiCad MCP umum + lapisan tipis PA (board, net) | sebagian besar alur MCP dan Freerouting |
 | `ingest-word` | ekstrak alur ingest WordCraft↔LaTeX umum + lapisan tipis PA | terikat `wordcraft-cli` branch lokal, bukan PA |
 | `deck-pa`, `struktur-pa`, `tabel-pa`, `buku-ikut-proposal` | tetap di repo | terikat format PENS, proposal, dan buku |
+
+## Keputusan user (21 Nov 2026)
+
+Skill user berbahasa Inggris, skill repo dan kode tetap Indonesia; lima
+skill diekstrak (`tautan-lokal`, `batas-tidak-diam`, `tulis-tanpa-slop`,
+bagian umum `kicad-pcb-pa` dan `ingest-word`) ditambah `tanpa-komentar-kode`
+dilebur ke `no-code-comments`; riwayat dipangkas seperti finance-project;
+format eval skill-creator. Rencana eksekusi:
+`docs/2026-11-21-rencana-rework-skill-codebase.md`.
