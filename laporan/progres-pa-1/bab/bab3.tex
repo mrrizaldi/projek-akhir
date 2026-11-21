@@ -926,7 +926,7 @@ Kapasitas \textit{ring buffer} 27.000 entri setara 4--7 jam pemantauan pada 60--
 
 \subsubsection{Pengujian Perangkat Keras}
 
-Pengujian perangkat keras memastikan setiap komponen pada Tabel~\ref{tab:pin-map} berfungsi sebelum perangkat dipakai merekam. Setiap komponen diuji oleh satu fungsi diagnosa yang dipakai bersama oleh dua jalur, yaitu rangkaian uji otomatis yang dijalankan di ESP32-S3 dan menu Tes perangkat, dan tidak ada salinan logika uji yang dapat berbeda. Uji otomatis hanya menjadikan syarat lulus hal yang dapat diukur tanpa manusia dan tanpa elektroda. Syarat tersebut meliputi lima hal berikut.
+Pengujian perangkat keras memastikan setiap komponen pada Tabel~\ref{tab:pin-map} berfungsi sebelum perangkat dipakai merekam. Setiap komponen diuji oleh satu fungsi diagnosa yang dipakai bersama oleh dua jalur, yaitu rangkaian uji otomatis yang dijalankan di ESP32-S3 dan menu Tes perangkat, dan tidak ada salinan logika uji yang dapat berbeda. Uji otomatis hanya menjadikan syarat lulus hal yang dapat diukur tanpa manusia dan tanpa elektroda. Syarat tersebut meliputi empat hal berikut.
 \begin{enumerate}[label=\alph*.]
   \item Pin \textit{buzzer} tersambung ke pembangkit nada setelah SPI layar terpasang dan diam pada logika HIGH.
   \item Transfer SPI satu layar penuh selesai.
