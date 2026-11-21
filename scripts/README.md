@@ -182,15 +182,16 @@ make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build b
 
 ## Pemeriksa pola tulisan AI
 
-`cek_slop.py` memeriksa paragraf prosa laporan PA terhadap pola tulisan AI
-(skill `tulis-tanpa-slop`, katalog di `docs/2026-11-21-skill-anti-slop/katalog.md`).
-Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati; `\cite`,
-`\ref`, `\textit` diratakan sebelum dicocokkan. Temuan bertingkat `galat`
-(pola pasti, kode keluar 1) dan `tinjau` (perlu penilaian). Metrik per berkas:
-jumlah kata dan kalimat, rerata dan simpangan baku panjang kalimat, serta
-kepadatan konektor per 100 kata. Mode `--banding` membandingkan dua versi
-berkas dan gagal bila angka, kunci `\cite`/`\ref`/`\label`, atau baris komentar
-`%` berubah.
+`cek_slop.py` adalah pembungkus tipis atas
+`~/.claude/skills/indonesian-antislop-writing/scripts/check_slop.py`. Sumber
+pola, ambang, dan katalog ada di skill user itu (`references/catalog.md`);
+repo ini tidak menyimpan salinannya. Opsi lama dipetakan: `--ringkas` ke
+`--summary`, `--banding` ke `--compare`, `--uji` ke `--self-test`; argumen lain
+diteruskan apa adanya dan kode keluarnya sama dengan pemeriksa asli. Bila skill
+user tidak terpasang, pembungkus mencetak pesan dan keluar dengan kode 2.
+Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingkat
+`error` (kode keluar 1) dan `review`; `--compare` gagal bila angka, kunci
+`\cite`/`\ref`/`\label`, atau baris komentar `%` berubah.
 
 ```bash
 cd laporan/progres-pa-1
