@@ -25,11 +25,12 @@ Skill luar tidak dipasang mentah karena berbenturan dengan aturan yang berlaku:
 
 1. Istilah teknis tetap bahasa Inggris dan miring (`\textit{board}`, bukan
    "papan"), keputusan user 20 Okt 2026. Skill EYD cenderung membakukan istilah.
-2. Paragraf di bawah penanda `% MANUAL` adalah teks penulis dan tidak boleh
-   ditulis ulang (`laporan/CLAUDE.md`).
+2. Kalimat penulis tidak ditulis ulang tanpa konfirmasi (`laporan/CLAUDE.md`
+   §Ingest suntingan WordCraft).
 3. Larangan titik dua, titik koma, dan em dash di paragraf sudah ada di
    `laporan/CLAUDE.md` dan diperiksa `scripts/cek_tabel.py`.
-4. Struktur paragraf sudah diatur skill `narasi-pa`.
+4. Struktur paragraf semula diatur skill `narasi-pa`, yang dinonaktifkan 21 Nov
+   2026 (lihat Keputusan posisi skill).
 
 ## Keputusan posisi skill
 
