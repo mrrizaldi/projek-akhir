@@ -15,7 +15,7 @@ Skill ini mengatur isi deck. Cara menulis berkas `.pptx` (API `pptxgenjs`, jebak
 
 ## Lokasi dan berkas
 
-Satu deck satu folder `presentasi/YYYY-MM-DD-<acara>/`, berisi `deck.js` (sumber, di-commit) dan `output/` (`.pptx`, `.pdf`, `.png`; sudah di-ignore lewat `presentasi/*/output/`). Pola ini mengikuti folder yang sudah ada di `presentasi/`.
+Satu deck satu folder `presentasi/YYYY-MM-DD-<acara>/`, berisi `deck.js` (sumber, di-commit) dan `output/` (`.pptx`, `.pdf`, `.png`; sudah di-ignore lewat `presentasi/*/output/`). Folder juga memuat `README.md` berisi langkah build ulang deck itu. Pola ini mengikuti folder yang sudah ada di `presentasi/`.
 
 `deck.js` adalah kode, jadi ditulis tanpa komentar (skill `tanpa-komentar-kode`). Catatan pembicara ditulis lewat `addNotes`, bukan komentar, supaya penjelasan tetap ada tanpa melanggar aturan kode.
 
@@ -26,6 +26,7 @@ Sumber tunggal isi deck adalah `laporan/buku-pa/bab/*.tex`, supaya deck dan buku
 - Permasalahan dan Tujuan di deck sama dengan 3 butir di Bab 1 buku. Boleh dipadatkan, tetapi jumlah dan maknanya tetap.
 - Kesimpulan di deck menjawab 3 permasalahan itu sesuai Bab 5, satu butir per permasalahan.
 - Deck tidak memuat klaim yang tidak ada di buku, karena penguji membandingkan keduanya.
+- Klaim dari draf user dicek ke buku sebelum menjadi judul atau butir; klaim yang tidak ada atau bertentangan dengan buku dikoreksi mengikuti buku atau ditandai `[N]`, karena draf bisa memuat klaim yang sudah ditolak.
 - Lingkup yang sudah diputuskan user berlaku: subjek uji anonim (S01, S02, ...), tempat uji laboratorium, TLS dan keamanan transport tidak dibahas sama sekali.
 
 ## Angka
@@ -38,7 +39,7 @@ Salin setiap angka dari buku, atau dari berkas hasil yang dirujuk buku (mis. `mo
 
 ## Tanpa label internal
 
-Teks slide dan catatan pembicara yang dibacakan tidak memuat label kerja internal repo, karena penonton tidak mengenalnya: HW-n, Fase n atau Fase A–G, Task n, T-n/K-n, path berkas, nama skrip, nama env atau knob (`PA_*`, env PlatformIO), kata "walkthrough", dan label `RM1..RM4`. Sebut isinya dengan istilah umum.
+Teks slide dan catatan pembicara yang dibacakan tidak memuat label kerja internal repo, karena penonton tidak mengenalnya: HW-n, Fase n atau Fase A–G, Task n, T-n/K-n, path berkas, nama skrip, nama env atau knob (`PA_*`, env PlatformIO), kata "walkthrough", dan label `RM1..RM4`. Sebut isinya dengan istilah umum. Placeholder untuk isi yang belum diketahui juga tanpa label, mis. `[N: isi tujuan, salin dari Bab 1 buku]`, bukan "memenuhi tujuan berlabel RM2", karena placeholder yang mengulang label membocorkannya ke slide.
 
 Nama berkas gambar (mis. `fase7_confusion_int8.png`) hanya muncul di `deck.js`, tidak di slide.
 
@@ -52,7 +53,7 @@ Nama berkas gambar (mis. `fase7_confusion_int8.png`) hanya muncul di `deck.js`, 
 
 ## Struktur slide
 
-- Satu slide satu pesan. Judul berupa kalimat temuan atau pertanyaan (mis. "Model INT8 mempertahankan recall aritmia"), bukan label ("Hasil"), supaya penonton tahu kesimpulan slide sebelum membaca badan.
+- Satu slide satu pesan. Judul berupa kalimat temuan atau pertanyaan (mis. "Ukuran window menentukan akurasi pada ablasi DS2"), bukan label ("Hasil"), supaya penonton tahu kesimpulan slide sebelum membaca badan.
 - Badan slide paling banyak 6 butir, tiap butir paling banyak 12 kata.
 - Tabel paling banyak 5 baris data dan 4 kolom. Tabel buku yang lebih besar dipangkas ke baris yang menjawab judul slide, sisanya disebut "lengkap di buku, Tabel X" dengan nomor tabel yang benar.
 - Alur baku: Judul (nama, NRP, pembimbing), Latar belakang, Permasalahan, Tujuan, Rancangan sistem, Metode pengujian, Hasil (urut per tujuan), Kesimpulan, Saran, penutup. Slide di luar alur ditambahkan hanya atas permintaan user.
