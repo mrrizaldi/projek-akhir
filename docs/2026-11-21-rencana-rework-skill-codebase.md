@@ -242,3 +242,17 @@ faktanya ada di dokumen yang berlaku.
 | `docs/arsip/2026-10-19-referensi-pra-2020.md` | rasional per entri pustaka pra-2020 | dirujuk `CLAUDE.md` bagian Menulis laporan; pindah ke dokumen laporan yang berlaku |
 | `model/docs/arsip/2026-09-16-daya-design.md` | rancangan pengukuran daya | dirujuk `model/CLAUDE.md`; pindah ke walkthrough daya |
 | `model/docs/arsip/2026-09-19-faseG-changelog.md` §2, `2026-09-19-faseB-changelog.md` §9 | detail ablasi learning rate dan database latih | dirujuk tabel `model/CLAUDE.md`; pindah ke walkthrough model |
+
+## Status (21 Nov 2026)
+
+Gelombang 0–3 selesai. Gelombang 4 menunggu keputusan user atas
+`inventaris-riwayat.md` dan `audit-deadcode.md` di folder dokumen ini.
+Uji pemicu baseline (`scripts/uji_pemicu.sh`, 1 run per kueri): semua skill
+menolak 10/10 kueri yang tidak boleh memicu; memicu benar 0–3/10 (repo:
+batas-tidak-diam 3, buku-ikut-proposal 3, tulis-tanpa-slop 3, deck-pa 2,
+kicad-pcb-pa 2, tabel-pa 2, struktur-pa 1, tanpa-komentar-kode 1,
+ingest-word 0; user: local-file-links 2, wordcraft-latex-ingest 2,
+firmware-bounded-limits 1, kicad-mcp-pcb 1, indonesian-antislop-writing 0,
+no-code-comments 2). Mitigasi: tabel "Skill, muat sebelum mulai" di
+`CLAUDE.md`; description tidak dioptimasi (finance-project tidak mendapat
+kenaikan). Push repo PA dan pembuatan repo GitHub skill user menunggu user.

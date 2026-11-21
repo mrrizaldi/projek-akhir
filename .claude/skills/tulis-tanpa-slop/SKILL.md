@@ -23,7 +23,7 @@ Sumber di skill user boleh menyarankan hal yang bertentangan dengan `laporan/CLA
 4. Tanpa "kami", "kita", "saya": `S-PERSONA` diperlakukan sebagai galat di laporan PA, bukan sekadar tinjau.
 5. Tanpa koma sebelum "sehingga" (EYD V; galat `S-KOMA-SEHINGGA`), karena induk kalimat di depan anak kalimat tidak berkoma.
 6. Label internal repo tidak tercetak di teks laporan: HW-n, Fase n, Task n, T-n/K-n, rev1/rev2, path berkas, nama skrip, nama env (`PA_*`), dan kata "walkthrough". Sebut isinya dengan istilah umum. Komentar `% sumber:` tidak tercetak sehingga boleh memuat path.
-6. Tanpa pembuka meta ("Subbab ini membahas ...") dan tanpa label bernomor "Tujuan N" di judul atau kalimat; kerangka bab ada di skill `struktur-pa`.
+7. Tanpa pembuka meta ("Subbab ini membahas ...") dan tanpa label bernomor "Tujuan N" di judul atau kalimat; kerangka bab ada di skill `struktur-pa`.
 
 ## Paragraf dan benang merah
 
