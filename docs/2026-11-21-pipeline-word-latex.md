@@ -89,9 +89,15 @@ Penyebab yang tersisa:
    `laporan/shared/preamble.tex` menulis `\renewcommand{\contentsname}{DAFTAR ISI}`.
    Ini perilaku sisi LaTeX (kemungkinan ditimpa babel), bukan konverter.
 
-Butir 1 dan 2 tidak bisa ditutup dengan memperbaiki konverter per bug. Isi per
-halaman yang identik membutuhkan pemutus halaman paksa di DOCX pada posisi
-halaman PDF (opsi B), keputusan user.
+Butir 1 dan 2 diterima user sebagai keterbatasan (21 Nov 2026). Opsi B
+(pemutus halaman paksa dari posisi halaman PDF) tidak dikerjakan. Hasil DOCX
+diperiksa user secara visual:
+
+```bash
+cd laporan/buku-pa
+make pdf
+make docx WORDCRAFT=~/.cache/wc-target-pa/release/wordcraft-cli
+```
 
 ## Fase 3: skill `ingest-word`
 
@@ -129,7 +135,5 @@ Skill ingest langkah 6 nantinya ikut memakai pemeriksaan dari sana.
 
 ## Keputusan yang menunggu user
 
-1. Opsi B (pemutus halaman paksa dari PDF) untuk sisa pergeseran float dan
-   pemotongan baris di Fase 2.
-2. Memasang `wordcraft-cli` dari branch ke `~/.cargo/bin` supaya `make docx`
+1. Memasang `wordcraft-cli` dari branch ke `~/.cargo/bin` supaya `make docx`
    dan `make sync` memakai perbaikan Fase 2.
