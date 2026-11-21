@@ -1,0 +1,5 @@
+schema_version: "1.1"
+name: proposal-disesuaikan
+expected_outcome: |
+  Proposal tidak disunting, termasuk pustakanya; buku memuat rancangan akhir
+  di Bab 3 dan hasil di Bab 4 tanpa tabel perubahan dari proposal.

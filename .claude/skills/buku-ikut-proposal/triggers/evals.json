@@ -1,0 +1,82 @@
+[
+  {
+    "query": "rapikan Bab 1 buku-pa biar mirip format AFIB, pembimbingnya sama",
+    "should_trigger": true
+  },
+  {
+    "query": "tambahin subbab Batasan Masalah di Bab 1 buku-pa dong",
+    "should_trigger": true
+  },
+  {
+    "query": "samakan Bab 1 buku dengan proposal, rumusan masalahnya kok beda",
+    "should_trigger": true
+  },
+  {
+    "query": "proposal sesuaikan sama buku, referensinya juga",
+    "should_trigger": true
+  },
+  {
+    "query": "bikin tabel perubahan dari proposal di buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "update Bab 1 buku-pa, target modelnya sekarang 25 KB bukan 20 KB",
+    "should_trigger": true
+  },
+  {
+    "query": "rewrite chapter one of laporan/buku-pa so it follows the proposal outline",
+    "should_trigger": true
+  },
+  {
+    "query": "should I ask the user about the old breadboard setup in the book? write the final report for the buku-pa session",
+    "should_trigger": true
+  },
+  {
+    "query": "tulis laporan akhir sesi buku-pa, ada yang perlu ditanyakan ke user nggak?",
+    "should_trigger": true
+  },
+  {
+    "query": "hapus rujukan ke subbab batasan masalah di Bab 4 buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "perbaiki typo di Bab 2 buku-pa, kata 'sinyal' salah ketik",
+    "should_trigger": false
+  },
+  {
+    "query": "buatkan tabel hasil ablasi window di Bab 4 dengan booktabs",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah placeholder gambar arsitektur sistem di Bab 3",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan paragraf Bab 4 biar tidak terbaca seperti tulisan AI",
+    "should_trigger": false
+  },
+  {
+    "query": "rewrite the abstract of the book in English",
+    "should_trigger": false
+  },
+  {
+    "query": "flash firmware ke board dan baca log serial",
+    "should_trigger": false
+  },
+  {
+    "query": "regenerasi golden_ref.h dari model",
+    "should_trigger": false
+  },
+  {
+    "query": "ingest suntingan Word dari WordCraft ke tex",
+    "should_trigger": false
+  },
+  {
+    "query": "cek daya board pakai INA219 dan catat ke CLAUDE.md",
+    "should_trigger": false
+  },
+  {
+    "query": "edit the proposal introduction for a different course report template",
+    "should_trigger": false
+  }
+]
