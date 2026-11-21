@@ -304,7 +304,10 @@ tidak dipakai sebagai pembanding anggaran latensi. Entri pra-2020 berikut sudah
 diganti dan tidak dipakai lagi: `sornmo_laguna_2005` (→ `zambrano_2026`, `jia_2024`,
 `ecg_goldberger`), `shi_2016` (→ `cao_2020`, `yaacoub_2020`, `escobedo_2026`),
 `kiranyaz_2016` (→ `kiranyaz_2021`), `saito_2015` (→ `chicco_2020`), `lee_2013`
-(→ `akshatha_2022`). Verifikasi keberadaan dan DOI memakai Scopus dan Crossref
+(→ `akshatha_2022`). `cao_2020` hanya dipakai untuk beban *bandwidth*, respons
+lambat, privasi, dan pemrosesan lokal (teks lengkapnya tidak tersedia, abstraknya
+hanya mendukung itu); klaim sistem tetap bekerja saat koneksi putus memakai
+`yaacoub_2020` (*store-and-forward* mHealth). Verifikasi keberadaan dan DOI memakai Scopus dan Crossref
 (`scripts/README.md` §Pengunduh daftar pustaka).
 
 ### DOCX Notes
