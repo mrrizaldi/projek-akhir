@@ -11,7 +11,7 @@ boleh diperbarui.
 | 2026-11-01 | [crosscheck-metrik-bab4](2026-11-01-crosscheck-metrik-bab4.md) | Crosscheck metrik dan cara ukur Bab 4 terhadap standar (AAMI EC57, MLPerf Tiny, IEC 60601, IETF IPPM, ITU-T G.1010/H.810), laporan rinci per kategori di subfolder | A4–A8 diterapkan di `progres-pa-1`; A9, B, dan butir pipeline/daya ditunda (bagian 4) |
 | 2026-11-21 | [skill-anti-slop](2026-11-21-skill-anti-slop.md) | Kandidat skill luar untuk penulisan laporan tanpa pola tulisan AI, benturannya dengan aturan repo, rencana distilasi ke `narasi-pa` | Uji coba progres-pa-1 Bab 2–4 selesai, eval skill 10/10; menunggu tinjauan user, sisa di §Sisa pekerjaan |
 | 2026-11-21 | [pekerjaan-ditunda](2026-11-21-pekerjaan-ditunda.md) | Daftar tunggal pekerjaan yang belum dieksekusi dari sesi pipeline Word, anti-slop, rilis, dan skill | Berjalan |
-| 2026-11-21 | [rencana-rework-skill-codebase](2026-11-21-rencana-rework-skill-codebase.md) | Rework skill (ekstraksi ke repo skill user, format eval skill-creator, validator CI) dan pembersihan docs serta kode | Rencana, belum dieksekusi |
+| 2026-11-21 | [rencana-rework-skill-codebase](2026-11-21-rencana-rework-skill-codebase.md) | Rework skill (ekstraksi ke repo skill user, format eval skill-creator, validator CI) dan pembersihan docs serta kode | Gelombang 0–4 selesai; sisa di pekerjaan-ditunda |
 
 ## Kapan dokumen selesai
 
