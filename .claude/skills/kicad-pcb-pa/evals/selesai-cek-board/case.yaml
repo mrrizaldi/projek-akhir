@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: selesai-cek-board
+expected_outcome: |
+  Peta pin di cek_board.py (PIN_U1) dan tabel peta pin di README diperbarui bersama perubahan pin; jalankan `python3 hardware/mainboard/cek_board.py` sampai baris terakhir LULUS; keluarannya masuk pesan commit.

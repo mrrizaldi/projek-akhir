@@ -1,0 +1,82 @@
+[
+  {
+    "query": "sync_schematic_to_board di mainboard PA bikin DRC paritas lapor net_conflict, gimana benerinnya?",
+    "should_trigger": true
+  },
+  {
+    "query": "jalankan cek_board.py dan pastikan LULUS sebelum commit PCB",
+    "should_trigger": true
+  },
+  {
+    "query": "rute ulang mainboard pakai tata_letak.py lalu autoroute sisa sinyalnya",
+    "should_trigger": true
+  },
+  {
+    "query": "pad U1 di hardware/mainboard terlalu rapat untuk jalur +3V3, ubah bentuknya",
+    "should_trigger": true
+  },
+  {
+    "query": "aku pindah BTN2 ke GPIO14, update PCB-nya juga",
+    "should_trigger": true
+  },
+  {
+    "query": "skematik dari teman versi KiCad 10 nggak kebaca KiCad 9, bantu cek",
+    "should_trigger": true
+  },
+  {
+    "query": "export gerber mainboard buat JLCPCB lewat ekspor_fab.sh",
+    "should_trigger": true
+  },
+  {
+    "query": "kenapa kicad-cli pcb drc bilang unconnected padahal Freerouting success true di mainboard?",
+    "should_trigger": true
+  },
+  {
+    "query": "which netclass should +VSYS be in on the PA mainboard and what trace width?",
+    "should_trigger": true
+  },
+  {
+    "query": "reserve space for the 18650 holder on the mainboard PCB and prove DRC rejects footprints inside it",
+    "should_trigger": true
+  },
+  {
+    "query": "tambah bip indikator baterai rendah di firmware, GPIO mana yang bebas di perangkat.h?",
+    "should_trigger": false
+  },
+  {
+    "query": "write a pcbnew script for a different project's board in ~/dev/other-board",
+    "should_trigger": false
+  },
+  {
+    "query": "build firmware ESP32-S3 dengan pio run dan flash ke board",
+    "should_trigger": false
+  },
+  {
+    "query": "tulis bab 3 buku PA tentang perancangan perangkat keras",
+    "should_trigger": false
+  },
+  {
+    "query": "gambar diagram blok catu daya untuk laporan",
+    "should_trigger": false
+  },
+  {
+    "query": "ubah ambang kalibrasi INA219 di firmware/src",
+    "should_trigger": false
+  },
+  {
+    "query": "design a PCB in Altium for a client project",
+    "should_trigger": false
+  },
+  {
+    "query": "jalankan make pdf-bersih di laporan/buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "latih ulang model aritmia dan export model_int8.h",
+    "should_trigger": false
+  },
+  {
+    "query": "buat enclosure 3D untuk casing alat di FreeCAD",
+    "should_trigger": false
+  }
+]
