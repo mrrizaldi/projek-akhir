@@ -34,7 +34,7 @@ static void test_tegangan_bus_mengabaikan_bit_status(void)
 void setUp(void) {}
 void tearDown(void) {}
 
-static void jalankan(void)
+int main(int, char **)
 {
     UNITY_BEGIN();
     RUN_TEST(test_arus_positif);
@@ -43,13 +43,5 @@ static void jalankan(void)
     RUN_TEST(test_shunt_lain_menggeser_skala);
     RUN_TEST(test_tegangan_bus);
     RUN_TEST(test_tegangan_bus_mengabaikan_bit_status);
-    UNITY_END();
+    return UNITY_END();
 }
-
-#ifdef ARDUINO
-#include <Arduino.h>
-void setup() { Serial.begin(115200); delay(2000); jalankan(); }
-void loop() {}
-#else
-int main(int argc, char **argv) { (void)argc; (void)argv; jalankan(); return 0; }
-#endif
