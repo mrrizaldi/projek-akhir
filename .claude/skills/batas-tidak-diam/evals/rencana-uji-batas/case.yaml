@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: rencana-uji-batas
+expected_outcome: |
+  Rencana uji memakai batas kecil lewat PLATFORMIO_BUILD_FLAGS="-DREKAM_DETIK=10" pio run -t upload,
+  tiap uji berdiri sendiri dengan perintah literal, baris s sebelum/selama/sesudah dengan
+  sampel hilang 0, baris harapan pasti tanpa ≈ atau placeholder, batas asli 300 detik sekali di
+  board, dan hasil ditulis harapan sampai dijalankan.

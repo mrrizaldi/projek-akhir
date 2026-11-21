@@ -1,0 +1,82 @@
+[
+  {
+    "query": "tulis rekam_sampel di firmware/src/rekam.cpp supaya batas REKAM_N tidak membuang sampel diam-diam",
+    "should_trigger": true
+  },
+  {
+    "query": "rekaman 45 menit cuma tersimpan 5 menit, cek rekam.cpp",
+    "should_trigger": true
+  },
+  {
+    "query": "simpan 540 KB di loop() bikin sampel hilang, perbaiki di firmware PA",
+    "should_trigger": true
+  },
+  {
+    "query": "buat rencana uji batas rekam pakai -DREKAM_DETIK=10 di board",
+    "should_trigger": true
+  },
+  {
+    "query": "LittleFS penuh saat rekam, rancang perilaku firmware kalau ruang habis",
+    "should_trigger": true
+  },
+  {
+    "query": "add a queue overflow guard in akuisisi.cpp so samples are counted not dropped silently",
+    "should_trigger": true
+  },
+  {
+    "query": "tambah pesan layar saat nomor rekaman habis di tampilan_pesan",
+    "should_trigger": true
+  },
+  {
+    "query": "the ESP32 recording stops early and buffer penuh, review rekam_layani",
+    "should_trigger": true
+  },
+  {
+    "query": "loop macet waktu simpan rekaman ke LittleFS, pecah per potongan",
+    "should_trigger": true
+  },
+  {
+    "query": "review perubahan firmware yang menambah buffer baru di PSRAM untuk rekam",
+    "should_trigger": true
+  },
+  {
+    "query": "ganti pin buzzer ke GPIO13 di perangkat.h",
+    "should_trigger": false
+  },
+  {
+    "query": "hitung konsumsi daya firmware dengan INA219",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah bab 4 hasil klasifikasi di laporan/buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "jalankan make train di model/ dan tampilkan confusion matrix",
+    "should_trigger": false
+  },
+  {
+    "query": "fix a memory leak in a Python Flask server",
+    "should_trigger": false
+  },
+  {
+    "query": "tulis dashboard ThingsBoard untuk detak jantung",
+    "should_trigger": false
+  },
+  {
+    "query": "size a ring buffer in a desktop C++ app for log lines",
+    "should_trigger": false
+  },
+  {
+    "query": "ubah menu layar TFT untuk memilih sumber sinyal",
+    "should_trigger": false
+  },
+  {
+    "query": "konversi model TFLite ke INT8 header model_int8.h",
+    "should_trigger": false
+  },
+  {
+    "query": "review kode React untuk useEffect yang tidak perlu",
+    "should_trigger": false
+  }
+]
