@@ -17,6 +17,7 @@
 ##                  tanpa penanda di .tex; make sync DOCX=file.docx
 ##   make sync-dry — sama, tapi hanya tampilkan diff, tidak menulis
 ##   make cek-docx — bandingkan isi per halaman PDF dengan DOCX (scripts/cek_docx.py)
+##   make rilis   — bekukan PDF+DOCX dari HEAD jadi rilis bernomor (scripts/rilis.py); CATATAN="..."
 ##   make view    — buka PDF
 ##   make clean   — hapus folder output
 ##   make rebuild — clean + pdf
@@ -30,7 +31,7 @@ DOCX      ?= $(OUTDIR)/$(MAIN).docx
 
 PDFLATEX = pdflatex -jobname=$(MAIN) -output-directory=$(OUTDIR) -interaction=nonstopmode
 
-.PHONY: pdf docx sync sync-dry cek-docx view clean rebuild check
+.PHONY: pdf docx sync sync-dry cek-docx rilis view clean rebuild check
 
 pdf:
 	mkdir -p $(OUTDIR)
@@ -53,6 +54,9 @@ sync-dry:
 
 cek-docx:
 	WORDCRAFT=$(WORDCRAFT) python3 ../../scripts/cek_docx.py $(OUTDIR)/$(MAIN).pdf $(OUTDIR)/$(MAIN).docx
+
+rilis:
+	python3 ../../scripts/rilis.py $(notdir $(CURDIR)) --catatan "$(CATATAN)"
 
 view: pdf
 	xdg-open $(OUTDIR)/$(MAIN).pdf &

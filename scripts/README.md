@@ -193,3 +193,41 @@ python3 ../../scripts/cek_slop.py bab/bab3.tex
 python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
 python3 ../../scripts/cek_slop.py --uji
 ```
+
+## rilis.py
+
+`rilis.py` membekukan PDF dan DOCX `buku-pa` atau `progres-pa-1` sebagai rilis
+bernomor. Build berjalan dari sebuah commit di git worktree sementara, jadi
+suntingan yang belum di-commit tidak ikut. Keluaran disalin ke
+`laporan/rilis/<proyek>/vN/` (gitignored), PDF latexdiff terhadap rilis
+sebelumnya dibuat bila ada, dan tag beranotasi `rilis/<proyek>/vN` dipasang
+pada commit yang dibangun. Berkas rilis tidak di-commit, hanya tagnya; tag
+tidak di-push.
+
+1. Commit semua perubahan laporan.
+2. Jalankan salah satu:
+
+```bash
+cd laporan/<proyek> && make rilis CATATAN="..."
+python3 scripts/rilis.py <proyek> --rev <commit> --catatan "..."
+```
+
+3. Keluaran: `versi=`, `rev=`, `pdf=`, `halaman=`, `galat_log=` (baris
+   `undefined` atau `Overfull` di log LaTeX), `banding=` atau `warn=`, dan
+   `tag=`.
+4. Hasil ada di `laporan/rilis/<proyek>/vN/`: `<proyek>-vN.pdf`,
+   `<proyek>-vN.docx`, `banding-vM-vN.pdf`. Folder ini terlihat di `sajikan.py`.
+5. Folder rilis yang hilang dibangun ulang dari tag:
+
+```bash
+git worktree add --detach /tmp/r rilis/<proyek>/vN
+make -C /tmp/r/laporan/<proyek> pdf docx
+git worktree remove --force /tmp/r
+```
+
+Salin `output/main.pdf` dan `output/main.docx` dari `/tmp/r` sebelum worktree
+dihapus.
+
+Penolakan: pohon `laporan/` punya perubahan yang belum di-commit (hanya untuk
+`--rev HEAD`), tidak ada perubahan di `laporan/<proyek>` atau `laporan/shared`
+sejak rilis terakhir, atau folder versi sudah ada.

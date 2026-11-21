@@ -157,6 +157,10 @@ Aturan penulisan paragraf akademik untuk proposal dan buku:
 - **Jangan pakai numbering inline** seperti `(1)`, `(2)`, `(3)` di dalam paragraf. Sebut secara naratif dengan koma dan konjungsi, atau gunakan environment `enumerate` jika butuh daftar bernomor
 - Pengecualian: titik koma dalam tabel (sel pendek) dan label heading terstruktur (misal "Tahap 1") diperbolehkan
 
+### Rilis bernomor
+
+`make rilis CATATAN="..."` di folder proyek (`buku-pa` atau `progres-pa-1`) membekukan PDF dan DOCX dari commit HEAD ke `laporan/rilis/<proyek>/vN/` (gitignored), membuat PDF banding terhadap versi sebelumnya, dan memasang tag `rilis/<proyek>/vN`. Pohon `laporan/` harus bersih; rincian di `scripts/README.md` §rilis.py.
+
 ### Ingest suntingan WordCraft
 
 Penulis menyunting `output/main.docx` di WordCraft, lalu perubahan ditulis balik ke `.tex`

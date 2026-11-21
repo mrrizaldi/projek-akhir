@@ -213,6 +213,7 @@ terbukti tidak membeku jadi dogma.
   `model/CLAUDE.md`). Python 3.11.9 (`model/.python-version`), venv di
   `model/.venv`, deps di `model/requirements.txt`. Script cek/eksplorasi ad-hoc
   → `model/scripts/` (dijalankan dari folder `model/`).
+- **Checkpoint laporan:** user bilang *checkpoint* → commit dulu, lalu `make rilis` di `laporan/buku-pa` dan `laporan/progres-pa-1` (yang ditolak karena tidak berubah dilewati), laporkan `versi=` dan `banding=`. Tag rilis tidak di-push.
 - Firmware: lihat **ESP32 / mikrokontroler** di bawah.
 - Dashboard: `cd dashboard && docker compose up -d` (ThingsBoard CE).
 
