@@ -9,7 +9,7 @@ Muat skill user `wordcraft-latex-ingest` lebih dulu; skill ini hanya menambah ha
 
 ## Proyek dan perintah
 
-- Proyek: `laporan/buku-pa` atau `laporan/progres-pa-1`. Semua perintah dijalankan dari foldernya (`cd laporan/<projek>`); `<main>` = `main.tex`, `<out>` = `output/`, `<dir>` = `bab/`. Sumber sebenarnya tetap `.tex`, jadi DOCX hanya jalur suntingan.
+- Proyek: `laporan/buku-pa` atau `laporan/progres-pa-1`. Semua perintah dijalankan dari foldernya (`cd laporan/<projek>`); `<main>` = `main.tex`, `<out>` = `output/`, `<dir>` = `laporan/<projek>` (folder yang memuat `main.tex`). Diff dan cek `% KOMENTAR` dibatasi ke `bab/` karena hanya bab yang ditulis sync. Sumber sebenarnya tetap `.tex`, jadi DOCX hanya jalur suntingan.
 - Pakai target make dari `laporan/shared/Makefile.inc`, bukan `wordcraft-cli` mentah, karena target itu sudah membawa `--main main.tex` dan lokasi output yang benar:
 
 | Langkah | Perintah |
@@ -17,7 +17,7 @@ Muat skill user `wordcraft-latex-ingest` lebih dulu; skill ini hanya menambah ha
 | Dry-run | `make sync-dry DOCX=output/suntingan-<stempel>.docx` |
 | Tulis | `make sync DOCX=output/suntingan-<stempel>.docx` |
 | Bangun ulang PDF | `make pdf-bersih` |
-| Buat ulang DOCX | `make docx` (sesudah sync, bukan sebelum) |
+| Buat ulang DOCX | `make docx` (sesudah sync, bukan sebelum); keluaran yang diharapkan `DOCX tersimpan di output/main.docx` |
 
 ## Aturan khusus repo PA
 
@@ -27,14 +27,15 @@ Muat skill user `wordcraft-latex-ingest` lebih dulu; skill ini hanya menambah ha
 
 ```bash
 python3 ../../scripts/cek_tabel.py bab/*.tex
-python3 ../../scripts/cek_slop.py --ringkas bab/<berkas>.tex
+python3 ../../scripts/cek_slop.py bab/<berkas>.tex
 ```
 
-  `cek_tabel` untuk semua bab, ambil temuan di baris hasil ingest. `cek_slop` untuk tiap `.tex` yang ditulis sync, ambil temuan `galat`. Keluaran `cek_tabel` sesudah perbaikan masuk pesan commit.
+  `cek_tabel` untuk semua bab, ambil temuan di baris hasil ingest. `cek_slop` untuk tiap `.tex` yang ditulis sync, ambil temuan `galat`. Tanpa `--ringkas`, karena hanya bentuk penuh yang mencetak `berkas:baris: KODE [galat]`; `--ringkas` cuma hitungan per kode. Keluaran `cek_tabel` sesudah perbaikan masuk pesan commit.
 - **Aturan rumah ikut daftar format.** Selain daftar umum (titik dua, titik koma, em dash, istilah belum miring), periksa desimal titik (repo ini memakai desimal koma, ribuan titik) dan label internal repo yang tidak boleh tercetak (HW-n, Fase n, path berkas, nama skrip, `PA_*`, "walkthrough"). Kalimat user tetap tidak ditulis ulang; hanya diusulkan perbaikannya.
 - **Tabel, rumus, atau gambar baru yang tidak ditulis sync** dibuat di LaTeX mengikuti skill `tabel-pa` dan `laporan/CLAUDE.md`; gambar ilustrasi tetap placeholder, user yang menggambar.
 - **Butir `skipped` dan `% KOMENTAR`** ditangani seperti di skill user; sisa komentar dicek dengan `grep -n "% KOMENTAR" bab/*.tex` (diharapkan kosong).
-- **Commit hanya `.tex` di `laporan/<projek>/bab/`** lewat `git add` path eksplisit; `output/suntingan-*.docx` diabaikan git. Tanpa push.
+- **Layar konfirmasi** mengikuti `templates/summary.md` skill user, ditulis bahasa Indonesia, dengan Sumber = `output/suntingan-<stempel>.docx`.
+- **Commit hanya `.tex` di `laporan/<projek>/bab/`** lewat `git add bab/<berkas>.tex` dari `laporan/<projek>`; `output/suntingan-*.docx` diabaikan git. Tanpa push.
 
 ## Binary
 
