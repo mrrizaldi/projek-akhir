@@ -11,12 +11,12 @@ Kerangka resmi Bab 1-3 ada di `laporan/CLAUDE.md` bagian Struktur Resmi Proposal
 
 ## Aturan
 
-1. **Kerangka Bab 4-5 beku.** Urutannya: 4.1 Parameter Eksperimen, 4.2 Karakteristik Data, 4.3 Tempat Ujicoba, 4.4 Waktu Ujicoba, 4.5 Spesifikasi Peralatan Ujicoba, 4.6 Hasil Eksperimen, 4.7 Analisis Hasil Eksperimen, lalu 5.1 Kesimpulan dan 5.2 Saran. Pertahankan urutan dan judul persis, termasuk "Ujicoba" (bukan "Uji Coba"), karena kerangka ini disepakati dengan pembimbing.
+1. **Kerangka Bab 4-5 beku.** Urutannya: 4.1 Parameter Eksperimen, 4.2 Karakteristik Data, 4.3 Tempat Ujicoba, 4.4 Waktu Ujicoba, 4.5 Spesifikasi Peralatan Ujicoba, 4.6 Hasil Eksperimen, 4.7 Analisis Hasil Eksperimen, lalu 5.1 Kesimpulan dan 5.2 Saran. Pertahankan urutan dan judul persis, termasuk "Ujicoba" (bukan "Uji Coba"), karena kerangka ini diturunkan dari panduan proposal D4TI dan pola laporan PA PENS (`laporan/CLAUDE.md` Struktur Resmi Proposal PA).
    - Bab tidak punya paragraf pembuka: judul bab langsung diikuti subbab pertama (2.1 Deskripsi Permasalahan, 3.1 Deskripsi Solusi, 4.1 Parameter Eksperimen, 5.1 Kesimpulan), mengikuti proposal. Diperiksa `cek_tabel.py` (N-PEMBUKA-BAB).
    - Subbab di luar kerangka (misalnya 4.8 Dokumentasi) hanya atas permintaan user, dan permintaan itu dijawab sebagai opsi: sebut bahwa 4.8 di luar kerangka beku, rekomendasikan foto dokumentasi masuk 4.5 atau lampiran, lalu tunggu keputusan user. Memindahkan Keterbatasan ke Bab 5 juga ditolak, karena Bab 5 tidak memuat temuan baru (aturan 6).
 
-2. **4.6 dan 4.7 berurutan seperti tujuan, dinamai menurut isinya.** 4.6.1 sampai 4.6.n mengikuti urutan Tujuan di Bab 1, kronologis di dalamnya, dan butirnya memakai `\subsubsection` (bernomor huruf). 4.7 berisi tabel ketercapaian (Tercapai / Sebagian tercapai / Belum tercapai, kosakata `tabel-pa` aturan 7), satu subbab analisis per jalur yang sama, subbab perbandingan protokol dengan penelitian terkait, lalu subbab Keterbatasan dan Status *Proof of Concept* sebagai penutup Bab 4. Gayanya mengikuti buku AFIB, karena itu yang diterima pembimbing.
-   - Judul subbab dan kalimat menyebut isi tujuannya ("Jalur Preprocessing *Real-Time*", "Analisis Jalur Model TinyML *On-Device*"), bukan label bernomor: tanpa "(Tujuan 1)", "Ketercapaian Tujuan 2", "Subbab ini menjawab Tujuan 3", "Tujuan pertama tercapai sebagian". Kolom tabel ketercapaian berisi nama jalur. Diperiksa `cek_tabel.py` (N-TUJUAN).
+2. **4.6 dan 4.7 berurutan seperti tujuan, dinamai menurut isinya.** 4.6.1 sampai 4.6.n mengikuti urutan Tujuan di Bab 1, kronologis di dalamnya, dan butirnya memakai `\subsubsection` (bernomor huruf). 4.7 berisi tabel ketercapaian (Tercapai / Sebagian tercapai / Belum tercapai, kosakata `tabel-pa` aturan 8), satu subbab analisis per jalur yang sama, subbab perbandingan protokol dengan penelitian terkait, lalu subbab Keterbatasan dan Status *Proof of Concept* sebagai penutup Bab 4. Gayanya mengikuti buku AFIB, karena itu keputusan user (selaras `laporan/CLAUDE.md`).
+   - Judul subbab dan kalimat menyebut isi tujuannya ("Jalur *Pipeline Edge-to-Cloud* Resilien", "Analisis Jalur *Pipeline Edge-to-Cloud* Resilien"), bukan label bernomor: tanpa "(Tujuan 1)", "Ketercapaian Tujuan 2", "Subbab ini menjawab Tujuan 3", "Tujuan pertama tercapai sebagian". Kolom tabel ketercapaian berisi nama jalur. Diperiksa `cek_tabel.py` (N-TUJUAN).
    - Subbab dan butir langsung ke isi, tanpa pembuka meta seperti "Bab ini ...", "Subbab ini memaparkan ...", atau "Butir ini bertujuan ...", karena pembaca sudah melihat judulnya. Diperiksa `cek_tabel.py` (N-META).
    - Kaitan ke tujuan dinyatakan sekali di pembuka 4.6 ("disusun mengikuti tujuan penelitian") dan di awal 5.1, tanpa `\ref` ke subbab (aturan 11).
    - Tidak ada tabel atau paragraf "perubahan rancangan dari proposal". Bab 3 memuat rancangan akhir, dan alasan berbasis ukur muncul di butir hasilnya (ablasi, uji kesetaraan).
@@ -41,7 +41,7 @@ Kerangka resmi Bab 1-3 ada di `laporan/CLAUDE.md` bagian Struktur Resmi Proposal
    - Paragraf penjelas yang hanya mengulang caption adalah pelanggaran.
 
 9. **Placeholder gambar.** Jangan membuat diagram atau gambar ilustrasi (tidak ada Mermaid, TikZ, PlantUML, Graphviz, SVG, draw.io, skrip gambar baru, atau gambar AI): user yang menggambar. Pasang placeholder berisi kartu spesifikasi di posisi gambar, dan tulis caption, `\label`, semua `\ref`, paragraf pengantar, dan paragraf penjelas final.
-   - Pembacaan gambar di paragraf penjelas hanya menyebut elemen, label, dan alur yang ada di kartu, dengan kata yang sama persis (kartu "10 RR" berarti paragraf "10 RR"), supaya paragraf tetap benar saat gambar selesai digambar.
+   - Pembacaan gambar di paragraf penjelas hanya menyebut elemen, label, dan alur yang ada di kartu, dengan kata yang sama persis (kartu "gerbang kalibrasi" berarti paragraf "gerbang kalibrasi", bukan "gerbang awal"), supaya paragraf tetap benar saat gambar selesai digambar.
    - Sesudah seluruh pembacaan selesai, tutup paragraf dengan tepat satu kalimat makna yang boleh mengaitkan gambar ke tujuan, tanpa penunjuk subbab (aturan 11). Jangan menyelipkan kalimat fungsi atau alasan ("syarat ini mencegah ...") di tengah pembacaan, dan jangan menambah kalimat makna kedua.
    - Plot data eksperimen dari pipeline repo (confusion matrix, kurva, grafik latensi) bukan ilustrasi. Rujuk berkas yang sudah di-export. Bila belum ada, placeholder menyebut skrip penghasilnya, dan skrip plot baru tidak ditulis tanpa diminta.
    - Label `RM1..RM4` tidak muncul di gambar.
@@ -99,7 +99,8 @@ Kerangka resmi Bab 1-3 ada di `laporan/CLAUDE.md` bagian Struktur Resmi Proposal
 Jalankan sendiri dan tulis angka dari keluaran nyata. Perintah yang belum dijalankan ditulis "belum dijalankan", karena angka tebakan lebih buruk daripada angka yang kosong.
 
 ```bash
-cd laporan/buku-pa && make pdf-bersih && grep -cE "undefined|Overfull" output/main.log
+cd laporan/buku-pa && make pdf-bersih && grep -cE "undefined|Overfull|multiply defined" output/main.log
+grep -rhoE "\\label\{[^}]+\}" bab/ | sort | uniq -d
 grep -rniE "proposal ini|tahap progres|sprint berikutnya|fase berikutnya|semester berikutnya" bab/
 grep -rn "PLACEHOLDER-GAMBAR\|PlaceholderData" bab/ | wc -l
 grep -nE "HW-[0-9]|Fase [0-9A-G]|\.md|\.py|walkthrough|Task [0-9]" bab/*.tex | grep -vE ":[0-9]+:\s*%"
@@ -107,7 +108,7 @@ grep -rn "di atas\|di bawah" bab/ | grep -iE "tabel|gambar"
 python3 ../../scripts/cek_tabel.py
 ```
 
-`make pdf-bersih` dipakai karena `make rebuild` menghapus DOCX di `output/`.
+`make pdf-bersih` dipakai karena `make rebuild` menghapus DOCX di `output/`. Hitungan `main.log` harus 0 dan daftar label ganda harus kosong, karena label ganda membuat `\ref` menunjuk nomor yang salah.
 
 Lalu periksa dengan tangan:
 - Setiap Tujuan punya angka di 4.6, vonis di 4.7, dan kalimat di 5.1.
