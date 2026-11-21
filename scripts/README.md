@@ -38,6 +38,12 @@ terbuka di tab baru.
    `.docx`/`.pptx` terunduh.
 3. Hentikan dengan `Ctrl+C`.
 
+Folder `laporan/rilis/<proyek>/vN` dengan N > 0 punya tautan "banding vN-1
+dan vN" di judul grupnya. Tautan itu membuka halaman `/banding` berisi dua PDF
+berdampingan. Perubahan teks per kata ada di `banding-vM-vN.pdf` di folder yang
+sama. Parameter `lama` dan `baru` pada `/banding` hanya menerima PDF di dalam
+repo.
+
 Server hanya mendengar di `127.0.0.1`, jadi tidak terjangkau dari perangkat
 lain di jaringan. Selain berkas di indeks, path apa pun di repo bisa dibuka
 langsung lewat URL (`/model/artifacts/metrics/...png`).
