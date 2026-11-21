@@ -219,11 +219,10 @@ python3 ../../scripts/cek_slop.py --uji
   `eval.md`, dianggap galat. Opsi `--lewati-eval-lama` melewati pemeriksaan
   eval untuk skill yang masih memakai `eval.md` (masa transisi).
 
-Kode keluar 1 bila ada galat. CI menjalankan `--uji` dan `--lewati-eval-lama`.
+Kode keluar 1 bila ada galat. CI menjalankan `--uji` dan pemeriksaan tanpa opsi.
 
 ```bash
 python3 scripts/cek_skill.py
-python3 scripts/cek_skill.py --lewati-eval-lama
 python3 scripts/cek_skill.py --uji
 ```
 

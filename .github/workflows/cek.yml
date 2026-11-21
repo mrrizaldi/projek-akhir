@@ -38,4 +38,4 @@ jobs:
         with:
           python-version: "3.11"
       - run: python3 scripts/cek_skill.py --uji
-      - run: python3 scripts/cek_skill.py --lewati-eval-lama
+      - run: python3 scripts/cek_skill.py

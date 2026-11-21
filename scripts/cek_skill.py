@@ -149,23 +149,22 @@ def periksa_pemicu(akar, masalah):
         masalah.append(f"{jalur}: perlu entri should_trigger true dan false")
 
 
-def periksa_skill(akar, lewati_eval_lama):
+def periksa_skill(akar):
     masalah = []
     periksa_skill_md(akar, masalah)
     if (akar / "eval.md").is_file():
-        if not lewati_eval_lama:
-            masalah.append(f"{akar / 'eval.md'}: eval.md lama, pindahkan ke evals/ dan triggers/")
+        masalah.append(f"{akar / 'eval.md'}: eval.md lama, pindahkan ke evals/ dan triggers/")
         return masalah
     periksa_evals(akar, masalah)
     periksa_pemicu(akar, masalah)
     return masalah
 
 
-def periksa_semua(folder, lewati_eval_lama):
+def periksa_semua(folder):
     akar_skill = sorted(p for p in folder.iterdir() if p.is_dir())
     masalah = []
     for akar in akar_skill:
-        masalah += periksa_skill(akar, lewati_eval_lama)
+        masalah += periksa_skill(akar)
     return akar_skill, masalah
 
 
@@ -188,55 +187,53 @@ def uji():
     with tempfile.TemporaryDirectory() as tmp:
         akar = Path(tmp)
         buat_skill_valid(akar, "valid")
-        _, masalah = periksa_semua(akar, False)
+        _, masalah = periksa_semua(akar)
         assert masalah == [], masalah
 
         buat_skill_valid(akar, "namasalah")
         tulis(akar / "namasalah" / "SKILL.md", "---\nname: lain\ndescription: x\nextra: y\n---\nisi\n")
-        _, masalah = periksa_semua(akar, False)
+        _, masalah = periksa_semua(akar)
         assert any("harus sama dengan nama folder" in m for m in masalah), masalah
         assert any("selain name/description" in m for m in masalah), masalah
 
         tulis(akar / "namasalah" / "SKILL.md", f"---\nname: namasalah\ndescription: {'x' * (BATAS_DESKRIPSI + 1)}\n---\nisi\n")
-        assert any("karakter, maksimum" in m for m in periksa_skill(akar / "namasalah", False))
+        assert any("karakter, maksimum" in m for m in periksa_skill(akar / "namasalah"))
 
         tulis(akar / "namasalah" / "SKILL.md", "---\nname: namasalah\ndescription: x\n---\n" + "baris\n" * BATAS_BARIS_BADAN)
-        assert any("harus di bawah" in m for m in periksa_skill(akar / "namasalah", False))
+        assert any("harus di bawah" in m for m in periksa_skill(akar / "namasalah"))
 
         buat_skill_valid(akar, "tanpapemicu")
         (akar / "tanpapemicu" / "triggers" / "evals.json").unlink()
-        assert any("evals.json: tidak ada" in m for m in periksa_skill(akar / "tanpapemicu", False))
+        assert any("evals.json: tidak ada" in m for m in periksa_skill(akar / "tanpapemicu"))
 
         tulis(akar / "tanpapemicu" / "triggers" / "evals.json", json.dumps([{"query": "a", "should_trigger": True}]))
-        assert any("true dan false" in m for m in periksa_skill(akar / "tanpapemicu", False))
+        assert any("true dan false" in m for m in periksa_skill(akar / "tanpapemicu"))
 
         buat_skill_valid(akar, "tanpapenilai")
         (akar / "tanpapenilai" / "evals" / "k1" / "graders" / "g1.md").unlink()
-        assert any("penilai" in m for m in periksa_skill(akar / "tanpapenilai", False))
+        assert any("penilai" in m for m in periksa_skill(akar / "tanpapenilai"))
 
         buat_skill_valid(akar, "yamlsalah")
         tulis(akar / "yamlsalah" / "evals" / "k1" / "case.yaml", "name: lain\n")
-        assert len(periksa_skill(akar / "yamlsalah", False)) == 3
+        assert len(periksa_skill(akar / "yamlsalah")) == 3
 
         tulis(akar / "lama" / "SKILL.md", "---\nname: lama\ndescription: x\n---\nisi\n")
         tulis(akar / "lama" / "eval.md", "eval lama\n")
-        assert any("eval.md lama" in m for m in periksa_skill(akar / "lama", False))
-        assert periksa_skill(akar / "lama", True) == []
+        assert any("eval.md lama" in m for m in periksa_skill(akar / "lama"))
 
         tulis(akar / "polos" / "SKILL.md", "---\nname: polos\ndescription: x\n---\nisi\n")
-        assert len(periksa_skill(akar / "polos", True)) == 2
+        assert len(periksa_skill(akar / "polos")) == 2
     print("uji lulus")
 
 
 def main():
     parser = argparse.ArgumentParser(description="Pemeriksa struktur skill di .claude/skills (SKILL.md, evals/, triggers/).")
     parser.add_argument("--uji", action="store_true", help="uji mandiri pemeriksa")
-    parser.add_argument("--lewati-eval-lama", action="store_true", help="lewati pemeriksaan eval untuk skill yang masih memakai eval.md")
     args = parser.parse_args()
     if args.uji:
         uji()
         return 0
-    akar_skill, masalah = periksa_semua(FOLDER_SKILL, args.lewati_eval_lama)
+    akar_skill, masalah = periksa_semua(FOLDER_SKILL)
     for m in masalah:
         print(f"GALAT {m}", file=sys.stderr)
     if masalah:
