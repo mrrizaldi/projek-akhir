@@ -15,6 +15,7 @@ acuan kerja.
 | 2026-11-21 | [pipeline-word-latex](2026-11-21-pipeline-word-latex.md) | Sunting bebas di WordCraft lalu ingest ke LaTeX lewat skill `ingest-word`, hapus penanda `% MANUAL`, fidelity DOCX terhadap PDF | Fase 1–3 selesai, wordcraft-cli branch terpasang; sisa di §Sisa pekerjaan |
 | 2026-11-21 | [rencana-rilis-dan-gaya-skill](2026-11-21-rencana-rilis-dan-gaya-skill.md) | Rilis bernomor PDF/DOCX laporan (v0 sebelum, v1 sesudah tulis-tanpa-slop) dengan banding di sajikan.py, narasi-pa nonaktif, cek klaim tanpa angka, gaya skill provenfix | Tugas 1–7 selesai; Tugas 8 (gaya skill lain) dan 9 (WordCraft) ditunda user, lihat §Tindak lanjut user |
 | 2026-11-21 | [pekerjaan-ditunda](2026-11-21-pekerjaan-ditunda.md) | Daftar tunggal pekerjaan yang belum dieksekusi dari sesi pipeline Word, anti-slop, rilis, dan skill | Berjalan |
+| 2026-11-21 | [riset-rework-skill](2026-11-21-riset-rework-skill.md) | Riset rework skill dan codebase finance-project sebagai acuan rework repo PA, calon ekstraksi skill ke scope user | Riset, menunggu keputusan user |
 
 ## Kapan dokumen dipindah ke arsip
 
