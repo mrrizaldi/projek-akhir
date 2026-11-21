@@ -133,7 +133,7 @@ bobot dikembalikan ke epoch terbaik — bukan bobot epoch terakhir yang sudah
 overfit. `EPOCHS = 60` di `config.py` cuma batas atas; yang benar-benar
 menentukan kapan berhenti adalah callback ini.
 
-Pada konfigurasi terkunci, "epoch terbaik" adalah **epoch 0**, sehingga
+Pada konfigurasi terkunci, "epoch terbaik" adalah **epoch 0** sehingga
 `patience=8` melatih 8 epoch yang seluruhnya dibuang. Lihat §6b.
 
 ---
@@ -206,7 +206,7 @@ nilai, seed sama, kondisi ukur seperti §5:
 Kesimpulan: **dropout tidak membantu di sini, malah merusak recall.** Yang
 terjadi — dropout membuat model makin konservatif (precision naik, recall
 turun), padahal masalah kita justru recall yang kurang. AUC nyaris tidak
-berubah, artinya kemampuan *mengurutkan* sama saja; yang bergeser cuma di mana
+berubah, artinya kemampuan *mengurutkan* sama saja; yang bergeser cuma letak
 probabilitasnya menumpuk relatif terhadap 0,5.
 
 Pelajarannya: overfitting yang terlihat di kurva **tidak otomatis berarti
@@ -237,7 +237,7 @@ epoch 8          0,8635  stop   epoch 26  0,9082  stop
 `restore_best_weights` mengembalikan epoch 0. Delapan epoch sisanya murni
 overfitting.
 
-**Kenapa secepat itu?** Karena "epoch" menyesatkan sebagai satuan. DS1 yang
+**Secepat itu karena** "epoch" menyesatkan sebagai satuan. DS1 yang
 sudah diaugmentasi punya 121.857 beat; dengan `BATCH_SIZE = 64` itu **1.905
 langkah gradien per epoch**. Untuk model 6.417 parameter dengan Adam 1e-3,
 satu epoch sudah lebih dari cukup untuk menghafal. Yang terlihat sebagai

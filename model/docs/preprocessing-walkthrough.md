@@ -83,7 +83,7 @@ transformasi frekuensi lowpass→bandpass, jadi orde efektif jadi $2n = 8$
 ### Kenapa `output="sos"` bukan `"ba"`
 
 Bentuk `ba` = satu polinomial orde 8. Koefisiennya beda orde-orde besaran
-→ galat pembulatan float bisa bikin filter **tidak stabil**. SOS memecahnya jadi
+→ galat pembulatan float bisa membuat filter **tidak stabil**. SOS memecahnya jadi
 kaskade biquad:
 
 $$H(z) = \prod_{k=1}^{4} \frac{b_{0k} + b_{1k}z^{-1} + b_{2k}z^{-2}}{1 + a_{1k}z^{-1} + a_{2k}z^{-2}}$$
@@ -132,9 +132,9 @@ ke masa depan (bug).
 
 ![Kaskade Pan-Tompkins](../artifacts/metrics/walkthrough_pt_100.png)
 
-Ide dasarnya: QRS itu **lonjakan curam berdurasi ~80–120 ms**. Kalau kita bikin
+Ide dasarnya: QRS itu **lonjakan curam berdurasi ~80–120 ms**. Kalau kita membuat
 sinyal turunan yang dikuadratkan lalu diratakan, QRS jadi satu bukit gemuk yang
-gampang dipisah dengan threshold, sementara P/T (landai) dan noise (sempit)
+mudah dipisah dengan threshold, sementara P/T (landai) dan noise (sempit)
 tenggelam.
 
 ### 3.1 `_pt_bandpass` — 5–15 Hz
@@ -171,7 +171,7 @@ Bentuknya identik, cuma **tertunda 2 sampel** ($\approx 5.6$ ms). Ini pendekatan
 turunan beda-terpusat: $y \approx \dfrac{dx}{dt}$, satuannya mV/detik — makanya
 sumbu-y panel (c) melompat ke orde puluhan.
 
-Kenapa turunan? QRS punya slope paling curam di seluruh EKG. Gelombang T besar
+Turunan dipakai karena QRS punya slope paling curam di seluruh EKG. Gelombang T besar
 tapi landai → turunannya kecil → otomatis tertekan.
 
 ### 3.3 `_pt_square` — kuadratkan
@@ -239,7 +239,7 @@ spki = max(integrated[:2*fs])      # asumsi ada minimal 1 QRS di 2 detik
 npki = mean(integrated[:2*fs])
 ```
 
-**Refraktori** — periode fisiologis di mana jantung tidak bisa depolarisasi lagi:
+**Refraktori** — periode fisiologis ketika jantung tidak bisa depolarisasi lagi:
 
 $$i - i_{\text{last}} \ge \frac{200\,\text{ms}}{1000}\,f_s = 72\ \text{sampel}$$
 
@@ -303,7 +303,7 @@ karena cakupan T dipangkas. Data lengkap:
 Guard `start < 0 or end > len(signal)` membuang beat di tepi rekaman. Record 100:
 **2 dari 2273 beat terbuang** (indeks 77 di awal, 649991 di akhir dari 650000
 sampel) → tersisa 2271 window. Cek `len(window) != WIN_LEN` setelahnya redundan
-secara logika, tapi murah dan bikin kontrak `(N, 256)` tidak bisa bohong.
+secara logika, tapi murah dan membuat kontrak `(N, 256)` tidak bisa bohong.
 
 Return `np.empty((0, WIN_LEN))` saat kosong, bukan `[]` — supaya `.shape[1]` di
 hilir tetap valid dan tidak perlu cek None.
@@ -326,7 +326,7 @@ mean = windows.mean(axis=1, keepdims=True)   # (N, 1) — per window, bukan glob
 alasannya dua:
 
 1. **Kebal beda amplitudo.** Gain elektroda, impedansi kulit, dan posisi lead
-   bikin pasien A punya QRS 1.2 mV sementara pasien B 0.4 mV. Setelah z-score
+   membuat pasien A punya QRS 1.2 mV sementara pasien B 0.4 mV. Setelah z-score
    per window, keduanya jadi bentuk yang sebanding — model belajar *morfologi*,
    bukan *seberapa besar sinyalnya*.
 2. **Nol kebocoran statistik.** Kalau $\mu,\sigma$ dihitung dari seluruh dataset

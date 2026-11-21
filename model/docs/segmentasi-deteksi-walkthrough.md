@@ -25,7 +25,7 @@ deteksi Pan-Tompkins**. Dua hal berubah sekaligus:
 1. Beat yang **tidak terdeteksi** tidak pernah sampai ke model
 2. Beat yang terdeteksi punya posisi R yang **sedikit meleset**
 
-Berapa biayanya? Tanpa angka ini, recall Fase 6 berlaku untuk laboratorium,
+Biayanya harus diukur. Tanpa angka ini, recall Fase 6 berlaku untuk laboratorium,
 bukan untuk alat.
 
 **Disiplin:** offset detektor dikalibrasi di **DS1**; DS2 tidak menyetel apa
@@ -74,7 +74,7 @@ langsung dipakai, window mulai di `r + 4 - WIN_PRE` dan R mendarat di
 ## 2. Model SANGAT peka pada posisi R
 
 Geser 4 sampel — 11 milidetik — ke arah mana pun. Diukur pada model baseline
-(window 90/160, tanpa augmentasi, threshold 0,35), sehingga posisi yang benar
+(window 90/160, tanpa augmentasi, threshold 0,35) sehingga posisi yang benar
 adalah indeks 94:
 
 | Posisi R di window | recall | precision | F1 |

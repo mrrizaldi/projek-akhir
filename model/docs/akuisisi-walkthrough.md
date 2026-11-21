@@ -53,7 +53,7 @@ WiFi menyala. Jalur OUTPUT yang putus membuat pin ADC mengambang dan menyerap
 jala-jala; gejalanya `dengung50` ~930 counts di laporan `q` walau elektroda
 terpasang (lihat §7).
 
-Tabel di atas adalah bagian akuisisi dari peta pin PCB rev1
+Tabel pin ini adalah bagian akuisisi dari peta pin PCB rev1
 (`firmware/include/perangkat.h`). Peta lengkap, termasuk TFT, buzzer, tombol
 B1/B2, dan INA219, serta peta tombol dan menu di layar, ada di
 [`firmware/README.md`](../../firmware/README.md).
@@ -65,7 +65,7 @@ Sumbu merah→kuning meniru **MLII**, lead yang dipakai MIT-BIH ("In most
 records, the upper signal is a modified limb lead II (MLII), obtained by
 placing the electrodes on the chest", PhysioNet `mitdbdir/intro.htm`). AD8232
 mengukur beda tegangan pad RA dan pad LA; menurut segitiga Einthoven, sumbu
-RA→LA adalah Lead I dan RA→kaki kiri adalah Lead II, sehingga pad kuning (LA)
+RA→LA adalah Lead I dan RA→kaki kiri adalah Lead II sehingga pad kuning (LA)
 ditaruh di bawah rusuk kiri sebagai wakil kaki kiri. Penempatan dada pada
 panduan SparkFun *AD8232 Heart Rate Monitor Hookup Guide* (LA di dada kiri
 dekat lengan) dan diagram 3-lead klinis menaruh kuning di dada kiri atas; yang
@@ -178,7 +178,7 @@ saat merekam, dan `B3 LANJUT` saat dijeda, dengan petunjuk `tahan=SIMPAN`.
 
 1. Pasang elektroda baru sesuai §1. Board diberi daya dari powerbank; USB laptop
    **tercabut**. Pastikan sumber sinyal **Sensor (ADC)**: pojok kanan atas TFT
-   tidak menampilkan `RP 208` atau `RP#NNN`. Pilihan sumber tersimpan di NVS,
+   tidak menampilkan `RP 208` atau `RP#NNN`. Pilihan sumber tersimpan di NVS
    sehingga replay yang dipilih sebelumnya tetap aktif setelah boot; ganti lewat
    menu **Sumber sinyal → Sensor (ADC)** (tahan B2 untuk membuka menu).
    Rekam hanya dapat dimulai dari sensor: bila sumber masih replay, B3 dan
@@ -190,7 +190,7 @@ saat merekam, dan `B3 LANJUT` saat dijeda, dengan petunjuk `tahan=SIMPAN`.
    atas menampilkan `REC00:00` merah yang terus berjalan, dan serial mencetak
    `REKAM mulai`. LED tetap menunjukkan kualitas sinyal. Selama menu terbuka B3
    adalah tombol navigasi dan serial `r` ditolak (`REKAM ditolak: tutup menu
-   dulu`), sehingga rekaman selalu dimulai dari layar monitor.
+   dulu`) sehingga rekaman selalu dimulai dari layar monitor.
 4. Duduk diam, lengan bertumpu, **25 detik**.
 5. Bila perekaman perlu dihentikan sementara (subjek bergerak, kabel
    tersenggol), tekan pendek **B3** untuk menjeda. Layar menampilkan `JEDA`
@@ -226,7 +226,7 @@ Padanan serial: `r` = mulai, atau berhenti dan simpan (juga saat dijeda);
 terbuka (termasuk saat dijeda) dan `jeda 0/1`.
 
 Seluruh sesi disangga di PSRAM selama merekam dan baru ditulis ke LittleFS
-sesudah berhenti; berkas yang sudah tertulis bertahan walau board mati, tetapi
+sesudah berhenti; berkas yang sudah tertulis bertahan walau board mati, sedangkan
 sesi yang belum dihentikan hilang bila daya putus. Penulisan flash ditunda
 karena setiap tulis flash menahan interrupt akuisisi dan membuang sampel
 (`firmware/README.md` §Jebakan, Akuisisi). Sesudah berhenti, sesi dipecah
@@ -241,7 +241,7 @@ sekitarnya tidak sahih.
 Tiap rekaman disimpan sebagai berkas bernomor baru (`/rekam/001.csv`, `002`,
 ...); daftarnya dilihat dengan serial `l` dan berkas lama dihapus dengan `h<n>`.
 Rekaman yang tersimpan dapat diputar ulang di board lewat menu **Sumber sinyal
-→ Replay rekaman**; replay melewati baris `#`, sehingga segmen diputar
+→ Replay rekaman**; replay melewati baris `#` sehingga segmen diputar
 bersambung tanpa jeda. Persentase `elektroda lepas` berasal dari pin LO+/LO−;
 nilai 0% bukan jaminan ada sinyal (LO cukup dipuaskan satu jalur impedansi
 rendah), jadi wasitnya tetap ayunan di §6.
@@ -422,21 +422,21 @@ dipakai `analyze_recording.py` untuk vonis `OK` / `TERLALU BESAR` /
 
 Wasit utama ada tidaknya sinyal adalah **ayunan ADC absolut**, bukan flag LO.
 Konversi: ADC 12-bit dengan atenuasi 11 dB ≈ 0,757 mV/count di pin, gain AD8232
-~1100, sehingga EKG sehat ~2 mV ≈ ~3.000 counts. Ayunan di bawah ~150 counts
+~1100 sehingga EKG sehat ~2 mV ≈ ~3.000 counts. Ayunan di bawah ~150 counts
 (~0,1 mV) berarti tidak ada biopotensial sama sekali; penempatan lead yang buruk
 hanya memangkas 3–5×, bukan 50×.
 
 ### Dua metrik denyut, dan kenapa keduanya perlu
 
-**Autokorelasi** bertanya "apakah pola berulang tiap 0,4–1,5 detik?". Dia tahan
+**Autokorelasi** memeriksa apakah pola berulang tiap 0,4–1,5 detik. Dia tahan
 derau karena dengung 50 Hz berulang tiap 20 ms — jauh di luar jendela itu.
 
-**Pan-Tompkins** bertanya "di mana lonjakan energi?". Dengung yang kuat bocor
+**Pan-Tompkins** mencari lonjakan energi. Dengung yang kuat bocor
 lewat tahap kuadrat + integrasi dan terhitung sebagai QRS — itu sebabnya ia bisa
 melaporkan 169 "R-peak" dalam 44 detik.
 
 Autokorelasi mencari SATU jarak antardetak yang dominan. Pada rekaman panjang
-detak jantung berubah antarmenit, sehingga puncaknya melebar dan nilainya
+detak jantung berubah antarmenit sehingga puncaknya melebar dan nilainya
 turun walau sinyalnya bagus. Karena itu segmen ≥ 60 detik dinilai per jendela
 30 detik dan diambil mediannya. Terukur pada rekaman 300 detik 14 Okt 2026
 (arsip uji coba): seluruh rekaman 0,24 (di bawah ambang), per 30 detik
@@ -450,7 +450,7 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 
 ### SQI per jendela 10 detik (Orphanidou 2015)
 
-Vonis `analyze_recording.py` berlaku per rekaman, sehingga satu menit buruk di
+Vonis `analyze_recording.py` berlaku per rekaman sehingga satu menit buruk di
 rekaman 300 detik bisa tersembunyi. `scripts/kualitas_jendela.py` menilai tiap
 jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
 (`laporan/pustaka/orphanidou_2015.pdf`, hlm. 834–836):
@@ -543,7 +543,7 @@ verifikasi state dari balasan board (`s`), jangan diasumsikan (`model/CLAUDE.md`
 Data resmi (sesi 22 Okt 2026 siang) dan rekaman pengembangan 15–22 Okt 2026
 tersimpan di `data/recordings/`, bernama tanggal-jam tarik. Rekaman uji coba 10 Sep – 21 Okt 2026 ada di
 [`data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md)
-beserta kondisi rangkaiannya. Tabel berikut adalah tujuh rekaman uji coba
+beserta kondisi rangkaiannya. Tabel ini memuat tujuh rekaman uji coba
 pertama (rangkaian breadboard, 10 Sep 2026) — dipertahankan karena
 pelajarannya membentuk prosedur §1 dan §3, bukan sebagai hasil.
 
@@ -557,7 +557,7 @@ pelajarannya membentuk prosedur §1 dan §3, bukan sebagai hasil.
 | 7 | powerbank | **39%** | tidak ada | dengung terbaik, tapi elektroda sudah habis |
 
 Satu perubahan per percobaan. Percobaan 3 mengubah daya **dan** menggeser
-elektroda sekaligus, sehingga hasilnya tidak dapat diatribusikan ke salah satu.
+elektroda sekaligus sehingga hasilnya tidak dapat diatribusikan ke salah satu.
 
 **Contoh rekaman uji coba yang bersinyal** (arsip, bukan acuan resmi):
 `data/arsip/rekaman-uji-coba/20260915-1130.csv` — ayunan 3.128 counts,

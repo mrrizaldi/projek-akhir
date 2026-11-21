@@ -147,7 +147,7 @@ if ((lewati_kalibrasi || replay || (hangat && rr_tenang)) && q.kontak)
 (`akuisisi_replay()` = sumber bukan ADC). Selama replay, gerbang waktu dan RR
 dilewati dan serial mencetak `GERBANG DILEWATI (replay)` saat fase berpindah.
 Kembali ke Sensor (ADC), lewat menu Sumber sinyal atau `y` kedua, memanggil
-`gerbang_mulai_sesi()`, sehingga sinyal tubuh kembali ke `calibrating` dan
+`gerbang_mulai_sesi()` sehingga sinyal tubuh kembali ke `calibrating` dan
 harus memenuhi gerbang penuh (kontak 60 detik + RR tenang 30 detik).
 Tidak ada keadaan tersisa dari replay yang bisa membuka gerbang untuk sinyal
 tubuh.
@@ -240,7 +240,7 @@ beat yang tertahan 40 detik di backlog tetap membawa waktu **kejadian**-nya.
 t.ms = t_sesi_ms + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
 ```
 
-Deteksi berjalan tiap 1 detik atas ring 4 detik, sehingga beberapa beat keluar
+Deteksi berjalan tiap 1 detik atas ring 4 detik sehingga beberapa beat keluar
 bergerombol dalam milidetik yang sama; `millis()` saat keluar membuat dashboard
 menampilkan denyut berdesakan lalu menganggur (terukur: jeda antar-`ts` minimum
 28 ms, padahal RR terpendek ~200 ms). Konsekuensinya, sampel yang hilang di
@@ -278,7 +278,7 @@ Kapasitas ring **27.000 beat** (`ECG_MQTT_ANTRE_TARGET`), dialokasikan di PSRAM
 saat `setup()` lalu dipasang lewat `ecg_mqtt_antre_pasang()`; satu entri 40 byte,
 total ~1,05 MB dari 8 MB. Bila alokasi PSRAM gagal, ring turun ke cadangan
 statis 64 beat (`ECG_MQTT_ANTRE_MIN`) dan serial mencetak peringatan. Bagian
-murni ini tidak tahu soal PSRAM, sehingga uji native cukup memasang array statis.
+murni ini tidak tahu soal PSRAM sehingga uji native cukup memasang array statis.
 
 Ring penuh → **buang yang TERTUA**. Alat monitoring lebih butuh menit terakhir
 daripada menit pertama saat koneksi baru pulih. Yang terbuang dicatat di
@@ -549,8 +549,8 @@ ring; jaringan diurus `ecg_mqtt_layani()` di luar jalur beat.
 
 ## 7b. Enam bug yang HANYA muncul di hardware
 
-Keenamnya lolos `pio test -e native` dan lolos build. Bagian ini menjelaskan
-kenapa "kode jadi" bukan "kode benar"; setiap bug ditulis sebagai gejala, sebab,
+Keenamnya lolos `pio test -e native` dan lolos build. Setiap bug berikut menunjukkan
+mengapa "kode jadi" bukan "kode benar"; setiap bug ditulis sebagai gejala, sebab,
 perbaikan yang berlaku di kode, dan hasil terukur.
 
 ### (1) Menunggu PUBACK memblokir loop → 4.493 sampel hilang
@@ -581,7 +581,7 @@ blocking **terpisah** yang tidak ikut dibatasi argumen timeout itu.
 
 Hasil: 2.788 → **290**. Sisa 290 berasal dari menunggu CONNACK di tempat
 (1.500 ms). CONNACK karena itu juga dipungut lintas iterasi (`pungut_connack()`,
-batas 2 detik), sehingga tidak ada satu pun panggilan yang menunggu jaringan di
+batas 2 detik) sehingga tidak ada satu pun panggilan yang menunggu jaringan di
 tempat.
 
 Hasil akhir: **0**.
@@ -748,7 +748,7 @@ RTT PUBACK laptop -> broker, n=60
 Broker menjawab dalam **satu milidetik**. Latensi ~1 detik di luar sisi alat yang
 muncul pada pengukuran berbasis `time()` adalah galat jam bug (6); ekor yang
 tersisa adalah retransmisi WiFi (di bawah). Pelajarannya: komponen jauh yang
-paling sulit diukur juga paling gampang disalahkan — probe langsung lebih murah
+paling sulit diukur juga paling mudah disalahkan — probe langsung lebih murah
 daripada dugaan.
 
 ### Ekor p95: retransmisi TCP, dan kenapa ia tidak dikejar
@@ -828,7 +828,7 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
   MQTT (§3.1c).
 - **Latensi p95.** Ekor p95 bergantung pada kanal WiFi (§7c). Pengukuran ulang
   yang bersih memerlukan AP yang tidak padat dan laporan n run. Kadens deteksi
-  firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik), sehingga
+  firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik) sehingga
   bip dan gelombang di TFT tertunda 1,46 detik dari R. Build flag
   `-D ECG_LIVE_TIAP=90` menjalankan deteksi tiap 250 ms (tunda bip 0,7 detik)
   dengan akurasi deteksi DS1 setara (Se 0,9881 vs 0,9867, PPV 0,9870 vs

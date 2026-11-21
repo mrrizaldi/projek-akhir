@@ -40,7 +40,7 @@ kebijakan tinggal di sini.
 Pemisahan ini bukan soal kerapian. Fungsi di `src/` punya padanan C di firmware
 ESP32; kalau `np.savez` dan `print` ikut bersarang di dalamnya, porting jadi
 acara bongkar-pasang. Sebaliknya, dengan semua kebijakan buang-beat
-terkumpul di satu fungsi di sini, pertanyaan "beat mana yang dipakai?" punya
+terkumpul di satu fungsi di sini, soal beat mana yang dipakai punya
 **satu** jawaban yang bisa dibaca dalam 4 baris.
 
 `prep_beats.py` juga satu-satunya tempat filter Fase 1 dijalankan ke seluruh
@@ -206,7 +206,7 @@ dilewati dengan pesan `make data DB=<db>`), lalu untuk tiap record:
    model `JITTER_MODEL` (`"empiris"`). Semua salinan ditumpuk ke `.npz` record
    yang sama oleh `gabung()`.
 3. DS2 dan database tambahan tidak pernah dijitter: DS2 adalah tolok ukur, dan
-   residu empiris diukur dari detektor di mitdb 360 Hz, sehingga tidak berlaku
+   residu empiris diukur dari detektor di mitdb 360 Hz sehingga tidak berlaku
    untuk sinyal yang di-resample.
 
 Opsi baris perintah: `--jitter {none,empiris,seragam,normal}`, `--salinan N`,
@@ -237,7 +237,7 @@ sebaran per record: {3 beat: 21 record, 2 beat: 23 record}
 ```
 
 Semua 21 beat tepi itu ada di **akhir** rekaman: R-peak terakhir jatuh setelah
-sampel 649.872, sehingga jendela `+128` tidak muat di 650.000 sampel.
+sampel 649.872 sehingga jendela `+128` tidak muat di 650.000 sampel.
 
 ```
 rec 103  r[-1] = 649.875  (butuh <= 649.872)  → dibuang, cuma lewat 3 sampel

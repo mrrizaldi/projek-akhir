@@ -66,7 +66,7 @@ return Model(inputs=[morph_in, rr_in], outputs=out, name="hybrid_ecg")
 `Sequential` itu tumpukan lurus: satu input, satu jalur, satu output. Model ini
 punya **dua input yang bertemu di tengah**, jadi Sequential secara struktural
 tidak bisa. Functional API memperlakukan layer sebagai fungsi
-(`x = layers.Conv1D(...)(x)`), sehingga percabangan dan penggabungan tinggal
+(`x = layers.Conv1D(...)(x)`) sehingga percabangan dan penggabungan tinggal
 soal siapa memanggil siapa.
 
 ---
@@ -175,7 +175,7 @@ if dropout_rate > 0:
 
 Jadi `build_hybrid_model(dropout_rate=0.3)` langsung bisa dipakai untuk
 menguji dropout. Pengujian di Fase 5 menunjukkan dropout 0,2/0,3/0,5 menurunkan
-val recall dengan AUC nyaris sama, sehingga nilai 0,0 dipertahankan (lihat
+val recall dengan AUC nyaris sama sehingga nilai 0,0 dipertahankan (lihat
 [`train-walkthrough.md`](train-walkthrough.md) §6).
 
 ---
@@ -203,7 +203,7 @@ Empat test mengunci kontraknya (`tests/test_model.py`):
 | `test_predict_dummy_di_rentang_probabilitas` | aktivasi output bukan sigmoid |
 | `test_cabang_ritme_benar_benar_terpakai` | `Concatenate` salah sambung |
 
-Yang terakhir paling berharga dan paling gampang dilupakan: ubah **hanya**
+Yang terakhir paling berharga dan paling mudah dilupakan: ubah **hanya**
 `X_rr`, morfologi dibiarkan nol, output harus berubah. Kalau cabang RR
 tak tersambung, model tetap latih mulus, akurasi tetap masuk akal, dan tidak
 ada satu pun error — jenis bug yang tidak terlihat sampai recall APC

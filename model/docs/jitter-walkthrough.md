@@ -219,7 +219,7 @@ dikalibrasi di VAL bersih, DS2:
 Bandingkan dengan paper (Tabel 3): sensitivitas N mereka 94,5 → 93,7 dari δ=0
 ke δ=18. **Nyaris tidak bergerak.** Kita: F1 0,566 → 0,317 hanya di δ=4.
 
-Kenapa bedanya sejauh itu? Karena yang dibandingkan bukan hal yang sama.
+Bedanya sejauh itu karena yang dibandingkan bukan hal yang sama.
 Klasifikasi mereka bersandar pada **statistik ringkasan** window (maks, min,
 varians, RMS, kurtosis, skewness) — semua itu **kebal geseran**: menggeser
 jendela sedikit tidak mengubah varians isinya. Kita memakai **Conv1D** yang
@@ -238,7 +238,7 @@ Jitter menggeser seluruh distribusi probabilitas ke atas (window yang bergeser
 terlihat "tidak normal"), jadi threshold 0,35 yang dikalibrasi pada data bersih
 tiba-tiba terlalu longgar dan FP meledak.
 
-Konsekuensinya penting untuk membaca semua tabel di bawah: **model yang
+Konsekuensinya penting untuk membaca semua tabel pada bagian ini: **model yang
 dilatih ulang WAJIB dikalibrasi ulang threshold-nya**, dan perbandingan pada
 threshold tetap 0,35 akan menyesatkan.
 
@@ -390,7 +390,7 @@ buruk.
 **4. Konfigurasi yang dikunci di `config.py`.** `WIN_PRE/WIN_POST = 128/128`,
 `JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`. Bentuk 128/128 (`w128b`)
 dipilih atas 128/127 karena hasilnya setara (0,6911 vs 0,6775, selisih di bawah
-ambang 0,04) dan panjang 256 habis dibagi stride 8, sehingga rantai pooling
+ambang 0,04) dan panjang 256 habis dibagi stride 8 sehingga rantai pooling
 256 → 128 → 64 → 32 berjalan tanpa pemotongan. Tiga salinan ber-jitter
 (`w128s3`, 0,6099) lebih buruk dari dua (`w128`, 0,6775), jadi dua. Threshold
 model produksi dikalibrasi ulang di VAL dan menjadi 0,80; hasil DS2-nya ada di

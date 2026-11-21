@@ -103,7 +103,7 @@ F1 maksimum ada di 0,80 (0,6917). Kandidat lain di dalam margin hanya 0,85
 (selisih 0,0031); tie-break memilih recall yang lebih tinggi, jadi 0,80.
 
 Threshold 0,80 tampak tinggi, tetapi itu bukan tanda model konservatif. VAL
-dirakit dari DS1 teraugmentasi, sehingga ikut berisi salinan ber-jitter, dan
+dirakit dari DS1 teraugmentasi sehingga ikut berisi salinan ber-jitter, dan
 window yang bergeser cenderung diberi probabilitas Aritmia lebih tinggi.
 Sebaran probabilitas bergeser ke atas, dan titik operasi yang benar ikut
 bergeser. Pada threshold 0,35 model ini hanya mencapai precision 0,19 di VAL.

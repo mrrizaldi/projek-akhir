@@ -85,7 +85,7 @@ Jalankan `make poc` dan baca `scripts/check_poc.py`.
 
 ## Jebakan yang membentuk seluruh desain
 
-Tabel berikut merangkum jebakan yang paling menentukan desain:
+Jebakan yang paling menentukan desain:
 
 | Jebakan | Gejala kalau kena | Dibahas di |
 |---|---|---|

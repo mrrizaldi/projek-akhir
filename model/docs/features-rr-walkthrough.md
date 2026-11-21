@@ -24,8 +24,8 @@ print(compute_rr_features(r)[:5])
 ```
 
 > File `src/features_rr.py` sengaja **tanpa komentar**. Penjelasannya ada di sini
-> — kode dijaga sependek mungkin supaya gampang dibaca sebagai persamaan dan
-> gampang dipadankan dengan port C-nya (`firmware/src/ecg_pipeline.cpp`).
+> — kode dijaga sependek mungkin supaya mudah dibaca sebagai persamaan dan
+> mudah dipadankan dengan port C-nya (`firmware/src/ecg_pipeline.cpp`).
 
 ---
 
@@ -117,8 +117,8 @@ petunjuk kenapa.
 ```
 
 `bool` itu subclass `int` di Python, jadi cast-nya no-op secara nilai. Gunanya
-bikin `np.array(labels, dtype=np.int8)` di `prep_beats` tidak menghasilkan
-`dtype=bool` yang bikin class-weight Fase 5 rewel.
+membuat `np.array(labels, dtype=np.int8)` di `prep_beats` tidak menghasilkan
+`dtype=bool` yang membuat class-weight Fase 5 bermasalah.
 
 **Asimetri yang perlu disadari:** keanggotaan dicek di `ARRHYTHMIA_SYMBOLS`,
 jadi kelas tak dikenal jatuh ke 0 (Normal) diam-diam. Aman *hanya karena*
@@ -182,7 +182,7 @@ ini sendiri:
 $$\overline{\text{RR}}_{\text{lokal}}[j] = \frac{1}{j - s + 1}\sum_{k=s}^{j} d[k],
 \qquad s = \max(0,\ j - 9)$$
 
-`np.cumsum` bikin **jumlah prefix**, jadi jumlah jendela berapa pun lebarnya
+`np.cumsum` membuat **jumlah prefix**, jadi jumlah jendela berapa pun lebarnya
 selesai dalam dua operasi: `csum[j+1] - csum[start]`. Nol di depan (`[0.0]`)
 supaya `csum[0] = 0` dan rumusnya berlaku juga untuk `start = 0`.
 
@@ -231,7 +231,7 @@ lebih mahal daripada rata-rata yang sedikit lebih kasar.
 
 Di awal record jendela **menyusut**, bukan di-pad: beat ke-3 memakai rata-rata 3
 interval yang benar-benar ada. Padding nol akan menciptakan interval palsu 0
-detik yang menyeret `local_avg` ke bawah dan bikin `RR_ratio` meledak.
+detik yang menyeret `local_avg` ke bawah dan membuat `RR_ratio` meledak.
 
 Di firmware, `ecg_rr_features` (`firmware/src/ecg_pipeline.cpp`) menjumlahkan
 ulang paling banyak 10 interval dari riwayat indeks R untuk tiap beat: O(10) per
@@ -385,7 +385,7 @@ dibuang     109 beat = 88 (beat 0 & 1 tiap record) + 21 (window tak muat di tepi
 ```
 
 Bawaan `make prep` menambahkan dua salinan ber-jitter untuk record DS1
-(augmentasi, lihat [`jitter-walkthrough.md`](jitter-walkthrough.md)), sehingga
+(augmentasi, lihat [`jitter-walkthrough.md`](jitter-walkthrough.md)) sehingga
 totalnya 202.560 beat; DS2 tetap satu salinan bersih.
 
 Rasio global 10,5% jauh lebih ramah daripada record 100 (1,5%) — record 100

@@ -246,7 +246,7 @@ np.clip(np.round(x / scale) + zero, -128, 127)     # masuk
 dan tanpa clip hasilnya *wrap around* — angka besar positif jadi negatif ekstrem.
 Kalau langkah dequantize di output dilupakan, metrik dihitung dari bilangan
 bulat −128..127 yang dibandingkan dengan threshold 0,80: setiap q ≥ 1 (p ≳ 0,5)
-jadi Aritmia, sehingga titik operasi diam-diam pindah tanpa error apa pun (PRD
+jadi Aritmia sehingga titik operasi diam-diam pindah tanpa error apa pun (PRD
 menyebut ini eksplisit: "lupa dequantize → metrik ngawur").
 
 ---
@@ -303,7 +303,7 @@ Ketiga kelas bergeser ke arah yang sama dengan *recall* agregat (+0,0108), dan
 tidak ada kelas yang turun. Yang terbesar S, +0,0240, sedikit di atas ambang
 agregat 0,02 tetapi searah perbaikan. Label berubah pada **272 dari 49.656
 detak (0,55%)**. Pergeseran ini konsisten dengan penjelasan di atas:
-probabilitas INT8 sedikit naik di sekitar *threshold*, sehingga lebih banyak
+probabilitas INT8 sedikit naik di sekitar *threshold* sehingga lebih banyak
 detak melewati 0,80 di semua kelas.
 
 ---

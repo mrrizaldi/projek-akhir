@@ -137,7 +137,7 @@ pt_mwi(scratch, n);                       // rata-rata bergerak 54 sampel (150 m
 `scratch` disediakan pemanggil (n float) — **tanpa alokasi dinamis**, syarat wajar
 di MCU dan sekaligus membuat pemakaian memorinya terlihat di tempat pemanggilan.
 
-Dua detail yang gampang meleset saat porting:
+Dua detail yang mudah meleset saat porting:
 
 - **Akumulator MWI pakai `double`.** Rata-rata bergerak menjumlahkan dan
   mengurangi ratusan ribu kali; dengan `float` galatnya menumpuk sampai ambang
@@ -294,7 +294,7 @@ sampel mentah
    → beat keluar
 ```
 
-**Inferensi sengaja TIDAK di dalam modul ini.** Pemanggil yang menjalankannya,
+**Inferensi sengaja TIDAK di dalam modul ini.** Pemanggil yang menjalankannya
 sehingga `ecg_live` bisa diuji di `pio test -e native` tanpa TFLite Micro sama
 sekali — dan itu memisahkan bug logika alur dari bug inferensi.
 
@@ -403,7 +403,7 @@ Konsekuensinya, setiap penggambaran menu berjalan di `loop()` yang sama dengan
 pengurasan antrean dan memblokirnya selama menggambar. Batasnya adalah
 kedalaman antrean ISR, 256 sampel = **711 ms**. Pohon menu berupa array struct
 statis; `tampilan_menu_baris()` mengingat isi tiap baris dan hanya menggambar
-ulang baris yang berubah, sehingga menggeser sorotan menyentuh dua baris saja.
+ulang baris yang berubah sehingga menggeser sorotan menyentuh dua baris saja.
 
 Terukur di board (13 Okt 2026):
 
@@ -438,7 +438,7 @@ pengukuran §5b.
 
 ### Tiga sumber sinyal (menu Sumber sinyal)
 
-Sumber dipilih dari menu **Sumber sinyal** dan disimpan di NVS, sehingga tetap
+Sumber dipilih dari menu **Sumber sinyal** dan disimpan di NVS sehingga tetap
 berlaku setelah boot:
 
 | Sumber | Isi antrean ISR | Kegunaan |
@@ -463,7 +463,7 @@ if (rp_data) {
 
 Memuat berkas rekaman memblok `loop()` (membaca LittleFS); selama itu timer
 dihentikan agar tidak tercatat sampel hilang. PSRAM aman dibaca di ISR ini
-karena ISR tidak dipasang dengan `ESP_INTR_FLAG_IRAM`, sehingga ia ikut
+karena ISR tidak dipasang dengan `ESP_INTR_FLAG_IRAM` sehingga ia ikut
 ditahan saat flash ditulis.
 
 Satu cabang di ISR, dan **seluruh jalur di hilirnya tidak berubah** — bandpass,
@@ -577,7 +577,7 @@ operasi normal. Seluruh tangga dijalankan dengan dua cara: dari laptop
 | `p4` | + gelombang TFT, bip, LED | antarmuka |
 | `p5` | + radio WiFi (`setSleep(false)`) dan publikasi MQTT | radio = operasi normal |
 
-Teks TFT 1 Hz, tombol, dan pembacaan INA219 berjalan di semua mode, sehingga
+Teks TFT 1 Hz, tombol, dan pembacaan INA219 berjalan di semua mode sehingga
 ongkosnya hilang pada selisih. Sumber sinyal wajib replay: tanpa sinyal tidak
 ada beat, dan `p3` akan mengukur nol inferensi. Radio dimatikan dengan
 `esp_wifi_stop()`, bukan `WiFi.mode(WIFI_OFF)`; yang terakhir ikut men-deinit
@@ -700,7 +700,7 @@ tetap tersambung.
    Durasi sekitar 7,5 menit (6 mode × 70 detik). Agar `p5` mewakili operasi
    normal, broker aktif harus terjangkau; periksa dengan `make broker-info`
    (port 1883 `terbuka`) sebelum mulai. Pemeriksaan tegangan bus < 1 V di skrip
-   tetap berlaku untuk baterai: tegangan sel minimum 3,0 V, sehingga bacaan di
+   tetap berlaku untuk baterai: tegangan sel minimum 3,0 V sehingga bacaan di
    bawah 1 V hanya muncul bila INA219 tidak berada di jalur arus.
 6. Cek silang sekali dengan multimeter mode arus yang disisipkan di titik yang
    sama (antara TP4056 `OUT+` dan masukan konverter) pada satu mode; selisih
@@ -722,11 +722,11 @@ Isinya sama dengan `measure_power.py`, dipindah ke `daya.cpp`:
 - Tiap langkah: buang 1 jendela transien, ambil 6 jendela 10 detik
   (`DAYA_BLOK`, `DAYA_JENDELA_MS`), total ±7 menit. Jendela dicatat oleh
   `daya_layani()` yang sama dengan baris `DAYA`; `daya_tangga_tick()` hanya
-  memindah langkah, sehingga `loop()` tidak tertahan selain saat menulis CSV
+  memindah langkah sehingga `loop()` tidak tertahan selain saat menulis CSV
   di akhir.
 - Sumber ADC dipindah ke replay acuan selama tangga dan dikembalikan sesudahnya,
   agar beban identik antar-ulangan.
-- Menu ditutup selama tangga, sehingga `p4` mengukur layar monitor yang
+- Menu ditutup selama tangga sehingga `p4` mengukur layar monitor yang
   sebenarnya, bukan layar menu yang nyaris diam. Halaman hasil terbuka sendiri
   di akhir.
 - Kriteria sah per langkah sama dengan skrip: V bus ≥ 1 V, `lewat = 0` (mulai

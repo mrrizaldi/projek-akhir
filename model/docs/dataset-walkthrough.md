@@ -103,7 +103,7 @@ Fase 3. Satu sumber kebenaran, jangan digandakan.
 
 ---
 
-## 3. `stack_records()` — menumpuk, plus satu kolom yang gampang dilupakan
+## 3. `stack_records()` — menumpuk, plus satu kolom yang mudah dilupakan
 
 ```python
 with np.load(path) as z:
@@ -120,8 +120,8 @@ bertumpuk, jadi `records` tetap unik lintas database.
 Tiga array pertama jelas. Yang keempat — `records` — adalah **jejak asal tiap
 beat**, dan dia satu-satunya alasan Fase 6 bisa menjawab pertanyaan yang benar.
 
-Metrik global ("recall 0,78") menyembunyikan hal penting: apakah 0,78 itu rata,
-atau 0,95 di 20 pasien dan 0,10 di 2 pasien? Yang kedua jauh lebih berbahaya di
+Metrik global ("recall 0,78") menyembunyikan hal penting: 0,78 bisa berarti rata, bisa pula 0,95 di
+20 pasien dan 0,10 di 2 pasien. Kemungkinan kedua jauh lebih berbahaya di
 alat medis. Dengan `records`, metrik per-pasien tinggal `y[records == r]`.
 
 Tanpa kolom itu, informasinya **hilang permanen** begitu array disatukan — dan
@@ -221,7 +221,7 @@ di ~20 pasien ke ~11.250 di ~102). incartdb untuk konsentrasi F: 372 dari 394
 beat F mitdb ada di record 208 saja (satu pasien efektif), sedangkan incartdb
 menyebar 219 beat di 22 record; yang diperbaiki cakupan pasien, bukan jumlah
 beat. Q tidak tertolong: 100 beat di tiga database (mitdb 8 + 7, svdb 79,
-incartdb 6), sehingga Q tetap bukan kelas yang bisa dilaporkan.
+incartdb 6) sehingga Q tetap bukan kelas yang bisa dilaporkan.
 
 **DS2 mitdb tidak berubah satu byte.** Dia satu-satunya set yang sebanding
 literatur, dan aturan "DS2 tidak memilih apa pun" hanya bisa ditegakkan kalau
