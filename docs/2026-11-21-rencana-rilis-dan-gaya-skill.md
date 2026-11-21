@@ -729,10 +729,24 @@ sesudah pemeriksaan hijau, tanpa push.
 
 ## Tindak lanjut user
 
-1. **Pilot gaya skill (Tugas 8).** User meninjau `ingest-word` hasil pilot
-   dan akan memberi tindak lanjut sendiri; skill lain tetap dalam gaya lama
-   sampai ada arahan. Usulan eval yang tersisa untuk `ingest-word`: langkah
-   2 meminta kalimat eksplisit bahwa berkas berubah sesudah DOCX dibuat
-   (rubrik C, putaran 4).
+1. **Pilot gaya skill (Tugas 8).** Yang ditinjau user:
+   - buka `.claude/skills/ingest-word/SKILL.md` (baru) dan bandingkan dengan
+     versi lama `git show a773121^:.claude/skills/ingest-word/SKILL.md`;
+   - panjang SKILL.md 108 menjadi 177 baris karena tiap langkah memuat
+     perintah, keluaran yang diharapkan, dan kondisi berhenti;
+   - skill dipecah empat berkas: `SKILL.md`, `temuan.md` (kegagalan asal
+     aturan), `referensi/sync.md` (detail kondisional), `templat/ringkasan.md`
+     (layar konfirmasi dry-run);
+   - description memuat frasa pemicu bahasa Inggris dan daftar "bukan untuk";
+   - dua konfirmasi (dry-run, lalu perbaikan format) dipertahankan walau
+     panduan menyebut satu layar konfirmasi.
+   Keputusan: setujui lalu terapkan ke sembilan skill lain (tiap skill
+   peninjau invarian dan satu putaran eval, sekitar tiga subagen per skill),
+   ubah panduan dulu, atau terapkan hanya ke skill tertentu. Usulan eval
+   tersisa untuk `ingest-word`: langkah 2 meminta kalimat eksplisit bahwa
+   berkas berubah sesudah DOCX dibuat (rubrik C, putaran 4).
 2. **Lingkungan WordCraft (Tugas 9).** Target wasm, `cargo xtask ci`, dan
-   build GUI dari branch ditunda.
+   build GUI dari branch ditunda. Nilainya rendah selama branch tidak
+   di-PR ke upstream dan user menyunting lewat `make docx` (DOCX dari
+   importer baru); GUI lama hanya berpengaruh bila `main.tex` dibuka
+   langsung di aplikasi WordCraft.
