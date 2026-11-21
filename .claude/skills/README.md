@@ -22,7 +22,7 @@ putaran.
 | `buku-ikut-proposal` | Bab 1 buku mengikuti proposal, pertanyaan ke user soal isi buku | tidak ada |
 | `deck-pa` | deck presentasi PA (PPTX) | tidak ada |
 
-`narasi-pa` nonaktif sejak 21 Nov 2026 dan disimpan di
+`narasi-pa` nonaktif dan disimpan di
 `.claude/skills-arsip/narasi-pa/` sebagai rujukan.
 
 ## Skill user

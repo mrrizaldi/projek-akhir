@@ -277,7 +277,7 @@ Acuan penulisan = empat skill di `.claude/skills/`: `struktur-pa` (kerangka
 bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
 `tulis-tanpa-slop` (lapisan atas skill user `indonesian-antislop-writing`:
 paragraf tanpa pola tulisan AI, diperiksa `scripts/cek_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
-dan sinkronisasi proposal). `narasi-pa` dinonaktifkan 21 Nov 2026 dan
+dan sinkronisasi proposal). `narasi-pa` nonaktif dan
 disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6
 laporan PA PENS yang menjadi asal aturannya sudah didistilasi ke skill. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
 Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim
