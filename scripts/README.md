@@ -17,6 +17,31 @@ memilih projek tujuan (bawaan `buku-pa`; `proposal-pa` = arsip). `AKUISISI`
 berisi daftar grafik rekaman tambahan (data resmi = sesi 22 Okt 2026 siang, grafik R1 sudah ada di daftar tetap; relatif terhadap
 `model/artifacts/metrics/`, tanpa `.png`, dipisah spasi) yang ikut disalin.
 
+## Indeks berkas lewat browser
+
+`sajikan.py` menyalakan server lokal (stdlib, tanpa dependency) yang
+menyajikan seluruh repo. Halaman `/` mendaftar semua `.pdf`, `.docx`, dan
+`.pptx` di repo (kecuali `.git`, `.venv`, `node_modules`, `.pio`),
+dikelompokkan per folder. Folder dengan berkas paling baru tampil paling
+atas, jadi PDF yang baru di-`make pdf` langsung ada di urutan pertama.
+Daftar dibaca ulang setiap halaman dimuat, tanpa langkah build. Tautan
+terbuka di tab baru.
+
+1. Jalankan dari akar repo:
+
+   ```bash
+   python3 scripts/sajikan.py          # port bawaan 8700
+   python3 scripts/sajikan.py 9000     # port lain
+   ```
+
+2. Buka `http://127.0.0.1:8700/` di browser. PDF terbuka di viewer browser;
+   `.docx`/`.pptx` terunduh.
+3. Hentikan dengan `Ctrl+C`.
+
+Server hanya mendengar di `127.0.0.1`, jadi tidak terjangkau dari perangkat
+lain di jaringan. Selain berkas di indeks, path apa pun di repo bisa dibuka
+langsung lewat URL (`/model/artifacts/metrics/...png`).
+
 ## Pemeriksa
 
 `cek_komentar.py` menegakkan aturan TANPA KOMENTAR KODE (`CLAUDE.md` root,
