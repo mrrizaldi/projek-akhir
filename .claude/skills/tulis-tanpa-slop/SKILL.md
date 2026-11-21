@@ -60,7 +60,12 @@ diputuskan per kemunculan).
    \textit{error}." → "DS2 tidak diberi \textit{jitter} sehingga mewakili
    anotasi tanpa \textit{error}." atau pecah menjadi kalimat baru yang
    dibuka subjeknya. Hubungan sebabnya wajib tetap tertulis ("sehingga",
-   "akibatnya", "karena"), bukan dibuang bersama "karena itu". Aturan ini
+   "akibatnya", "karena"), bukan dibuang bersama "karena itu". "Karena itu"
+   yang berdiri di kalimat kedua merujuk ke kalimat sebelumnya, dan kalimat
+   itulah sebabnya: "Sinyal difilter \textit{bandpass}. Puncak R karena itu
+   lebih mudah dideteksi." → "Sinyal difilter \textit{bandpass}. Akibatnya,
+   puncak R lebih mudah dideteksi.", bukan "... Puncak R lebih mudah
+   dideteksi." tanpa penghubung. Aturan ini
    soal posisi, jadi satu kemunculan pun diubah. Yang sah: "Karena itu," di
    awal kalimat bila jarang, serta "bukan karena itu" dan "justru karena
    itu" yang bermakna harfiah.
