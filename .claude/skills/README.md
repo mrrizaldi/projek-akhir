@@ -1,82 +1,95 @@
 # Skill repo PA
 
-Skill = `SKILL.md` (aturan) + `eval.md` (tugas uji, rubrik, riwayat skor).
-Aturan keras 7–8 di `CLAUDE.md` root: setiap kegagalan yang ditangkap user
-menjadi skill hari itu juga, dan setiap skill punya eval yang dinilai model
-berbeda, maksimal 3 putaran.
+Skill di repo ini adalah lapisan tipis. Aturan umum tinggal sekali di skill
+user (`~/.claude/skills/`); skill repo menyebut skill user yang dimuat lebih
+dulu, lalu menambahkan hanya yang khusus PA (path, perintah, nama konstanta,
+jebakan). Muat lapisan user, lalu lapisan repo. Aturan keras 7–8 di
+`CLAUDE.md` root: setiap kegagalan yang ditangkap user menjadi skill hari itu
+juga, dan setiap skill punya eval yang dinilai model berbeda, maksimal 3
+putaran.
 
-| Skill | Lingkup |
-|---|---|
-| `struktur-pa` | kerangka bab laporan PA, benang merah, register, placeholder gambar, QA sebelum kumpul |
-| `tabel-pa` | tabel LaTeX laporan PA (grid PENS, satu tabel satu pertanyaan, templat A–G) |
-| `buku-ikut-proposal` | Bab 1 buku mengikuti proposal pada garis besar, sinkronisasi balik ke proposal |
-| `batas-tidak-diam` | firmware: batas tidak membuang data diam-diam, aksi di batas tidak memblok |
-| `tanpa-komentar-kode` | kode tanpa komentar/docstring, penjelasan ke dokumen |
-| `deck-pa` | deck presentasi PA (PPTX): isi dari buku, angka tidak dikarang, tanpa label internal, ilustrasi = placeholder, render + lihat tiap slide |
-| `kicad-pcb-pa` | PCB/skematik KiCad: keputusan desain ditanyakan, format KiCad 9, pad dibaca bukan ditebak, nama net = skematik, `cek_board.py` LULUS |
-| `tautan-lokal` | dokumen bertautan ke berkas lokal: HTML bukan PDF, tautan relatif `#page=N`, diklik lewat server lokal sebelum diserahkan, yang belum terbukti disebut |
-| `tulis-tanpa-slop` | paragraf laporan tanpa pola tulisan AI: isi, angka, sitasi tetap; frasa klise, struktur formulaik, dan kebiasaan bawaan aturan rumah ("karena itu" sisipan, "yaitu" berderet) ditindak; `cek_slop.py` |
-| `ingest-word` | suntingan DOCX ke LaTeX: DOCX dicadangkan, dry-run diringkas dan dikonfirmasi, judul dikembalikan ke huruf sumber, skipped dipindah manual, format dirapikan sesudah dikonfirmasi |
+## Skill repo
 
-`narasi-pa` nonaktif sejak 21 Nov 2026, disimpan di
+| Skill | Kapan | Skill user yang dimuat |
+|---|---|---|
+| `batas-tidak-diam` | firmware dengan buffer, durasi, atau kapasitas terbatas, atau operasi lambat di `loop()` | `firmware-bounded-limits` |
+| `kicad-pcb-pa` | PCB atau skematik KiCad mainboard, DRC, rute, Gerber | `kicad-mcp-pcb` |
+| `ingest-word` | suntingan DOCX dari teman dimasukkan kembali ke LaTeX | `wordcraft-latex-ingest` |
+| `tanpa-komentar-kode` | menulis atau menyunting kode, prompt ke subagen penulis kode | `no-code-comments` |
+| `tulis-tanpa-slop` | paragraf laporan agar tidak terbaca ditulis AI | `indonesian-antislop-writing` |
+| `struktur-pa` | kerangka bab, benang merah, placeholder gambar, QA sebelum kumpul | tidak ada |
+| `tabel-pa` | tabel LaTeX laporan | tidak ada |
+| `buku-ikut-proposal` | Bab 1 buku mengikuti proposal, pertanyaan ke user soal isi buku | tidak ada |
+| `deck-pa` | deck presentasi PA (PPTX) | tidak ada |
+
+`narasi-pa` nonaktif sejak 21 Nov 2026 dan disimpan di
 `.claude/skills-arsip/narasi-pa/` sebagai rujukan.
 
-Pemeriksa mesin untuk skill laporan: `python3 scripts/cek_tabel.py`
-(`scripts/README.md`).
+## Skill user
 
-## Menjalankan eval satu skill
+Tiap skill user berupa repo lokal `~/dev/<nama>` dengan symlink
+`~/.claude/skills/<nama>`. Repo GitHub belum dibuat; saat ini hanya repo
+lokal. Setelah ada remote, pasang di mesin lain dengan
+`git clone <url> ~/dev/<nama> && ln -s ~/dev/<nama> ~/.claude/skills/<nama>`.
 
-Dua agen terpisah per putaran, dari Claude Code (Agent tool) atau sesi
-terpisah. Penulis dan penilai harus model yang berbeda (yang dipakai sejauh
-ini: penulis `sonnet`, penilai `haiku`).
+| Skill user | Repo lokal | Dipakai untuk |
+|---|---|---|
+| `local-file-links` | `~/dev/local-file-links` | dokumen yang menautkan berkas lokal (indeks rujukan di `laporan/pustaka/`, daftar bukti dari `model/artifacts`) |
+| `firmware-bounded-limits` | `~/dev/firmware-bounded-limits` | batas firmware tidak membuang data diam-diam |
+| `indonesian-antislop-writing` | `~/dev/indonesian-antislop-writing` | menyunting prosa Indonesia, dengan `check_slop.py` |
+| `kicad-mcp-pcb` | `~/dev/kicad-mcp-pcb` | PCB KiCad lewat MCP, pcbnew, kicad-cli, Freerouting |
+| `wordcraft-latex-ingest` | `~/dev/wordcraft-latex-ingest` | DOCX ke LaTeX |
+| `no-code-comments` | `~/dev/no-code-comments` | kode tanpa komentar, dengan `check_comments.py` |
+| `shared-worktree` | `~/dev/shared-worktree` | keamanan git saat beberapa sesi memakai satu klon |
 
-1. **Penulis** hanya diberi `SKILL.md` (plus `referensi/` bila ada) dan
-   bagian "Tugas uji" dari `eval.md`, tanpa rubrik dan tanpa akses repo
-   lain. Ia tidak menjalankan perintah dan tidak menyunting repo. Angka
-   keluaran perintah ditulis `[N]`, suntingan ditulis sebagai usulan.
-   Jawaban ditulis ke satu berkas di scratchpad dengan heading
-   `## Tugas 1` sampai `## Tugas n`.
-2. **Penilai** diberi `SKILL.md`, `eval.md` utuh (tugas + rubrik), dan
-   berkas jawaban. Ia menilai tiap butir rubrik 0/1/2 secara literal,
-   mengutip bagian jawaban yang gagal, menghitung sendiri apa yang rubrik
-   minta dihitung (kata per kalimat, jumlah angka, sel ≤ 20 kata), dan
-   mencatat pelanggaran `SKILL.md` di luar rubrik (maks 3). Keluaran: tabel
-   `Butir | Skor | Alasan`, baris `Skor: X/10`, lalu "Di luar rubrik".
-3. Skor < 10: perbaiki `SKILL.md` (aturan yang ambigu) atau rubrik/tugas
-   (soal yang tidak berjawaban pasti), catat satu baris di "Riwayat skor"
-   `eval.md` (tanggal, penulis, penilai, skor, temuan, perubahan), lalu
-   putaran berikutnya dengan penulis baru (bukan melanjutkan agen lama).
-4. Berhenti pada 10/10, pada putaran ke-3, atau bila skor tidak naik dua
-   putaran berturut-turut. Yang belum 10/10 dicatat skor terbaiknya dan
-   ditanyakan ke user. Setiap perubahan `SKILL.md` sesudah lulus mewajibkan
-   eval ulang.
+## Layout skill
 
-## Cara menulis skill
+```
+<skill>/
+  SKILL.md                  aturan, frontmatter name + description
+  evals/<kasus>/
+    prompt.md               teks tugas uji
+    case.yaml               schema_version: "1.1", name, expected_outcome
+    graders/NN-*.md         satu pernyataan yang dapat dinilai lulus/gagal
+  triggers/evals.json       daftar {query, should_trigger}, kelas true dan false
+  referensi/                opsional, detail yang dimuat bila perlu
+```
 
-Gaya mengikuti skill provenfix (`~/dev/before-after/SKILL.md`).
+Konvensi `SKILL.md` (format skill-creator):
 
-1. **Description** menyebut apa yang dikerjakan, kapan dipakai (frasa pemicu
-   seperti yang diketik user, Indonesia dan Inggris), bukan untuk apa, dan apa
-   yang tidak dilakukannya.
-2. **Pembuka** satu atau dua kalimat tentang hasil akhir.
-3. **`## Aturan dasar`** dibuka "Tiap aturan ada karena melanggarnya pernah
-   menggagalkan pekerjaan." Tiap butir diawali frasa tebal, lalu alasan
-   singkat yang merujuk `temuan.md` (`temuan #3`).
-4. **`## Rujukan`** berupa tabel `| Berkas | Baca bila |`. SKILL.md hanya
-   memuat aturan dasar dan prosedur; detail yang berlaku pada kondisi
-   tertentu pindah ke `referensi/`.
-5. **`## Prosedur`** bernomor mulai 0 (persiapan). Tiap langkah memuat
-   perintah persis di blok kode, keluaran yang diharapkan, dan kondisi
-   berhenti ("gagal → berhenti, kutip alasannya").
-6. **Satu layar konfirmasi** sebelum skill menulis berkas milik user; sesudah
-   "ya", lanjut tanpa bertanya lagi kecuali ada langkah yang gagal.
-7. **`temuan.md`** daftar bernomor, dibuka "Tiap butir pernah menggagalkan
-   satu pekerjaan." Isinya kegagalan nyata: asal skill dan pelajaran dari
-   riwayat eval.
-8. **`templat/`** untuk keluaran berbentuk tetap (laporan ke user, pesan
-   commit).
-9. **`eval.md`** tetap (Aturan keras 8).
+- Frontmatter hanya `name` (sama dengan nama folder) dan `description`.
+- `description` satu baris, paling banyak 1.024 karakter, agak memaksa:
+  menyebut kapan dipakai dengan frasa yang diketik user, dan batasnya.
+- Tiap aturan disertai alasan satu kalimat.
+- Tanpa riwayat, tanpa catatan revisi, badan kurang dari 500 baris.
+- Detail yang hanya berlaku pada kondisi tertentu pindah ke `referensi/`.
 
-Isi aturan tidak berubah saat gaya ditulis ulang: setiap aturan lama
-dipetakan ke tempat barunya, dan eval dijalankan ulang satu putaran dengan
-skor minimal sama dengan skor terbaik sebelumnya.
+## Prosedur eval
+
+Dua agen terpisah per putaran, dari Agent tool atau sesi terpisah.
+
+1. **Penulis** (model A) hanya diberi `SKILL.md` (lapisan user dan repo,
+   plus `referensi/`) dan `prompt.md` tiap kasus. Ia tidak membuka
+   `case.yaml` atau `graders/`, tidak menjalankan perintah, dan menulis satu
+   berkas jawaban dengan heading `## <kasus>` per kasus.
+2. **Penilai** (model B, berbeda dari A) diberi `SKILL.md`, `case.yaml` dan
+   `graders/` tiap kasus, dan berkas jawaban. Ia menilai tiap pernyataan
+   lulus atau gagal dengan kutipan bukti, dan menulis tabel
+   `Kasus | Penilai | Lulus | Bukti`, baris `Lulus: X/Y`, dan paling banyak
+   tiga pelanggaran `SKILL.md` di luar penilai.
+3. Belum semua lulus: perbaiki aturan yang ambigu di `SKILL.md` atau
+   penilai yang ambigu, lalu putaran berikutnya dengan penulis baru (bukan
+   melanjutkan agen lama).
+4. Berhenti saat semua lulus, pada putaran ke-3, atau bila hasil tidak naik
+   dua putaran berturut-turut; yang belum lulus ditanyakan ke user.
+5. Skor dan tabel lulus ditulis di pesan commit. Tidak ada berkas riwayat
+   skor; `git log` adalah riwayatnya. Setiap perubahan `SKILL.md` sesudah
+   lulus mewajibkan putaran baru.
+
+## Pemeriksa
+
+- Struktur: `python3 scripts/cek_skill.py` (tanpa opsi; `--uji` untuk
+  swauji). Jalan di CI.
+- Pemicu: `scripts/uji_pemicu.sh <folder skill>` mengukur apakah deskripsi
+  memicu pada kueri `triggers/evals.json` (`scripts/README.md`).
+- Laporan: `python3 scripts/cek_tabel.py`, `python3 scripts/cek_slop.py`.

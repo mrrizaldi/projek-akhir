@@ -88,16 +88,16 @@ atau diekstrak.
 
 | Pekerjaan | Muat skill |
 |---|---|
-| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware dengan batas atau operasi lambat | `batas-tidak-diam` |
+| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware dengan batas atau operasi lambat | `batas-tidak-diam` (memuat `firmware-bounded-limits`) |
 | "sunting buku-pa", "Bab 1", "tanya user soal isi buku", sinkron proposal | `buku-ikut-proposal` |
 | "bikin slide", "deck seminar", "slide bimbingan", "PPTX sidang" | `deck-pa` |
-| "ingest", "sync balik", "masukin suntingan Word ke tex" | `ingest-word` |
-| "PCB", "skematik KiCad", "routing", "Freerouting", berkas KiCad dari teman | `kicad-pcb-pa` |
+| "ingest", "sync balik", "masukin suntingan Word ke tex" | `ingest-word` (memuat `wordcraft-latex-ingest`) |
+| "PCB", "skematik KiCad", "routing", "Freerouting", berkas KiCad dari teman | `kicad-pcb-pa` (memuat `kicad-mcp-pcb`) |
 | "tambah bab/subbab", "abstrak", "Bab 4/Bab 5", "pasang gambar", "QA sebelum kumpul" | `struktur-pa` |
 | "buat tabel", "rapikan tabel", tabel hasil Bab 4 | `tabel-pa` |
-| menulis atau menyunting kode (C/C++, Python, shell, `platformio.ini`), prompt ke subagen penulis kode | `tanpa-komentar-kode`, dan skill user `no-code-comments` |
-| "indeks rujukan", "daftar bukti", dokumen dengan tautan ke berkas lokal | `tautan-lokal` |
-| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` |
+| menulis atau menyunting kode (C/C++, Python, shell, `platformio.ini`), prompt ke subagen penulis kode | `tanpa-komentar-kode` (memuat `no-code-comments`) |
+| "indeks rujukan", "daftar bukti", dokumen dengan tautan ke berkas lokal | skill user `local-file-links` (PA: indeks rujukan di `laporan/pustaka/`, daftar bukti dari `model/artifacts`) |
+| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` (memuat `indonesian-antislop-writing`) |
 | `git stash`/`reset`/`checkout` path/`clean`, commit saat sesi atau agen lain bekerja, `index.lock`, `git status` kotor menghalangi | skill user `shared-worktree` |
 
 ## Aturan kerja (non-negotiable)
@@ -275,8 +275,8 @@ env `native` = test di PC). Jalankan dari `firmware/`.
 
 Acuan penulisan = empat skill di `.claude/skills/`: `struktur-pa` (kerangka
 bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
-`tulis-tanpa-slop` (paragraf tanpa pola tulisan AI, diperiksa
-`scripts/cek_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
+`tulis-tanpa-slop` (lapisan atas skill user `indonesian-antislop-writing`:
+paragraf tanpa pola tulisan AI, diperiksa `scripts/cek_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
 dan sinkronisasi proposal). `narasi-pa` dinonaktifkan 21 Nov 2026 dan
 disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6
 laporan PA PENS yang menjadi asal aturannya sudah didistilasi ke skill. Aturan gaya tulis tetap `laporan/CLAUDE.md`.

@@ -75,7 +75,7 @@ daya, WiFi OFF darurat, rekaman ke server, PCB rev2) didaftar bertanggal di
 | [`model/docs/arsip/README.md`](model/docs/arsip/README.md) | Indeks arsip desain, rencana, dan changelog eksperimen model/hardware |
 | [`firmware/README.md`](firmware/README.md) | Env PlatformIO, perintah, pin map, perintah serial |
 | [`dashboard/README.md`](dashboard/README.md) | ThingsBoard, kontrak payload, pengukuran pipeline |
-| [`.claude/skills/`](.claude/skills/) | Skill penulisan laporan (`struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`) dan firmware |
+| [`.claude/skills/`](.claude/skills/) | Indeks skill repo (laporan: `struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`, `deck-pa`; firmware: `batas-tidak-diam`; kode: `tanpa-komentar-kode`; PCB: `kicad-pcb-pa`; `ingest-word`) dan skill user yang dimuatnya |
 | [`docs/arsip/README.md`](docs/arsip/README.md) | Indeks arsip rencana kerja laporan |
 | [`scripts/README.md`](scripts/README.md) | Otomasi lintas-komponen (sinkronisasi artefak) |
 | [`model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`](model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md) | Penyesuaian PCB rev1 → rev2 (skematik KiCad di luar repo) |
