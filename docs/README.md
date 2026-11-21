@@ -3,7 +3,7 @@
 **Isi:** dokumen yang **masih berlaku dan berjalan**: daftar kerja, riset yang
 aksinya belum diputuskan, dan rencana yang belum selesai. Dokumen di folder ini
 boleh diperbarui.
-**Riwayat:** dokumen yang selesai dihapus; riwayatnya ada di git.
+**Riwayat:** dokumen yang selesai dihapus; riwayatnya ada di git. Rencana lama ada di tag git `pra-bersih`; dokumen arsip yang dipangkas dapat dipulihkan dari induk commit `0c87f78` (`docs/arsip/`) dan `830bd3e` (`model/docs/arsip/`) dengan `git show <commit>^:<path>`.
 
 | Tanggal | Dokumen | Isi | Status |
 |---|---|---|---|

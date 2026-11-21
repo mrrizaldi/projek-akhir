@@ -167,6 +167,8 @@ mendiagnosis. Satu-satunya hasil yang masuk produksi adalah assert
 di kode dan byte-identik saat mati, jadi tiap ablasi bisa diulang dengan satu
 perintah (lihat Alat analisis pendukung).
 
+Beban alarm palsu pembanding: FPR 5,21% (2.302 FP dari 2.302 + 41.904 beat normal di DS2) pada 60 bpm = 86.400 beat per hari, sekitar 89% normal (sekitar 76.900 beat), setara sekitar 4.000 alarm palsu per hari.
+
 | Usul | Vonis | Bukti singkat | Dibuka kembali bila |
 |---|---|---|---|
 | K1 `class_weight=None` | gugur | prediksi paper precision +31 poin; terukur +0,3 poin di mitdb+svdb karena kalibrasi threshold di hilir menyerapnya (threshold 0,40 → 0,15); recall S −0,076 | — |
@@ -174,7 +176,7 @@ perintah (lihat Alat analisis pendukung).
 | K3 fitur RR berbentuk rasio | gugur | bagian dari "fitur baru" di tabel 2×2 di bawah: −0,003 di mitdb | — |
 | K4 lebar QRS (peringkat 1–2 mutual information) | gugur | di mitdb recall V 0,944 → 0,898, recall F 0,152 → 0,029; knob `PA_QRSW=1` | — |
 | K5 jendela `RR_local_avg` 10 → 32 | dihentikan | efek yang dicari lebih kecil dari lantai derau 0,04 | ada set uji dengan lantai derau < 0,02 |
-| K6 pooling berbobot pengganti GAP | dihentikan | kapasitas bukan penyebab (model 6.417 param sudah lebih besar dari pembanding) | idem K5 |
+| K6 pooling berbobot pengganti GAP | dihentikan | kapasitas bukan penyebab: model 6.417 param sudah lebih besar dari pembanding utama (Farag 2023, 1.267 param, 1.245 terlatih; INT8 15–18 KB vs 22,94 KB) | idem K5 |
 | K7 input turunan pertama | dihentikan | paper menang di sinyal bersih tetapi jatuh di bawah derau AWGN; harus diuji di rekaman tubuh | ≥ 3 rekaman tubuh berayun > 1.000 counts, uji di rekaman tubuh |
 | K8 kelas F dan Q tetap di biner | dikonfirmasi | recall F sempurna pun hanya +0,037 F1 (di bawah ambang); hanya S yang bisa menggerakkan angka utama (+0,113) | — |
 | K9 tanpa sklearn (mutual information) | dikonfirmasi | gate dependency; peringkat paper dipakai sebagai hipotesis, divalidasi `ablasi.py` | — |
@@ -190,6 +192,11 @@ perintah (lihat Alat analisis pendukung).
 | Gate A3: subsample beat F record 208 | ditolak | plafon F sempurna +0,037 di bawah ambang; recall F rendah karena cakupan pasien, bukan bobot gradien | — |
 | Set kalibrasi threshold lebih besar (+svdb, +incartdb) | tidak dipakai | celah F1 terhadap optimum DS2 menyempit 0,034–0,068 → 0,014–0,020 (`cek_kalibrasi.py`, satu seed), tetapi memakai held-out untuk kalibrasi menghapus perannya sebagai TEST-B/TEST-C | held-out dipecah kalibrasi/uji, keputusan user |
 | Tahap 2 penamaan V/S | tidak dikirim | presisi nama V 91,7% di DS2, maksimum 43,9% di VAL; DS2 tidak boleh mensertifikasi (`tahap2.py`) | VAL yang mewakili keragaman morfologi V |
+| Normalisasi window diganti | ditarik | rujukan (Frontiers Digit Health 2026) bocor lewat jendela baseline yang tumpang tindih dengan set uji; z-score di sini dihitung dari window itu sendiri sehingga mekanisme itu tidak ada | — |
+| Test-time adaptation (BeatRhythm-TTA) | ditolak | butuh backprop saat inferensi pada 12-lead; tidak bisa dipasang di ESP32-S3 | — |
+| Augmentasi GAN / BiLSTM | ditolak | teknik 6–7 Khosravi Khaliran 2024; biaya latih dan dependensi tidak sebanding dengan selisih di bawah lantai derau | — |
+| Segmentasi per RR + resampling 480 titik | ditolak | menormalkan panjang beat sehingga informasi beat datang terlalu awal terhapus dari window; merusak deteksi S | — |
+| Angka akurasi 98,9% Khosravi Khaliran 2024 | tidak dibandingkan | protokol 17 kelas per fragmen, split acak, dan 10-fold CV pada dataset yang sudah diaugmentasi: dua kebocoran bertumpuk | — |
 
 ### Ringkasan satu layar
 
@@ -224,7 +231,7 @@ berpindah bila tidak ada langkah adaptif di antara knob dan metrik.
 
 | Skrip | Untuk apa |
 |---|---|
-| `scripts/cek_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar |
+| `scripts/cek_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar. Knob `PA_CEK_REC` = jumlah rekaman per basis data (bawaan 8), mis. `PA_CEK_REC=20 python scripts/cek_lead.py` dari folder `model/` |
 | `scripts/cek_kalibrasi.py` | Seberapa jauh kalibrasi VAL dari optimum DS2. DS2 mendiagnosis, TIDAK memilih |
 | `scripts/tahap2.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL hanya dapat mensertifikasi presisi 43,9% |
 | `scripts/ablasi.py --db` | Latih multi-database. Bawaan `mitdb` = jalur terkunci, byte-identik |

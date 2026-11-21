@@ -304,8 +304,14 @@ pertama lima varian (`bersih`, `jitter`, `w128`, `w112`, `hos`), semuanya seed
 `ringkas_ablasi.py`; ia disimpan sebagai bukti nondeterminisme di atas.
 `ablasi.csv` menampung semua run bertanda seed; hapus berkas itu untuk mulai
 bersih. Kolom `menit` mencatat durasi satu proses dari rakit sampai ukur:
-0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit dengan `--salinan 2` atau 3, dan
-3,7–5,8 menit untuk varian latih multi-database (CPU, tanpa GPU).
+0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit untuk varian mitdb dengan
+`--salinan 2` atau 3, 1,5–10,1 menit untuk varian multi-database (`fb_*` dan
+`fd_*`), dan 1,5–4,2 menit untuk run mitdb lanjutan (`t8_*` dan `g_*`), semuanya
+CPU tanpa GPU.
+
+Tiap varian mendapat threshold sendiri dari kalibrasi VAL (0,40–0,90 pada lima
+varian pertama), jadi varian dinilai dari F1 dan AUC, bukan recall saja:
+recall di dua titik operasi yang berbeda tidak sebanding.
 
 ### Hasil: tiga seed per varian, DS2
 
