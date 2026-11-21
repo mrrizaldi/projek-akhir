@@ -16,7 +16,7 @@ Baca fase terkait sebelum menyentuh file apa pun. Jangan vibe-coding.
    (keputusan terkunci, PRD Fase 2).
 6. **Tiap fase selesai → tulis walkthrough.** Satu file per modul di `docs/`,
    pola nama `<modul>-walkthrough.md`. Lihat "Walkthrough per fase" di bawah.
-   Rencana, desain, dan changelog bertanggal masuk `docs/arsip/`, bukan `docs/`.
+   Rencana, desain, dan changelog bertanggal yang selesai tidak disimpan; riwayat ada di git.
 7. **Penjelasan tinggal di `docs/`, bukan di `src/`.** File `src/` ditulis
    sependek mungkin (nyaris tanpa komentar) supaya terbaca sebagai persamaan
    dan gampang diterjemahkan ke C. Kalau butuh menjelaskan "kenapa", tempatnya
@@ -42,9 +42,7 @@ make broker-info         # SSID, IP LAN, port 1883/8080, saran entri wifi_secret
 
 ## Status fase
 
-Satu baris per fase, hanya kondisi yang berlaku sekarang. Log per fase beserta
-angka konfigurasi lama ada di
-[`docs/arsip/riwayat-status-fase.md`](docs/arsip/riwayat-status-fase.md).
+Satu baris per fase, hanya kondisi yang berlaku sekarang. Riwayat per fase ada di git.
 Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 
 | Fase | Status | Kondisi & angka yang berlaku |
@@ -64,7 +62,7 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | HW-2 Deteksi R di C | selesai | Pan-Tompkins (`ecg_detect_r`, `ecg_align_r`) cocok Python 11/11 puncak di golden |
 | HW-3 Alur hidup | selesai | `src/ecg_live.cpp`: beban rata-rata 3,0% anggaran, burst puncak 33,4 ms → ADC wajib lewat ISR + antrean |
 | HW-4 Firmware produksi | selesai | timer ISR 360 Hz → antrean 256 → `ecg_live` → inferensi → LED + serial; sampel hilang 0 |
-| HW-5 Sinyal tubuh | selesai | data resmi = sesi 22 Okt 2026 siang (R1–R4, 927,1 s, MLII, satu subjek), keempatnya Berhasil; buku-pa Tabel kualitas rekaman. Gerbang kalibrasi berbasis kontak (LO±, ayunan 60, dengung 500, pemanasan 60 s) dari tiga sesi ±15 menit 21–22 Okt. Rekaman 10 Sep–11 Okt 2026 = uji coba (arsip). Detail: `data/recordings/README.md`, `docs/mqtt-walkthrough.md` §3.1 |
+| HW-5 Sinyal tubuh | selesai | data resmi = sesi 22 Okt 2026 siang (R1–R4, 927,1 s, MLII, satu subjek), keempatnya Berhasil; buku-pa Tabel kualitas rekaman. Gerbang kalibrasi berbasis kontak (LO±, ayunan 60, dengung 500, pemanasan 60 s) dari tiga sesi ±15 menit 21–22 Okt. Rekaman 10 Sep–11 Okt 2026 = uji coba. Detail: `data/recordings/README.md`, `docs/mqtt-walkthrough.md` §3.1 |
 | HW-6 MQTT + ThingsBoard | selesai | gerbang kalibrasi + gerbang kontak (LO±, ayunan 60, dengung 500), backlog 27.000 beat di PSRAM. PDSR 100,0% / 99,2% / 100,0%, latensi median 939 / 1.108 / 1.014 ms (3 ulangan). Terbuka: daya mode WiFi. Detail: `docs/mqtt-walkthrough.md` |
 | HW-7 Replay | selesai | sumber sinyal replay (menu Sumber sinyal: replay acuan 208 atau replay rekaman `/rekam/NNN.csv`; serial `y` = ADC ⇄ acuan) menggantikan ADC di ISR; 11 beat per putaran 6,67 detik, sampel hilang 0 |
 

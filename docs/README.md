@@ -3,9 +3,7 @@
 **Isi:** dokumen yang **masih berlaku dan berjalan**: daftar kerja, riset yang
 aksinya belum diputuskan, dan rencana yang belum selesai. Dokumen di folder ini
 boleh diperbarui.
-**Arsip:** dokumen yang sudah selesai dipindah ke [`arsip/`](arsip/README.md)
-lewat `git mv`. Isi arsip adalah catatan historis dan tidak berlaku sebagai
-acuan kerja.
+**Riwayat:** dokumen yang selesai dihapus; riwayatnya ada di git.
 
 | Tanggal | Dokumen | Isi | Status |
 |---|---|---|---|
@@ -18,14 +16,11 @@ acuan kerja.
 | 2026-11-21 | [riset-rework-skill](2026-11-21-riset-rework-skill.md) | Riset rework skill dan codebase finance-project sebagai acuan rework repo PA, calon ekstraksi skill ke scope user | Keputusan user diambil, rencana di rencana-rework-skill-codebase |
 | 2026-11-21 | [rencana-rework-skill-codebase](2026-11-21-rencana-rework-skill-codebase.md) | Rework skill (ekstraksi ke repo skill user, format eval skill-creator, validator CI) dan pembersihan docs serta kode | Rencana, belum dieksekusi |
 
-## Kapan dokumen dipindah ke arsip
+## Kapan dokumen selesai
 
 1. Seluruh aksinya sudah dikerjakan atau ditolak user, dan hasilnya sudah
    tercatat di dokumen yang berlaku (README komponen, walkthrough, `CLAUDE.md`,
    atau buku).
-2. Pindahkan dengan `git mv docs/<berkas> docs/arsip/`, hapus barisnya dari
-   tabel di atas, dan tambahkan barisnya ke tabel `arsip/README.md` beserta
-   status akhir.
-3. Dokumen model dan hardware mengikuti pola yang sama di
-   [`model/docs/`](../model/docs/README.md) dan
-   [`model/docs/arsip/`](../model/docs/arsip/README.md).
+2. Pindahkan dulu fakta yang masih berlaku (lokasi data, cara memulihkan,
+   nilai konfigurasi) ke README atau walkthrough komponennya.
+3. Hapus berkasnya (dengan persetujuan user) dan barisnya di tabel di atas.

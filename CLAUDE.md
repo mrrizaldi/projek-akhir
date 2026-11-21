@@ -11,7 +11,7 @@ aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
 `README.md` untuk tabel & alur artefak.
 
 **Dokumen kerja yang sedang berjalan** lintas komponen ada di `docs/`
-(indeks `docs/README.md`); `docs/arsip/` hanya riwayat.
+(indeks `docs/README.md`). Riwayat ada di git.
 
 **Pekerjaan terbuka** (bertanggal, jangan sampai lupa): daftar tunggal di
 [`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka) —
@@ -19,7 +19,7 @@ konsumsi daya, **WiFi board sengaja OFF (darurat sejak 14 Okt 2026, kembalikan
 ke ON setelah konverter baterai disetel 5 V)**, lalu rencana rekaman mentah
 langsung ke server lewat WiFi, serta PCB rev2. Data resmi sinyal tubuh = sesi
 22 Okt 2026 siang (`model/data/recordings/README.md`); data sebelum 13 Okt 2026
-= uji coba (arsip). Angka laporan yang menunggu data: `grep -rn
+= uji coba. Angka laporan yang menunggu data: `grep -rn
 PLACEHOLDER-DATA laporan/buku-pa` (tinggal daya).
 
 ## Aturan keras (STRICT, ditetapkan user 13 Okt 2026)
@@ -66,24 +66,46 @@ C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
 
 ### Tutup lingkarannya
 7. **Setiap kegagalan yang ditangkap user menjadi skill hari itu juga**
-   (`.claude/skills/<nama>/SKILL.md`). Kegagalan yang sama tidak boleh terulang.
-8. **Setiap skill punya eval** yang dinilai model berbeda, target 10/10,
-   **maksimal 3 putaran**. Belum 10/10 sesudah putaran ke-3 → berhenti, catat
-   skor terbaik dan temuannya di `eval.md`, commit, lalu tanya user. Soal eval
-   sempit dan berjawaban pasti (kegagalan aslinya), bukan desain terbuka.
-   Skor yang tidak naik dua putaran berturut-turut = berhenti lebih awal.
-   (Ditetapkan 15 Okt 2026 sesudah eval `batas-tidak-diam` berputar 8 kali
-   di skor 7–9 tanpa hasil.)
+   (`.claude/skills/<nama>/SKILL.md`, atau repo skill user bila aturannya
+   generik). Kegagalan yang sama tidak boleh terulang.
+8. **Setiap skill punya eval** dalam format skill-creator
+   (`.claude/skills/<nama>/evals/<kasus>/{prompt.md,case.yaml,graders/}`) dan
+   set pemicu `triggers/evals.json`, dinilai model berbeda dari penulis,
+   target lulus semua grader, **maksimal 3 putaran**. Belum lulus sesudah
+   putaran ke-3 → berhenti, tulis skor terbaik dan temuannya di pesan
+   commit, lalu tanya user. Soal eval sempit dan berjawaban pasti
+   (kegagalan aslinya). Skor yang tidak naik dua putaran berturut-turut =
+   berhenti lebih awal. Skor tidak disimpan sebagai tabel di repo.
 9. **Pemeriksaan hijau → commit langsung**, tanpa menunggu persetujuan; user
    meninjau setelahnya. Satu revert lebih murah daripada agen yang tertahan.
    Push ke remote tetap hanya atas permintaan eksplisit.
 
+## Skill, muat sebelum mulai
+
+Skill sering tidak terpicu sendiri; muat skill di tabel ini sebelum mulai
+pekerjaan yang cocok. Tabel diperbarui setiap skill ditambah, diganti nama,
+atau diekstrak.
+
+| Pekerjaan | Muat skill |
+|---|---|
+| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware dengan batas atau operasi lambat | `batas-tidak-diam` |
+| "sunting buku-pa", "Bab 1", "tanya user soal isi buku", sinkron proposal | `buku-ikut-proposal` |
+| "bikin slide", "deck seminar", "slide bimbingan", "PPTX sidang" | `deck-pa` |
+| "ingest", "sync balik", "masukin suntingan Word ke tex" | `ingest-word` |
+| "PCB", "skematik KiCad", "routing", "Freerouting", berkas KiCad dari teman | `kicad-pcb-pa` |
+| "tambah bab/subbab", "abstrak", "Bab 4/Bab 5", "pasang gambar", "QA sebelum kumpul" | `struktur-pa` |
+| "buat tabel", "rapikan tabel", tabel hasil Bab 4 | `tabel-pa` |
+| menulis atau menyunting kode (C/C++, Python, shell, `platformio.ini`), prompt ke subagen penulis kode | `tanpa-komentar-kode`, dan skill user `no-code-comments` |
+| "indeks rujukan", "daftar bukti", dokumen dengan tautan ke berkas lokal | `tautan-lokal` |
+| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` |
+| `git stash`/`reset`/`checkout` path/`clean`, commit saat sesi atau agen lain bekerja, `index.lock`, `git status` kotor menghalangi | skill user `shared-worktree` |
+
 ## Aturan kerja (non-negotiable)
 
 1. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua
-   pembuatan file pola "buat jika belum ada", jangan overwrite. Satu-satunya
-   pemindahan rutin: dokumen riwayat/rencana yang selesai dan alat sekali pakai
-   → `arsip/` (lihat **Dokumentasi**), lewat `git mv`.
+   pembuatan file pola "buat jika belum ada", jangan overwrite. Dokumen rencana
+   dan alat sekali pakai yang selesai dihapus sesuai **Dokumentasi**, hanya
+   dengan persetujuan user.
 2. **`laporan/` read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
    jangan diutak-atik tanpa konfirmasi. Path relatif rapuh. Aturan detail
    (gaya tulis, konvensi tabel/gambar, struktur bab) ada di `laporan/CLAUDE.md`
@@ -167,25 +189,16 @@ terbukti tidak membeku jadi dogma.
   yang pernah dikoreksi cukup ditulis versi benarnya. Rasional desain dan
   alternatif yang ditolak tetap ditulis ("Alternatif X tidak dipakai karena ...").
   Tanggal hanya sebagai metadata pengukuran ("Kondisi uji: board N16R8, 19 Sep 2026").
-- **`docs/` = masih berlaku, `docs/arsip/` = catatan historis.** Dokumen
-  bertanggal yang masih berjalan (daftar kerja, riset yang aksinya belum
-  diputuskan, rencana yang belum selesai) ditaruh langsung di `docs/` (nama
-  `YYYY-MM-DD-<topik>.md`) dan didaftar di `docs/README.md`. Isi `docs/arsip/`
-  dan `model/docs/arsip/` **tidak berlaku sebagai acuan kerja**: hanya riwayat.
-  Jangan dibaca sebagai konteks kerja kecuali user merujuknya atau sedang
-  menelusuri asal sebuah keputusan; kondisi yang berlaku ada di README
-  komponen, walkthrough, `CLAUDE.md`, dan skill.
-- **Riwayat masuk arsip.** Rencana, desain, changelog, dan catatan revisi
-  yang selesai dipindah ke `docs/arsip/` atau `model/docs/arsip/` lewat
-  `git mv` (prosedur di `docs/README.md`), setelah hasilnya tercatat di
-  dokumen yang berlaku. Riwayat yang
-  dikeluarkan dari sebuah dokumen aktif → `arsip/riwayat-<nama-dokumen>.md`.
-  Perubahan terhadap rencana awal dicatat dengan tanggalnya di changelog arsip.
-- **Alat sekali pakai → `*/arsip/`** (mis. `firmware/arsip/`), atau dihapus
-  bila tidak dirujuk lagi (git tetap menyimpannya).
-- **Yang usang dibuang dari dokumen aktif & kode**, bukan ditandai "lama"
-  (contoh: buzzer aktif yang sudah tidak dipakai). Kalau bermuatan informasi,
-  pindahkan ke arsip.
+- **`docs/` = dokumen kerja yang masih berlaku** (daftar kerja, riset yang
+  aksinya belum diputuskan, rencana yang belum selesai), nama
+  `YYYY-MM-DD-<topik>.md`, didaftar di `docs/README.md`.
+- **Riwayat ada di git, bukan di dokumen.** Rencana dan catatan yang selesai
+  dihapus sesudah hasilnya tercatat di dokumen yang berlaku; fakta operasional
+  yang masih berlaku (lokasi data, cara memulihkan, nilai konfigurasi) dipindah
+  dulu ke README atau walkthrough komponennya. Alat sekali pakai dihapus bila
+  tidak dirujuk lagi.
+- **Yang usang dibuang dari dokumen aktif dan kode**, bukan ditandai "lama"
+  (contoh: buzzer aktif yang sudah tidak dipakai).
 - **Bahasa:** Indonesia baku, ringkas; desimal koma (0,6594), ribuan titik
   (85.812); istilah teknis Inggris tetap. Hal yang dijalankan (build, rekam,
   flash, kalibrasi) ditulis sebagai prosedur: langkah bernomor, perintah di blok
@@ -265,9 +278,8 @@ bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
 `tulis-tanpa-slop` (paragraf tanpa pola tulisan AI, diperiksa
 `scripts/cek_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
 dan sinkronisasi proposal). `narasi-pa` dinonaktifkan 21 Nov 2026 dan
-disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6 laporan PA PENS yang menjadi asal
-aturannya sudah diarsipkan di `docs/arsip/2026-10-10-pola-laporan-pa/` dan
-tidak dijadikan acuan lagi. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
+disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6
+laporan PA PENS yang menjadi asal aturannya sudah didistilasi ke skill. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
 Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim
 (kode S01, S02, ...), tempat uji laboratorium, TLS/keamanan transport tidak
 dibahas sama sekali. Buku hanya membahas MIT-BIH: SVDB/INCART dan uji
