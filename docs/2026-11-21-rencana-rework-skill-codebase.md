@@ -243,15 +243,17 @@ faktanya ada di dokumen yang berlaku.
 | `model/docs/arsip/2026-09-16-daya-design.md` | rancangan pengukuran daya | dirujuk `model/CLAUDE.md`; pindah ke walkthrough daya |
 | `model/docs/arsip/2026-09-19-faseG-changelog.md` §2, `2026-09-19-faseB-changelog.md` §9 | detail ablasi learning rate dan database latih | dirujuk tabel `model/CLAUDE.md`; pindah ke walkthrough model |
 
-## Status (21 Nov 2026)
+## Status (22 Nov 2026)
 
 Gelombang 0–3 selesai. Gelombang 4 bagian riwayat dokumen dieksekusi
 22 Nov 2026 sesuai keputusan user atas `inventaris-riwayat.md`: fakta
 operasional dipindah, `docs/arsip/` dan `model/docs/arsip/` dihapus,
 dokumen kerja selesai dihapus; data uji coba `model/data/arsip/` dan
-`model/artifacts/arsip/` dipertahankan. Sisa gelombang 4 (audit
-`deadcode`, sapuan pola tulisan AI) menunggu keputusan user atas
-`audit-deadcode.md`.
+`model/artifacts/arsip/` dipertahankan. Kode mati dihapus (`pio run`,
+`pio test -e native` 23/23, pytest 92 lulus), `.agents/` dan `AGENTS.md`
+dihapus, dan sapuan pola tulisan AI di 27 dokumen Markdown menurunkan galat
+`cek_slop` dari 160 ke 43 (sisa: daftar pertanyaan latihan di walkthrough,
+sengaja dibiarkan). Sisa pekerjaan di `docs/2026-11-21-pekerjaan-ditunda.md`.
 Uji pemicu baseline (`scripts/uji_pemicu.sh`, 1 run per kueri): semua skill
 menolak 10/10 kueri yang tidak boleh memicu; memicu benar 0–3/10 (repo:
 batas-tidak-diam 3, buku-ikut-proposal 3, tulis-tanpa-slop 3, deck-pa 2,
