@@ -1,0 +1,82 @@
+[
+  {
+    "query": "rapikan bab 3 progres-pa-1 biar tidak terbaca AI slop",
+    "should_trigger": true
+  },
+  {
+    "query": "humanize paragraf penjelas tabel latensi di Bab 4 buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "bersihkan gaya tulis bab 2, banyak 'karena itu' dan 'yaitu'",
+    "should_trigger": true
+  },
+  {
+    "query": "polish this chapter of the PA report so it doesn't sound ChatGPT-written",
+    "should_trigger": true
+  },
+  {
+    "query": "paragraf penjelas tabel ini cuma membaca ulang angka, tolong rapikan narasinya",
+    "should_trigger": true
+  },
+  {
+    "query": "sunting paragraf hasil Bab 4 supaya klaimnya sebanding dengan bukti",
+    "should_trigger": true
+  },
+  {
+    "query": "cek_slop.py --ringkas bab4 berapa galatnya?",
+    "should_trigger": true
+  },
+  {
+    "query": "review bab 3 laporan PA, kalimatnya kaku dan panjang-panjang",
+    "should_trigger": true
+  },
+  {
+    "query": "tulis paragraf pengantar tabel ablasi untuk buku-pa tanpa gaya AI",
+    "should_trigger": true
+  },
+  {
+    "query": "hilangkan 'sehingga' berderet di laporan/progres-pa-1/bab/bab3.tex",
+    "should_trigger": true
+  },
+  {
+    "query": "tambah subbab 4.8 Dokumentasi di Bab 4 buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan tabel hasil jadi tiga garis booktabs",
+    "should_trigger": false
+  },
+  {
+    "query": "terjemahkan abstrak buku-pa ke bahasa Inggris",
+    "should_trigger": false
+  },
+  {
+    "query": "fix the typo in README.md of firmware",
+    "should_trigger": false
+  },
+  {
+    "query": "humanize this English blog post about my startup",
+    "should_trigger": false
+  },
+  {
+    "query": "cek grammar saja untuk email ke dosen pembimbing",
+    "should_trigger": false
+  },
+  {
+    "query": "bikin diagram alur sistem untuk Bab 3",
+    "should_trigger": false
+  },
+  {
+    "query": "compile laporan/buku-pa jadi PDF dan cek log undefined",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah komentar kode di main.cpp",
+    "should_trigger": false
+  },
+  {
+    "query": "sunting proposal-pa yang sudah diserahkan",
+    "should_trigger": false
+  }
+]

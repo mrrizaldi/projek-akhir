@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: aturan-rumah-persona-titik-dua
+expected_outcome: |
+  Persona dan titik dua dibuang, istilah Inggris tetap miring, desimal koma dipertahankan, label internal diganti istilah umum, dan alasan menyebut laporan/CLAUDE.md menang atas saran sumber.

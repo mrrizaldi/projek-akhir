@@ -1,158 +1,84 @@
 ---
 name: tulis-tanpa-slop
-description: Dipakai saat menyunting paragraf laporan PA (progres-pa-1, buku-pa) supaya tidak terbaca sebagai tulisan AI, atau saat user meminta "rapikan biar tidak AI slop", "humanize", atau "bersihkan gaya tulis". Isi, angka, sitasi, dan istilah tidak berubah; yang diubah frasa klise, struktur formulaik, dan kebiasaan kaku. Diperiksa scripts/cek_slop.py, termasuk banding invarian sebelum dan sesudah.
+description: Lapisan repo PA untuk menyunting atau menulis paragraf laporan PA (laporan/progres-pa-1, laporan/buku-pa) supaya tidak terbaca sebagai tulisan AI. Pakai saat user mengetik "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis", "sunting bab 3", "rapikan narasi", "perbaiki paragraf penjelas tabel", "review bab", "polish this chapter", atau meminta paragraf pengantar dan penjelas tabel hasil Bab 4. Memuat skill user indonesian-antislop-writing lebih dulu, lalu menambahkan aturan rumah laporan/CLAUDE.md, bentuk paragraf penjelas tabel (temuan, bukti, makna), klaim sebanding bukti, prosedur dari folder buku dengan make pdf-bersih, dan pembungkus scripts/cek_slop.py.
 ---
 
-# Tulis tanpa slop
+# Tulis tanpa slop (lapisan PA)
 
-Asal: riset 21 Nov 2026 atas naskah-id (MIT), humanizer-indonesia (MIT),
-blader/humanizer (MIT), stop-slop (MIT), Wikipedia "Signs of AI writing"
-(CC BY-SA), dan bahasa-skills (tanpa lisensi, hanya rujukan gagasan). Katalog
-lengkap 74 pola, sumber, dan konflik: `docs/2026-11-21-skill-anti-slop/katalog.md`.
-Uji coba pertama hanya di `laporan/progres-pa-1/bab/bab2.tex` sampai
-`bab4.tex` (keputusan user); Bab 1, bagian depan, dan Bab 5 tidak disentuh.
+Muat skill user `indonesian-antislop-writing` lebih dulu; skill ini hanya menambah hal khusus repo PA. Pola, prinsip, daftar "yang bukan slop", dan syarat invarian (angka, `\cite`, `\ref`, `\label`, klaim, tabel) ada di skill itu dan tidak diulang di sini.
 
-## Yang tidak boleh berubah
+## Lingkup suntingan
 
-1. Angka, satuan, `\cite`, `\ref`, `\label`, nama variabel, dan baris
-   komentar `%`. Diperiksa
-   `python3 scripts/cek_slop.py --banding <lama.tex> <baru.tex>` (harus
-   `invarian aman`).
-2. Isi klaim dan derajat kepastiannya: *menunjukkan* (fakta) tetap fakta,
-   *diduga* tetap dugaan. Kalimat yang butuh fakta pengganti tetapi faktanya
-   tidak ada di naskah dibiarkan dan dilaporkan, tidak dikarang.
-3. Tabel, isi `figure`, persamaan, dan `\caption` (kecuali galat mesin di
-   dalamnya).
-4. Aturan rumah di `laporan/CLAUDE.md` menang atas saran sumber:
-   - tanpa titik dua, titik koma, dan em dash di paragraf; tanpa numbering
-     inline;
-   - istilah teknis bahasa Inggris dan miring (`\textit{board}`), daftar kata
-     adopsi tegak tetap tegak; padanan Indonesia tidak dipakai;
-   - desimal koma, ribuan titik, `~\cite{}`, judul Title Case;
-   - tanpa "kami", "kita", "saya"; label internal repo tidak tercetak.
+1. Sunting hanya bab yang diminta user. Gaya ini baru diuji di `laporan/progres-pa-1/bab/bab2.tex` sampai `bab4.tex`; memperluasnya ke Bab 1, Bab 5, abstrak, atau `laporan/buku-pa` menunggu keputusan user. Temuan di bab lain dilaporkan, tidak disunting.
+2. `laporan/proposal-pa` dibekukan dan tidak disentuh.
+3. Kalimat yang butuh fakta pengganti tetapi faktanya tidak ada di naskah dibiarkan dan dilaporkan ke user, karena angka tidak boleh dikarang.
 
-## Prinsip
+## Aturan rumah yang menang atas saran sumber
 
-- **Gerombolan, bukan kemunculan.** Satu "Selain itu" bukan masalah. Yang
-  ditindak kepadatan dan pengulangan. Prinsip ini tidak berlaku untuk pola
-  posisi dan pola `galat`: "karena itu" di tengah klausa dan koma sebelum
-  "sehingga" diubah setiap kali muncul, walau hanya sekali.
-- **Uji hapus.** Kalimat atau frasa yang bila dihapus tidak menghilangkan
-  informasi dibuang. Penghubung sebab-akibat ("karena", "sehingga",
-  "akibatnya", "karena itu") memuat informasi, yaitu hubungan antarfakta.
-  Bentuk atau posisinya boleh diganti, tetapi hubungannya tidak boleh hilang
-  dengan dalih uji hapus.
-- **Ganti penilaian dengan fakta yang sudah ada di naskah.** "Latensinya
-  sangat rendah" → "latensinya 38~ms, di bawah periode \textit{window}".
-- **Variasi lahir dari isi.** Kalimat temuan pendek, sebab-akibat lebih
-  panjang. Jangan memecah atau menggabung kalimat hanya demi variasi.
-- **Penyuntingan minimal.** Kalimat yang tidak berpola dibiarkan.
+Sumber di skill user boleh menyarankan hal yang bertentangan dengan `laporan/CLAUDE.md`; di PA aturan berikut berlaku.
 
-## Pola yang ditindak
+1. Paragraf tanpa titik dua, titik koma, dan em dash, serta tanpa numbering inline. Ganti dengan konjungsi, koma, kurung, atau kalimat baru, karena pemeriksa gaya buku menolak ketiganya.
+2. Istilah teknis Inggris dimiringkan (`\textit{board}`), daftar kata adopsi tetap tegak, dan padanan Indonesia tidak dipakai.
+3. Desimal koma (0,6594), ribuan titik (85.812), `~\cite{}`, dan judul Title Case.
+4. Tanpa "kami", "kita", "saya": `S-PERSONA` diperlakukan sebagai galat di laporan PA, bukan sekadar tinjau.
+5. Label internal repo tidak tercetak di teks laporan: HW-n, Fase n, Task n, T-n/K-n, rev1/rev2, path berkas, nama skrip, nama env (`PA_*`), dan kata "walkthrough". Sebut isinya dengan istilah umum. Komentar `% sumber:` tidak tercetak sehingga boleh memuat path.
+6. Tanpa pembuka meta ("Subbab ini membahas ...") dan tanpa label bernomor "Tujuan N" di judul atau kalimat; kerangka bab ada di skill `struktur-pa`.
 
-Kode dalam kurung = keluaran `cek_slop.py` (`galat` wajib nol, `tinjau`
-diputuskan per kemunculan).
+## Paragraf penjelas tabel dan gambar
 
-### Kebiasaan bawaan aturan rumah (paling sering di buku ini)
+Bentuk paragraf ini khusus laporan PA dan tidak ditangkap pola generik.
 
-1. **"karena itu" disisipkan di tengah klausa** (S-KARENA-ITU). "DS2 tidak
-   diberi \textit{jitter} dan karena itu mewakili anotasi tanpa
-   \textit{error}." → "DS2 tidak diberi \textit{jitter} sehingga mewakili
-   anotasi tanpa \textit{error}." atau pecah menjadi kalimat baru yang
-   dibuka subjeknya. Hubungan sebabnya wajib tetap tertulis ("sehingga",
-   "akibatnya", "karena"), bukan dibuang bersama "karena itu". "Karena itu"
-   yang berdiri di kalimat kedua merujuk ke kalimat sebelumnya, dan kalimat
-   itulah sebabnya: "Sinyal difilter \textit{bandpass}. Puncak R karena itu
-   lebih mudah dideteksi." → "Sinyal difilter \textit{bandpass}. Akibatnya,
-   puncak R lebih mudah dideteksi.", bukan "... Puncak R lebih mudah
-   dideteksi." tanpa penghubung. Aturan ini
-   soal posisi, jadi satu kemunculan pun diubah. Yang sah: "Karena itu," di
-   awal kalimat bila jarang, serta "bukan karena itu" dan "justru karena
-   itu" yang bermakna harfiah.
-2. **"yaitu" berderet** (S-YAITU-PADAT, dua atau lebih per paragraf).
-   Larangan titik dua tidak berarti setiap daftar memakai "yaitu". Ganti
-   sebagian dengan "berupa", "meliputi", kurung, atau sebut langsung tanpa
-   pengantar ("lima rekaman DS1 (101, 114, 201, 220, dan 223)").
-3. **Koma sebelum "sehingga"** (S-KOMA-SEHINGGA, galat). EYD V: induk
-   kalimat di depan anak kalimat tidak berkoma. Setiap ", sehingga" menjadi
-   " sehingga", termasuk di kalimat yang tidak disunting karena alasan lain:
-   "latensi rata-rata 939~ms, sehingga target terpenuhi" → "latensi
-   rata-rata 939~ms sehingga target terpenuhi".
-4. **"Jadi" pembuka kalimat** (S-JADI). Ragam lisan untuk kesimpulan; ganti
-   dengan "Dengan begitu", "Akibatnya", atau gabung dengan kalimat
-   sebelumnya, atau buang bila kalimatnya hanya mengulang.
+1. **Temuan, bukti, makna.** Kalimat pertama adalah temuan utama dengan rujukan `Tabel~\ref{}` di dalam kalimat atau di kurung akhir. Bukti memuat paling banyak lima angka seluruh paragraf, dan tiap angka dibandingkan dengan target, acuan, atau kondisi lain, atau dijelaskan sebabnya; angka tanpa pembanding adalah transkripsi ("F1 naik 0,0010" saja salah, "F1 naik 0,0010, jauh di bawah ambang 0,02" benar). Kalimat penutup mengaitkan temuan ke target atau keputusan rancangan.
+2. **Jangan membaca ulang tabel.** Paragraf mengulang paling banyak setengah angka tabel. Bila paragraf harus menyusuri tiap baris agar bermakna, desain tabelnya yang diperbaiki lewat skill `tabel-pa`.
+3. **Pembuka bervariasi.** "Berdasarkan Tabel" paling banyak tiga kali per bab dan tidak pada dua penjelas berurutan. Pilih pembuka dari isi: temuan langsung ("Seluruh target pengiriman terpenuhi pada kedua ulangan (Tabel~\ref{..})."), perbandingan ("Dibandingkan {acuan}, {objek} naik {besaran}"), pengecualian ("Seluruh selisih berada di bawah ambang kecuali {metrik}"), atau lanjutan paragraf sebelumnya.
+4. **Satu paragraf satu fungsi, 60 sampai 150 kata.** Hasil, mekanisme, keputusan rancangan, dan keterbatasan tidak dicampur; paragraf di atas 180 kata dipecah per fungsi. Uji cepat: paragraf harus bisa diberi judul tiga sampai lima kata tanpa "dan".
+5. **Benang merah.** Butir hasil ditutup kalimat bahwa target rencana terpenuhi atau tidak; analisis tidak mengulang angka hasil kecuali sebagai rujukan; Bab 5 tanpa angka baru (`struktur-pa` aturan 3 dan 6).
 
-### Frasa (umumnya dicek mesin)
+Contoh pemecahan kalimat 50 kata (rantai sebab-akibat) tanpa kehilangan hubungannya:
 
-- Pembuka zaman (S-ZAMAN), penegas tanpa bukti (S-PENEGAS), kalimat meta
-  "perlu dicatat" (S-META), klaim digelembungkan "memegang peranan krusial"
-  (S-GELEMBUNG), kata payung "berbagai aspek" (S-PAYUNG), penutup ritual
-  "Secara keseluruhan," (S-PENUTUP), pleonasme "adalah merupakan"
-  (S-PLEONASME), kalke "memainkan peran", "dalam kasus ini" (S-KALKE),
-  "di mana"/"yang mana" sebagai penghubung (S-DIMANA, S-YANG-MANA), kata
-  ganti orang (S-PERSONA), nada promosi dan emosi (S-PROMOSI, S-EMOSI).
-- "signifikan" tanpa uji statistik (S-SIGNIFIKAN): sebut angka dan
-  ambangnya. Kata mutlak "selalu", "pasti" (S-MUTLAK): sah bila datanya
-  memang mencakup semua kasus.
+```latex
+Deteksi berjalan tiap 1 detik atas \textit{ring} 4 detik, dan detak yang
+ditemukan baru boleh keluar 128 sampel atau 356~ms sesudah puncak R.
+Akibatnya, penundaan di sisi perangkat berada di antara 356 dan 1.356~ms.
+```
 
-### Kalimat
+## Klaim sebanding bukti
 
-- **Subjek hilang** (S-SUBJEK): "Berdasarkan Tabel~4.2 menunjukkan ..." →
-  "Tabel~4.2 menunjukkan ...".
-- **Konjungsi berpasangan** (S-KONJ-GANDA): "Meskipun ..., tetapi ...".
-- **"Sehingga"/"Sedangkan" di awal kalimat** (S-PEMBUKA-KONJ).
-- **Penyangkalan antisipatif** "Ini bukan berarti ..." (S-SANGKAL): nyatakan
-  batasnya langsung.
-- **Kontras formulaik** "tidak hanya ... tetapi juga ..." (S-KONTRAS): baku
-  bila sekali, ditindak bila berulang atau separuh negatifnya kosong.
-- **Klausa ekor penafsiran** ", yang menunjukkan keandalan ..." (S-EKOR):
-  ganti dengan pembanding faktual atau buang.
-- **Kopula dihindari** "berperan sebagai otak sistem" (S-KOPULA): pakai
-  "adalah" atau sebut tugasnya.
-- **Nominalisasi** "melakukan pengukuran terhadap" (S-NOMINAL) → "mengukur".
-- **Modalitas bertumpuk** "mungkin dapat berpotensi" (S-MODAL).
-- **Kalimat lebih dari 35 kata** (S-PANJANG) dan **rantai "yang"**
-  (S-RANTAI-YANG): pecah di batas klausa.
-- **Personifikasi benda mati** (tidak dicek mesin): "model cukup cerdas",
-  "ESP32-S3 bekerja keras" → sebut kerjanya dengan angka.
-- **Triplet sifat** "efektif, efisien, dan andal" (tidak dicek mesin): buang
-  sifat yang tidak dibuktikan; tiga metrik atau tiga kelas nyata tetap sah.
+Skill user menandai kata mutlak dan "signifikan"; di PA kekuatan klaim juga mengikuti desain ujinya.
 
-### Paragraf
+1. Satu pengukuran pada satu kondisi memakai "menunjukkan" atau "terukur"; "konsisten" butuh minimal dua ulangan atau tiga *seed*; "terbukti" atau "setara" butuh seluruh lingkup klaim diuji; hal yang hanya disimpulkan dari mekanisme memakai "diperkirakan" atau "diduga".
+2. "Signifikan" tanpa uji statistik diganti "bermakna di atas ambang {nilai}" atau "selisih {nilai}".
+3. Sebab-akibat hanya dari ablasi terkendali (satu pengaturan diubah, minimal tiga *seed*); pengamatan bersamaan ditulis "bertepatan dengan" atau "diikuti", bukan "menyebabkan".
+4. Kondisi uji menempel pada klaim: sumber sinyal *replay* atau sinyal tubuh, jumlah ulangan, dan data uji (DS2). Klaim tentang sinyal tubuh tidak boleh berdasar uji *replay*.
+5. Metrik tanpa target (misalnya p95) ditulis "dilaporkan" dan tidak diposisikan terhadap ambang metrik lain; bila ada angka acuan, sebut sebagai acuan, bukan target.
+6. Hal yang belum diukur ditulis "belum diukur" atau `\PlaceholderData{...}`, tidak pernah dalam bentuk lampau, karena klaim lampau atas hal yang belum terjadi adalah klaim palsu. Register rancangan (Bab 3) dan capaian (Bab 4 dan 5) ada di `struktur-pa` aturan 4.
 
-- **Kalimat tentang dokumen** "Subbab ini membahas ..." (S-DOKUMEN).
-- **Ringkasan di akhir paragraf** yang mengulang isinya: buang.
-- **Kalimat penanda arah** "Hasilnya jelas." "Pertanyaannya sederhana.":
-  gabung dengan fakta pertama.
-- **Tinjauan pustaka per sumber** ("Menurut A ... Senada dengan itu, B ...",
-  S-SENADA): susun per gagasan, sumber di `\cite`.
-- **Rujukan spasial** "tabel berikut", "gambar di atas" (S-SPASIAL): pakai
-  nomor `Tabel~\ref{}`.
+## Istilah dan singkatan
 
-## Yang bukan slop (jangan dikoreksi)
-
-- Pasif di metode dan hasil ("Rekaman dibagi menjadi DS1 dan DS2").
-- "Penelitian ini" sebagai subjek; *merupakan*/*adalah* untuk definisi.
-- Hedging yang sesuai data ("berpotensi", "belum diukur").
-- Istilah teknis yang memang dipakai literatur (*robust*, mengimplementasikan).
-- Pengulangan istilah yang sama demi konsistensi (jangan diganti sinonim).
+Satu konsep satu istilah di seluruh buku. Sebelum memperkenalkan istilah, cek `grep -rn "istilah" laporan/buku-pa/bab`. Singkatan didefinisikan saat pertama muncul di tiap bab (PDSR, AUC, p95, ISR).
 
 ## Prosedur
 
-Dari `laporan/progres-pa-1`. Cadangan sudah ada sebelum mulai (tag git atau
-arsip); bila belum, buat dulu.
+Jalankan dari folder buku yang disunting. Pembungkus `scripts/cek_slop.py` meneruskan ke pemeriksa skill user (`--ringkas` = `--summary`, `--banding` = `--compare`, `--uji` = `--self-test`) dan memberi pesan jelas bila skill user tidak terpasang.
 
 ```bash
+cd laporan/progres-pa-1
 cp bab/bab3.tex /tmp/bab3.lama.tex
 python3 ../../scripts/cek_slop.py --ringkas bab/bab3.tex
 python3 ../../scripts/cek_slop.py bab/bab3.tex
 python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
 python3 ../../scripts/cek_tabel.py bab/*.tex
 python3 ../../scripts/cek_slop.py --ringkas bab/bab3.tex
-make pdf
+make pdf-bersih
 grep -cE "undefined|Overfull" output/main.log
 ```
 
-Hasil yang diharapkan: `galat` 0, `tinjau` turun dan sisanya disengaja,
-`invarian aman`, `cek_tabel` 0 galat, log 0. Satu bab per commit, pesan
-commit memuat metrik `--ringkas` sebelum dan sesudah.
+Hasil yang diharapkan: galat 0, tinjau turun dan sisanya disengaja, `invarian aman`, `cek_tabel` 0 galat, log 0. `make pdf-bersih` dipakai untuk bukti karena `make rebuild` menghapus DOCX di `output/`. Satu bab per commit, dan pesan commit memuat metrik `--ringkas` sebelum dan sesudah. Untuk `laporan/buku-pa`, ganti folder kerja; prosedurnya sama.
+
+## Daftar periksa tambahan
+
+- [ ] Penjelas tabel yang disentuh: dibuka temuan, paling banyak lima angka yang dibandingkan atau dijelaskan, ditutup makna.
+- [ ] `cek_tabel.py`: `N-PEMBUKA`, `N-ULANG`, `N-PANJANG` untuk paragraf yang disentuh 0; `N-KALIMAT` dan `N-SEHINGGA` per bab turun, dengan angka dari keluaran yang dijalankan.
+- [ ] Tanpa persona, titik dua, titik koma, em dash, dan label internal di paragraf.
+- [ ] Kondisi uji menempel pada setiap klaim hasil.
+- [ ] Hanya bab yang diminta yang berubah; `git diff --stat` dicek.
