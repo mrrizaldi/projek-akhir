@@ -712,3 +712,27 @@ sesudah pemeriksaan hijau, tanpa push.
 2. v1 kedua buku diambil dari `a516a18` (HEAD saat rilis), bukan `39d0268`,
    supaya checkpoint berikutnya tidak menghasilkan rilis yang hanya berisi
    perubahan komentar dan Makefile. Isi tercetak sama.
+
+## Status (21 Nov 2026)
+
+| Tugas | Status | Commit |
+|---|---|---|
+| 1 `narasi-pa` nonaktif | selesai | `5c2e7c1`, `33698b6` |
+| 2 `rilis.py`, `make rilis` | selesai | `a516a18`, `154ea14` (`make pdf-bersih`) |
+| 3 halaman banding `sajikan.py` | selesai | `746222f` |
+| 4 rilis v0 dan v1 kedua buku | selesai (tag `rilis/*`, berkas di `laporan/rilis/`) | tanpa commit |
+| 5 cek klaim | selesai; user menyetujui keenam usulan, diterapkan ke kedua buku | `cbae792` |
+| 6 komentar bab2 | selesai | `4d57449` |
+| 7 pilot gaya provenfix `ingest-word` | selesai, eval 9/10, peta invarian LULUS | `a773121` |
+| 8 gaya provenfix skill lain | ditunda user | |
+| 9 lingkungan WordCraft | ditunda user | |
+
+## Tindak lanjut user
+
+1. **Pilot gaya skill (Tugas 8).** User meninjau `ingest-word` hasil pilot
+   dan akan memberi tindak lanjut sendiri; skill lain tetap dalam gaya lama
+   sampai ada arahan. Usulan eval yang tersisa untuk `ingest-word`: langkah
+   2 meminta kalimat eksplisit bahwa berkas berubah sesudah DOCX dibuat
+   (rubrik C, putaran 4).
+2. **Lingkungan WordCraft (Tugas 9).** Target wasm, `cargo xtask ci`, dan
+   build GUI dari branch ditunda.
