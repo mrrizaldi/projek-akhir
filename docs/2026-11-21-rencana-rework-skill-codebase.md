@@ -230,3 +230,15 @@ Bahasa Indonesia, konvensi skill-creator, tanpa riwayat di skill.
 | 3 | koordinator, bertahap | kuota |
 | 4 | dua agen (inventaris docs, audit kode) | user menyetujui daftar hapus |
 | 5 | — | user memutuskan push dan repo GitHub |
+
+## Fakta operasional di arsip yang harus dipindah sebelum gelombang 4
+
+Ditemukan saat gelombang 1–2. Berkas arsip ini tidak boleh dihapus sebelum
+faktanya ada di dokumen yang berlaku.
+
+| Berkas arsip | Fakta yang belum ada di dokumen aktif | Tujuan |
+|---|---|---|
+| `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md` | divider 2k2/3k3 di keempat jalur TFT dihapus (R3, R4, R6, R8), R2/R5/R7/R9 jadi jumper atau 33 Ω peredam ringing SCK; CS TFT diikat ke GND sehingga firmware wajib `SPI_MODE3`; alasan VCC modul buzzer 3V3 bukan 5V; GPIO ESP32-S3 tidak tahan 5 V sebagai pengikat semua perubahan; opsi BLK TFT ke GPIO 12 untuk PWM | `hardware/mainboard/README.md` §Perbedaan terhadap skematik rev2 |
+| `docs/arsip/2026-10-19-referensi-pra-2020.md` | rasional per entri pustaka pra-2020 | dirujuk `CLAUDE.md` bagian Menulis laporan; pindah ke dokumen laporan yang berlaku |
+| `model/docs/arsip/2026-09-16-daya-design.md` | rancangan pengukuran daya | dirujuk `model/CLAUDE.md`; pindah ke walkthrough daya |
+| `model/docs/arsip/2026-09-19-faseG-changelog.md` §2, `2026-09-19-faseB-changelog.md` §9 | detail ablasi learning rate dan database latih | dirujuk tabel `model/CLAUDE.md`; pindah ke walkthrough model |
