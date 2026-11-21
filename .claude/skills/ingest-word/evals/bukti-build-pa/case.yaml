@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: bukti-build-pa
+expected_outcome: |
+  make pdf-bersih, grep -cE "undefined|Overfull" output/main.log harus 0, make docx sesudahnya; cek_tabel dijalankan; hanya bab/bab2.tex di-add. Tanpa make rebuild, tanpa make pdf polos.

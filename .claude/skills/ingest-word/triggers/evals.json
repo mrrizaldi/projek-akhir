@@ -1,0 +1,82 @@
+[
+ {
+  "query": "udah selesai edit di WordCraft, masukin ke tex ya, buku-pa",
+  "should_trigger": true
+ },
+ {
+  "query": "sync balik suntingan docx buku PA ke bab-bab tex",
+  "should_trigger": true
+ },
+ {
+  "query": "ingest perubahan dari output/main.docx progres-pa-1 ke .tex, aku edit di Word",
+  "should_trigger": true
+ },
+ {
+  "query": "pull my Word edits from the PA thesis docx back into LaTeX",
+  "should_trigger": true
+ },
+ {
+  "query": "make sync-dry nolak: changed since the import, re-import the project first. suntinganku di Word gimana?",
+  "should_trigger": true
+ },
+ {
+  "query": "ingest my WordCraft changes for laporan/buku-pa, then rebuild and commit",
+  "should_trigger": true
+ },
+ {
+  "query": "dosen komen di Word buku PA, komentarnya jadi % KOMENTAR di tex setelah sync, tindak lanjutin",
+  "should_trigger": true
+ },
+ {
+  "query": "sync the docx back to tex, show me the dry run first",
+  "should_trigger": true
+ },
+ {
+  "query": "hasil sync nulis judul bab jadi huruf kapital semua, balikin sesuai sumber dan masukin suntingan Word",
+  "should_trigger": true
+ },
+ {
+  "query": "masukin suntingan Word ke tex tapi cadangkan dulu docx-nya",
+  "should_trigger": true
+ },
+ {
+  "query": "make docx buku-pa biar bisa kukirim ke dosen pembimbing",
+  "should_trigger": false
+ },
+ {
+  "query": "rapikan gaya tulis bab 2, buang frasa klise biar ga kebaca AI",
+  "should_trigger": false
+ },
+ {
+  "query": "edit bab3.tex langsung: ganti kalimat pertama paragraf metodologi",
+  "should_trigger": false
+ },
+ {
+  "query": "tabel di bab 4 pakai garis vertikal, ubah ke booktabs tiga garis",
+  "should_trigger": false
+ },
+ {
+  "query": "make pdf-bersih buku-pa lalu cek ada Overfull atau tidak",
+  "should_trigger": false
+ },
+ {
+  "query": "bikin rilis checkpoint buku-pa dengan make rilis",
+  "should_trigger": false
+ },
+ {
+  "query": "how do I merge two .docx files with python-docx keeping styles?",
+  "should_trigger": false
+ },
+ {
+  "query": "git merge conflict di references.bib, bantu selesaikan",
+  "should_trigger": false
+ },
+ {
+  "query": "buat deck presentasi PPTX seminar progres dari isi buku-pa",
+  "should_trigger": false
+ },
+ {
+  "query": "convert a LaTeX thesis to docx with pandoc for my advisor",
+  "should_trigger": false
+ }
+]
