@@ -9,7 +9,7 @@ Muat skill user `indonesian-antislop-writing` lebih dulu; skill ini hanya menamb
 
 ## Lingkup suntingan
 
-1. Sunting hanya bab yang diminta user. Gaya ini baru diuji di `laporan/progres-pa-1/bab/bab2.tex` sampai `bab4.tex`; memperluasnya ke Bab 1, Bab 5, abstrak, atau `laporan/buku-pa` menunggu keputusan user. Temuan di bab lain dilaporkan, tidak disunting.
+1. Sunting hanya bab yang diminta user. Gaya ini baru diuji di `laporan/progres-pa-1/bab/bab2.tex` sampai `bab4.tex`; memperluasnya ke Bab 1, Bab 5, bagian depan (abstrak dan lain-lain), atau `laporan/buku-pa` menunggu keputusan user, dan permintaan eksplisit user untuk salah satunya adalah keputusan itu. Temuan di bab lain dilaporkan, tidak disunting.
 2. `laporan/proposal-pa` dibekukan dan tidak disentuh.
 3. Kalimat yang butuh fakta pengganti tetapi faktanya tidak ada di naskah dibiarkan dan dilaporkan ke user, karena angka tidak boleh dikarang.
 
@@ -17,22 +17,19 @@ Muat skill user `indonesian-antislop-writing` lebih dulu; skill ini hanya menamb
 
 Sumber di skill user boleh menyarankan hal yang bertentangan dengan `laporan/CLAUDE.md`; di PA aturan berikut berlaku.
 
-1. Paragraf tanpa titik dua, titik koma, dan em dash, serta tanpa numbering inline. Ganti dengan konjungsi, koma, kurung, atau kalimat baru, karena pemeriksa gaya buku menolak ketiganya.
+1. Paragraf tanpa titik dua, titik koma, dan em dash, serta tanpa numbering inline. Ganti dengan konjungsi, koma, kurung, atau kalimat baru, karena `laporan/CLAUDE.md` melarangnya; `cek_tabel.py` N-GAYA menandai titik koma dan em dash, sedangkan titik dua dicek manual.
 2. Istilah teknis Inggris dimiringkan (`\textit{board}`), daftar kata adopsi tetap tegak, dan padanan Indonesia tidak dipakai.
 3. Desimal koma (0,6594), ribuan titik (85.812), `~\cite{}`, dan judul Title Case.
 4. Tanpa "kami", "kita", "saya": `S-PERSONA` diperlakukan sebagai galat di laporan PA, bukan sekadar tinjau.
 5. Label internal repo tidak tercetak di teks laporan: HW-n, Fase n, Task n, T-n/K-n, rev1/rev2, path berkas, nama skrip, nama env (`PA_*`), dan kata "walkthrough". Sebut isinya dengan istilah umum. Komentar `% sumber:` tidak tercetak sehingga boleh memuat path.
 6. Tanpa pembuka meta ("Subbab ini membahas ...") dan tanpa label bernomor "Tujuan N" di judul atau kalimat; kerangka bab ada di skill `struktur-pa`.
 
-## Paragraf penjelas tabel dan gambar
+## Paragraf dan benang merah
 
-Bentuk paragraf ini khusus laporan PA dan tidak ditangkap pola generik.
+Berlaku untuk semua paragraf, bukan hanya penjelas tabel.
 
-1. **Temuan, bukti, makna.** Kalimat pertama adalah temuan utama dengan rujukan `Tabel~\ref{}` di dalam kalimat atau di kurung akhir. Bukti memuat paling banyak lima angka seluruh paragraf, dan tiap angka dibandingkan dengan target, acuan, atau kondisi lain, atau dijelaskan sebabnya; angka tanpa pembanding adalah transkripsi ("F1 naik 0,0010" saja salah, "F1 naik 0,0010, jauh di bawah ambang 0,02" benar). Kalimat penutup mengaitkan temuan ke target atau keputusan rancangan.
-2. **Jangan membaca ulang tabel.** Paragraf mengulang paling banyak setengah angka tabel. Bila paragraf harus menyusuri tiap baris agar bermakna, desain tabelnya yang diperbaiki lewat skill `tabel-pa`.
-3. **Pembuka bervariasi.** "Berdasarkan Tabel" paling banyak tiga kali per bab dan tidak pada dua penjelas berurutan. Pilih pembuka dari isi: temuan langsung ("Seluruh target pengiriman terpenuhi pada kedua ulangan (Tabel~\ref{..})."), perbandingan ("Dibandingkan {acuan}, {objek} naik {besaran}"), pengecualian ("Seluruh selisih berada di bawah ambang kecuali {metrik}"), atau lanjutan paragraf sebelumnya.
-4. **Satu paragraf satu fungsi, 60 sampai 150 kata.** Hasil, mekanisme, keputusan rancangan, dan keterbatasan tidak dicampur; paragraf di atas 180 kata dipecah per fungsi. Uji cepat: paragraf harus bisa diberi judul tiga sampai lima kata tanpa "dan".
-5. **Benang merah.** Butir hasil ditutup kalimat bahwa target rencana terpenuhi atau tidak; analisis tidak mengulang angka hasil kecuali sebagai rujukan; Bab 5 tanpa angka baru (`struktur-pa` aturan 3 dan 6).
+1. **Satu paragraf satu fungsi, 60 sampai 150 kata.** Hasil (4.6), mekanisme (4.7 atau Bab 3), keputusan rancangan, dan keterbatasan tidak dicampur; paragraf di atas 180 kata dipecah per fungsi. Kalimat pertama setiap paragraf menyatakan klaim utama sesuai fungsinya (temuan untuk hasil, pernyataan mekanisme untuk mekanisme, keputusan untuk keputusan), bukan rincian atau pengantar. Uji cepat: paragraf harus bisa diberi judul tiga sampai lima kata tanpa "dan".
+2. **Benang merah.** Butir hasil 4.6 ditutup kalimat bahwa target rencana Bab 3 terpenuhi atau tidak; 4.7 menjawab mengapa dan apa artinya tanpa mengulang angka 4.6 kecuali sebagai rujukan; Bab 5 tanpa angka baru (`struktur-pa` aturan 3 dan 6).
 
 Contoh pemecahan kalimat 50 kata (rantai sebab-akibat) tanpa kehilangan hubungannya:
 
@@ -42,6 +39,15 @@ ditemukan baru boleh keluar 128 sampel atau 356~ms sesudah puncak R.
 Akibatnya, penundaan di sisi perangkat berada di antara 356 dan 1.356~ms.
 ```
 
+## Paragraf penjelas tabel dan gambar
+
+Bentuk paragraf ini khusus laporan PA dan tidak ditangkap pola generik.
+
+1. **Temuan, bukti, makna.** Kalimat pertama adalah temuan utama dengan rujukan `Tabel~\ref{}` di dalam kalimat atau di kurung akhir. Bukti memuat paling banyak lima angka seluruh paragraf, termasuk target, ambang, selisih, dan angka kondisi uji yang dipakai sebagai pembanding. Pilih angka tabel yang paling menentukan, dan tiap angka dibandingkan dengan target, acuan, atau kondisi lain, atau dijelaskan sebabnya; angka tanpa pembanding adalah transkripsi ("F1 naik 0,0010" saja salah, "F1 naik 0,0010, jauh di bawah ambang 0,02" benar), dan angka yang tidak bisa diberi pembanding dibuang. Hitung angkanya sebelum menyerahkan dan tulis jumlahnya dengan benar. Kalimat penutup mengaitkan temuan ke target atau keputusan rancangan. Boleh ditambah satu sampai dua kalimat anomali atau keterbatasan; bila lebih panjang, jadikan paragraf sendiri.
+2. **Jangan membaca ulang tabel.** Paragraf mengulang paling banyak setengah angka tabel. Bila paragraf harus menyusuri tiap baris agar bermakna, desain tabelnya yang diperbaiki lewat skill `tabel-pa`.
+3. **Pembuka bervariasi.** "Berdasarkan Tabel" dan "Tabel~\ref{..} memperlihatkan/menunjukkan" dihitung bersama, paling banyak tiga kali per bab dan tidak pada dua penjelas berurutan. Pilih pembuka dari isi: temuan langsung ("Seluruh target pengiriman terpenuhi pada kedua ulangan (Tabel~\ref{..})."), perbandingan ("Dibandingkan {acuan}, {objek} naik {besaran}"), pengecualian ("Seluruh selisih berada di bawah ambang kecuali {metrik}"), atau lanjutan paragraf sebelumnya.
+4. **Baris `% sumber:`** dipindah bersama kalimatnya saat kalimat dipindah atau dipecah.
+
 ## Klaim sebanding bukti
 
 Skill user menandai kata mutlak dan "signifikan"; di PA kekuatan klaim juga mengikuti desain ujinya.
@@ -50,7 +56,7 @@ Skill user menandai kata mutlak dan "signifikan"; di PA kekuatan klaim juga meng
 2. "Signifikan" tanpa uji statistik diganti "bermakna di atas ambang {nilai}" atau "selisih {nilai}".
 3. Sebab-akibat hanya dari ablasi terkendali (satu pengaturan diubah, minimal tiga *seed*); pengamatan bersamaan ditulis "bertepatan dengan" atau "diikuti", bukan "menyebabkan".
 4. Kondisi uji menempel pada klaim: sumber sinyal *replay* atau sinyal tubuh, jumlah ulangan, dan data uji (DS2). Klaim tentang sinyal tubuh tidak boleh berdasar uji *replay*.
-5. Metrik tanpa target (misalnya p95) ditulis "dilaporkan" dan tidak diposisikan terhadap ambang metrik lain; bila ada angka acuan, sebut sebagai acuan, bukan target.
+5. Metrik tanpa target (misalnya p95) tidak diposisikan terhadap ambang metrik lain; bila ada angka acuan, sebut sebagai acuan, bukan target. Di dalam paragraf penjelas tabel, metrik tanpa target tetap di tabel dan tidak dilaporkan di paragraf (butir 1 bagian Paragraf penjelas).
 6. Hal yang belum diukur ditulis "belum diukur" atau `\PlaceholderData{...}`, tidak pernah dalam bentuk lampau, karena klaim lampau atas hal yang belum terjadi adalah klaim palsu. Register rancangan (Bab 3) dan capaian (Bab 4 dan 5) ada di `struktur-pa` aturan 4.
 
 ## Istilah dan singkatan
@@ -73,7 +79,7 @@ make pdf-bersih
 grep -cE "undefined|Overfull" output/main.log
 ```
 
-Hasil yang diharapkan: galat 0, tinjau turun dan sisanya disengaja, `invarian aman`, `cek_tabel` 0 galat, log 0. `make pdf-bersih` dipakai untuk bukti karena `make rebuild` menghapus DOCX di `output/`. Satu bab per commit, dan pesan commit memuat metrik `--ringkas` sebelum dan sesudah. Untuk `laporan/buku-pa`, ganti folder kerja; prosedurnya sama.
+Hasil yang diharapkan: pemeriksa mencetak `errors` dan `review`; `errors` 0 dan `S-PERSONA` di keluaran 0 walau levelnya `review`, tinjau turun dan sisanya disengaja, `invarian aman`, `cek_tabel` 0 galat, log 0. `make pdf-bersih` dipakai untuk bukti karena `make rebuild` menghapus DOCX di `output/`. Satu bab per commit, dan pesan commit memuat metrik `--ringkas` sebelum dan sesudah. Untuk `laporan/buku-pa`, ganti folder kerja; prosedurnya sama.
 
 ## Daftar periksa tambahan
 
