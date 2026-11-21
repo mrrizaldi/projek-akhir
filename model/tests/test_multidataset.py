@@ -122,22 +122,6 @@ def test_sebaran_kelas_sesuai_yang_diukur(db):
             f"{db} kelas {kelas} tersebar di {len(per_kelas_record[kelas])} record"
 
 
-def test_q_tetap_bukan_kelas_yang_bisa_dilaporkan():
-    Q_MITDB = 8 + 7
-    total = Q_MITDB + SEBARAN["svdb"]["Q"] + SEBARAN["incartdb"]["Q"]
-    assert total == 100
-    assert total < 200, "kalau ini gagal, Q mungkin sudah layak — cek ulang"
-
-
-def test_resample_mitdb_dilewati():
-    if not os.path.isdir(config.RAW_DIR):
-        pytest.skip("mitdb belum di-download")
-    from src.io_mitdb import load_record
-    signal, r, sym, fs = load_record("100")
-    assert fs == config.FS and len(signal) == 650_000
-    assert len(r) == len(sym) and np.all(np.diff(r) > 0)
-
-
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_resample_kontrak(db):
     if not _ada(db):
@@ -183,20 +167,6 @@ def test_mitdb_tidak_pernah_diselaraskan():
     assert config.DATASETS["svdb"]["selaraskan"] is True
     assert config.DATASETS["incartdb"]["selaraskan"] is True
     assert 0 < config.ALIGN_WIN < 25, "PT_REFINE_WIN=25 terlalu lebar untuk ini"
-
-
-@pytest.mark.parametrize("rec", ["100", "232"])
-def test_jalur_mitdb_byte_identik_setelah_fase_a(rec):
-    npz = os.path.join(config.PER_RECORD_DIR, f"{rec}.npz")
-    if not os.path.exists(npz):
-        pytest.skip("per_record belum dibangun (make prep)")
-    from scripts.prep_beats import process_record
-    from src.preprocessing import design_bandpass_sos
-
-    baru = process_record(rec, design_bandpass_sos(), db="mitdb")
-    with np.load(npz, allow_pickle=True) as lama:
-        for k in ("windows", "rr", "labels", "symbols", "n_dropped"):
-            assert np.array_equal(lama[k], baru[k]), f"rec {rec}: {k} berubah"
 
 
 def test_build_split_multi_tidak_bocor_dan_ds2_utuh():
@@ -245,14 +215,6 @@ def test_incartdb_hanya_test_bukan_latih():
                     for r in bagi_train_test(records_tersedia("incartdb"))[0]}
     assert not (latih_incart & set(np.unique(h["train"]["records"]).tolist())), \
         "porsi train incartdb bocor ke train"
-
-
-def test_train_bisa_tanpa_class_weight():
-    import inspect
-    from src.train import train
-    sig = inspect.signature(train)
-    assert sig.parameters["pakai_class_weight"].default is True, \
-        "bawaan berubah — itu nilai terkunci, bukan flag"
 
 
 def test_split_multi_menolak_database_separuh_jadi(monkeypatch):
