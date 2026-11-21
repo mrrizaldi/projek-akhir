@@ -38,7 +38,10 @@ Uji coba pertama hanya di `laporan/progres-pa-1/bab/bab2.tex` sampai
   posisi dan pola `galat`: "karena itu" di tengah klausa dan koma sebelum
   "sehingga" diubah setiap kali muncul, walau hanya sekali.
 - **Uji hapus.** Kalimat atau frasa yang bila dihapus tidak menghilangkan
-  informasi dibuang.
+  informasi dibuang. Penghubung sebab-akibat ("karena", "sehingga",
+  "akibatnya", "karena itu") memuat informasi, yaitu hubungan antarfakta.
+  Bentuk atau posisinya boleh diganti, tetapi hubungannya tidak boleh hilang
+  dengan dalih uji hapus.
 - **Ganti penilaian dengan fakta yang sudah ada di naskah.** "Latensinya
   sangat rendah" → "latensinya 38~ms, di bawah periode \textit{window}".
 - **Variasi lahir dari isi.** Kalimat temuan pendek, sebab-akibat lebih
