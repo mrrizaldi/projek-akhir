@@ -118,7 +118,7 @@ sebelum dipakai sebagai dasar.
 - **Teks:** nama komponen persis seperti di paragraf.
 - **Bahan repo:** `firmware/include/perangkat.h`; `firmware/README.md` bagian
   Pin map dan Rangkaian catu baterai;
-  `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`.
+  `hardware/mainboard/README.md bagian Rasional rangkaian modul dan Perbedaan terhadap skematik rev2`.
 
 ### fig:3-tata-letak-layar
 

@@ -39,7 +39,7 @@ Perangkat \textit{edge} tersusun atas mikrokontroler ESP32-S3 sebagai pusat pemr
   \item \textbf{Layar TFT ST7789 1,47 inci.} Layar beresolusi 172$\times$320 piksel ini berantarmuka SPI dan dipasang dalam orientasi mendatar. Layar menampilkan laju jantung, gelombang ECG tersaring, waktu, dan status perekaman pada mode pemantauan, serta halaman menu ketika menu dibuka.
   % sumber: firmware/include/perangkat.h (TFT_W 320, TFT_H 172, rotasi 1, CS ke GND); firmware/src/tampilan.cpp; firmware/README.md bagian Antarmuka alat
   \item \textbf{\textit{Buzzer} pasif.} Modul \textit{buzzer} pasif A18009 memiliki tiga pin (VCC, GND, dan I/O) dengan transistor penggerak yang sudah berada di dalam modul. Modul ini tidak memiliki osilator dan harus digerakkan gelombang kotak 2--5 kHz yang dibangkitkan LEDC pada ESP32-S3. Nadanya dapat diatur dari \textit{firmware}, dan satu bip dapat dibunyikan untuk setiap detak. Masukan I/O bersifat aktif LOW, yaitu arus mengalir ke \textit{buzzer} ketika I/O berlogika LOW dan keadaan diam dicapai pada logika HIGH. Modul dicatu dari jalur 3V3, bukan 5 V, karena pada catu 5 V transistor modul tetap menyala ketika GPIO berlogika HIGH 3,3 V dan \textit{buzzer} tidak pernah diam. Pin \textit{buzzer} berimpit dengan pin MISO bawaan antarmuka SPI pada ESP32-S3. Karena itu, \textit{firmware} memasang SPI layar sebelum memasang LEDC agar pin tersebut tidak direbut oleh SPI.
-  % sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md §2 (modul pasif A18009 3 pin, aktif LOW, VCC 3V3, gelombang kotak 2-5 kHz); firmware/include/perangkat.h (PIN_BUZZ 13, NADA_HZ 2000); firmware/README.md bagian Pin map (SPI.begin(9, -1, 8) sebelum LEDC, MISO bawaan FSPI = GPIO 13); firmware/src/perangkat.cpp perangkat_mulai()
+  % sumber: hardware/mainboard/README.md bagian Rasional rangkaian modul (modul pasif A18009 3 pin, aktif LOW, VCC 3V3, gelombang kotak 2-5 kHz); firmware/include/perangkat.h (PIN_BUZZ 13, NADA_HZ 2000); firmware/README.md bagian Pin map (SPI.begin(9, -1, 8) sebelum LEDC, MISO bawaan FSPI = GPIO 13); firmware/src/perangkat.cpp perangkat_mulai()
   \item \textbf{Tiga tombol.} Tombol B1, B2, dan B3 masing-masing disambungkan antara GPIO dan GND dengan \textit{pull-up} internal yang diaktifkan oleh \textit{firmware}. Setiap tombol membedakan tekan pendek dan tekan lama. Dengan pembedaan itu, tiga tombol cukup untuk mengoperasikan seluruh fungsi perangkat, mulai dari membisukan bip, merekam sinyal, hingga membuka menu.
   % sumber: firmware/include/perangkat.h (PIN_BTN 4, 5, 6, pull-up internal); firmware/src/tombol.cpp (debounce 50 ms, ambang tekan lama 800 ms)
   \item \textbf{LED \textit{NeoPixel}.} LED RGB bawaan \textit{board} pada GPIO 48 ini hanya menjadi indikator kualitas sinyal. Warnanya biru selama fase kalibrasi, hijau ketika kontak elektroda dinilai baik, dan oranye ketika kontak elektroda dinilai buruk. Warnanya tidak berubah ketika perekaman berlangsung, karena status perekaman ditampilkan di layar.
@@ -56,7 +56,7 @@ Hubungan antarkomponen tersebut beserta jalur sinyalnya diilustrasikan pada Gamb
 %              tombol B1 B2 B3; LED NeoPixel; catu USB ke pin 5 V board
 % Alur baca  : sensor kiri -> ESP32-S3 tengah -> keluaran (TFT, buzzer, LED, WiFi) kanan; tombol atas
 % Teks       : nama komponen persis seperti di paragraf
-% Bahan repo : firmware/include/perangkat.h; firmware/README.md bagian Pin map; model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md
+% Bahan repo : firmware/include/perangkat.h; firmware/README.md bagian Pin map; hardware/mainboard/README.md bagian Rasional rangkaian modul dan Perbedaan terhadap skematik rev2
 \begin{figure}[H]
   \centering
   \PlaceholderGambar{Diagram blok perangkat keras}{ESP32-S3, AD8232, TFT, \textit{buzzer}, tombol, dan LED}
@@ -106,7 +106,7 @@ Dua penempatan pada Tabel~\ref{tab:pin-map} ditentukan oleh batasan ESP32-S3. Ke
 % sumber: model/docs/akuisisi-walkthrough.md §1 (OUTPUT wajib ADC1 GPIO1-10, ADC2 mati begitu WiFi menyala); firmware/include/perangkat.h (CS diikat ke GND, wajib SPI_MODE3)
 
 Seluruh komponen yang menyentuh GPIO dicatu dari jalur 3V3 karena ESP32-S3 adalah perangkat 3,3 V. Prinsip ini juga berlaku untuk modul \textit{buzzer} pasif yang memiliki transistor sendiri dan untuk \textit{pull-up} tombol, sedangkan jalur 5 V hanya digunakan untuk catu \textit{board}.
-% sumber: model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md (prinsip "Semua yang menyentuh GPIO ambil dari 3V3", tiga pelanggaran rev1, §2 buzzer pasif A18009 di 3V3 menggantikan SFM-27 + Q2 2N2222, §5 net BUZZ GPIO 12 menjadi GPIO 13, §6 INA219 VCC 3V3)
+% sumber: hardware/mainboard/README.md bagian Rasional rangkaian modul dan Perbedaan terhadap skematik rev2 (prinsip "Semua yang menyentuh GPIO ambil dari 3V3", tiga pelanggaran rev1, §2 buzzer pasif A18009 di 3V3 menggantikan SFM-27 + Q2 2N2222, §5 net BUZZ GPIO 12 menjadi GPIO 13, §6 INA219 VCC 3V3)
 
 \subsection{Akuisisi dan Preprocessing Sinyal ECG}
 
