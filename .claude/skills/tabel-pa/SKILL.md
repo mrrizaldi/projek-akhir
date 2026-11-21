@@ -70,7 +70,7 @@ Tabel yang benar secara format masih bisa buruk bila dipakai sebagai wadah parag
 
 12. **Setiap angka tertelusur.** Beri komentar LaTeX `% sumber: path (nilai mentah)` sesudah tabel atau per baris (komentar `.tex` tidak dicetak). Angka hanya dari artefak repo (`model/artifacts/metrics/*`, walkthrough aktif, kode). Angka yang belum ada ditulis `\PlaceholderData{...}`, tidak pernah ditebak. Label kerja internal (`HW-n`, `Fase n`, tag ablasi, nama berkas) tidak boleh muncul di sel (`laporan/CLAUDE.md` §Larangan Label Kerja).
 
-13. **Tabel tidak berdiri sendiri.** Paragraf pengantar merujuk tabel sebelum tabel muncul. Paragraf penjelas sesudahnya mengikuti aturan 1–3 di `.claude/skills-arsip/narasi-pa/SKILL.md` (temuan dulu, tidak membaca ulang isi tabel) dan ditulis dengan skill `tulis-tanpa-slop`. Jangan ganti `\label` yang sudah dirujuk di bab lain; cek dengan `grep -rn "ref{tab:" laporan/buku-pa/bab`.
+13. **Tabel tidak berdiri sendiri.** Paragraf pengantar merujuk tabel sebelum tabel muncul. Paragraf penjelas sesudahnya mengikuti bagian "Paragraf penjelas" di skill `tulis-tanpa-slop` (temuan dulu, tidak membaca ulang isi tabel). Jangan ganti `\label` yang sudah dirujuk di bab lain; cek dengan `grep -rn "ref{tab:" laporan/buku-pa/bab`.
 
 14. **Batas wewenang.** `laporan/` read-only tanpa konfirmasi (`CLAUDE.md` root). Untuk permintaan umum seperti "rapikan tabel Bab 4", tampilkan dulu rencana per tabel (pertanyaan yang dijawab, kolom baru, baris yang dipindah) dan sunting `.tex` sesudah user setuju. Bila user sudah menyebut tabel dan bab yang boleh diubah, langsung kerjakan.
 
