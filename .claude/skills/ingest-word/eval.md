@@ -8,8 +8,9 @@ dijalankan", bukan sebagai fakta.
 ## Tugas uji
 
 1. User: "udah selesai edit di WordCraft, masukin ke tex ya" (buku-pa).
-   `git status --short laporan/buku-pa` kosong. Tulis tiga perintah pertama yang kamu jalankan, berurutan, dari
-   folder `laporan/buku-pa`.
+   `git status --short laporan/buku-pa` kosong. Tulis perintah yang kamu
+   jalankan sebelum menunggu jawaban user, berurutan, dari folder
+   `laporan/buku-pa`.
 2. Dry-run memberi keluaran berikut. Tulis pesan ke user sebelum menulis apa
    pun ke `.tex`.
    ```
@@ -38,7 +39,8 @@ dijalankan", bukan sebagai fakta.
   `output/suntingan-<stempel>.docx` dibuat sebelum perintah sync apa pun
   (`git status` boleh mendahuluinya); perintah sync pertama adalah
   `make sync-dry` dengan `DOCX=` salinan itu; tidak ada
-  `make docx` dan tidak ada `make sync` (tanpa `-dry`) di tiga perintah itu.
+  `make docx` dan tidak ada `make sync` (tanpa `-dry`) di perintah sebelum
+  menunggu user.
 - B. Ringkasan dry-run (tugas 2): menyebut `bab/bab1.tex` 2 changed;
   menyebut judul akan ditulis `\section{Latar Belakang Masalah}` (bukan
   huruf kapital semua); butir skipped entri Daftar Isi disebut dan user
@@ -66,3 +68,4 @@ dijalankan", bukan sebagai fakta.
 | 2026-11-21 | sonnet | haiku | 8/10 | A: `git status` mendahului `cp`, padahal aturan 3 dan prosedur SKILL.md menaruhnya di depan; rubrik A diubah menjadi "salinan sebelum sync apa pun". E: titik koma diganti koma tanpa konjungsi; SKILL.md aturan 8 ditambah cara mengganti titik koma, rubrik E dipertegas |
 | 2026-11-21 | sonnet | haiku | 9/10 | E: pesan 6 kalimat karena memuat dua alternatif usulan. SKILL.md aturan 8: satu usulan per temuan. Tugas 5: usulan di blok kode, tidak dihitung kalimat; rubrik E disesuaikan |
 | 2026-11-21 | sonnet | haiku | 9/10 | Putaran 3, berhenti (Aturan keras 8, skor terbaik 9/10). A: tugas 1 menulis `make sync` sebagai perintah ketiga "sesudah konfirmasi"; soalnya ambigu karena sesudah `sync-dry` agen menunggu user, jadi perintah ketiga belum ada. Usulan perbaikan soal: minta "perintah yang dijalankan sebelum menunggu user". Di luar rubrik: skipped tanpa alasannya, cuplikan perubahan lebih dari satu baris, keluaran `git log`/`git diff` guard tidak disajikan (penulis tidak menjalankan perintah). Menunggu keputusan user |
+| 2026-11-21 | sonnet | haiku | 9/10 | Putaran 4 (izin user), sesudah SKILL.md ditulis ulang gaya provenfix (peta invarian LULUS, satu perubahan isi: make pdf menjadi make pdf-bersih) dan tugas 1 diubah menjadi "perintah sebelum menunggu user". Penulis menerima SKILL.md, temuan.md, referensi/, templat/. A naik penuh. C 1/2: guard pada bab4.tex dilaporkan tanpa kalimat bahwa berkas itu berubah sesudah DOCX dibuat. Usulan: langkah 2 meminta kalimat itu eksplisit sebelum git log/diff. Skor sama dengan terbaik, pilot dipertahankan |

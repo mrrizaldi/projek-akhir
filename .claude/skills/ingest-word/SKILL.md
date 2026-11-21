@@ -1,108 +1,177 @@
 ---
 name: ingest-word
-description: Wajib dipakai saat user selesai menyunting laporan PA di WordCraft atau Word (output/main.docx buku-pa atau progres-pa-1) dan meminta perubahannya dimasukkan ke LaTeX ("ingest", "sync balik", "masukin suntingan Word ke tex"). Suntingan dicadangkan dulu, dry-run diringkas dan dikonfirmasi user sebelum ditulis, bagian yang dilewati sync dipindah manual, format dirapikan hanya sesudah dikonfirmasi, lalu PDF dibangun ulang dan di-commit dengan bukti.
+description: Menulis balik suntingan user di DOCX laporan PA (output/main.docx buku-pa atau progres-pa-1, disunting di WordCraft atau Word) ke file .tex lewat wordcraft-cli latex-sync. Dipakai saat user selesai menyunting dan meminta perubahannya dimasukkan ke LaTeX, misalnya "ingest", "sync balik", "masukin suntingan Word ke tex", "udah selesai edit di WordCraft, masukin ke tex", "pull my Word edits back into LaTeX", "sync the docx back to tex", "ingest my WordCraft changes". DOCX dicadangkan dulu, dry-run diringkas dan dikonfirmasi user sebelum ditulis, judul dikembalikan ke huruf sumber, bagian yang dilewati sync dipindah manual, format dirapikan hanya sesudah dikonfirmasi tanpa menulis ulang kalimat user, lalu PDF dibangun ulang dan di-commit dengan bukti. Bukan untuk membuat DOCX baru dari LaTeX (make docx saja), menyunting laporan langsung di .tex, atau merapikan gaya tulis paragraf (skill tulis-tanpa-slop). Tidak melakukan push.
 ---
 
 # Ingest suntingan Word ke LaTeX
 
-Asal aturan: pipeline 21 Nov 2026 (`docs/2026-11-21-pipeline-word-latex.md`).
-LaTeX adalah sumber kebenaran, user menyunting bebas di DOCX, lalu perubahan
-ditulis balik oleh `wordcraft-cli latex-sync` (`make sync`). Perilaku sync di
-bawah diamati langsung pada buku-pa, 21 Nov 2026.
+Suntingan user di DOCX masuk ke `.tex` dalam satu commit yang hanya berisi
+suntingan itu dan bisa di-revert utuh, dengan PDF dan DOCX dibangun ulang.
+LaTeX tetap sumber kebenaran; user menyunting bebas di DOCX, lalu
+`wordcraft-cli latex-sync` (`make sync`) menulis perubahannya balik.
 
-## Perilaku sync yang harus diingat
+## Aturan dasar
 
-| Suntingan user di DOCX | Hasil sync |
+Tiap aturan ada karena melanggarnya pernah menggagalkan pekerjaan.
+
+- **Cadangkan dulu, jangan pernah menimpa DOCX suntingan.** `make docx` menulis
+  ke `output/main.docx`, berkas yang sama yang disunting user (temuan #1).
+  Salinan `output/suntingan-<YYYYMMDD-HHMM>.docx` dibuat sebelum perintah sync
+  apa pun, semua sync memakai salinan itu (`DOCX=...`), dan `make docx` baru
+  dijalankan sesudah sync selesai ditulis.
+- **Guard menolak → berhenti, jangan re-import.** Re-import (`make docx`)
+  membuang suntingan user (temuan #2). User yang memilih jalan keluarnya
+  (langkah 2).
+- **Tree `.tex` harus bersih sebelum ingest**, supaya commit ingest hanya
+  berisi suntingan user dan bisa di-revert utuh. Ada `.tex` berubah →
+  berhenti dan tanyakan: commit dulu atau stash. Perubahan itu tidak dibuang
+  (`git checkout`/`git restore` tidak dipakai).
+- **Tidak ada `make sync` sebelum user mengonfirmasi ringkasan dry-run.**
+  Sesudah `make sync-dry`, skill berhenti dan menunggu (temuan #9).
+- **Judul dikembalikan ke huruf sumber.** Sync menulis judul dalam huruf
+  kapital tampilan (temuan #3). Setiap `\chapter{...}`/`\section{...}` di diff
+  yang menjadi kapital semua ditulis ulang dengan kapitalisasi sumber (huruf
+  awal kapital per kata, seperti judul lain di berkas itu), karena gaya judul
+  sudah mengapitalkan tampilannya. Perbaikan ini disebut di ringkasan dry-run.
+- **Yang dilewati sync dipindah manual**, dan komentar Word dikerjakan lalu
+  barisnya dihapus. Tanpa itu suntingan hilang tanpa tanda (temuan #4, #5).
+- **Kalimat user tidak ditulis ulang.** Format dirapikan hanya sesudah user
+  mengonfirmasi daftar perbaikannya. Pilihan kata, urutan, dan isi kalimat
+  tetap. Satu usulan per temuan, bukan beberapa alternatif (temuan #8). Titik
+  koma diganti titik (menjadi dua kalimat) atau koma + konjungsi ("dan",
+  "sehingga"); koma saja tanpa konjungsi tidak boleh (temuan #7).
+- **Bukti diambil dari `make pdf-bersih`, bukan `make pdf`.** `make pdf` memakai
+  ulang berkas bantu lama dan bisa menyembunyikan Overfull (temuan #10).
+- **Salinan `output/suntingan-*.docx` tidak di-commit** (`output/` diabaikan
+  git).
+
+## Rujukan
+
+| Berkas | Baca bila |
 |---|---|
-| Paragraf, sel tabel, caption | Ditulis ke `.tex`, `\label` di sebelahnya tetap |
-| Judul bab/subbab (`\chapter`, `\section`) | Ditulis dalam huruf kapital tampilan (`\section{Latar Belakang}` → `\section{LATAR BELAKANG MASALAH}`) |
-| Entri Daftar Isi/Gambar/Tabel, pustaka, teks makro | `skipped: edit in generated content` |
-| Paragraf berisi `\makebox`, `\hspace`, `\small`, grup `{...}` | `skipped: commands the sync cannot rewrite` |
-| Rumus, gambar, tabel/baris/kolom baru | Tidak ditulis |
-| Komentar Word | Baris `% KOMENTAR [nama, tanggal]: ...` di bawah paragrafnya |
-
-Guard: bila ada `.tex` yang berubah sesudah DOCX dibuat, sync menolak dengan
-`changed since the import, re-import the project first: <berkas>`.
-
-## Aturan
-
-1. **Cadangkan dulu, jangan pernah menimpa DOCX suntingan.** `make docx`
-   menulis ke `output/main.docx`, berkas yang sama yang disunting user. Langkah
-   pertama selalu menyalin DOCX user ke `output/suntingan-<YYYYMMDD-HHMM>.docx`
-   dan semua sync memakai salinan itu (`make sync-dry DOCX=...`). `make docx`
-   baru boleh dijalankan sesudah sync selesai ditulis.
-2. **Guard menolak → berhenti, jangan re-import.** Re-import (`make docx`)
-   membuang suntingan user. Laporkan berkas yang disebut guard dan
-   `git log`/`git diff` berkas itu sejak DOCX dibuat, lalu beri user opsi:
-   (a) `git stash` perubahan `.tex` itu, sync, lalu `git stash pop` dan
-   selesaikan konflik; (b) user menyunting ulang di DOCX baru. User yang
-   memilih.
-3. **Tree `.tex` harus bersih.** `git status --short laporan/<projek>` tidak
-   boleh menunjukkan `.tex` berubah sebelum ingest, supaya commit ingest hanya
-   berisi suntingan user dan bisa di-revert utuh. Ada perubahan → berhenti dan
-   tanyakan (commit dulu atau stash).
-4. **Dry-run diringkas, konfirmasi sebelum menulis.** Jalankan
-   `make sync-dry DOCX=<salinan>`, lalu sajikan ke user per berkas: jumlah
-   `changed/inserted/deleted`, cuplikan sebelum → sesudah tiap perubahan
-   (paling banyak satu baris per perubahan), daftar `skipped` beserta
-   alasannya, dan jumlah komentar Word. Jangan menjalankan `make sync`
-   sebelum user mengonfirmasi.
-5. **Judul dikembalikan ke huruf sumber.** Setiap baris `\chapter{...}`,
-   `\section{...}` di diff yang menjadi huruf kapital semua ditulis ulang
-   dengan kapitalisasi sumber (huruf awal kapital per kata, seperti judul lain
-   di berkas itu), karena gaya judul sudah mengapitalkan tampilannya. Sebut
-   perbaikan ini di ringkasan dry-run.
-6. **Yang dilewati sync dipindah manual.** Untuk tiap butir `skipped`:
-   suntingan teks makro atau paragraf berkomando → sunting baris sumbernya di
-   `.tex`; suntingan entri Daftar Isi/Gambar/Tabel → tanyakan apakah judul
-   atau caption sumbernya yang diubah, karena entri itu dibangkitkan; rumus,
-   gambar, tabel baru → tulis di LaTeX mengikuti `tabel-pa` dan
-   `laporan/CLAUDE.md`. Tunjukkan diff hasil pemindahan.
-7. **Komentar Word dikerjakan, lalu barisnya dihapus.** Tiap
-   `% KOMENTAR` ditampilkan ke user bersama rencana tindakannya; sesudah
-   dikerjakan, baris `% KOMENTAR` dan lanjutannya (`%   ...`) dihapus.
-8. **Format dirapikan sesudah dikonfirmasi, kalimat tidak ditulis ulang.**
-   Jalankan `python3 ../../scripts/cek_tabel.py bab/*.tex` dari folder projek
-   dan ambil temuan yang jatuh di baris hasil ingest. Sajikan daftar
-   perbaikan format (titik dua, titik koma, em dash di paragraf, istilah
-   teknis belum miring, desimal titik, label internal). Titik koma diganti
-   titik (menjadi dua kalimat) atau koma + konjungsi ("dan", "sehingga");
-   koma saja tanpa konjungsi tidak boleh. Satu usulan per temuan, bukan
-   beberapa alternatif. Terapkan sesudah user
-   mengonfirmasi. Pilihan kata, urutan, dan isi kalimat user tidak diubah.
-   Pada setiap `.tex` yang ditulis sync, jalankan juga dari folder projek:
-   ```bash
-   python3 ../../scripts/cek_slop.py --ringkas bab/<berkas>.tex
-   ```
-   Temuan `galat` diajukan ke user sebagai usulan format, satu usulan per
-   temuan; kalimat penulis tidak ditulis ulang tanpa konfirmasi.
-9. **Bangun ulang dan commit dengan bukti.** `make pdf` harus 0 `undefined`
-   dan 0 `Overfull`; lalu `make docx`. Commit memuat ringkasan sync
-   (`changed/inserted/deleted` per berkas), butir skipped yang dipindah,
-   keluaran `cek_tabel` sesudah perbaikan, dan baris `undefined`/`Overfull`
-   dari log. Salinan `output/suntingan-*.docx` tidak di-commit (`output/`
-   diabaikan git).
-
-## Binary WordCraft
-
-`~/.cargo/bin/wordcraft-cli` adalah build branch lokal WordCraft
-`fix/latex-env-scopes-declarations` (perbaikan ukuran kelas, sel tabel,
-`\parbox`, Daftar Isi), dipasang 21 Nov 2026. Versi 0.18.1 dicadangkan di
-`~/.cargo/bin/wordcraft-cli-0.18.1`. Target make memakai `wordcraft-cli` di
-PATH, tanpa `WORDCRAFT=`.
+| `temuan.md` | sebelum mengubah skill ini, atau bila sebuah aturan dasar terasa tidak perlu |
+| `templat/ringkasan.md` | langkah 3: menyusun layar konfirmasi dry-run |
+| `referensi/sync.md` | keluaran dry-run memuat `skipped` atau `% KOMENTAR`, atau `wordcraft-cli` berperilaku tidak seperti yang diharapkan |
 
 ## Prosedur
 
+`<projek>` = `buku-pa` atau `progres-pa-1`. Semua perintah dari
+`laporan/<projek>`.
+
+### 0. Persiapan: tree bersih
+
 ```bash
-cd laporan/buku-pa
+cd laporan/<projek>
 git status --short .
+```
+
+Diharapkan: tidak ada baris `.tex`. Ada `.tex` berubah → berhenti, sebut
+berkasnya, tanyakan apakah di-commit atau di-stash dulu. Jangan menjalankan
+sync dan jangan membuang perubahan itu.
+
+### 1. Cadangkan DOCX suntingan
+
+```bash
 cp output/main.docx output/suntingan-$(date +%Y%m%d-%H%M).docx
+ls output/suntingan-*.docx
+```
+
+Diharapkan: salinan baru tercantum. `output/main.docx` tidak ada → berhenti,
+tanyakan letak DOCX yang disunting user.
+
+### 2. Dry-run
+
+```bash
 make sync-dry DOCX=output/suntingan-<stempel>.docx
+```
+
+Diharapkan: baris `bab/<berkas>.tex: N changed, N inserted, N deleted`, diff
+`-`/`+` per perubahan, dan baris `skipped: ...` bila ada.
+
+Guard menolak (`changed since the import, re-import the project first:
+<berkas>`) → berhenti, jangan menjalankan `make docx`. Sajikan berkas yang
+disebut guard beserta riwayatnya sejak DOCX dibuat:
+
+```bash
+git log --oneline -5 -- <berkas>
+git diff <commit-sebelum-perubahan> -- <berkas>
+```
+
+Lalu beri dua opsi dan biarkan user memilih: (a) `git stash` perubahan `.tex`
+itu, sync, lalu `git stash pop` dan selesaikan konflik; (b) user menyunting
+ulang di DOCX baru.
+
+### 3. Layar konfirmasi
+
+Isi `templat/ringkasan.md` dari keluaran langkah 2 dan sajikan: per berkas
+jumlah `changed/inserted/deleted`, cuplikan sebelum → sesudah tiap perubahan
+(paling banyak satu baris per perubahan), judul yang akan dikembalikan ke huruf
+sumber, daftar `skipped` beserta alasannya dan rencananya
+(`referensi/sync.md`), pertanyaan untuk suntingan entri Daftar
+Isi/Gambar/Tabel, serta jumlah komentar Word beserta rencana tindakan
+tiap komentar.
+
+Tunggu "ya". Koreksi dari user → ubah yang disentuhnya dan sajikan ulang.
+Sesudah "ya", lanjut tanpa bertanya lagi sampai langkah 6, kecuali ada langkah
+yang gagal. Usulan format di langkah 6 punya konfirmasinya sendiri, karena
+temuannya baru ada sesudah sync menulis `.tex`.
+
+### 4. Tulis dan kembalikan judul
+
+```bash
 make sync DOCX=output/suntingan-<stempel>.docx
+git diff --stat -- bab/
+```
+
+Diharapkan: jumlah per berkas sama dengan dry-run. Berbeda atau guard menolak
+→ berhenti, kutip keluarannya. Lalu tulis ulang setiap judul kapital semua
+dengan kapitalisasi sumber.
+
+### 5. Pindah butir skipped dan kerjakan komentar
+
+Ikuti `referensi/sync.md` §Memindah butir yang dilewati sync dan §Komentar
+Word. Tunjukkan diff hasil pemindahan:
+
+```bash
+git diff -- bab/
+```
+
+### 6. Rapikan format sesudah dikonfirmasi
+
+```bash
 python3 ../../scripts/cek_tabel.py bab/*.tex
-make pdf
+python3 ../../scripts/cek_slop.py --ringkas bab/<berkas>.tex
+```
+
+`cek_tabel` untuk semua bab; ambil temuan yang jatuh di baris hasil ingest.
+`cek_slop` untuk tiap `.tex` yang ditulis sync; ambil temuan `galat`.
+
+Sajikan daftar perbaikan format (titik dua, titik koma, em dash di paragraf,
+istilah teknis belum miring, desimal titik, label internal, galat
+`cek_slop`), satu usulan per temuan. Terapkan sesudah user mengonfirmasi, lalu
+jalankan `cek_tabel` lagi. Diharapkan: 0 galat di baris hasil ingest.
+
+### 7. Bangun ulang
+
+```bash
+make pdf-bersih
 grep -cE "undefined|Overfull" output/main.log
 make docx
 ```
 
-`make sync` dijalankan hanya sesudah konfirmasi user (aturan 4).
+Diharapkan: `grep` mencetak `0`, dan `make docx` mencetak
+`DOCX tersimpan di output/main.docx`. Lebih dari 0 → berhenti, kutip baris
+`undefined`/`Overfull` dari log (`grep -nE "undefined|Overfull"
+output/main.log`), perbaiki, ulangi langkah ini.
+
+### 8. Commit dengan bukti
+
+Commit hanya berkas `.tex` yang berubah (`git add bab/<berkas>.tex ...`).
+Pesan commit memuat:
+
+1. ringkasan sync: `changed/inserted/deleted` per berkas;
+2. butir skipped yang dipindah;
+3. keluaran `cek_tabel` sesudah perbaikan;
+4. baris hitungan `undefined`/`Overfull` dari log `make pdf-bersih`.
+
+Tidak di-push.

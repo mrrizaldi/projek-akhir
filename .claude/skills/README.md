@@ -50,3 +50,33 @@ ini: penulis `sonnet`, penilai `haiku`).
    putaran berturut-turut. Yang belum 10/10 dicatat skor terbaiknya dan
    ditanyakan ke user. Setiap perubahan `SKILL.md` sesudah lulus mewajibkan
    eval ulang.
+
+## Cara menulis skill
+
+Gaya mengikuti skill provenfix (`~/dev/before-after/SKILL.md`).
+
+1. **Description** menyebut apa yang dikerjakan, kapan dipakai (frasa pemicu
+   seperti yang diketik user, Indonesia dan Inggris), bukan untuk apa, dan apa
+   yang tidak dilakukannya.
+2. **Pembuka** satu atau dua kalimat tentang hasil akhir.
+3. **`## Aturan dasar`** dibuka "Tiap aturan ada karena melanggarnya pernah
+   menggagalkan pekerjaan." Tiap butir diawali frasa tebal, lalu alasan
+   singkat yang merujuk `temuan.md` (`temuan #3`).
+4. **`## Rujukan`** berupa tabel `| Berkas | Baca bila |`. SKILL.md hanya
+   memuat aturan dasar dan prosedur; detail yang berlaku pada kondisi
+   tertentu pindah ke `referensi/`.
+5. **`## Prosedur`** bernomor mulai 0 (persiapan). Tiap langkah memuat
+   perintah persis di blok kode, keluaran yang diharapkan, dan kondisi
+   berhenti ("gagal → berhenti, kutip alasannya").
+6. **Satu layar konfirmasi** sebelum skill menulis berkas milik user; sesudah
+   "ya", lanjut tanpa bertanya lagi kecuali ada langkah yang gagal.
+7. **`temuan.md`** daftar bernomor, dibuka "Tiap butir pernah menggagalkan
+   satu pekerjaan." Isinya kegagalan nyata: asal skill dan pelajaran dari
+   riwayat eval.
+8. **`templat/`** untuk keluaran berbentuk tetap (laporan ke user, pesan
+   commit).
+9. **`eval.md`** tetap (Aturan keras 8).
+
+Isi aturan tidak berubah saat gaya ditulis ulang: setiap aturan lama
+dipetakan ke tempat barunya, dan eval dijalankan ulang satu putaran dengan
+skor minimal sama dengan skor terbaik sebelumnya.
