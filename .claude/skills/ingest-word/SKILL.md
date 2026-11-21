@@ -70,6 +70,12 @@ Guard: bila ada `.tex` yang berubah sesudah DOCX dibuat, sync menolak dengan
    koma saja tanpa konjungsi tidak boleh. Satu usulan per temuan, bukan
    beberapa alternatif. Terapkan sesudah user
    mengonfirmasi. Pilihan kata, urutan, dan isi kalimat user tidak diubah.
+   Pada setiap `.tex` yang ditulis sync, jalankan juga dari folder projek:
+   ```bash
+   python3 ../../scripts/cek_slop.py --ringkas bab/<berkas>.tex
+   ```
+   Temuan `galat` diajukan ke user sebagai usulan format, satu usulan per
+   temuan; kalimat penulis tidak ditulis ulang tanpa konfirmasi.
 9. **Bangun ulang dan commit dengan bukti.** `make pdf` harus 0 `undefined`
    dan 0 `Overfull`; lalu `make docx`. Commit memuat ringkasan sync
    (`changed/inserted/deleted` per berkas), butir skipped yang dipindah,

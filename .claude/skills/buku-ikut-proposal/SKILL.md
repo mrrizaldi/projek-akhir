@@ -26,7 +26,7 @@ Kegagalan yang ditangkap user (14 Okt 2026):
    Bab 1 boleh diperbarui (angka, sitasi, istilah) bila faktanya berubah.
    Yang diikuti dari proposal adalah **garis besar**, bukan kalimat: tiga
    hal yang dipermasalahkan, tiga tujuan, dan apa yang diuji (Rencana
-   Pengujian Bab 3). Kalimat buku ditulis dengan skill `narasi-pa` dan
+   Pengujian Bab 3). Kalimat buku ditulis dengan skill `tulis-tanpa-slop` dan
    tidak harus identik dengan proposal.
    Arah sebaliknya tidak ada: `laporan/proposal-pa` sudah diserahkan dan
    dibekukan (keputusan user 15 Okt 2026). Proposal tidak disunting lagi,

@@ -155,7 +155,7 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
 
 12. **Tabel tidak berdiri sendiri.** Paragraf pengantar merujuk tabel
     sebelum tabel muncul. Paragraf penjelas sesudahnya mengikuti skill
-    `narasi-pa` aturan 1–3, yaitu temuan dulu dan tidak membaca ulang isi
+    `.claude/skills-arsip/narasi-pa/SKILL.md` aturan 1–3, yaitu temuan dulu dan tidak membaca ulang isi
     tabel. Mengganti `\label` dilarang bila sudah dirujuk di bab lain. Cek
     dengan `grep -rn "ref{tab:" laporan/buku-pa/bab`.
 
@@ -176,7 +176,7 @@ dan `laporan/CLAUDE.md`. Yang **tidak** diambil, beserta alasannya:
    terkait.
 3. Susun ulang dengan aturan 4–10. Pindahkan isi yang keluar dari sel ke
    paragraf penjelas atau Keterangan, jangan dibuang.
-4. Tulis atau perbarui paragraf pengantar dan penjelas (skill `narasi-pa`).
+4. Tulis atau perbarui paragraf pengantar dan penjelas (skill `tulis-tanpa-slop`).
 5. Kompilasi: `cd laporan/buku-pa && make pdf`, lalu
    `grep -ciE "undefined|overfull .hbox" output/main.log`. Buka halaman
    tabel di PDF dan lihat langsung.

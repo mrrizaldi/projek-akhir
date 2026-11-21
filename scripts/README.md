@@ -82,7 +82,7 @@ raw string C++ (`R"(...)"`) dan pemisah digit (`1'000`) belum dikenali tokenizer
 ## Pemeriksa tabel dan narasi laporan
 
 `cek_tabel.py` memeriksa tabel LaTeX dan paragraf penjelasnya di laporan PA
-(skill `tabel-pa` dan `narasi-pa`). Galat keluar dengan kode 1, sedangkan
+(skill `tabel-pa` dan `tulis-tanpa-slop`). Galat keluar dengan kode 1, sedangkan
 saran hanya dicetak (`--ketat` membuat saran ikut gagal). Format keluaran:
 `berkas:baris: [KODE tingkat] pesan`.
 

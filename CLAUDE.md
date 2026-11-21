@@ -261,8 +261,10 @@ env `native` = test di PC). Jalankan dari `firmware/`.
 
 Acuan penulisan = empat skill di `.claude/skills/`: `struktur-pa` (kerangka
 bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
-`narasi-pa` (paragraf), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
-dan sinkronisasi proposal). Bedah 6 laporan PA PENS yang menjadi asal
+`tulis-tanpa-slop` (paragraf tanpa pola tulisan AI, diperiksa
+`scripts/cek_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
+dan sinkronisasi proposal). `narasi-pa` dinonaktifkan 21 Nov 2026 dan
+disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6 laporan PA PENS yang menjadi asal
 aturannya sudah diarsipkan di `docs/arsip/2026-10-10-pola-laporan-pa/` dan
 tidak dijadikan acuan lagi. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
 Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim

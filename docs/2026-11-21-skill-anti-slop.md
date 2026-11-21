@@ -31,15 +31,9 @@ Skill luar tidak dipasang mentah karena berbenturan dengan aturan yang berlaku:
    `laporan/CLAUDE.md` dan diperiksa `scripts/cek_tabel.py`.
 4. Struktur paragraf sudah diatur skill `narasi-pa`.
 
-## Rencana aksi (belum diputuskan user)
+## Keputusan posisi skill
 
-1. Ambil SKILL.md naskah-id dan katalog pola humanizer-indonesia, baca isinya
-   dan skrip yang dibawa.
-2. Bandingkan dengan `narasi-pa` dan `laporan/CLAUDE.md`, daftar pola yang
-   belum tercakup.
-3. Usulkan tambahan ke `narasi-pa` ke user. Pola yang bisa dideteksi mesin
-   menjadi pemeriksaan di `scripts/cek_tabel.py` (Aturan keras 6).
-4. Skill yang diubah menjalani eval sesuai Aturan keras 8.
+Rencana distilasi ke `narasi-pa` tidak dipakai: user memutuskan 21 Nov 2026 bahwa `tulis-tanpa-slop` menggantikan `narasi-pa`.
 
 ## Urutan kerja (keputusan user 21 Nov 2026)
 
@@ -104,11 +98,24 @@ Bab 3 menyebut "lima hal" untuk empat butir (kini "empat hal"), dan kalimat
    - bab2: "dua keperluan yang berbeda", hanya satu yang diuraikan;
    - bab3: "menekan jumlah parameter secara drastis" dan "model yang telah
      teruji akurat".
-4. Posisi `tulis-tanpa-slop` terhadap `narasi-pa` belum diputuskan.
-   `CLAUDE.md` root (bagian Menulis laporan) dan `laporan/CLAUDE.md` masih
-   menunjuk `narasi-pa` saja, dan skill `ingest-word` belum menjalankan
-   `cek_slop.py` pada paragraf yang disunting user. Bagian "Rencana aksi"
-   di atas (distilasi ke `narasi-pa`) ikut usang bila skill baru dipakai.
+4. Celah aturan. `narasi-pa` dinonaktifkan 21 Nov 2026; aturan berikut
+   belum punya padanan dan menjadi bahan penyetelan `tulis-tanpa-slop`
+   berikutnya.
+
+   | Aturan narasi-pa | Ringkasan (≤ 8 kata) | Padanan di tulis-tanpa-slop |
+   |---|---|---|
+   | 1 | Penjelas tabel: temuan, bukti, makna | tidak ada |
+   | 2 | Pembuka paragraf penjelas bervariasi | tidak ada |
+   | 3 | Jangan membaca ulang isi tabel | tidak ada |
+   | 4 | Kekuatan klaim sebanding bukti | ada (Frasa: S-SIGNIFIKAN, S-MUTLAK; tabel kata tidak ada) |
+   | 5 | Kalimat 15–30 kata, pecah di atas 35 | ada (Kalimat: S-PANJANG, S-RANTAI-YANG) |
+   | 6 | Satu paragraf satu fungsi, 60–150 kata | tidak ada |
+   | 7 | Tanpa pembuka meta di subbab | ada (Paragraf: S-DOKUMEN) |
+   | 8 | Kohesi lama ke baru, pembuka dirotasi | tidak ada |
+   | 9 | Istilah dan singkatan konsisten | ada (Yang bukan slop: pengulangan istilah) |
+   | 10 | Benang merah hasil ke target | tidak ada |
+   | 11 | Register rancangan versus capaian | tidak ada |
+   | 12 | Sunting tidak mengubah isi | ada (Yang tidak boleh berubah) |
 5. `laporan/progres-pa-1/bab/bab2.tex:96`: baris komentar `% sumber:` masih
    memuat sisa teks "TinyML memungkinkan model kecerdasan buatan". Tidak
    tercetak, kalimatnya sudah ada di baris prosa; cukup dirapikan saat bab

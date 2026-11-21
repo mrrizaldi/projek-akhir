@@ -29,7 +29,7 @@ Pengantar yang merujuk Tabel~\ref{tab:slug} sebelum tabel muncul.
 \end{table}
 % sumber: path artefak (nilai mentah)
 
-Paragraf penjelas (skill narasi-pa): temuan dulu, lalu makna terhadap target.
+Paragraf penjelas (skill `tulis-tanpa-slop`): temuan dulu, lalu makna terhadap target.
 ```
 
 Catatan:
@@ -190,6 +190,6 @@ baris = satu penelitian, dan baris terakhir adalah **Penelitian ini**
 - Kolom "Perbedaan" dengan 20–40 kata per sel diganti kolom atribut pendek
   yang membuat perbedaan terlihat langsung, mis. kolom Pembagian data dengan
   isi "per detak" vs "*inter-patient*". Uraian perbedaan pindah ke paragraf
-  pemosisian (arketipe "Pemosisian" di skill `narasi-pa`).
+  pemosisian (arketipe "Pemosisian" di `.claude/skills-arsip/narasi-pa/SKILL.md`).
 - Panjang lebih dari satu halaman → `longtable` + `\scriptsize` + kolom `L{}`
   (`laporan/CLAUDE.md`).

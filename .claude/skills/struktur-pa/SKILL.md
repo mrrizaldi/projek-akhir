@@ -12,7 +12,7 @@ pola yang berlaku untuk laporan PA ini. Angka korpus, contoh halaman, dan
 rencana Bab 4 yang sudah dikerjakan tinggal di arsip dan tidak dijadikan
 acuan lagi. Kerangka resmi Bab 1–3 ada di `laporan/CLAUDE.md` §Struktur
 Resmi Proposal PA. Kerangka Bab 1 buku mengikuti proposal (skill
-`buku-ikut-proposal`). Paragraf diatur skill `narasi-pa`, tabel diatur
+`buku-ikut-proposal`). Paragraf diatur skill `tulis-tanpa-slop`, tabel diatur
 skill `tabel-pa`.
 
 ## Aturan
@@ -48,7 +48,7 @@ skill `tabel-pa`.
      jalur, bukan "Tujuan 1, ...". Diperiksa `cek_tabel.py` (N-TUJUAN).
    - Tidak ada paragraf "Bab ini ..." (aturan 1). Subbab dan butir
      langsung ke isi, tanpa "Subbab ini memaparkan ..." atau "Butir ini
-     bertujuan ..." (skill `narasi-pa` aturan 7, `cek_tabel.py` N-META).
+     bertujuan ..." (`.claude/skills-arsip/narasi-pa/SKILL.md` aturan 7, `cek_tabel.py` N-META).
    - Kaitan ke tujuan cukup dinyatakan sekali di pembuka 4.6
      ("disusun mengikuti tujuan penelitian") dan di awal 5.1, tanpa
      `\ref` ke subbab (aturan 11).
@@ -208,7 +208,7 @@ skill `tabel-pa`.
 | Navigasi | nomor ganda, "Tabel X di atas" padahal muncul sesudahnya, judul subbab tidak cocok isi, salah ketik judul baku | `\label`/`\ref`, pola apit, judul disalin dari aturan 1 |
 | Sitasi | nomor manual bergeser, satu nomor dua sumber, blog untuk teori, angka literatur tanpa `\cite` | BibTeX dan `~\cite`, sumber jurnal/prosiding/datasheet/dokumentasi resmi |
 | Isi dan logika | manfaat melampaui keterbatasan, angka teks ≠ tabel, metrik yang tidak bisa gagal, kata kerja terbalik ("penurunan dari E ke A"), uji rencana hilang di Bab 4 | aturan 3, angka teks diambil dari tabel, baca ulang kalimat angka |
-| Gaya | penjelas gambar mengulang caption, paragraf dobel, "uji coba"/"ujicoba" bergantian, desimal campur | aturan 8, `narasi-pa`, `laporan/CLAUDE.md` |
+| Gaya | penjelas gambar mengulang caption, paragraf dobel, "uji coba"/"ujicoba" bergantian, desimal campur | aturan 8, `tulis-tanpa-slop`, `laporan/CLAUDE.md` |
 
 ## Daftar periksa sebelum kumpul
 

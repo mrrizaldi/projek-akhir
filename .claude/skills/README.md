@@ -8,7 +8,6 @@ berbeda, maksimal 3 putaran.
 | Skill | Lingkup |
 |---|---|
 | `struktur-pa` | kerangka bab laporan PA, benang merah, register, placeholder gambar, QA sebelum kumpul |
-| `narasi-pa` | paragraf laporan PA (penjelas tabel/gambar, hasil dan analisis, klaim sebanding bukti) |
 | `tabel-pa` | tabel LaTeX laporan PA (grid PENS, satu tabel satu pertanyaan, templat A–G) |
 | `buku-ikut-proposal` | Bab 1 buku mengikuti proposal pada garis besar, sinkronisasi balik ke proposal |
 | `batas-tidak-diam` | firmware: batas tidak membuang data diam-diam, aksi di batas tidak memblok |
@@ -18,6 +17,9 @@ berbeda, maksimal 3 putaran.
 | `tautan-lokal` | dokumen bertautan ke berkas lokal: HTML bukan PDF, tautan relatif `#page=N`, diklik lewat server lokal sebelum diserahkan, yang belum terbukti disebut |
 | `tulis-tanpa-slop` | paragraf laporan tanpa pola tulisan AI: isi, angka, sitasi tetap; frasa klise, struktur formulaik, dan kebiasaan bawaan aturan rumah ("karena itu" sisipan, "yaitu" berderet) ditindak; `cek_slop.py` |
 | `ingest-word` | suntingan DOCX ke LaTeX: DOCX dicadangkan, dry-run diringkas dan dikonfirmasi, judul dikembalikan ke huruf sumber, skipped dipindah manual, format dirapikan sesudah dikonfirmasi |
+
+`narasi-pa` nonaktif sejak 21 Nov 2026, disimpan di
+`.claude/skills-arsip/narasi-pa/` sebagai rujukan.
 
 Pemeriksa mesin untuk skill laporan: `python3 scripts/cek_tabel.py`
 (`scripts/README.md`).
