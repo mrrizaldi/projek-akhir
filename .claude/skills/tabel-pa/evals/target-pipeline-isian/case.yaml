@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: target-pipeline-isian
+expected_outcome: |
+  Satuan di label baris atau header, bukan di tiap sel. "Tidak diulang" menjadi -- dengan kalimat Keterangan. "Sama" pada deduplikasi menjadi 0. p95 berstatus Dilaporkan dengan acuan 2 detik tetap di kolom Target. Angka tidak berubah; konversi detik ke ms hanya bila disebut ke user.

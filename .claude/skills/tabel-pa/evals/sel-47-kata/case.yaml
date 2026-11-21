@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: sel-47-kata
+expected_outcome: |
+  Sel baru paling banyak 20 kata. Isi yang keluar dipindah ke paragraf penjelas atau Keterangan, tidak dibuang. Sitasi ~\cite{resilient_edge_cloud} tetap ada.

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: grid-ke-tiga-garis
+expected_outcome: |
+  Hasil memakai \toprule, \midrule, \bottomrule; tanpa |, \hline, \cline, \rowcolor. Pemisah sesudah baris LO dan sebelum baris kelompok Keluaran berupa \midrule, tanpa garis antara Keluaran dan Buzzer. Isi sel tidak berubah. Pada longtable, \endfoot memakai \bottomrule dan header berulang memakai \toprule/\midrule.

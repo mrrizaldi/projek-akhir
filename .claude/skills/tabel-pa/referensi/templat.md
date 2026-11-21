@@ -1,8 +1,8 @@
 # Templat tabel PA (gaya tiga garis)
 
 Semua templat memakai blok dasar yang sama dengan tabel yang sudah ada di
-`laporan/buku-pa/bab/bab4.tex`. Contoh angka diambil dari buku-pa per 15 Okt
-2026 hanya sebagai ilustrasi bentuk. Saat dipakai, salin angkanya ulang dari
+`laporan/buku-pa/bab/bab4.tex`. Contoh angka diambil dari buku-pa
+hanya sebagai ilustrasi bentuk. Saat dipakai, salin angkanya ulang dari
 artefak (`% sumber:`), bukan dari berkas ini.
 
 ## Blok dasar

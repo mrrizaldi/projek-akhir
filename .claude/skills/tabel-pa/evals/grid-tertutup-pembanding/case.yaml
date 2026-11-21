@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: grid-tertutup-pembanding
+expected_outcome: |
+  Tabel menjadi grid tertutup polos: | di setiap batas kolom, \hline sesudah header (di \endfirsthead dan \endhead) dan sesudah setiap baris data, tanpa \toprule/\midrule/\bottomrule dan tanpa \rowcolor. Pengecualian hanya untuk tabel ini; tabel komponen tetap tiga garis.

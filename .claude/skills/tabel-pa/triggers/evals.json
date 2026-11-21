@@ -1,0 +1,82 @@
+[
+  {
+    "query": "rapikan tabel Bab 4 di buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "ubah tabel grid ini ke tiga garis booktabs",
+    "should_trigger": true
+  },
+  {
+    "query": "buat tabel hasil pengujian latensi untuk laporan",
+    "should_trigger": true
+  },
+  {
+    "query": "sel di tabel parameter terlalu panjang, pendekkan",
+    "should_trigger": true
+  },
+  {
+    "query": "tabel confusion matrix dan metrik DS2 masih campur, perbaiki",
+    "should_trigger": true
+  },
+  {
+    "query": "make the ablation table in buku-pa follow the three-line style",
+    "should_trigger": true
+  },
+  {
+    "query": "tulis paragraf pengantar dan penjelas untuk tabel target pipeline",
+    "should_trigger": true
+  },
+  {
+    "query": "tabel pembanding penelitian terkait di Bab 2 jadi grid tertutup polos",
+    "should_trigger": true
+  },
+  {
+    "query": "review this LaTeX table, cells have 'Sama' and units in every cell",
+    "should_trigger": true
+  },
+  {
+    "query": "susun tabel ketercapaian tujuan penelitian",
+    "should_trigger": true
+  },
+  {
+    "query": "buat tabel di dokumen Word untuk jadwal sidang",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan tabel markdown di README firmware",
+    "should_trigger": false
+  },
+  {
+    "query": "buat gambar diagram blok sistem untuk Bab 3",
+    "should_trigger": false
+  },
+  {
+    "query": "plot kurva loss pelatihan dari pipeline",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan paragraf Bab 4 biar tidak terbaca seperti tulisan AI",
+    "should_trigger": false
+  },
+  {
+    "query": "fix the alignment of this Excel spreadsheet table",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah kolom ke tabel SQL di dashboard",
+    "should_trigger": false
+  },
+  {
+    "query": "susun kerangka bab dan subbab buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "compile laporan dan cek warning Overfull",
+    "should_trigger": false
+  },
+  {
+    "query": "add a CSS table style to the dashboard page",
+    "should_trigger": false
+  }
+]
