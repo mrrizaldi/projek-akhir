@@ -226,6 +226,34 @@ python3 scripts/cek_skill.py --lewati-eval-lama
 python3 scripts/cek_skill.py --uji
 ```
 
+## uji_pemicu.sh
+
+`uji_pemicu.sh` mengukur apakah deskripsi sebuah skill memicu pada kueri yang
+tepat dan tidak pada kueri lain, memakai `run_eval.py` dari skill-creator dan
+`triggers/evals.json` milik skill. Jalannya terisolasi: konfigurasi Claude
+sementara (`CLAUDE_CONFIG_DIR`) hanya berisi salinan `~/.claude/.credentials.json`,
+dan proyeknya folder kosong, sehingga skill lain dan `CLAUDE.md` tidak ikut.
+Salinan kredensial dihapus saat skrip selesai.
+
+Prasyarat: `uv`, skill-creator di `~/.claude/skills` (folder `.trash` dilewati),
+dan login aktif (`claude login`). Prasyarat yang kurang membuat skrip keluar
+dengan kode 2 dan pesan.
+
+```bash
+scripts/uji_pemicu.sh .claude/skills/<skill> [.claude/skills/<skill2> ...]
+```
+
+Keluaran per skill: `nama=<skill> benar=<n>/<total>` dan `json=<path>`; JSON
+lengkap dan log galat ada di folder sementara `$T/out/`. Satu kueri dijalankan
+satu kali (`--runs-per-query 1`), jadi hasilnya sampel kecil dan bisa
+bergeser antarjalan. Biaya: satu panggilan model per kueri, sekitar 20
+panggilan per skill dengan 20 kueri, dan sekitar 25 detik.
+
+Jebakan kebocoran: uji pemicu dapat meninggalkan berkas `*-skill-*` di
+`~/.claude/commands` yang lalu terbaca sebagai perintah di sesi lain. Skrip
+berhenti dengan kode 3 bila folder itu sudah memuatnya sebelum mulai, dan
+memeriksa lagi di akhir. Bersihkan berkas itu sebelum menjalankan ulang.
+
 ## rilis.py
 
 `rilis.py` membekukan PDF dan DOCX `buku-pa` atau `progres-pa-1` sebagai rilis
