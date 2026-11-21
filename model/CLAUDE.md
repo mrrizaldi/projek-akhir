@@ -19,7 +19,7 @@ Baca fase terkait sebelum menyentuh file apa pun. Jangan vibe-coding.
    Rencana, desain, dan changelog bertanggal yang selesai tidak disimpan; riwayat ada di git.
 7. **Penjelasan tinggal di `docs/`, bukan di `src/`.** File `src/` ditulis
    sependek mungkin (nyaris tanpa komentar) supaya terbaca sebagai persamaan
-   dan gampang diterjemahkan ke C. Kalau butuh menjelaskan "kenapa", tempatnya
+   dan mudah diterjemahkan ke C. Kalau butuh menjelaskan "kenapa", tempatnya
    walkthrough — bukan docstring 40 baris.
 
 ## Perintah
@@ -141,7 +141,7 @@ angka nyata, dan soal cek pemahaman.
   masih hangat akan hilang, dan Bab 4 laporan mengambil bahannya dari sini.
 - **Daftar dokumen + urutan baca: [`docs/README.md`](docs/README.md).** Walkthrough
   baru wajib didaftarkan di sana.
-- **Kerangka tetap** (jangan bikin format baru tiap fase): peta besar (diagram
+- **Kerangka tetap** (jangan membuat format baru tiap fase): peta besar (diagram
   alur) → fungsi per fungsi dengan kode + rumus → keputusan beserta alternatif
   yang ditolak → yang sengaja TIDAK dilakukan → angka nyata → cek pemahaman →
   skrip pendukung.
@@ -226,7 +226,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   1 beat, 68 label salah simbol padahal aritmia asli cuma 34 (tiap 1 aritmia
   merusak 2 baris). Hindari: `prep_beats` hitung `valid_beat_indices` DULU,
   semua array diambil dari indeks yang sama. RR dihitung dari `r` UTUH baru
-  di-slice — potong `r` duluan bikin beat tepi kehilangan tetangga.
+  di-slice — potong `r` duluan membuat beat tepi kehilangan tetangga.
 - **Group delay filter kausal menggeser R-peak +4 sampel.** Gejala: garis
   R-peak anotasi meleset ~11 ms di kiri puncak pada window HASIL FILTER
   (`make plot1seg`). Sebab: `sosfilt` cuma lihat masa lalu → output tertinggal.
@@ -350,7 +350,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   monoton, `patience=8` melatih 8 epoch yang seluruhnya dibuang. Augmentasi ×3
   di Fase 6c melipatgandakan langkah/epoch dan **tak ada yang meninjau ulang
   jadwal latihnya**. Hindari: setiap kali ukuran data latih berubah, cetak
-  kurva `val_auc` sekali dan lihat di mana puncaknya — jangan menilai lama latih
+  kurva `val_auc` sekali dan lihat letak puncaknya — jangan menilai lama latih
   dari jumlah epoch. Detail: `docs/train-walkthrough.md` §6b.
 - **Ambang 0,04 berlaku untuk RERATA 3 SEED, bukan cuma satu run.** Gejala:
   konfigurasi identik, seed identik, dijalankan dua kali pada hari yang sama →
@@ -371,7 +371,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   (state machine), dan `sock.connect(ip, port, 300)` — pakai `IPAddress`, karena
   resolusi DNS adalah panggilan blocking TERPISAH yang tidak ikut dibatasi
   argumen timeout. Hasil akhir: **0**. Detail: `docs/mqtt-walkthrough.md` §7b.
-- **`sock.write()` yang tidak habis bikin paket MQTT terpotong, dan gejalanya
+- **`sock.write()` yang tidak habis membuat paket MQTT terpotong, dan gejalanya
   menunjuk ke broker.** Gejala: `PUBACK timeout` berulang padahal broker sehat,
   HANYA saat backlog dikuras, dan **log broker bersih** — nol petunjuk di sisi
   sana. Sebab: paket ditulis 6 kali terpisah dan nilai kembaliannya diabaikan;
@@ -419,7 +419,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 - **Menyalahkan komponen jauh sebelum mengukurnya.** Gejala: latensi p95 buruk,
   dan penjelasan paling masuk akal ("ThingsBoard berbagi laptop dengan 9 container")
   ditulis ke dokumen tanpa diuji. Sebab: komponen yang paling sulit diukur juga
-  yang paling gampang disalahkan. Hindari: probe langsung — 40 baris Python
+  yang paling mudah disalahkan. Hindari: probe langsung — 40 baris Python
   publish 1/detik ke broker yang SAMA membuktikan RTT-nya 1,1 ms median, nol
   kejadian >1 detik, dalam 60 detik. Pola RTT board yang berkelompok di
   **1,2 / 2,0 / 4,2 detik** justru menunjuk backoff RTO TCP 1-2-4 = paket hilang

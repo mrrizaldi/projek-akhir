@@ -20,4 +20,4 @@ boleh diperbarui.
    atau buku).
 2. Pindahkan dulu fakta yang masih berlaku (lokasi data, cara memulihkan,
    nilai konfigurasi) ke README atau walkthrough komponennya.
-3. Hapus berkasnya (dengan persetujuan user) dan barisnya di tabel di atas.
+3. Hapus berkasnya (dengan persetujuan user) dan barisnya di tabel indeks.

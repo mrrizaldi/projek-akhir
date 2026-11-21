@@ -21,9 +21,9 @@ Build runs a full cycle: `pdflatex -> bibtex -> pdflatex -> pdflatex` to resolve
 
 Hitungan `undefined` dan `Overfull` untuk bukti selesai atau commit diambil dari
 `make pdf-bersih` (atau `make rebuild`), bukan `make pdf`. `make pdf-bersih`
-membuang berkas bantu tanpa menghapus DOCX di `output/`, sehingga cadangan
+membuang berkas bantu tanpa menghapus DOCX di `output/` sehingga cadangan
 suntingan Word tetap ada. `make pdf` memakai ulang `.aux`, `.toc`,
-`.lof`, dan `.bbl` lama, sehingga Overfull di daftar gambar atau tabel bisa
+`.lof`, dan `.bbl` lama sehingga Overfull di daftar gambar atau tabel bisa
 tidak muncul di log (21 Nov 2026: progres-pa-1 `make pdf` 0, `make rebuild` 2).
 
 ## Architecture

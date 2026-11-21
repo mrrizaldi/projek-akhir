@@ -27,7 +27,7 @@ MQTT ke ThingsBoard. Klasifikasi berjalan di alat, bukan di server.
   digambar penulis langsung ke `laporan/*/gambar/`.
 - Sinkronisasi lewat `scripts/export_artifacts.sh`. Artefak tidak disalin manual.
 
-Kebijakan commit: figure final dan header `.h` hasil generate **di-commit**,
+Kebijakan commit: figure final dan header `.h` hasil generate **di-commit**
 sehingga laporan dan firmware dapat di-build tanpa menjalankan seluruh pipeline
 model. Data mentah MIT-BIH dan berkas intermediate (`.npz`) **di-ignore**
 (lihat `.gitignore`).
