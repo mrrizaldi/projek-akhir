@@ -310,7 +310,6 @@ void tampilan_set_monitor(bool on)
     kanan_lalu[0] = 0;
 }
 
-bool tampilan_monitor(void) { return monitor; }
 
 constexpr int MY = 26, MH = 20;
 constexpr uint16_t BIRU_TUA = 0x0010;

@@ -18,7 +18,6 @@ void ecg_mqtt_antre_pasang(ecg_mqtt_beat_t *mem, size_t kapasitas)
 
 size_t ecg_mqtt_antre_kapasitas(void) { return antre_kap; }
 
-void ecg_mqtt_antre_reset(void) { antre_kepala = antre_isi = antre_hilang = 0; }
 size_t ecg_mqtt_antre_n(void) { return antre_isi; }
 size_t ecg_mqtt_antre_hilang(void) { return antre_hilang; }
 
@@ -347,7 +346,6 @@ void ecg_mqtt_layani(void)
     }
 }
 
-int ecg_mqtt_tersambung(void) { return tersambung ? 1 : 0; }
 int ecg_mqtt_aktif(void) { return aktif ? 1 : 0; }
 void ecg_mqtt_set_aktif(int on) { aktif = on != 0; if (!on) putus("dimatikan"); }
 uint32_t ecg_mqtt_terkirim(void) { return terkirim; }

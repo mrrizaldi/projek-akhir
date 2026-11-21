@@ -32,7 +32,6 @@ size_t ecg_mqtt_payload(char *buf, size_t n, const ecg_mqtt_beat_t *b, size_t nb
 void ecg_mqtt_antre_pasang(ecg_mqtt_beat_t *mem, size_t kapasitas);
 size_t ecg_mqtt_antre_kapasitas(void);
 
-void ecg_mqtt_antre_reset(void);
 size_t ecg_mqtt_antre_n(void);
 size_t ecg_mqtt_antre_hilang(void);
 void ecg_mqtt_antre_isi(const ecg_mqtt_beat_t *b);
@@ -44,7 +43,6 @@ void ecg_mqtt_atur(const char *ssid, const char *pass, const char *host, uint16_
                    const char *token);
 void ecg_mqtt_mulai(void);
 void ecg_mqtt_layani(void);
-int  ecg_mqtt_tersambung(void);
 int  ecg_mqtt_aktif(void);
 void ecg_mqtt_set_aktif(int on);
 uint32_t ecg_mqtt_terkirim(void);

@@ -18,7 +18,6 @@ void tampilan_sampel(void);
 void tampilan_gambar_tombol(int i);
 
 void tampilan_set_monitor(bool on);
-bool tampilan_monitor(void);
 
 constexpr int TAMPILAN_BARIS = 6, TAMPILAN_KOLOM = 26;
 void tampilan_menu_bingkai(const char *judul, const char *petunjuk1, const char *petunjuk2);
