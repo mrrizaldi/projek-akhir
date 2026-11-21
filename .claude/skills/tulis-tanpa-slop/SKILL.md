@@ -34,7 +34,9 @@ Uji coba pertama hanya di `laporan/progres-pa-1/bab/bab2.tex` sampai
 ## Prinsip
 
 - **Gerombolan, bukan kemunculan.** Satu "Selain itu" bukan masalah. Yang
-  ditindak kepadatan dan pengulangan.
+  ditindak kepadatan dan pengulangan. Prinsip ini tidak berlaku untuk pola
+  posisi dan pola `galat`: "karena itu" di tengah klausa dan koma sebelum
+  "sehingga" diubah setiap kali muncul, walau hanya sekali.
 - **Uji hapus.** Kalimat atau frasa yang bila dihapus tidak menghilangkan
   informasi dibuang.
 - **Ganti penilaian dengan fakta yang sudah ada di naskah.** "Latensinya
@@ -54,12 +56,21 @@ diputuskan per kemunculan).
    diberi \textit{jitter} dan karena itu mewakili anotasi tanpa
    \textit{error}." → "DS2 tidak diberi \textit{jitter} sehingga mewakili
    anotasi tanpa \textit{error}." atau pecah menjadi kalimat baru yang
-   dibuka subjeknya. "Karena itu," di awal kalimat sah bila jarang.
+   dibuka subjeknya. Hubungan sebabnya wajib tetap tertulis ("sehingga",
+   "akibatnya", "karena"), bukan dibuang bersama "karena itu". Aturan ini
+   soal posisi, jadi satu kemunculan pun diubah. Yang sah: "Karena itu," di
+   awal kalimat bila jarang, serta "bukan karena itu" dan "justru karena
+   itu" yang bermakna harfiah.
 2. **"yaitu" berderet** (S-YAITU-PADAT, dua atau lebih per paragraf).
    Larangan titik dua tidak berarti setiap daftar memakai "yaitu". Ganti
    sebagian dengan "berupa", "meliputi", kurung, atau sebut langsung tanpa
    pengantar ("lima rekaman DS1 (101, 114, 201, 220, dan 223)").
-3. **"Jadi" pembuka kalimat** (S-JADI). Ragam lisan untuk kesimpulan; ganti
+3. **Koma sebelum "sehingga"** (S-KOMA-SEHINGGA, galat). EYD V: induk
+   kalimat di depan anak kalimat tidak berkoma. Setiap ", sehingga" menjadi
+   " sehingga", termasuk di kalimat yang tidak disunting karena alasan lain:
+   "latensi rata-rata 939~ms, sehingga target terpenuhi" → "latensi
+   rata-rata 939~ms sehingga target terpenuhi".
+4. **"Jadi" pembuka kalimat** (S-JADI). Ragam lisan untuk kesimpulan; ganti
    dengan "Dengan begitu", "Akibatnya", atau gabung dengan kalimat
    sebelumnya, atau buang bila kalimatnya hanya mengulang.
 
@@ -81,9 +92,7 @@ diputuskan per kemunculan).
 - **Subjek hilang** (S-SUBJEK): "Berdasarkan Tabel~4.2 menunjukkan ..." →
   "Tabel~4.2 menunjukkan ...".
 - **Konjungsi berpasangan** (S-KONJ-GANDA): "Meskipun ..., tetapi ...".
-- **"Sehingga"/"Sedangkan" di awal kalimat** (S-PEMBUKA-KONJ) dan **koma
-  sebelum "sehingga"** (S-KOMA-SEHINGGA, EYD V: induk kalimat di depan tidak
-  berkoma).
+- **"Sehingga"/"Sedangkan" di awal kalimat** (S-PEMBUKA-KONJ).
 - **Penyangkalan antisipatif** "Ini bukan berarti ..." (S-SANGKAL): nyatakan
   batasnya langsung.
 - **Kontras formulaik** "tidak hanya ... tetapi juga ..." (S-KONTRAS): baku
