@@ -697,3 +697,18 @@ Skill: `tautan-lokal`, `batas-tidak-diam`, `buku-ikut-proposal`, `deck-pa`,
 Gate user: usulan klaim (Tugas 5 langkah 3), pilot gaya skill (Tugas 7
 langkah 5). Semua tugas lain jalan tanpa konfirmasi per langkah; commit
 sesudah pemeriksaan hijau, tanpa push.
+
+## Temuan saat eksekusi
+
+1. Build bersih progres-pa-1 dan buku-pa memuat 2 Overfull yang sudah ada
+   sejak sebelum uji coba (v0 juga 2): caption Bab 2 dengan daftar sensor
+   "AD8232/MAX30102/MLX90614" (5,4 pt, garis miring tidak dipenggal) dan sel
+   tabel Bab 4 sekitar baris 868 "Penelitian pendahulu~\cite" (1,2 pt).
+   Laporan "0 Overfull" sebelumnya berasal dari `make pdf` inkremental.
+   `laporan/CLAUDE.md` kini meminta `make rebuild` untuk bukti; prosedur
+   skill yang masih `make pdf` (ingest-word, struktur-pa, buku-ikut-proposal,
+   tabel-pa, tulis-tanpa-slop) ikut diganti saat Tugas 7–8 menulis ulang
+   skill. Perbaikan dua Overfull menunggu persetujuan user (format saja).
+2. v1 kedua buku diambil dari `a516a18` (HEAD saat rilis), bukan `39d0268`,
+   supaya checkpoint berikutnya tidak menghasilkan rilis yang hanya berisi
+   perubahan komentar dan Makefile. Isi tercetak sama.
