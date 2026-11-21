@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: label-internal
+expected_outcome: |
+  Teks slide baru tanpa Fase n, path atau nama skrip, PA_*, "walkthrough", dan RM2. Judul berupa kalimat temuan, paling banyak 6 butir, tiap butir paling banyak 12 kata.

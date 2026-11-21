@@ -1,0 +1,82 @@
+[
+  {
+    "query": "bikin deck sidang PA 15 menit dari buku",
+    "should_trigger": true
+  },
+  {
+    "query": "buat slide seminar progres PA",
+    "should_trigger": true
+  },
+  {
+    "query": "rombak slide bimbingan, judulnya masih label semua",
+    "should_trigger": true
+  },
+  {
+    "query": "cek deck presentasi PA, ada label internal yang bocor?",
+    "should_trigger": true
+  },
+  {
+    "query": "make the PA defense slides from the thesis book",
+    "should_trigger": true
+  },
+  {
+    "query": "review my seminar deck for the final project",
+    "should_trigger": true
+  },
+  {
+    "query": "tambahkan slide hasil kuantisasi ke deck sidang",
+    "should_trigger": true
+  },
+  {
+    "query": "render semua slide deck PA dan periksa satu-satu",
+    "should_trigger": true
+  },
+  {
+    "query": "turunkan isi slide dari bab 4 buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "build a pptx for my project progress seminar",
+    "should_trigger": true
+  },
+  {
+    "query": "tulis bab 4 buku PA",
+    "should_trigger": false
+  },
+  {
+    "query": "bikin slide presentasi untuk meeting kantor",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan paragraf bab 3 supaya tidak terdengar AI",
+    "should_trigger": false
+  },
+  {
+    "query": "edit file pptx milik temanku, ganti logo",
+    "should_trigger": false
+  },
+  {
+    "query": "buat tabel hasil ablasi di laporan",
+    "should_trigger": false
+  },
+  {
+    "query": "create a pitch deck for my startup",
+    "should_trigger": false
+  },
+  {
+    "query": "flash firmware ke ESP32 dan baca log serial",
+    "should_trigger": false
+  },
+  {
+    "query": "convert the thesis PDF to docx",
+    "should_trigger": false
+  },
+  {
+    "query": "susun kerangka bab 5 kesimpulan dan saran",
+    "should_trigger": false
+  },
+  {
+    "query": "make a chart of latency for the dashboard",
+    "should_trigger": false
+  }
+]

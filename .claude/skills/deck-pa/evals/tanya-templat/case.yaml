@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: tanya-templat
+expected_outcome: |
+  Respons menanyakan hanya templat dan warna, sekali, dengan opsi dan rekomendasi. Durasi, jumlah slide, dan rekaman resmi tidak ditanyakan; jumlah slide disebut sebagai asumsi dari durasi. Tidak memakai templat bawaan diam-diam.

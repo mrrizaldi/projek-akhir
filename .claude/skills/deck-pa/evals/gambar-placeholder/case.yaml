@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: gambar-placeholder
+expected_outcome: |
+  Slide memasang tepat satu kotak bergaris putus berisi `[PLACEHOLDER GAMBAR]`, jenis, dan ringkasan satu baris. Tidak ada bentuk, panah, atau kotak bersambung yang membentuk diagram. Kartu spesifikasi masuk `addNotes` di bawah baris `KARTU GAMBAR (tidak dibacakan)`. `deck.js` tanpa komentar.
