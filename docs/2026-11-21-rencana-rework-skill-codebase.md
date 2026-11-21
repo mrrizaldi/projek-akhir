@@ -10,7 +10,7 @@ format `evals/` + `triggers/`, validator struktur skill masuk CI, dan docs
 serta kode dibersihkan dari riwayat tertulis, kode mati, dan pola tulisan AI.
 
 **Arsitektur:** mengikuti rework finance-project 21 Nov 2026
-(`docs/2026-11-21-riset-rework-skill.md`). Skill user tinggal di
+(`docs/2026-11-21-riset-rework-skill.md` (dihapus; isi di git `0fc2777`)). Skill user tinggal di
 `~/dev/<nama>` (repo git sendiri, symlink ke `~/.claude/skills/<nama>`);
 skill repo PA menjadi lapisan tipis yang kalimat pertamanya menyuruh memuat
 skill user, atau skill penuh bila terikat format PENS. Gelombang subagen
@@ -113,7 +113,7 @@ paralel hanya untuk pekerjaan yang tidak berbagi berkas.
 ### Tugas 0.3: runner uji pemicu
 
 - [ ] `scripts/uji_pemicu.sh` dari pola runner finance-project (disalin di
-  `docs/2026-11-21-riset-rework-skill.md` §Temuan butir 4): argumen
+  `docs/2026-11-21-riset-rework-skill.md` (dihapus; isi di git `0fc2777`) §Temuan butir 4): argumen
   `<folder skill>...`; `T=$(mktemp -d)`; `config/` berisi salinan kredensial
   Claude Code saja (`~/.claude/.credentials.json`, tanyakan user bila
   berkasnya tidak ada); `proj/` folder kosong dengan `.claude/` sendiri;
@@ -133,7 +133,7 @@ paralel hanya untuk pekerjaan yang tidak berbagi berkas.
 Brief tiap agen memuat: SKILL.md lama, `eval.md` lama, struktur acuan
 `~/dev/no-code-comments` (`SKILL.md`, `README.md`, `CLAUDE.md`, `evals/`,
 `triggers/evals.json`, `scripts/check_skill.py`, `.github/workflows/tests.yml`),
-konvensi di `docs/2026-11-21-riset-rework-skill.md` §Konvensi, dan aturan
+konvensi di `docs/2026-11-21-riset-rework-skill.md` (dihapus; isi di git `0fc2777`) §Konvensi, dan aturan
 "setiap aturan lama dipetakan: skill user, skill repo, atau dibuang dengan
 alasan usang".
 
@@ -245,8 +245,13 @@ faktanya ada di dokumen yang berlaku.
 
 ## Status (21 Nov 2026)
 
-Gelombang 0–3 selesai. Gelombang 4 menunggu keputusan user atas
-`inventaris-riwayat.md` dan `audit-deadcode.md` di folder dokumen ini.
+Gelombang 0–3 selesai. Gelombang 4 bagian riwayat dokumen dieksekusi
+22 Nov 2026 sesuai keputusan user atas `inventaris-riwayat.md`: fakta
+operasional dipindah, `docs/arsip/` dan `model/docs/arsip/` dihapus,
+dokumen kerja selesai dihapus; data uji coba `model/data/arsip/` dan
+`model/artifacts/arsip/` dipertahankan. Sisa gelombang 4 (audit
+`deadcode`, sapuan pola tulisan AI) menunggu keputusan user atas
+`audit-deadcode.md`.
 Uji pemicu baseline (`scripts/uji_pemicu.sh`, 1 run per kueri): semua skill
 menolak 10/10 kueri yang tidak boleh memicu; memicu benar 0–3/10 (repo:
 batas-tidak-diam 3, buku-ikut-proposal 3, tulis-tanpa-slop 3, deck-pa 2,
