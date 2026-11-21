@@ -40,3 +40,10 @@ Skill luar tidak dipasang mentah karena berbenturan dengan aturan yang berlaku:
 3. Usulkan tambahan ke `narasi-pa` ke user. Pola yang bisa dideteksi mesin
    menjadi pemeriksaan di `scripts/cek_tabel.py` (Aturan keras 6).
 4. Skill yang diubah menjalani eval sesuai Aturan keras 8.
+
+## Urutan kerja (keputusan user 21 Nov 2026)
+
+Pekerjaan anti-slop dimulai dari kode (skill `antislop-code` untuk komentar
+kode WordCraft dan skrip yang disentuh). Skill penulisan laporan dibahas
+terpisah sesudahnya; diskusi kandidat di atas dilanjutkan nanti.
+

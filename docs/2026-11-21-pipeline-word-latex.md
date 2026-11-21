@@ -124,7 +124,14 @@ Isi PDF memuat "Latar Belakang Masalah". Suntingan uji dikembalikan dengan
 Skill penulisan tanpa pola tulisan AI: `docs/2026-11-21-skill-anti-slop.md`.
 Skill ingest langkah 6 nantinya ikut memakai pemeriksaan dari sana.
 
-## Keputusan yang menunggu user
+## Keputusan user (21 Nov 2026)
 
-1. Memasang `wordcraft-cli` dari branch ke `~/.cargo/bin` supaya `make docx`
-   dan `make sync` memakai perbaikan Fase 2.
+1. Build branch WordCraft dipasang ke `~/.cargo/bin/wordcraft-cli`; versi
+   0.18.1 dicadangkan di `~/.cargo/bin/wordcraft-cli-0.18.1`. Aplikasi GUI
+   WordCraft (`wordcraft`) belum dibangun ulang, jadi membuka `main.tex`
+   langsung di aplikasi masih memakai importer lama; jalur `make docx` lalu
+   menyunting DOCX memakai importer baru.
+2. Branch WordCraft tetap lokal, tidak di-push dan tidak dibuka PR
+   (perubahan kustom untuk buku PA).
+3. Judul Daftar Isi PDF ("Daftar Isi" walaupun preamble menulis
+   `DAFTAR ISI`) diperbaiki kemudian.

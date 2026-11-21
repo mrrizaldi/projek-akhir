@@ -12,7 +12,7 @@ acuan kerja.
 | 2026-11-01 | [celah-target](2026-11-01-celah-target.md) | Celah terhadap target Bab 1, Bab 3, dan PRD: target yang belum diukur, target dengan cakupan sempit, temuan firmware terbuka | Daftar kerja aktif; butir dicoret saat ditutup |
 | 2026-11-01 | [crosscheck-metrik-bab4](2026-11-01-crosscheck-metrik-bab4.md) | Crosscheck metrik dan cara ukur Bab 4 terhadap standar (AAMI EC57, MLPerf Tiny, IEC 60601, IETF IPPM, ITU-T G.1010/H.810), laporan rinci per kategori di subfolder | A4–A8 diterapkan di `progres-pa-1`; A9, B, dan butir pipeline/daya ditunda (bagian 4) |
 | 2026-11-21 | [skill-anti-slop](2026-11-21-skill-anti-slop.md) | Kandidat skill luar untuk penulisan laporan tanpa pola tulisan AI, benturannya dengan aturan repo, rencana distilasi ke `narasi-pa` | Menunggu keputusan user |
-| 2026-11-21 | [pipeline-word-latex](2026-11-21-pipeline-word-latex.md) | Sunting bebas di WordCraft lalu ingest ke LaTeX lewat skill `ingest-word`, hapus penanda `% MANUAL`, fidelity DOCX terhadap PDF | Fase 1–3 selesai; menunggu pemasangan wordcraft-cli branch |
+| 2026-11-21 | [pipeline-word-latex](2026-11-21-pipeline-word-latex.md) | Sunting bebas di WordCraft lalu ingest ke LaTeX lewat skill `ingest-word`, hapus penanda `% MANUAL`, fidelity DOCX terhadap PDF | Fase 1–3 selesai, wordcraft-cli branch terpasang; sisa: judul Daftar Isi PDF |
 
 ## Kapan dokumen dipindah ke arsip
 

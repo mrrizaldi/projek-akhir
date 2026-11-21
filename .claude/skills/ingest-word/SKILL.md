@@ -79,10 +79,11 @@ Guard: bila ada `.tex` yang berubah sesudah DOCX dibuat, sync menolak dengan
 
 ## Binary WordCraft
 
-Perbaikan konverter LaTeX (ukuran kelas, sel tabel, `\parbox`, Daftar Isi)
-ada di branch lokal WordCraft `fix/latex-env-scopes-declarations`. Selama
-belum dipasang ke `~/.cargo/bin`, setiap target make dijalankan dengan
-`WORDCRAFT=~/.cache/wc-target-pa/release/wordcraft-cli`.
+`~/.cargo/bin/wordcraft-cli` adalah build branch lokal WordCraft
+`fix/latex-env-scopes-declarations` (perbaikan ukuran kelas, sel tabel,
+`\parbox`, Daftar Isi), dipasang 21 Nov 2026. Versi 0.18.1 dicadangkan di
+`~/.cargo/bin/wordcraft-cli-0.18.1`. Target make memakai `wordcraft-cli` di
+PATH, tanpa `WORDCRAFT=`.
 
 ## Prosedur
 

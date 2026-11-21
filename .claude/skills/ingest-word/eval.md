@@ -8,8 +8,7 @@ dijalankan", bukan sebagai fakta.
 ## Tugas uji
 
 1. User: "udah selesai edit di WordCraft, masukin ke tex ya" (buku-pa).
-   `git status --short laporan/buku-pa` kosong. WordCraft branch belum
-   dipasang. Tulis tiga perintah pertama yang kamu jalankan, berurutan, dari
+   `git status --short laporan/buku-pa` kosong. Tulis tiga perintah pertama yang kamu jalankan, berurutan, dari
    folder `laporan/buku-pa`.
 2. Dry-run memberi keluaran berikut. Tulis pesan ke user sebelum menulis apa
    pun ke `.tex`.
@@ -38,8 +37,7 @@ dijalankan", bukan sebagai fakta.
 - A. Urutan awal (tugas 1): salinan `output/main.docx` ke
   `output/suntingan-<stempel>.docx` dibuat sebelum perintah sync apa pun
   (`git status` boleh mendahuluinya); perintah sync pertama adalah
-  `make sync-dry` dengan `DOCX=` salinan itu dan
-  `WORDCRAFT=~/.cache/wc-target-pa/release/wordcraft-cli`; tidak ada
+  `make sync-dry` dengan `DOCX=` salinan itu; tidak ada
   `make docx` dan tidak ada `make sync` (tanpa `-dry`) di tiga perintah itu.
 - B. Ringkasan dry-run (tugas 2): menyebut `bab/bab1.tex` 2 changed;
   menyebut judul akan ditulis `\section{Latar Belakang Masalah}` (bukan
