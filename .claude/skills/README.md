@@ -16,6 +16,7 @@ berbeda, maksimal 3 putaran.
 | `deck-pa` | deck presentasi PA (PPTX): isi dari buku, angka tidak dikarang, tanpa label internal, ilustrasi = placeholder, render + lihat tiap slide |
 | `kicad-pcb-pa` | PCB/skematik KiCad: keputusan desain ditanyakan, format KiCad 9, pad dibaca bukan ditebak, nama net = skematik, `cek_board.py` LULUS |
 | `tautan-lokal` | dokumen bertautan ke berkas lokal: HTML bukan PDF, tautan relatif `#page=N`, diklik lewat server lokal sebelum diserahkan, yang belum terbukti disebut |
+| `ingest-word` | suntingan DOCX ke LaTeX: DOCX dicadangkan, dry-run diringkas dan dikonfirmasi, judul dikembalikan ke huruf sumber, skipped dipindah manual, format dirapikan sesudah dikonfirmasi |
 
 Pemeriksa mesin untuk skill laporan: `python3 scripts/cek_tabel.py`
 (`scripts/README.md`).

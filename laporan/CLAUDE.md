@@ -162,7 +162,7 @@ Aturan penulisan paragraf akademik untuk proposal dan buku:
 Penulis menyunting `output/main.docx` di WordCraft, lalu perubahan ditulis balik ke `.tex`
 dengan `make sync` sesudah `make sync-dry` ditinjau dan dikonfirmasi penulis. Sync tidak
 memasang penanda di `.tex` (`[sync] marker = ""` di `laporan/wordcraft.toml`). Riwayat
-suntingan penulis tercatat di commit ingest.
+suntingan penulis tercatat di commit ingest. Prosedur lengkap: skill `ingest-word`.
 
 - Paragraf hasil ingest boleh dirapikan formatnya (tanda baca, istilah miring, desimal)
   sesudah penulis mengonfirmasi daftar perbaikannya. Isi kalimat penulis tidak ditulis ulang.
