@@ -130,3 +130,21 @@ Paper berbayar yang ditandai Unpaywall `closed` kadang punya salinan legal
 di repositori institusi penulis (DSpace, mis. AUB ScholarWorks, QSpace).
 Cari judulnya di sana sebelum meminta akun kampus. Pada DSpace 7, berkas
 diambil lewat `/server/api/core/bitstreams/<uuid>/content`.
+
+## Pemeriksa kemiripan DOCX terhadap PDF
+
+`cek_docx.py` membandingkan PDF hasil pdfLaTeX dengan DOCX hasil WordCraft per
+halaman. DOCX dirender ulang ke PDF lewat `wordcraft-cli convert` di folder
+sementara, lalu kedua PDF dibaca dengan `pdftotext`. Sebuah halaman dianggap
+sama bila enam kata pertamanya sama (huruf kecil, tanda baca dan nomor halaman
+dibuang, kata terpenggal di akhir baris disambung). Keluaran berisi jumlah
+halaman, halaman awal tiap bab beserta selisihnya, jumlah halaman yang berawal
+sama, dan cuplikan lima halaman pertama yang berbeda. Kode keluar 0 hanya bila
+jumlah halaman dan awal setiap halaman sama.
+
+```bash
+cd laporan/buku-pa
+make pdf docx
+make cek-docx                                  # memakai wordcraft-cli di PATH
+make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build branch
+```

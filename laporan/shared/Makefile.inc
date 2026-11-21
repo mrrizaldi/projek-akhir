@@ -16,6 +16,7 @@
 ##   make sync    — tulis balik perubahan paragraf dari DOCX ke .tex (wordcraft-cli latex-sync);
 ##                  tanpa penanda di .tex; make sync DOCX=file.docx
 ##   make sync-dry — sama, tapi hanya tampilkan diff, tidak menulis
+##   make cek-docx — bandingkan isi per halaman PDF dengan DOCX (scripts/cek_docx.py)
 ##   make view    — buka PDF
 ##   make clean   — hapus folder output
 ##   make rebuild — clean + pdf
@@ -29,7 +30,7 @@ DOCX      ?= $(OUTDIR)/$(MAIN).docx
 
 PDFLATEX = pdflatex -jobname=$(MAIN) -output-directory=$(OUTDIR) -interaction=nonstopmode
 
-.PHONY: pdf docx sync sync-dry view clean rebuild check
+.PHONY: pdf docx sync sync-dry cek-docx view clean rebuild check
 
 pdf:
 	mkdir -p $(OUTDIR)
@@ -49,6 +50,9 @@ sync:
 
 sync-dry:
 	$(WORDCRAFT) latex-sync $(DOCX) --main $(MAIN).tex --dry-run
+
+cek-docx:
+	WORDCRAFT=$(WORDCRAFT) python3 ../../scripts/cek_docx.py $(OUTDIR)/$(MAIN).pdf $(OUTDIR)/$(MAIN).docx
 
 view: pdf
 	xdg-open $(OUTDIR)/$(MAIN).pdf &
