@@ -37,7 +37,7 @@ Catatan:
   ada dua kolom `X`, keduanya mendapat lebar sama.
 - Kolom angka `p{..}` rata kanan. Lebar secukupnya untuk angka terpanjang +
   header.
-- `longtable` tidak bisa memakai `X`. Hitung lebar `p{}` manual (aturan 8),
+- `longtable` tidak bisa memakai `X`. Hitung lebar `p{}` manual (aturan 9),
   ulangi header dengan `\endfirsthead`/`\endhead`, dan `\endfoot` cukup
   `\bottomrule`.
 
@@ -148,8 +148,7 @@ dipilih ditebalkan.
 ## E. Spesifikasi perangkat
 
 Pertanyaan: "Perangkat apa yang dipakai dan untuk apa?" Satu baris = satu
-komponen. Perangkat keras dan perangkat lunak dipisah ke dua tabel (anti-pola
-anti-pola korpus di skill `struktur-pa`).
+komponen. Perangkat keras dan perangkat lunak dipisah ke dua tabel.
 
 ```latex
     \toprule
@@ -172,12 +171,13 @@ tetap pendek.
     \toprule
     \textbf{Tujuan} & \textbf{Target utama} & \textbf{Hasil kunci} & \textbf{Status} \\
     \midrule
-    Tujuan 2, model INT8 \textit{on-device} & $|\Delta \textit{recall}| < 0{,}02$, model $<$ 25 KB, daya per mode & $+$0,0108, 22,94 KB, daya belum diukur & Sebagian tercapai \\
+    Model INT8 \textit{on-device} & $|\Delta \textit{recall}| < 0{,}02$, model $<$ 25 KB, daya per mode & $+$0,0108, 22,94 KB, daya belum diukur & Sebagian tercapai \\
     \bottomrule
 ```
 
 Status memakai Tercapai / Sebagian tercapai / Belum tercapai, dan kriteria
 statusnya ditulis satu kalimat di paragraf pengantar.
+Kolom pertama berisi nama tujuan menurut isinya, bukan label bernomor "Tujuan N" (skill `struktur-pa` aturan 2).
 
 ## G. Pembanding penelitian terkait (Bab 2) dan pembanding protokol (Bab 4)
 
