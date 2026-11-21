@@ -1,126 +1,71 @@
 ---
 name: tanpa-komentar-kode
-description: Wajib dipakai setiap kali menulis atau menyunting kode di repo PA (C/C++ firmware, Python model/dashboard, shell, platformio.ini, generator header). Kode ditulis tanpa komentar dan tanpa docstring; penjelasan masuk dokumen terpisah. Juga dipakai saat memberi prompt ke subagen yang akan menulis kode.
+description: Menulis dan menyunting kode di repo PA (firmware C/C++ ESP32, skrip Python model dan dashboard, shell, platformio.ini, generator header) tanpa komentar dan tanpa docstring, memakai nama konstanta yang sudah ada di repo, menaruh penjelasan di dokumen komponen yang tepat, dan memeriksanya dengan scripts/cek_komentar.py. Pakai setiap kali user meminta menambah, mengubah, atau memperbaiki kode di repo ini, misalnya "tambah fitur bip tolak", "ubah ambang jadi 80", "tulis skrip analisis", "edit main.cpp", "buat generator header", "ganti pin buzzer", "add a function to firmware", "write a script in model/scripts", dan saat menulis prompt untuk subagen yang akan menulis kode di repo ini.
 ---
 
-# Tanpa komentar kode
+# Tanpa komentar kode (repo PA)
 
-Kegagalan yang ditangkap user (13 Okt 2026): kode penuh komentar penjelas,
-riwayat, dan rasional, padahal user sudah berkali-kali meminta tidak. Komentar
-dianggap spam; penjelasan harus di dokumen tersendiri.
+Muat skill user `no-code-comments` lebih dulu; skill ini hanya menambah hal khusus repo PA. Skill itu memuat aturan umumnya: literal dan indeks bernama, argumen CLI bernama, grep nama dan nilai sebelum menamai, include header alih-alih definisi ulang, generator tanpa komentar, perubahan nilai ditunjukkan di berkasnya, pengecualian `##` di Makefile, dan brief subagen dengan `cd` absolut. Di bawah hanya yang berbeda di repo ini.
 
-## Aturan
+## Pemeriksa
 
-1. Tidak ada komentar di kode: `//`, `/* */`, `#`, `;` (ini), docstring Python.
-   Berlaku untuk kode baru DAN baris yang disunting. Jangan menambah komentar
-   "penjelas perubahan", "TODO", "catatan", "jebakan", atau tanda bagian.
-2. Butuh penjelasan? Ganti nama (variabel, fungsi, konstanta) sampai maksudnya
-   terbaca, atau pecah fungsi. Konstanta ajaib → nama bermakna
-   (`AMBANG_AYUN`, bukan `60 // ambang ayunan`). Ini termasuk literal yang
-   dikirim ke API pihak ketiga: `ledc_stop(mode, kanal, LEVEL_DIAM_HIGH)`,
-   bukan `ledc_stop(mode, kanal, 1)`. Nama literal menyebut EFEK yang terjadi
-   (`LEVEL_PIN_DIAM_HIGH`), bukan istilah internal (`..._TERBALIK`). Argumen CLI diberi nama lokal sebelum
-   dipakai (`nama = sys.argv[1]`, `jalur = sys.argv[2]`), urut sesuai posisinya. Indeks/irisan numerik juga diberi nama
-   (`KOLOM_RR_PREV = 0`, `rr = fitur[BARIS_PERTAMA_VALID:, KOLOM_RR_PREV]`)
-   atau dipecah jadi fungsi bernama, bukan `[1:, 0]`. Termasuk batas irisan untuk tampilan/pesan
-   (`BANYAK_PRATINJAU = 5`, `luar[:BANYAK_PRATINJAU]`, bukan `luar[:5]`): setiap
-   literal numerik selain 0/1 sebagai nilai awal/penambah diberi nama.
-3. Pakai nama yang SUDAH ADA di repo. Sebelum menamai apa pun, grep NAMA dan
-   NILAINYA di seluruh `firmware/` dan `model/`
-   (`grep -rn "AMBANG\|= 60" firmware/ model/`):
-   - ada dengan arti SAMA → pakai nama itu (mis. `AMBANG_AYUN` di `gerbang.h`);
-   - nama ada dengan arti LAIN → jangan dipakai ulang, dan jangan memakai nama
-     MIRIP (substring/pola sama, mis. `LAMA_BIP_TOLAK_MS` vs `BIP_TOLAK_MS`);
-     grep pola (`grep -rn "BIP_\|TOLAK" firmware/`), bukan hanya nama persis,
-     dan baca daftar konstanta di BERKAS TUJUAN (semua prefiks yang ada di
-     sana, mis. `NADA_`, `BIP_`, `AMBANG`) sebelum menambah nama;
-   - konstanta yang sudah ada di header repo tidak didefinisikan ulang di
-     potongan kode; include header-nya;
-   - jangan menebak lalu menulis "sesuaikan bila beda".
-   Sebelum menyuruh memanggil fungsi, cek visibilitasnya (`static` tidak bisa
-   dipanggil dari berkas lain).
-4. Rasional, jebakan, cara pakai, angka ukur → dokumen, sebut berkas konkret:
-   firmware → `firmware/README.md` §Jebakan (bagian `## Jebakan` SUDAH ADA;
-   bukan di §Pin map) atau `model/docs/firmware-walkthrough.md`;
-   pipeline model → walkthrough tahapnya (peta di `model/docs/README.md`, mis.
-   segmentasi/RR → `model/docs/features-rr-walkthrough.md`), keputusan →
-   `model/CLAUDE.md`; dashboard → `dashboard/README.md`; skrip di `model/scripts/` →
-   `model/README.md` §Skrip, skrip di `scripts/` → `scripts/README.md`. Bila belum ada bagian yang cocok, tambahkan bagian baru
-   di berkas itu. Sebelum menulis, baca bagian tujuan dan jangan menggandakan isi
-   yang sudah ada; tambahkan hanya yang baru, rujuk yang lama.
-   Jebakan firmware ditaruh di sub-daftar §Jebakan sesuai subsistemnya
-   (perilaku loop/ISR/antrean → Akuisisi; pin/buzzer/layar → Perangkat).
-5. Menyunting kode yang sudah berkomentar: buang SEMUA komentarnya (termasuk
-   TODO), pindahkan isinya yang bernilai ke dokumen, dan kembalikan potongan
-   UTUH, bukan cuplikan. Perubahan nilai yang diminta user SELALU ditunjukkan: baris
-   hasil suntingan di berkas tempat konstanta itu tinggal (mis. `gerbang.h`),
-   walau hanya sebagai usulan; jangan menolak dengan alasan bukti kecuali user
-   meminta bukti.
-6. Berkas GENERATED: generatornya tidak boleh menulis komentar.
-7. Pengecualian fungsional saja: `##` deskripsi target Makefile (dipakai
-   `make help`), teks bantuan CLI yang dicetak program (string argparse, bukan
-   `__doc__`), shebang `#!`.
-8. Setiap klaim yang ditulis ke dokumen harus dicek sebelum ditulis: rujukan
-   `berkas:baris` dan nama bagian (Read/grep, nomor baris aktual), isi test
-   yang dirujuk (buka berkas test-nya), dan perilaku pustaka (jalankan, atau
-   baca sumber/datasheet terpasang). Yang belum terukur di perangkat ditulis
-   "belum diverifikasi di board" dan tidak boleh bertentangan dengan premis.
-   Lebih baik tanpa nomor baris daripada nomor baris salah.
-9. Saat menyuruh subagen menulis kode, tulis aturan ini eksplisit di prompt,
-   dengan perintah pemeriksa yang path-nya benar dari root repo:
-   `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py`.
+Jalankan dari root repo pada berkas yang disentuh, dan serahkan hanya bila keluar 0. Alasannya: pemeriksa skill user tidak memindai C/C++, sedangkan pemeriksa repo memindainya.
 
-## Daftar periksa akhir (centang semua sebelum menyerahkan)
-
-Setiap butir berasal dari kegagalan nyata di eval; baca ulang SETIAP baris kode.
-
-- [ ] Nol `//`, `/* */`, `#`, `;`, docstring, TODO, penanda bagian; pemeriksa keluar 0.
-- [ ] Setiap literal numerik selain nilai 0/1 bernama; SETIAP indeks/irisan
-      (termasuk `[0]`, `[1]`, `[1:, 0]`, `[:5]`) bernama atau di-unpack ke variabel
-      bernama (`rr_prev, rr_ratio = ...`).
-- [ ] Nama dari MASUKAN user yang sudah ada padanannya di header repo diganti ke
-      nama repo dan di-include, tidak didefinisikan ulang (`AMBANG` → `AMBANG_AYUN`
-      dari `gerbang.h`).
-- [ ] Nama baru di-grep: persis, pola, dan prefiks di berkas tujuan; tidak mirip
-      nama berarti lain. Hasil grep dikutip apa adanya, bukan diringkas "tidak ada".
-- [ ] Potongan yang akan ditempel ke berkas yang sudah punya `#ifdef`/`#include`
-      tidak membungkus ulang dengan guard/include yang sama.
-- [ ] Perubahan nilai yang diminta ditunjukkan di berkas tempat konstanta tinggal.
-- [ ] Setiap kalimat dokumen yang menjelaskan perilaku kode/berkas lain dicek ke
-      kodenya (buka & baca), bukan hanya rujukan berkas:baris.
-- [ ] Dokumen: bagian tujuan dibaca dulu, tidak menggandakan; satu subsistem per
-      butir (buzzer yang memblok `loop()` → Akuisisi). Skrip di `model/scripts/` →
-      `model/README.md` §Skrip; skrip di `scripts/` → `scripts/README.md`.
-- [ ] Prompt subagen: tiap perintah `cd /home/mrrizaldi/dev/projek-akhir && ...`,
-      sudah dijalankan persis seperti tertulis; aturan ini disalin eksplisit.
-
-## Pemeriksaan sebelum selesai
-
-Dari root repo, pada berkas yang disentuh (syarat selesai):
 ```bash
-python3 scripts/cek_komentar.py <berkas-yang-disentuh>...
+cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py <berkas>...
 ```
-Harus keluar 0. Seluruh repo (`python3 scripts/cek_komentar.py` tanpa argumen)
-dijalankan CI (`.github/workflows/cek.yml`); pelanggaran di berkas yang tidak
-disentuh bukan alasan menyunting berkas di luar lingkup, cukup dilaporkan.
-Prompt subagen memakai bentuk berkas-yang-disentuh, bukan seluruh repo, dan
-menunjuk bagian dokumen tujuan yang benar (aturan 4); klaim yang belum terukur
-di board ditandai "belum diverifikasi di board" juga di dalam prompt.
-SETIAP perintah di prompt subagen berdiri sendiri dengan `cd` absolut di depannya
-(`cd /home/mrrizaldi/dev/projek-akhir && grep -rn ... firmware/src`); jangan
-menetapkan cwd lain lalu memakai path relatif root. Uji tiap perintah itu
-persis seperti tertulis sebelum menyerahkan prompt.
+
+CI menjalankannya untuk seluruh repo lewat `.github/workflows/cek.yml`. Pelanggaran di berkas yang tidak kamu sentuh cukup dilaporkan; menyunting berkas di luar lingkup tugas bukan solusinya.
+
+## Bentuk komentar di repo ini
+
+- `platformio.ini` memakai `;` dan `#` untuk komentar, dan keduanya dilarang. Opsi yang butuh penjelasan dijelaskan di `firmware/README.md` §Environment PlatformIO.
+- Teks bantuan CLI yang dicetak program (string argparse) dan target `##` di Makefile boleh ada; `__doc__` dan docstring tidak.
+
+## Nama yang sudah ada di repo
+
+Konstanta bersama tinggal di header `firmware/include/` (mis. `AMBANG_AYUN` di `gerbang.h`, `NADA_`/`BIP_` di berkas tampilan), jadi `grep -rn "AMBANG\|BIP_\|NADA_" firmware/include firmware/src` dan include header-nya, jangan definisikan ulang. Nama yang ada dengan arti lain (`BIP_TOLAK_MS` di `tampilan.cpp` adalah lama bip, bukan jeda) jangan dipakai ulang atau ditiru dengan nama mirip, karena firmware satu namespace.
+
+Literal yang dikirim ke API driver diberi nama yang menyebut efeknya, mis. `LEVEL_PIN_DIAM_HIGH` untuk level pin saat buzzer diam, bukan `1` dan bukan nama internal seperti `..._TERBALIK`. Alasannya: buzzer modul aktif LOW, jadi arti angka 1 tidak terbaca dari kodenya.
+
+## Ke dokumen mana penjelasan pergi
+
+Baca bagian tujuan dulu dan jangan menggandakan isinya; rujuk yang sudah ada.
+
+| Sumber kode | Dokumen tujuan |
+|---|---|
+| Jebakan firmware | `firmware/README.md` §Jebakan (bagian sudah ada; bukan §Pin map) |
+| Pipeline model | walkthrough tahapnya di `model/docs/` (peta di `model/docs/README.md`, mis. `features-rr-walkthrough.md`); keputusan di `model/CLAUDE.md` |
+| Skrip `model/scripts/` | `model/README.md` §Skrip |
+| Skrip `scripts/` | `scripts/README.md` |
+| Dashboard | `dashboard/README.md` |
+
+Di §Jebakan firmware, satu butir masuk ke satu sub-daftar sesuai subsistemnya, karena butir yang melintas subsistem sulit ditemukan lagi:
+
+- **Akuisisi dan pipeline**: perilaku loop, ISR, antrean, buzzer yang memblok `loop()`.
+- **Perangkat**: pin, buzzer, layar, LED, INA219 (contoh: `SPI.begin` harus sebelum `pasang_buzzer` karena SPI merebut GPIO13).
+
+Bila tidak ada bagian yang cocok, tambahkan bagian baru di berkas itu.
+
+## Klaim di dokumen
+
+Setiap klaim yang kamu tulis ke dokumen dicek dulu ke kodenya (buka berkas, grep nomor baris, jalankan bila bisa), karena dokumen repo menjadi acuan kerja berikutnya. Yang belum terukur di perangkat ditulis "belum diverifikasi di board", dan kalimat itu tidak boleh bertentangan dengan premis tugas.
+
+## Brief subagen
+
+Salin aturan tanpa komentar secara eksplisit ke prompt, dan beri perintah pemeriksa yang berdiri sendiri:
+
+```bash
+cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py <berkas-yang-disentuh>
+```
+
+Tunjuk bagian dokumen tujuan dari tabel di atas, dan tandai klaim yang belum terukur di board sebagai "belum diverifikasi di board" di dalam prompt. Uji tiap perintah di prompt persis seperti tertulis sebelum menyerahkannya.
 
 ## Contoh
 
-Salah:
+Kode tetap bersih, jebakannya masuk `firmware/README.md` §Jebakan, sub-daftar Perangkat:
+
 ```cpp
-// Urutan penting: SPI dulu, baru buzzer, karena SPI.begin merebut GPIO13.
-SPI.begin(TFT_SCK, -1, TFT_MOSI);
-pasang_buzzer();
-```
-Benar (kode) + jebakan dicatat di `firmware/README.md` §Jebakan:
-```cpp
-SPI.begin(TFT_SCK, -1, TFT_MOSI);
+SPI.begin(TFT_SCK, TANPA_MISO, TFT_MOSI);
 pasang_buzzer();
 ```

@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: sunting-ambang-ayun
+expected_outcome: |
+  Potongan hasil tanpa komentar sama sekali (TODO ikut dibuang), memakai AMBANG_AYUN dari
+  gerbang.h lewat #include tanpa definisi ulang, perubahan 60 ke 80 ditunjukkan di baris
+  AMBANG_AYUN pada gerbang.h, dan pemeriksanya adalah
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py <berkas>`.
