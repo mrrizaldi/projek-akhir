@@ -101,32 +101,23 @@ make docx WORDCRAFT=~/.cache/wc-target-pa/release/wordcraft-cli
 
 ## Fase 3: skill `ingest-word`
 
-Berkas `.claude/skills/ingest-word/SKILL.md`. Alur:
+Skill `.claude/skills/ingest-word/` (aturan dan prosedur di `SKILL.md`). Aturan
+berasal dari perilaku `latex-sync` yang diamati di buku-pa: judul ditulis
+balik dalam huruf kapital tampilan, entri daftar isi dan teks makro di-skip,
+guard menolak bila `.tex` berubah sesudah DOCX dibuat, dan `make docx`
+menimpa DOCX suntingan user sehingga DOCX wajib dicadangkan lebih dulu.
 
-1. Cek `git status laporan/`. Ada perubahan `.tex` yang belum di-commit →
-   berhenti dan lapor, supaya hasil ingest bisa di-revert utuh.
-2. `make sync-dry` → ringkasan per bab ke user: paragraf berubah (sebelum dan
-   sesudah singkat), komentar Word, dan daftar skipped (tabel, judul, rumus,
-   gambar).
-3. Konfirmasi user → `make sync`.
-4. Bagian skipped dipindah manual ke LaTeX sesuai `tabel-pa`, `struktur-pa`,
-   dan `laporan/CLAUDE.md`. Diff ditunjukkan ke user.
-5. Baris `% KOMENTAR` dikerjakan lalu dihapus.
-6. `python3 scripts/cek_tabel.py bab/*.tex` → daftar pelanggaran format di
-   paragraf hasil ingest (titik dua, titik koma, em dash, istilah belum miring,
-   desimal titik, label internal). Konfirmasi user → dirapikan. Isi kalimat
-   penulis tidak ditulis ulang, hanya format.
-7. `make pdf` (0 undefined, 0 overfull) dan `make docx`, lalu commit dengan
-   bukti (keluaran sync, cek_tabel, ringkasan log LaTeX).
+Eval (penulis sonnet, penilai haiku): 8/10, 9/10, 9/10, berhenti di putaran 3
+(Aturan keras 8). Temuan dan usulan perbaikan soal di `eval.md`.
 
-Eval (Aturan keras 8, model berbeda, maksimal 3 putaran), soal berjawaban pasti:
-sync dijalankan tanpa konfirmasi, tree kotor tidak dihentikan, tabel skipped
-tidak dipindah, kalimat penulis ditulis ulang saat merapikan format, komentar
-Word dibiarkan.
-
-Verifikasi ujung ke ujung: `make docx`, sunting headless satu paragraf, satu
-sel tabel, satu judul, dan satu komentar, jalankan alur skill, periksa diff
-`.tex` dan `make pdf`.
+Uji ujung ke ujung (buku-pa, 21 Nov 2026): DOCX disunting headless (satu
+paragraf, satu sel tabel, satu judul), dicadangkan ke
+`output/suntingan-<stempel>.docx`, `make sync-dry` lalu `make sync` menulis
+`bab1.tex` 2 changed dan `bab2.tex` 1 changed. Judul dikembalikan ke
+`\section{Latar Belakang Masalah}`, satu batas huruf miring yang rusak
+diperbaiki, `cek_tabel` 0 galat, `make pdf` 0 undefined dan 0 Overfull, Daftar
+Isi PDF memuat "Latar Belakang Masalah". Suntingan uji dikembalikan dengan
+`git checkout` dan `output/main.docx` dibangun ulang.
 
 ## Sesudahnya
 
