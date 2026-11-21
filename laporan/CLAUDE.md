@@ -20,7 +20,9 @@ make check       # verify pdflatex, bibtex, wordcraft-cli are available
 Build runs a full cycle: `pdflatex -> bibtex -> pdflatex -> pdflatex` to resolve bibliography and cross-references. Output goes to `output/` inside each project folder.
 
 Hitungan `undefined` dan `Overfull` untuk bukti selesai atau commit diambil dari
-`make rebuild`, bukan `make pdf`. `make pdf` memakai ulang `.aux`, `.toc`,
+`make pdf-bersih` (atau `make rebuild`), bukan `make pdf`. `make pdf-bersih`
+membuang berkas bantu tanpa menghapus DOCX di `output/`, sehingga cadangan
+suntingan Word tetap ada. `make pdf` memakai ulang `.aux`, `.toc`,
 `.lof`, dan `.bbl` lama, sehingga Overfull di daftar gambar atau tabel bisa
 tidak muncul di log (21 Nov 2026: progres-pa-1 `make pdf` 0, `make rebuild` 2).
 
@@ -88,7 +90,7 @@ Pemeriksaan lingkup buku tahap 1:
    `fig:4-bufer`, `fig:4-dashboard`).
 2. Periksa dan buat keluaran:
    ```bash
-   cd progres-pa-1 && make rebuild && make docx
+   cd progres-pa-1 && make pdf-bersih && make docx
    python3 ../../scripts/cek_tabel.py bab/*.tex
    ```
    Hasil yang diharapkan: `undefined` 0, `Overfull` 0, cek_tabel 0 galat.

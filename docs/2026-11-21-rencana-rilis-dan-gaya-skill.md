@@ -705,7 +705,7 @@ sesudah pemeriksaan hijau, tanpa push.
    "AD8232/MAX30102/MLX90614" (5,4 pt, garis miring tidak dipenggal) dan sel
    tabel Bab 4 sekitar baris 868 "Penelitian pendahulu~\cite" (1,2 pt).
    Laporan "0 Overfull" sebelumnya berasal dari `make pdf` inkremental.
-   `laporan/CLAUDE.md` kini meminta `make rebuild` untuk bukti; prosedur
+   `laporan/CLAUDE.md` kini meminta `make pdf-bersih` untuk bukti; prosedur
    skill yang masih `make pdf` (ingest-word, struktur-pa, buku-ikut-proposal,
    tabel-pa, tulis-tanpa-slop) ikut diganti saat Tugas 7–8 menulis ulang
    skill. Perbaikan dua Overfull menunggu persetujuan user (format saja).

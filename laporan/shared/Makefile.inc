@@ -19,6 +19,7 @@
 ##   make cek-docx — bandingkan isi per halaman PDF dengan DOCX (scripts/cek_docx.py)
 ##   make rilis   — bekukan PDF+DOCX dari HEAD jadi rilis bernomor (scripts/rilis.py); CATATAN="..."
 ##   make view    — buka PDF
+##   make pdf-bersih — buang aux/toc/lof/lot/bbl lalu compile; DOCX di output/ tetap (dipakai untuk bukti)
 ##   make clean   — hapus folder output
 ##   make rebuild — clean + pdf
 ##   make check   — cek tool tersedia
@@ -31,7 +32,7 @@ DOCX      ?= $(OUTDIR)/$(MAIN).docx
 
 PDFLATEX = pdflatex -jobname=$(MAIN) -output-directory=$(OUTDIR) -interaction=nonstopmode
 
-.PHONY: pdf docx sync sync-dry cek-docx rilis view clean rebuild check
+.PHONY: pdf pdf-bersih docx sync sync-dry cek-docx rilis view clean rebuild check
 
 pdf:
 	mkdir -p $(OUTDIR)
@@ -40,6 +41,10 @@ pdf:
 	$(PDFLATEX) $(MAIN).tex
 	$(PDFLATEX) $(MAIN).tex
 	@echo "PDF tersimpan di $(OUTDIR)/$(MAIN).pdf"
+
+pdf-bersih:
+	rm -f $(addprefix $(OUTDIR)/$(MAIN).,aux toc lof lot bbl blg out log)
+	$(MAKE) pdf
 
 docx:
 	mkdir -p $(OUTDIR)
