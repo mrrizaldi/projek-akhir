@@ -219,7 +219,7 @@ make eval                   # Fase 6  → metrik DS2 float32
 make quantize               # Fase 7  → model_int8.tflite + tabel delta
 make poc                    # Fase 8  → checklist 8/8
 make export                 # → firmware/include/model_int8.h
-make test                   # 83 test pytest
+make test                   # 92 test pytest
 cd ../firmware && pio test -e native      # 23 test di PC (preprocessing, INA219, MQTT)
                   pio test -e esp32-s3    # preprocessing + inferensi di board
 ```
