@@ -162,6 +162,15 @@ di repositori institusi penulis (DSpace, mis. AUB ScholarWorks, QSpace).
 Cari judulnya di sana sebelum meminta akun kampus. Pada DSpace 7, berkas
 diambil lewat `/server/api/core/bitstreams/<uuid>/content`.
 
+Verifikasi entri bib: keberadaan dokumen, jurnal, dan DOI dicek di Scopus (MCP
+`scopus`); penulis, volume, dan halaman diambil dari Crossref
+(`api.crossref.org/works/<DOI>`) karena `get_abstract_details` pada langganan
+ini tidak mengembalikannya. Yang tidak terindeks Scopus diverifikasi ke sumber
+resminya: `david_2021` (MLSys) ke proceedings.mlsys.org, `aami_ec57_2012` ke
+webstore ANSI, `iec_60601_2_27_2011` ke webstore IEC, dan entri web, standar,
+atau *datasheet* lain (`who_cvd`, `oasis_mqtt5`, `analog_ad8232`) ke halaman
+penerbitnya.
+
 ## Pemeriksa kemiripan DOCX terhadap PDF
 
 `cek_docx.py` membandingkan PDF hasil pdfLaTeX dengan DOCX hasil WordCraft per

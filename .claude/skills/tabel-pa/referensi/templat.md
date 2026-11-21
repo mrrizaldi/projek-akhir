@@ -190,6 +190,7 @@ baris = satu penelitian, dan baris terakhir adalah **Penelitian ini**
 - Kolom "Perbedaan" dengan 20–40 kata per sel diganti kolom atribut pendek
   yang membuat perbedaan terlihat langsung, mis. kolom Pembagian data dengan
   isi "per detak" vs "*inter-patient*". Uraian perbedaan pindah ke paragraf
-  pemosisian (arketipe "Pemosisian" di `.claude/skills-arsip/narasi-pa/SKILL.md`).
+  pemosisian sesudah tabel, yang menyebut celah penelitian terdahulu lalu
+  posisi PA ini terhadap celah itu.
 - Panjang lebih dari satu halaman → `longtable` + `\scriptsize` + kolom `L{}`
   (`laporan/CLAUDE.md`).

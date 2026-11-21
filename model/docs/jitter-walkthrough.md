@@ -297,6 +297,16 @@ berhenti lewat EarlyStopping selisih kecil itu memilih epoch yang berbeda.
 Karena itu tiap varian dijalankan **3 kali** dan yang dilaporkan rerata ±
 setengah-rentang. Selisih di bawah ~0,04 F1 di sini **bukan sinyal**.
 
+Kolom run-1 berasal dari `artifacts/metrics/ablasi/ablasi_seed42.csv`: batch
+pertama lima varian (`bersih`, `jitter`, `w128`, `w112`, `hos`), semuanya seed
+42, ditulis sebelum `ablasi.py` punya kolom `seed`. Header-nya berbeda dari
+`ablasi.csv`, jadi berkas itu sengaja tidak digabung dan tidak dibaca
+`ringkas_ablasi.py`; ia disimpan sebagai bukti nondeterminisme di atas.
+`ablasi.csv` menampung semua run bertanda seed; hapus berkas itu untuk mulai
+bersih. Kolom `menit` mencatat durasi satu proses dari rakit sampai ukur:
+0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit dengan `--salinan 2` atau 3, dan
+3,7–5,8 menit untuk varian latih multi-database (CPU, tanpa GPU).
+
 ### Hasil: tiga seed per varian, DS2
 
 | varian | window | F1 anotasi | AUC anotasi | F1 jitter | threshold |

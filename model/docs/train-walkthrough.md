@@ -296,6 +296,34 @@ keduanya: menurunkan LR menurunkan S dan menaikkan yang lain. Defisit S
 terbukti nyata di titik operasi yang setara (6 dari 6 titik,
 `scripts/cek_titik_operasi.py`), bukan artefak threshold. **LR tetap 1e-3.**
 
+Recall per kelas pada recall total yang disamakan (seed 42):
+
+| recall total | 1e-3 | 3e-4 | 1e-4 |
+|---|---|---|---|
+| 0,65 | **S 0,436** / V 0,848 | S 0,216 / **V 0,945** | S 0,234 / V 0,943 |
+| 0,70 | **S 0,517** / V 0,885 | S 0,295 / **V 0,974** | S 0,320 / V 0,967 |
+| 0,80 | **S 0,716** / V 0,933 | S 0,552 / **V 0,985** | S 0,576 / V 0,983 |
+
+Dua penjelasan mekanistik sudah diukur dan tidak cocok dengan data, jadi
+sebab pertukaran S↔V belum diketahui:
+
+| Hipotesis | Uji | Hasil |
+|---|---|---|
+| Keunggulan S milik 1e-3 = efek model kurang latih yang "ragu" | recall per kelas pada recall total disamakan (tabel di atas) | tidak cocok: keunggulan S bertahan di 6 dari 6 titik |
+| Latih lebih lama = makin bergantung morfologi, cabang ritme tenggelam | kontribusi cabang ke Dense penggabung (`Σ|bobot| × std aktivasi masuk`) | tidak cocok: porsi ritme 7,3% (1e-3), 7,0% (3e-4), 11,8% (1e-4), justru naik |
+
+`val_auc` tidak bisa dipakai memilih antar-LR: puncaknya di 1e-3 (0,9492)
+lebih tinggi daripada di 1e-4 (0,9113) untuk seed yang sama, padahal 1e-4 lebih
+baik di DS2 pada 2 dari 3 seed. VAL (5 pasien) memilih epoch di dalam satu run;
+memilih antar-regime butuh set yang lebih besar, yaitu TEST-B/TEST-C.
+
+**Bila LR suatu saat dipindah**, yang wajib ikut: konstanta LR baru di
+`config.py` yang diteruskan ke `compile_model(lr=...)` (saat ini `config.py`
+tidak punya konstanta LR; `lr=0` berarti `"adam"` bawaan 1e-3), baris Learning rate di tabel decision point `../CLAUDE.md`, rantai
+penuh dijalankan ulang (prep → split → train → kalibrasi → eval → quantize →
+`export_golden.py` → `make export`), `golden_ref.h` dan `model_int8.h` diregen
+bersama, `pio test`, dan blok "Angka penting" di [`README.md`](README.md).
+
 ### Efek samping metodologis: ambang 0,04 berlaku untuk rerata 3 seed
 
 Konfigurasi identik, seed identik, dijalankan dua kali pada hari yang sama:

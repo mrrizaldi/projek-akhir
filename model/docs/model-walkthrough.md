@@ -189,6 +189,10 @@ Total params: 6,417 (25.07 KB)
 Rinciannya: 128 + 2.592 + 3.104 + 576 + 17. Cocok dengan target PRD ~6.000.
 Jumlah parameter tidak bergantung panjang window karena GAP. 25 KB itu float32;
 hasil INT8 Fase 7 (varian deploy) 22,94 KB, di bawah batas `MAX_MODEL_KB = 25`.
+Batasnya 25 KB, bukan 20 KB seperti DoD PRD, karena varian deploy yang benar di
+TFLM (tanpa op `MEAN` dan tanpa shape dinamis, lihat
+[quantize](quantize-walkthrough.md) §4b) sudah melewati 20 KB; flash ESP32-S3
+16 MB, jadi batas ini soal disiplin, bukan kapasitas.
 
 Empat test mengunci kontraknya (`tests/test_model.py`):
 

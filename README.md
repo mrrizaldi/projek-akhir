@@ -15,7 +15,7 @@ MQTT ke ThingsBoard. Klasifikasi berjalan di alat, bukan di server.
 | `hardware/` | PCB mainboard rev2: skematik, layout, library DevKitC-1, pemeriksaan otomatis ([`hardware/mainboard/`](hardware/mainboard/README.md)) | KiCad 9 |
 | `laporan/` | Dokumen LaTeX: `proposal-pa`, `buku-pa`, `surat-magang`, `shared` | pdflatex + bibtex |
 | `scripts/` | Otomasi lintas-komponen (sinkronisasi artefak) | bash |
-| `docs/` | Pola penulisan laporan PA dan arsip rencana kerja | Markdown |
+| `docs/` | Dokumen kerja lintas komponen yang masih berjalan ([indeks](docs/README.md)) | Markdown |
 
 ## Alur artefak (produsen → konsumen)
 
@@ -72,12 +72,10 @@ daya, WiFi OFF darurat, rekaman ke server, PCB rev2) didaftar bertanggal di
 | [`CLAUDE.md`](CLAUDE.md) | Aturan kerja repo, gate point, kebijakan gambar |
 | [`model/README.md`](model/README.md) | Ringkasan komponen model |
 | [`model/docs/README.md`](model/docs/README.md) | Peta walkthrough Fase 0-8 dan HW, angka rujukan, eksperimen yang tidak diadopsi |
-| [`model/docs/arsip/README.md`](model/docs/arsip/README.md) | Indeks arsip desain, rencana, dan changelog eksperimen model/hardware |
 | [`firmware/README.md`](firmware/README.md) | Env PlatformIO, perintah, pin map, perintah serial |
 | [`dashboard/README.md`](dashboard/README.md) | ThingsBoard, kontrak payload, pengukuran pipeline |
 | [`.claude/skills/`](.claude/skills/) | Indeks skill repo (laporan: `struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`, `deck-pa`; firmware: `batas-tidak-diam`; kode: `tanpa-komentar-kode`; PCB: `kicad-pcb-pa`; `ingest-word`) dan skill user yang dimuatnya |
-| [`docs/arsip/README.md`](docs/arsip/README.md) | Indeks arsip rencana kerja laporan |
 | [`scripts/README.md`](scripts/README.md) | Otomasi lintas-komponen (sinkronisasi artefak) |
-| [`model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`](model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md) | Penyesuaian PCB rev1 → rev2 (skematik KiCad di luar repo) |
+| [`hardware/mainboard/README.md`](hardware/mainboard/README.md) | PCB mainboard: peta pin, catu daya, rasional rangkaian modul, perbedaan terhadap skematik rev2, yang belum terverifikasi |
 | `laporan/CLAUDE.md` | Aturan gaya penulisan laporan |
 | `model/PRD_Model_Aritmia_TinyML.pdf` | Spesifikasi resmi jalur model |

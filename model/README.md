@@ -22,7 +22,7 @@ data MIT-BIH sampai header C untuk firmware ESP32-S3.
 | `scripts/` | Skrip eksekusi: unduh, prep, latih, evaluasi, kuantisasi, ekspor, ablasi |
 | `tests/` | pytest untuk DoD tiap fase |
 | `artifacts/` | Model terlatih, `model_int8.tflite`, metrik dan plot |
-| `docs/` | Walkthrough per fase; `docs/arsip/` berisi dokumen desain, rencana, dan changelog eksperimen ([indeks](docs/arsip/README.md)) |
+| `docs/` | Walkthrough per fase ([peta](docs/README.md)) |
 
 ## Perintah utama
 
@@ -105,6 +105,18 @@ punya kolom `db`, dan `ringkas_ablasi.py` mengenali awalan kolom (`anot_` atau
 tidak) dari header, lalu memakai kunci `tag|db` supaya satu tag di dua database
 tidak dirata-rata jadi satu. Setengah-rentang dipakai, bukan stdev, karena n=3
 terlalu kecil untuk stdev bermakna.
+
+Awalan tag di `ablasi.csv` menandai kelompok eksperimen: tanpa awalan =
+ablasi window/jitter/HOS (Fase 6c; `w128s3` = `--salinan 3`), `fb_` = database
+latih (`fb_svdb`, `fb_incartdb`, `fb_multi`, `fb_svdb_nocw` = tanpa
+`class_weight`), `fd_` = tabel 2×2 dataset × fitur (`fd_mitdb_only`, `fd_both`,
+`fd_qrsw`, `fd_rr`), `g_` = regime latih (`g_swa3` = `--swa 3`, `g_lr1e4`,
+dan run diagnosis `g_diag`, `g_diagbase`, `g_lrdiag`), `t8_` = learning rate
+dengan `--lintas-db` (`t8_lr1e3`, `t8_lr3e4`, `t8_lr1e4`; baris TEST-B/C di
+`lintas_db.csv`).
+Vonis tiap kelompok ada di [docs/README.md](docs/README.md) §Eksperimen yang
+tidak diadopsi; `ablasi_seed42.csv` dijelaskan di
+[jitter](docs/jitter-walkthrough.md) §5.
 
 Salinan jitter hanya untuk mitdb. Database lain tidak dijitter karena kolam
 residu (`residu_ds1.npy`) diukur dari detektor di mitdb 360 Hz; memakainya untuk

@@ -159,21 +159,41 @@ Dua angka yang paling perlu dapat dijelaskan di sidang:
 
 ## Eksperimen yang tidak diadopsi
 
-Eksperimen Fase A–G (multi-database, fitur, regime latih) berakhir tanpa
-perubahan konfigurasi. Dokumennya berada di [`arsip/`](arsip/README.md) dan
-menjawab pertanyaan seperti *"mengapa tidak memakai dataset lain?"* atau
-*"mengapa fitur lebar QRS tidak dipakai padahal peringkat 1?"* dengan hasil ukur.
+Eksperimen multi-database, fitur, dan regime latih (Fase A–G) berakhir tanpa
+perubahan konfigurasi. Semua diukur 3–6 seed, dilaporkan rerata ±
+setengah-rentang, ambang sinyal 0,04 F1 untuk rerata 3 seed, DS2 hanya
+mendiagnosis. Satu-satunya hasil yang masuk produksi adalah assert
+`MAX_RHYTHM_SCALE` ([quantize](quantize-walkthrough.md)). Knob-nya tetap ada
+di kode dan byte-identik saat mati, jadi tiap ablasi bisa diulang dengan satu
+perintah (lihat Alat analisis pendukung).
 
-| Dokumen | Isi | Vonis |
-|---|---|---|
-| [fitur-design](arsip/2026-09-19-fitur-design.md) | Sintesis 7 paper, 10 temuan yang bertabrakan dengan decision point terkunci. §9 memuat skor akhir 10 usul dan prasyarat pembukaan kembali | Ditutup, tanpa perubahan konfigurasi. 4 gugur, 2 dorman, 3 dikonfirmasi, 4 dihentikan (2 di antaranya bergantung pada rekaman tubuh) |
-| [multidataset-plan](arsip/2026-09-19-multidataset-plan.md) | Fase A: gabungan mitdb + svdb + incartdb, audit 13 pemeriksaan | Infrastruktur tersedia, DS2 byte-identik |
-| [faseB-changelog](arsip/2026-09-19-faseB-changelog.md) | Fase B–F: 10 varian × 3–6 seed, tabel 2×2, tahap 2 | Tanpa perubahan konfigurasi |
-| [faseG-changelog](arsip/2026-09-19-faseG-changelog.md) | Fase G: regime latih. Model produksi merupakan hasil 1 epoch; rata-rata bobot gagal; k-dari-n gugur; TEST-B/C masuk harness | Tanpa perubahan konfigurasi. LR 1e-4 menukar recall S dengan V+F sehingga ditolak; pertukaran ini dilaporkan |
+| Usul | Vonis | Bukti singkat | Dibuka kembali bila |
+|---|---|---|---|
+| K1 `class_weight=None` | gugur | prediksi paper precision +31 poin; terukur +0,3 poin di mitdb+svdb karena kalibrasi threshold di hilir menyerapnya (threshold 0,40 → 0,15); recall S −0,076 | — |
+| K2 `RR+1` / tunda 1 beat | jadi, tidak dikunci | terimplementasi sampai firmware (`#if ECG_RR_RATIO`, `ecg_live.cpp` menilai `idx_hist-1`), dorman karena K3 tidak menang | K3 menang |
+| K3 fitur RR berbentuk rasio | gugur | bagian dari "fitur baru" di tabel 2×2 di bawah: −0,003 di mitdb | — |
+| K4 lebar QRS (peringkat 1–2 mutual information) | gugur | di mitdb recall V 0,944 → 0,898, recall F 0,152 → 0,029; knob `PA_QRSW=1` | — |
+| K5 jendela `RR_local_avg` 10 → 32 | dihentikan | efek yang dicari lebih kecil dari lantai derau 0,04 | ada set uji dengan lantai derau < 0,02 |
+| K6 pooling berbobot pengganti GAP | dihentikan | kapasitas bukan penyebab (model 6.417 param sudah lebih besar dari pembanding) | idem K5 |
+| K7 input turunan pertama | dihentikan | paper menang di sinyal bersih tetapi jatuh di bawah derau AWGN; harus diuji di rekaman tubuh | ≥ 3 rekaman tubuh berayun > 1.000 counts, uji di rekaman tubuh |
+| K8 kelas F dan Q tetap di biner | dikonfirmasi | recall F sempurna pun hanya +0,037 F1 (di bawah ambang); hanya S yang bisa menggerakkan angka utama (+0,113) | — |
+| K9 tanpa sklearn (mutual information) | dikonfirmasi | gate dependency; peringkat paper dipakai sebagai hipotesis, divalidasi `ablasi.py` | — |
+| K10 PTQ, bukan QAT | dikonfirmasi | PTQ lolos target; ranjau skala ritme ditutup assert `MAX_RHYTHM_SCALE` | — |
+| T5 aturan k-dari-n | gugur | 65,3% beat aritmia DS2 kejadian tunggal; k ≥ 2 membuang 87% TP dan menyimpan FP yang bergerombol (`cek_fp.py`) | — |
+| T5b gerbang kualitas sinyal untuk klasifikasi | dihentikan di `model/` | MIT-BIH terlalu bersih untuk mengalibrasi ambang kualitas; gerbang kualitas hidup di firmware ([mqtt](mqtt-walkthrough.md) §3.1) | — |
+| T6 augmentasi skala/warp, volume per teknik | dihentikan | paling jauh dari akar masalah; selisih antar-teknik di bawah lantai derau | — |
+| T7 rata-rata bobot (`--swa`) | gugur | F1 DS2 0,6911 → 0,6346; di LR 1e-3 tidak ada dataran untuk dirata-rata ([train](train-walkthrough.md) §6b) | diuji di LR 1e-4 |
+| T9 focal loss | dihentikan | efek di bawah lantai derau | idem K5 |
+| T11 personalisasi per pasien | dihentikan | kalibrasi tanpa label butuh jangkar tak-terawasi yang belum jelas | dokumen scoping lebih dulu |
+| T12 learning rate 1e-4 | jadi, tidak dikunci | AUC naik 4/4 set, TEST-C F1 +0,124, recall F dua kali lipat, tetapi recall S 0,4473 → 0,3126, nyata di titik operasi setara ([train](train-walkthrough.md) §6b) | keputusan user mengubah fokus kelas |
+| Database latih + svdb / + incartdb | gugur (mitdb saja) | svdb +0,076 recall S tetapi precision turun; incartdb AUC 0,8881 dan recall S 0,331; gabungannya saling meniadakan ([dataset](dataset-walkthrough.md) §4) | — |
+| Gate A3: subsample beat F record 208 | ditolak | plafon F sempurna +0,037 di bawah ambang; recall F rendah karena cakupan pasien, bukan bobot gradien | — |
+| Set kalibrasi threshold lebih besar (+svdb, +incartdb) | tidak dipakai | celah F1 terhadap optimum DS2 menyempit 0,034–0,068 → 0,014–0,020 (`cek_kalibrasi.py`, satu seed), tetapi memakai held-out untuk kalibrasi menghapus perannya sebagai TEST-B/TEST-C | held-out dipecah kalibrasi/uji, keputusan user |
+| Tahap 2 penamaan V/S | tidak dikirim | presisi nama V 91,7% di DS2, maksimum 43,9% di VAL; DS2 tidak boleh mensertifikasi (`tahap2.py`) | VAL yang mewakili keragaman morfologi V |
 
 ### Ringkasan satu layar
 
-Tabel 2×2 dataset × fitur (ambang sinyal §7: < 0,04 F1 bukan sinyal):
+Tabel 2×2 dataset × fitur (ambang sinyal: < 0,04 F1 bukan sinyal):
 
 ```
 F1              fitur LAMA (3)    fitur BARU (6)
@@ -186,9 +206,19 @@ svdb merugikan -0,065   fitur baru menambalnya +0,070   hasil akhir +0,005
 **Interaksi murni, bukan dua perbaikan bertumpuk.** svdb menurunkan F1 lewat
 pergeseran domain; fitur baru hanya menambal kerusakan itu; gabungannya kembali
 ke titik awal. Tanpa sel keempat (mitdb + fitur baru), kesimpulannya salah dua kali.
+Fitur baru di mitdb+svdb membuat recall S lebih andal (±0,156 → ±0,058), bukan
+lebih tinggi.
 
-Satu-satunya hasil eksperimen yang masuk produksi adalah satu assert
-(`MAX_RHYTHM_SCALE`). Sepuluh temuan untuk laporan dicatat di faseB-changelog §10.
+Asal FP di DS2 (`cek_fp.py`, 2.302 FP): 2 record menyumbang 56,6%, 8 record
+92,4%. Per simbol: N 1.568 (FPR 0,043), L/LBBB 536 (FPR 0,130), R/RBBB 187
+(FPR 0,054). L+R = 31,4% FP: beat yang AAMI sebut Normal tetapi QRS-nya lebar
+seperti ventrikular. Record 222 (FPR 0,344) gagal lewat cabang ritme (ritme
+tak teratur: 9% nodal escape, 8% atrial prematur).
+
+Pola yang berulang di K1, T12, dan T5: usul dari paper tidak berpindah bila
+pipeline ini punya langkah adaptif di hilir yang papernya tidak punya
+(kalibrasi threshold, label per-beat). Ablasi paper yang sah pun hanya
+berpindah bila tidak ada langkah adaptif di antara knob dan metrik.
 
 ### Alat analisis pendukung
 

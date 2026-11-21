@@ -55,6 +55,10 @@ Urutan pin header modul:
 | J4 / J5 / J6 | TP4056 | IN+ IN− / B+ B− / OUT+ OUT− |
 | J8 | kabel holder 18650 (JST PH) | +, − |
 
+GPIO yang dihindari saat memindah pin: 26–37 (flash dan PSRAM octal N16R8),
+0/3/45/46 (strapping), 19/20 (USB). EKG ada di GPIO 1 karena kanal ADC1;
+ADC2 tidak dapat dipakai saat WiFi aktif. GPIO 12 bebas.
+
 ## Catu daya
 
 ```
@@ -80,6 +84,10 @@ Urutan pin header modul:
   TP4056 ada di depan saklar. Lampu saklar dicatu dari VSYS (±3,0–4,6 V).
 - R2 1 MΩ (R_Dummy di skematik rev2) dipertahankan apa adanya: beban ±4 µA
   dari VBAT_SENSE ke GND.
+- Konverter ke 5 V adalah boost (MT3608). Buck seperti Mini360 butuh masukan
+  ≥ 4,75 V dan tidak bekerja dari sel Li-ion 3,0–4,2 V.
+- +5V hanya mencatu beban daya (pin 5V DevKit dan kapasitornya);
+  `cek_board.py` menolak pin lain di net `+5V`.
 
 ## Layout
 
@@ -151,6 +159,44 @@ dipakai sebagai acuan rangkaian. Perbedaannya:
 Ukuran footprint pasif mengikuti rev2: R dan C 0805 HandSolder, tombol
 `SW_PUSH_6mm_H7.3mm`. C1 memakai `CP_Radial_D5.0mm_P2.00mm` (pad sama dengan
 rev2) agar tanda polaritas tercetak.
+
+## Rasional rangkaian modul
+
+ESP32-S3 adalah perangkat 3,3 V: GPIO tidak tahan 5 V (batas VDD + 0,3 =
+3,6 V). Semua yang menyentuh GPIO dicatu dari 3V3, termasuk modul yang
+membawa transistor sendiri.
+
+- **TFT.** Keempat jalur sinyal (SCL, SDA, RES, DC) tersambung langsung tanpa
+  resistor, karena level TFT dan ESP32-S3 sama-sama 3,3 V. Divider 2k2/3k3
+  dari sumber 3,3 V memberi 1,98 V, di bawah VIH ST7789 0,7 × VDDI = 2,31 V;
+  HIGH tidak terbaca. Bila SCK berdering, resistor seri 33 Ω dekat
+  ESP32-S3 dapat disisipkan. Header J2 delapan pin karena modul membawa CS;
+  CS diikat ke GND, maka firmware memakai `SPI_MODE3`
+  (`firmware/README.md`). BLK ke 3V3 (backlight selalu menyala); untuk
+  meredupkan atau mematikan backlight, BLK dapat dipindah ke GPIO 12 dan
+  disetir PWM.
+- **Buzzer.** Modul pasif A18009 aktif LOW, transistor penggeraknya terduga
+  PNP (S8550/9012; pastikan dari tulisan di badan transistor modul). PNP baru
+  mati bila tegangan basis hampir sama dengan emitornya (VCC). Dengan VCC
+  5 V, I/O HIGH 3,3 V menyisakan V_EB 1,7 V: PNP tetap menyala, buzzer tidak
+  pernah diam, dan arus dari 5 V masuk ke GPIO lewat sambungan E–B. Dengan
+  VCC 3V3, V_EB = 0 saat HIGH dan buzzer diam. Suara sedikit lebih pelan
+  daripada di 5 V; kerasnya dikembalikan dengan menyetel `NADA_HZ` ke
+  resonansi buzzer. Modul aktif (A07009) dijual di halaman toko yang sama:
+  bagian bawah buzzer aktif tertutup rapat, buzzer pasif memperlihatkan PCB
+  hijau.
+- **Tombol.** Tanpa resistor: tombol ke GND dan firmware memakai
+  `INPUT_PULLUP` (±45 kΩ ke 3V3) dengan debounce 50 ms (`tombol.cpp`). Karena jalur
+  tombol pendek, pull-up lemah ini tidak mudah kemasukan derau. Bila
+  pull-up eksternal tetap diinginkan, ujung atas resistor 10 kΩ ke 3V3,
+  bukan ke +5V.
+- **AD8232.** J3 pin 1 memakai simbol power `GND`: di KiCad, label lokal
+  `GND` tidak dijamin menyatu dengan simbol power. SDN diikat ke 3V3 sesuai
+  datasheet AD8232 (*"when not using this feature, permanently tie SDN to
+  +VS"*); SDN LOW mematikan chip dan SDN mengambang hasilnya tidak tentu.
+  Jalur EKG dari GPIO 1 berada di sisi kanan, berlawanan dengan SPI TFT
+  (GPIO 8/9) di sisi kiri (bagian **Layout**). GND dituang di kedua lapis.
+  Derau SPI di dekat jalur analog langsung terlihat di sinyal EKG.
 
 ## Footprint ESP32-S3-DevKitC-1
 
@@ -257,6 +303,8 @@ melapor `unconnected`, sambungan itu ditambahkan ke fungsi `rute_*` di
 6. **Tegangan lampu saklar J10.** Lampu dicatu VSYS ±3,0–4,6 V. Lampu LED
    12 V atau neon 220 V tidak akan menyala di tegangan ini; cek tulisan di
    badan saklar sebelum memakai pin lampu.
+7. **Arus isi TP4056.** Arus isi ditentukan Rprog di modul TP4056 (bawaan
+   1 A). Sesuaikan Rprog dengan kapasitas sel 18650 yang dipakai.
 
 ## Ekspor fabrikasi
 

@@ -48,7 +48,7 @@ Hitungan harus 0. Pakai `pdf-bersih`, bukan `make rebuild`, karena `rebuild` men
 
 ## Pertanyaan ke user
 
-Bertanya hanya untuk keputusan yang mengubah isi buku sekarang dan tidak bisa dijawab dari repo, karena pertanyaan yang jawabannya sudah tertulis membuang waktu user. Cari dulu di `model/CLAUDE.md`, `model/docs/`, `docs/arsip/`, `model/docs/arsip/`, dan isi buku sendiri. Pilah begini:
+Bertanya hanya untuk keputusan yang mengubah isi buku sekarang dan tidak bisa dijawab dari repo, karena pertanyaan yang jawabannya sudah tertulis membuang waktu user. Cari dulu di `model/CLAUDE.md`, `model/docs/` (baris "Kondisi uji" di walkthrough), `model/data/arsip/rekaman-uji-coba/README.md` (rangkaian dan pin per tanggal rekaman uji coba), dan isi buku sendiri. Pilah begini:
 
 1. Riwayat yang sudah tercatat di repo (rakitan lama, tanggal uji, pin lama): pakai apa adanya, jangan ditanyakan.
 2. Angka yang menunggu data resmi: tulis `\PlaceholderData{...}`, jangan ditanyakan.

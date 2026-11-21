@@ -253,7 +253,11 @@ berarti menyelaraskannya menggeser R ~1 sampel dan membatalkan semuanya.
 Setengah-lebar jendela cari-puncak 16 sampel (±44 ms) menutup p1..p99 svdb
 (−9..+15) tanpa menjangkau gelombang T (~200-300 ms = 72-108 sampel); 25
 (`PT_REFINE_WIN`, ±70 ms) dibuat untuk sebaran detektor (std 13 sampel) dan di
-sini terlalu lebar. `cek_lead.py` membaca polaritas dari kolom "mentah" dan
+sini terlalu lebar. Terukur pada audit Fase A, 1.133 dari 48.630 beat database
+baru (2,33%) ingin bergeser ≥ 16 sampel dan terpotong di batas jendela; itu
+diterima, karena melebarkan jendela membuat `argmax` bisa melompat ke gelombang
+T, dan sisa geseran itu masih di dalam sebaran yang dilatih augmentasi jitter.
+`cek_lead.py` membaca polaritas dari kolom "mentah" dan
 alignment dari kolom "selaras"; kolom "selaras" tidak boleh memvonis polaritas
 karena `selaraskan_r` memakai argmax bertanda yang memaksa nilai di R positif.
 

@@ -72,7 +72,6 @@ juga dibiarkan (di `progres-pa-1` sudah diperbaiki). Butir ini dikerjakan saat
 | E1 | `bab4.tex` butir Konsumsi Daya (baris ±866) | Board masih dicatu USB dan pin masukan INA219 mengambang | INA219 sudah di jalur baterai: `model/artifacts/metrics/daya/20261014-1629-board-003.csv` (3,69 V, ±137 mA, mode 0) | Penghalang = tingkat WiFi menunggu konverter 5 V; angka 14 Okt tidak dipakai karena charger diduga tercolok |
 | E2 | `bab4.tex` analisis jalur model (baris ±1082) | "INA219 belum dirakit pada jalur catu baterai" | Sama dengan E1 | Sama dengan E1 |
 | E3 | `bab5.tex` Saran 1 (baris ±38) | "INA219 perlu dirakit pada sisi baterai" | Sama dengan E1 | Saran diganti: setel konverter 5 V lalu jalankan tangga |
-| E4 | `docs/arsip/README.md` baris firmware-menu-plan | "Paragraf tombol/menu di Bab 3 laporan belum disesuaikan" | Bab 3 sudah memuat menu dan pohon menu | Arsip read-only; dibiarkan, dicatat di sini |
 
 ## F. Temuan firmware terbuka
 

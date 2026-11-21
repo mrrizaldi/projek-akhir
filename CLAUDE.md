@@ -253,8 +253,8 @@ env `native` = test di PC). Jalankan dari `firmware/`.
   build flag), bukan salinan kode terpisah.
 - **Sebelum mengubah pin/driver**, pastikan perangkat keras yang sedang dipakai
   (breadboard atau PCB rev N). Pin map tunggal ada di
-  `firmware/include/perangkat.h`; penyesuaian PCB rev2 di
-  `model/docs/arsip/2026-10-08-pcb-rev2-adjustment.md`.
+  `firmware/include/perangkat.h`; peta pin dan rasional rangkaian PCB di
+  `hardware/mainboard/README.md` (bagian Peta pin dan Rasional rangkaian modul).
 
 ## Diagrams & gambar laporan
 
@@ -286,7 +286,7 @@ dibahas sama sekali. Buku hanya membahas MIT-BIH: SVDB/INCART dan uji
 lintas basis data tidak ditulis walau hasilnya ada di repo (19 Okt 2026).
 Pustaka diutamakan terbitan 2020 ke atas, kecuali sumber asli metode/data
 dan standar yang masih berlaku (arahan dosen; rasional per entri di
-`docs/arsip/2026-10-19-referensi-pra-2020.md`). Buku full =
+`laporan/CLAUDE.md` bagian Daftar Pustaka). Buku full =
 `laporan/buku-pa` (dikerjakan), buku tahap 1 = `laporan/progres-pa-1`
 (buku-pa tanpa INA219 dan catu daya, isi 50–70% menurut pembimbing;
 prosedur regenerasi di `laporan/CLAUDE.md`). **`laporan/proposal-pa` sudah

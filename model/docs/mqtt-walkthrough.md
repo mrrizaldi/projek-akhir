@@ -428,7 +428,7 @@ status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan)
 **Akuntansi kehilangan:** `beat_total − ditahan = terkirim + backlog + hilang`.
 Identitas itu yang membuat uji resiliensi bisa diukur, dan ia cuma berlaku
 karena replay **deterministik** — 11 beat per putaran 6,67 detik, sudah terukur
-di board (`arsip/2026-09-18-robustness-changelog.md` §207).
+di board ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5c, "Terukur di board").
 
 ---
 
@@ -459,8 +459,8 @@ di board (`arsip/2026-09-18-robustness-changelog.md` §207).
   LittleFS sudah dipakai untuk rekaman mentah, jadi jalurnya tersedia bila
   dibutuhkan.
 - **`ecg_sim.h` rekaman lebih panjang/beragam.** Ditambahkan **hanya bila**
-  dashboard membutuhkannya ([`arsip/2026-09-18-robustness-changelog.md`](arsip/2026-09-18-robustness-changelog.md)
-  Task 0); replay `golden_raw` mencukupi untuk seluruh pengukuran di §7.
+  dashboard membutuhkannya; replay `golden_raw` mencukupi untuk seluruh
+  pengukuran di §7.
 - **Batch adaptif / kompresi payload.** 1 beat/detik × ~300 B tidak mendekati
   batas apa pun.
 

@@ -561,7 +561,6 @@ yang benar-benar mengukur interval jantung.
 
 ## 5d. Tangga ukur daya
 
-Rancangan: [`arsip/2026-09-16-daya-design.md`](arsip/2026-09-16-daya-design.md).
 Konsumsi dipisahkan per tahap lewat isolasi mode: tiap anak tangga menambah satu
 beban, dan ongkos satu tahap adalah selisih dua anak tangga. Satu anak tangga
 dipilih lewat serial `p0`–`p5`; `p` diikuti huruf lain (mis. `px`) kembali ke
@@ -611,6 +610,42 @@ Catatan tafsir: `loop()` tidak pernah tidur, jadi CPU 240 MHz aktif penuh di
 semua mode. Selisih `p1`–`p3` adalah ongkos instruksi tambahan pada CPU yang
 sudah aktif, dan dapat tenggelam di bawah 2 × std; cek skrip melaporkannya
 sebagai tahap yang belum terukur, bukan sebagai angka.
+
+### Rasional rancangan
+
+- **Mode lewat perintah serial, bukan build flag.** Flash ulang antar-mode
+  mengubah kondisi termal board dan menambah variabel yang tidak dikendalikan.
+- **`p2` satu blok DSP.** `ecg_live_push()` mengerjakan bandpass, deteksi, dan
+  segmentasi di balik satu pintu (`firmware/include/ecg_live.h`); memisahkan
+  bandpass dari deteksi berarti membongkar modul yang sudah terverifikasi
+  golden.
+- **Tanpa pustaka INA219.** `Wire` sudah ada di framework Arduino, dan
+  dependency baru adalah gate point. Rumus di `ina219.cpp`:
+  `I [mA] = Vshunt_reg × 0,01 / R_SHUNT`, `V [V] = (Vbus_reg >> 3) × 0,004`.
+- **Arus diam INA219 ikut terhitung.** VCC modul diambil dari 3V3 board (sisi
+  beban), jadi arus diamnya (±1 mA) ada di semua mode: hilang pada selisih
+  antar-mode, dan disebut terang-terangan bila angka absolut dilaporkan.
+- **I2C di GPIO 17/18.** Keduanya pin ADC2, yang mati total begitu WiFi menyala
+  (akuisisi-walkthrough §1). Memakainya untuk I2C tidak mengorbankan apa pun,
+  sedangkan GPIO 1–10 adalah ADC1 yang masih dibutuhkan.
+- **Shunt di sisi positif (high-side).** Shunt di jalur GND mengangkat
+  referensi ground board terhadap ground laptop; jalur data USB dan pembacaan
+  ADC AD8232 ikut bergeser, padahal sinyal itulah yang konsumsinya sedang
+  diukur. INA219 dirancang untuk high-side (common-mode sampai 26 V).
+- **Cek silang multimeter wajib.** Kalibrasi shunt dapat meleset tanpa tanda
+  apa pun; perbandingan dengan multimeter (prosedur langkah 6) satu-satunya
+  pertahanan, dan `R_SHUNT` satu-satunya konstanta yang dikoreksi.
+- **Assert `Σ selisih = p3 − p0` tidak dipakai.** Persamaan itu teleskopik,
+  selalu benar secara aljabar berapa pun angkanya; cek itu tidak pernah bisa
+  gagal. Dua cek yang dipakai (monoton dan selisih > 2 × std) bisa gagal, dan
+  kegagalannya menunjuk sebab yang berbeda: monoton gagal = gating mode bocor;
+  selisih tenggelam = tahap itu belum terukur.
+
+Alternatif osiloskop atau penanda GPIO tidak dipakai karena hasil transiennya
+sulit dijadikan tabel rata-rata. Alternatif mencatat arus beserta timestamp
+lalu mencocokkannya offline tidak dipakai karena menuntut sinkronisasi waktu
+dan sampling INA219 cepat; isolasi mode memberi rata-rata steady-state dengan
+kerja lebih sedikit.
 
 ### Kondisi jalur ukur saat ini
 

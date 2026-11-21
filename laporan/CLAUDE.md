@@ -209,9 +209,9 @@ Nama *field* payload/telemetri yang menjadi bagian rancangan (`signal\_quality`,
 
 Rujukan sumber ke repo tetap ditulis, tetapi **hanya di komentar `%`**, dan harus ke
 sumber yang stabil: walkthrough aktif `model/docs/*-walkthrough.md`, kode, atau
-artefak `model/artifacts/metrics/*`. Dokumen rencana di `model/docs/arsip/` bisa
-dihapus, jadi jangan dijadikan satu-satunya sumber (changelog eksperimen dan
-`2026-10-08-pcb-rev2-adjustment.md` boleh). Cek cepat sebelum selesai:
+artefak `model/artifacts/metrics/*`. Dokumen rencana dan catatan kerja bertanggal
+(`docs/YYYY-MM-DD-*.md`) dihapus sesudah selesai, jadi jangan dijadikan
+satu-satunya sumber. Cek cepat sebelum selesai:
 
 ```bash
 grep -nE "HW-[0-9]|Fase [0-9A-G]|\.md|\.py|walkthrough|Task [0-9]" bab/*.tex | grep -vE ":[0-9]+:\s*%"
@@ -280,13 +280,59 @@ Acuan: `proposal-pa/Panduan_Proposal_PA_D4TI/` (file A–E, format `.docx`). Set
 
 **Daftar Pustaka.** Bernomor `[n]`, gaya IEEE (`IEEEtran.bst` via `natbib`). Urutan & format per jenis sumber: jurnal (pengarang, judul, nama jurnal, vol/no/hal, penerbit, tahun), seminar, buku (pengarang, judul, penerbit, edisi, tahun), tugas akhir/skripsi/disertasi, media publik, media online (judul, situs, alamat, tanggal akses, tahun).
 
+**Pustaka terbitan sebelum 2020 di `buku-pa`.** Arahan dosen: pustaka diutamakan
+terbitan 2020 ke atas, kecuali sumber asli metode atau data, standar yang masih
+berlaku, dan dokumentasi resmi komponen yang dipakai. Entri pra-2020 yang
+dipertahankan beserta alasannya:
+
+| Entri | Alasan tidak diganti |
+|---|---|
+| `pan_tompkins_1985` | algoritma deteksi QRS yang dipakai persis; didampingi `li_2020` |
+| `moody_mark_2001` | halaman MIT-BIH di PhysioNet meminta makalah ini disitasi |
+| `dechazal_2004` | asal pembagian DS1/DS2 yang ditiru persis; didampingi `xiao_2023` dan `bahrami_2025` |
+| `jacob_2018` | asal skema kuantisasi integer TFLite; didampingi `david_2021` |
+| `oasis_mqtt5` (2019) | MQTT 5.0 adalah versi OASIS terbaru |
+| `iec_60601_2_27_2011` | edisi 3.0 (2011, korigendum 2012) masih berlaku; penggantinya IEC 80601-2-86 masih tahap CDV |
+| `skorinkapov_2010` | hanya untuk klaim telemonitoring toleran *delay* (±1 detik untuk ECG darurat), belum ada pengganti 2020+; klaim aliran ECG tanpa kehilangan data memakai `zhong_2022` (Tabel 3, BER < 10⁻¹⁰) |
+| `ti_ina219`, `adafruit_ina219`, `aerosemi_mt3608`, `cui_buzzer_basics` | *datasheet* atau dokumentasi resmi komponen yang dipasang |
+
+`aami_ec57_2012` ditulis ANSI/AAMI EC57:2012 (R2020) bertahun 2020 (reafirmasi 2020
+di webstore ANSI), dan `analog_ad8232` bertahun 2020 (datasheet Rev. D, 3/2020).
+Target 3GPP TR 22.826 V17.2.0 §5.5.3.6 (latensi < 100 ms, *availability* 99,9999%)
+berlaku untuk aliran telemetri jantung 5G, bukan hasil klasifikasi per detak, jadi
+tidak dipakai sebagai pembanding anggaran latensi. Entri pra-2020 berikut sudah
+diganti dan tidak dipakai lagi: `sornmo_laguna_2005` (→ `zambrano_2026`, `jia_2024`,
+`ecg_goldberger`), `shi_2016` (→ `cao_2020`, `yaacoub_2020`, `escobedo_2026`),
+`kiranyaz_2016` (→ `kiranyaz_2021`), `saito_2015` (→ `chicco_2020`), `lee_2013`
+(→ `akshatha_2022`). Verifikasi keberadaan dan DOI memakai Scopus dan Crossref
+(`scripts/README.md` §Pengunduh daftar pustaka).
+
 ### DOCX Notes
 
 DOCX dibuat oleh WordCraft dari proyek LaTeX (`make pdf docx`; `make pdf` dulu supaya
 `output/main.bbl` ada untuk nomor sitasi). Formatnya (heading BAB, caption, margin, spasi,
 daftar isi, pustaka) datang dari `laporan/wordcraft.toml`, bukan dari preamble: kalau
-`shared/preamble.tex` / `size-a4.tex` berubah, sesuaikan `wordcraft.toml` juga. Page break
-bisa geser 1–2 halaman dari PDF. DOCX untuk dibaca/review; submit tetap PDF.
+`shared/preamble.tex` / `size-a4.tex` berubah, sesuaikan `wordcraft.toml` juga. DOCX untuk
+dibaca/review; submit tetap PDF.
+
+- `wordcraft-cli` di PATH (`~/.cargo/bin/wordcraft-cli`) adalah build branch lokal
+  `fix/latex-env-scopes-declarations` di `~/dev/wordcraft` (tanpa push dan tanpa PR);
+  0.18.1 dicadangkan di `~/.cargo/bin/wordcraft-cli-0.18.1`. Aplikasi GUI `wordcraft`
+  belum dibangun dari branch, jadi membuka `main.tex` langsung di aplikasi memakai
+  importer lama; jalur `make docx` lalu menyunting DOCX memakai importer baru.
+- `[body] baseline_pt = 21.75` di `wordcraft.toml` = `\setstretch{1.5}` pada kelas
+  12 pt (1,5 × 14,5 pt).
+- Judul DAFTAR ISI, DAFTAR GAMBAR, dan DAFTAR TABEL dipasang lewat
+  `\addto\captionsindonesian` di `shared/preamble.tex`, karena babel menimpa
+  `\renewcommand` biasa saat `\begin{document}`.
+- Kesamaan per halaman diperiksa `make cek-docx` (`scripts/README.md`). Selisih yang
+  tersisa diterima sebagai keterbatasan: LaTeX memindahkan float `[!ht]` ke halaman
+  berikutnya sedangkan DOCX meletakkannya di posisi sumber (selisih −1 sampai +2
+  halaman di sekitar float), dan pemotongan baris Knuth-Plass berbeda dari WordCraft.
+  Pemutus halaman paksa dari posisi halaman PDF tidak dipakai.
+- Batasan konverter (`~/dev/wordcraft/docs/latex.md` §Limits): gambar PDF/SVG/EPS
+  menjadi `[Picture: nama]`, `\midrule` di badan tabel tidak digambar, `\ifx` tidak
+  ditangani, `\vspace{\baselineskip}` dihitung 0.
 
 Sync balik ke `.tex` sudah ada. Dua jalur:
 

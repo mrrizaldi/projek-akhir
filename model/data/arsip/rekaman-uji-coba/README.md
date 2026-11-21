@@ -21,8 +21,9 @@ Kondisi bersama: satu subjek, Lead II (kecuali 21 Okt 2026: kuning di dada kiri 
 diganti (format CSV sama: header `# fs=360 n=... lewat=... [lepas=...]`).
 Nama berkas = waktu **tarik**, bukan waktu rekam.
 
-Grafik analisisnya ada di `model/artifacts/arsip/akuisisi-uji-coba/`. Riwayat
-diagnosis rangkaian: `model/docs/arsip/riwayat-akuisisi-walkthrough.md`.
+Grafik analisisnya ada di `model/artifacts/arsip/akuisisi-uji-coba/`.
+Diagnosis rangkaian (lantai derau, jalur putus, lead-off): tabel §7 "Kalau bermasalah"
+di [`model/docs/akuisisi-walkthrough.md`](../../../docs/akuisisi-walkthrough.md).
 Menganalisis ulang (hasil grafik masuk `artifacts/metrics/akuisisi/`):
 
 ```
