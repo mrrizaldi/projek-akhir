@@ -4,7 +4,7 @@
 
 Sistem monitoring detak jantung berbasis IoT yang ada saat ini umumnya mengadopsi paradigma \textit{cloud-centric}, di mana perangkat sensor hanya bertugas mengumpulkan data fisiologis mentah untuk kemudian dikirimkan ke server pusat guna diproses dan dianalisis. Kondisi ini menyebabkan dua permasalahan mendasar, yaitu latensi sistem yang tinggi akibat \textit{round-trip} data ke server yang dapat mencapai 152,3 ms~\cite{al_quayed_2026}, serta ketidakmampuan sistem untuk beroperasi secara mandiri ketika koneksi jaringan terganggu atau terputus.
 
-Model kecerdasan buatan untuk deteksi aritmia umumnya dijalankan pada perangkat keras desktop atau server, dan baru sedikit yang dibuktikan mampu melakukan inferensi \textit{real-time} pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{zambrano_2026}. Pada sisi pengiriman, platform yang mengalirkan sinyal ECG mentah langsung ke server belum menyimpan data secara lokal ketika koneksi terputus, dan mekanisme tersebut masih ditempatkan sebagai pengembangan lanjutan~\cite{escobedo_2026}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
+Model kecerdasan buatan untuk deteksi aritmia umumnya dijalankan pada perangkat keras desktop atau server, dan hanya tiga dari dua belas penelitian terkait dalam tinjauan ini yang membuktikan inferensi ECG pada mikrokontroler \textit{low-power} yang sesungguhnya digunakan dalam perangkat \textit{wearable}~\cite{kim_2023, zambrano_2026, sheeba_rani_2026}. Pada sisi pengiriman, platform yang mengalirkan sinyal ECG mentah langsung ke server belum menyimpan data secara lokal ketika koneksi terputus, dan mekanisme tersebut masih ditempatkan sebagai pengembangan lanjutan~\cite{escobedo_2026}. Penelitian ini bertujuan untuk mengatasi kedua kesenjangan tersebut melalui implementasi sistem \textit{edge computing} yang mampu menjalankan deteksi aritmia secara \textit{on-device} dengan \textit{pipeline} yang resilien.
 
 \section{Teori Penunjang}
 
@@ -311,10 +311,9 @@ algoritma deteksi aritmia secara global~\cite{moody_mark_2001}. Contoh rekaman b
 \end{figure}
 
 Dalam penelitian ini, MIT-BIH \textit{Arrhythmia Database} digunakan
-sebagai sumber data untuk dua keperluan yang berbeda. Model CNN dilatih
-dengan rekaman dari separuh kelompok pasien (DS1) dan diuji dengan rekaman
-dari kelompok pasien yang berbeda sepenuhnya (DS2), yang dikenal sebagai
-pembagian \textit{inter-patient}.
+untuk melatih model CNN dengan rekaman dari separuh kelompok pasien (DS1) dan
+menguji model dengan rekaman dari kelompok pasien yang berbeda sepenuhnya (DS2),
+yang dikenal sebagai pembagian \textit{inter-patient}.
 Strategi ini memastikan bahwa performa model yang diukur mencerminkan
 kemampuan generalisasi terhadap pasien baru yang tidak pernah dilihat
 selama pelatihan, dan bukan sekadar hafalan pola dari pasien yang sama.
@@ -349,7 +348,7 @@ Berbeda dengan penelitian tersebut yang memakai ICA yang sensitif terhadap \text
 
 \subsection{TinyML-Based Classification in an ECG Monitoring Embedded System}
 
-Kim et al.~\cite{kim_2023} mengusulkan TinyCES, sebuah model 1D-CNN terkuantisasi yang dirancang khusus untuk monitoring ECG pada perangkat \textit{embedded} dengan sumber daya terbatas. Model berhasil di-\textit{deploy} pada Arduino Nano 33 BLE Sense (ARM Cortex-M4) dengan ukuran model 27 KB dan akurasi klasifikasi biner sebesar 97\% menggunakan \textit{dataset} MIT-BIH dan PTB ECG. Penelitian tersebut merupakan salah satu dari sedikit studi yang benar-benar menjalankan inferensi ECG di MCU fisik \textit{low-power}. Namun, TinyCES masih terbatas pada klasifikasi biner dan tidak menyertakan laporan latensi inferensi, penggunaan RAM saat \textit{runtime}, maupun konsumsi daya aktual selama operasi kontinu.
+Kim et al.~\cite{kim_2023} mengusulkan TinyCES, sebuah model 1D-CNN terkuantisasi yang dirancang khusus untuk monitoring ECG pada perangkat \textit{embedded} dengan sumber daya terbatas. Model berhasil di-\textit{deploy} pada Arduino Nano 33 BLE Sense (ARM Cortex-M4) dengan ukuran model 27 KB dan akurasi klasifikasi biner sebesar 97\% menggunakan \textit{dataset} MIT-BIH dan PTB ECG. Penelitian tersebut menjadi salah satu dari tiga penelitian dalam tinjauan ini yang menjalankan inferensi ECG pada MCU fisik \textit{low-power}, bersama Zambrano-de la Torre et al.~\cite{zambrano_2026} dan Sheeba Rani et al.~\cite{sheeba_rani_2026}. Namun, TinyCES masih terbatas pada klasifikasi biner dan tidak menyertakan laporan latensi inferensi, penggunaan RAM saat \textit{runtime}, maupun konsumsi daya aktual selama operasi kontinu.
 
 Penelitian tersebut paling dekat dengan pendekatan penelitian ini. Berbeda dengan penelitian tersebut yang berhenti pada inferensi di perangkat, penelitian ini melengkapi inferensi INT8 di ESP32-S3 dengan pengukuran latensi dan memori di perangkat serta \textit{pipeline} \textit{edge-to-cloud} yang resilien, sedangkan klasifikasinya sama-sama biner.
 
@@ -423,8 +422,8 @@ deteksi dini atrial fibrilasi (AFib). Deteksi puncak R dan ekstraksi fitur inter
 dilakukan di sisi \emph{edge}, kemudian fitur ditransmisikan via MQTT ke infrastruktur
 \emph{cloud} lokal berbasis ThingsBoard Community Edition dan basis data PostgreSQL.
 Klasifikasi dilakukan oleh model Support Vector Machine (SVM) dengan kernel Radial Basis
-Function yang \emph{di-deploy pada sisi backend}, dilatih menggunakan dataset MIT-BIH dan
-mencapai akurasi tinggi pada pengujian \emph{offline}.
+Function yang \emph{di-deploy pada sisi backend}, dilatih menggunakan dataset MIT-BIH Atrial Fibrillation Database dan
+mencapai akurasi 98,04\% pada pengujian \emph{offline}.
 Gambar~\ref{fig:alat-mulyawan} menampilkan \emph{prototype} perangkat yang dihasilkan.
 
 \begin{figure}[H]

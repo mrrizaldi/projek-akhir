@@ -300,8 +300,8 @@ maksimum dengan \textit{recall} sebagai penentu bila dua kandidat hampir setara.
 Detak dengan $\hat{y} \geq 0{,}80$ diklasifikasikan sebagai Aritmia.
 % sumber: model/config.py (THRESHOLD = 0.80); model/CLAUDE.md decision "Threshold" (F1 maksimum, tie-break recall)
 Penggunaan \textit{Global Average Pooling} dipilih
-untuk menekan jumlah parameter secara drastis dibandingkan perataan langsung
-(\textit{flatten}), sesuai pendekatan yang divalidasi oleh Mekhfioui
+karena menurunkan total parameter dari sekitar 22.300 pada perataan langsung
+(\textit{flatten}) menjadi 6.417, dan lapisan yang sama dipakai pada model Mekhfioui
 et al.~\cite{mekhfioui_2025}. Model karena itu tetap berukuran kecil dan tahan terhadap
 \textit{overfitting}. Penambahan cabang ritme hanya menambah sedikit
 parameter karena lapisan \textit{Dense} menerima 35 alih-alih 32 masukan.
@@ -810,7 +810,7 @@ Pengujian model dilakukan secara \textit{offline} menggunakan partisi data uji D
 
 Karena model bersifat \textit{hybrid} dua cabang, setiap detak pada DS2 dievaluasi dengan kedua masukan secara bersamaan, yaitu \textit{window} ECG untuk cabang morfologi dan fitur interval RR (RR\_prev, rasio RR, $\Delta$RR) untuk cabang ritme. Evaluasi dilakukan dalam dua tahap. Pertama, model hasil pelatihan dalam format \textit{float32} diuji pada seluruh detak dalam DS2 untuk menghasilkan \textit{confusion matrix} beserta nilai \textit{accuracy}, \textit{precision}, \textit{recall}, dan F1-\textit{score}. \textit{Recall} kelas Aritmia menjadi indikator utama karena berkaitan langsung dengan tujuan deteksi dini. Kedua, model yang sama dikuantisasi ke INT8 melalui \textit{post-training quantization}, kemudian diuji ulang pada partisi data uji yang identik. Kedua hasil pengujian ini dibandingkan secara berpasangan untuk mengukur selisih (\textit{delta}) tiap metrik agar dampak kuantisasi terhadap kualitas deteksi terkuantifikasi secara langsung, bukan diasumsikan.
 
-Selain metrik klasifikasi, performa perangkat keras diukur pada model INT8 yang telah di-\textit{deploy} ke ESP32-S3. Pengukuran meliputi latensi inferensi per detak dari \textit{timestamp} internal MCU, serta penggunaan RAM dari alokasi \textit{tensor arena} TensorFlow Lite Micro dan \textit{heap} bebas. Ukuran berkas model hasil kuantisasi dan konsumsi daya rata-rata dari modul INA219 pada sisi baterai ikut diukur. Pengukuran ini memastikan model yang telah teruji akurat secara \textit{offline} juga layak dijalankan dalam batasan sumber daya perangkat \textit{edge}.
+Selain metrik klasifikasi, performa perangkat keras diukur pada model INT8 yang telah di-\textit{deploy} ke ESP32-S3. Pengukuran meliputi latensi inferensi per detak dari \textit{timestamp} internal MCU, serta penggunaan RAM dari alokasi \textit{tensor arena} TensorFlow Lite Micro dan \textit{heap} bebas. Ukuran berkas model hasil kuantisasi dan konsumsi daya rata-rata dari modul INA219 pada sisi baterai ikut diukur. Pengukuran ini memastikan model yang telah diuji secara \textit{offline} pada DS2 juga layak dijalankan dalam batasan sumber daya perangkat \textit{edge}.
 
 Tabel~\ref{tab:pengujian-model} merangkum rencana pengukuran pada jalur pengujian model, mulai dari kualitas klasifikasi dan dampak kuantisasi hingga performa perangkat keras, beserta metrik, cara pengukuran, dan target indikatif masing-masing.
 
