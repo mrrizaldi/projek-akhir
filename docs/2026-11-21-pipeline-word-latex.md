@@ -85,9 +85,10 @@ Penyebab yang tersisa:
 2. Pemotongan baris (Knuth-Plass dan pemenggalan LaTeX terhadap pemotongan
    baris WordCraft). Halaman abstrak terpotong beberapa kata lebih awal, dan
    Daftar Isi DOCX memuat satu entri lebih banyak per halaman.
-3. Judul Daftar Isi di PDF tercetak "Daftar Isi" walaupun
-   `laporan/shared/preamble.tex` menulis `\renewcommand{\contentsname}{DAFTAR ISI}`.
-   Ini perilaku sisi LaTeX (kemungkinan ditimpa babel), bukan konverter.
+
+Judul DAFTAR ISI, DAFTAR GAMBAR, dan DAFTAR TABEL dipasang lewat
+`\addto\captionsindonesian` di `laporan/shared/preamble.tex`, karena babel
+menimpa `\renewcommand` biasa saat `\begin{document}` (commit `39d0268`).
 
 Butir 1 dan 2 diterima user sebagai keterbatasan (21 Nov 2026). Opsi B
 (pemutus halaman paksa dari posisi halaman PDF) tidak dikerjakan. Hasil DOCX
@@ -133,5 +134,18 @@ Skill ingest langkah 6 nantinya ikut memakai pemeriksaan dari sana.
    menyunting DOCX memakai importer baru.
 2. Branch WordCraft tetap lokal, tidak di-push dan tidak dibuka PR
    (perubahan kustom untuk buku PA).
-3. Judul Daftar Isi PDF ("Daftar Isi" walaupun preamble menulis
-   `DAFTAR ISI`) diperbaiki kemudian.
+
+## Sisa pekerjaan
+
+1. Aplikasi GUI WordCraft belum dibangun ulang dari branch, jadi membuka
+   `main.tex` langsung di aplikasi masih memakai importer lama. Jalur
+   `make docx` lalu menyunting DOCX sudah memakai importer baru.
+2. Eval `ingest-word` berhenti di 9/10 (putaran 3); putaran berikutnya
+   hanya atas izin user, usulan perbaikan di
+   `.claude/skills/ingest-word/eval.md`.
+3. `cargo xtask ci` di WordCraft belum lengkap di mesin ini: target wasm
+   belum terpasang, dan test
+   `swiss_german_and_portugal_portuguese_keep_their_languages_rules` gagal
+   juga di `main` karena data craft-i18n tidak ada.
+4. Penempatan float dan pemotongan baris diterima sebagai keterbatasan;
+   dicek lagi oleh user secara visual (`make cek-docx`).

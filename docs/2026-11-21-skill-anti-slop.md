@@ -80,20 +80,36 @@ Hasil uji coba (commit `0852264`, `a02a466`, `57b5f8c`; tiap bab
 | 3 | 2 → 0 | 37 → 7 | 17,2 (7,8) → 17,3 (7,8) |
 | 4 | 7 → 0 | 41 → 8 | 16,3 (8,1) → 16,2 (8,0) |
 
-Eval skill (penulis sonnet, penilai haiku): 8/10, 9/10, 9/10, berhenti di
-putaran 3; temuan di `.claude/skills/tulis-tanpa-slop/eval.md`.
+Eval skill (penulis sonnet, penilai haiku): 8, 9, 9, 9, 10 dari 10. Putaran 4
+dan 5 atas izin user; yang meluluskan adalah contoh dua kalimat untuk "karena
+itu" yang merujuk ke kalimat sebelumnya. Riwayat di
+`.claude/skills/tulis-tanpa-slop/eval.md`.
 
-Temuan isi selama penyuntingan (belum diperbaiki, di luar tugas gaya):
+Temuan isi selama penyuntingan, diperbaiki di commit `39d0268`: progres-pa-1
+Bab 3 menyebut "lima hal" untuk empat butir (kini "empat hal"), dan kalimat
+"TinyML memungkinkan ..." di buku-pa Bab 2 tertelan baris komentar `% sumber:`
+(kini di baris sendiri dan tercetak).
 
-1. `laporan/progres-pa-1/bab/bab3.tex` "Syarat tersebut meliputi lima hal
-   berikut" diikuti empat butir (butir INA219 dibuang saat membuat buku
-   tahap 1). Angka tidak diubah karena invarian.
-2. `laporan/buku-pa/bab/bab2.tex:67` memuat baris komentar `% sumber:` yang
-   sama dengan progres-pa-1 sebelum perbaikan; kemungkinan kalimat "TinyML
-   memungkinkan model kecerdasan buatan" juga hilang dari PDF buku-pa.
-3. Klaim tanpa angka yang dibiarkan karena faktanya tidak ada di naskah:
-   akurasi Mulyawan "tinggi" (bab2), "baru sedikit yang dibuktikan" dan
-   "salah satu dari sedikit studi" (bab2), "dua keperluan yang berbeda"
-   hanya satu yang diuraikan (bab2), "menekan jumlah parameter secara
-   drastis" dan "model yang telah teruji akurat" (bab3).
+## Sisa pekerjaan
 
+1. User meninjau progres-pa-1 Bab 2–4 hasil uji coba, lalu memutuskan
+   dipakai atau dikembalikan
+   (`git checkout backup/pra-antislop-20261121-1127 -- laporan/progres-pa-1/bab`).
+2. Bila dipakai: perluasan ke progres-pa-1 Bab 1, Bab 5, abstrak, dan ke
+   buku-pa. Menunggu keputusan user.
+3. Klaim tanpa angka yang dibiarkan karena faktanya tidak ada di naskah.
+   User menyediakan angka atau memutuskan klaimnya dilunakkan.
+   - bab2: akurasi Mulyawan "tinggi";
+   - bab2: "baru sedikit yang dibuktikan" dan "salah satu dari sedikit studi";
+   - bab2: "dua keperluan yang berbeda", hanya satu yang diuraikan;
+   - bab3: "menekan jumlah parameter secara drastis" dan "model yang telah
+     teruji akurat".
+4. Posisi `tulis-tanpa-slop` terhadap `narasi-pa` belum diputuskan.
+   `CLAUDE.md` root (bagian Menulis laporan) dan `laporan/CLAUDE.md` masih
+   menunjuk `narasi-pa` saja, dan skill `ingest-word` belum menjalankan
+   `cek_slop.py` pada paragraf yang disunting user. Bagian "Rencana aksi"
+   di atas (distilasi ke `narasi-pa`) ikut usang bila skill baru dipakai.
+5. `laporan/progres-pa-1/bab/bab2.tex:96`: baris komentar `% sumber:` masih
+   memuat sisa teks "TinyML memungkinkan model kecerdasan buatan". Tidak
+   tercetak, kalimatnya sudah ada di baris prosa; cukup dirapikan saat bab
+   itu disunting lagi.
