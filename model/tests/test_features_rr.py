@@ -1,6 +1,6 @@
 import numpy as np
 
-from config import FS, RR_LOCAL_WINDOW_BEATS
+from config import FS
 from src.features_rr import to_aami_class, to_binary_label, compute_rr_features
 
 

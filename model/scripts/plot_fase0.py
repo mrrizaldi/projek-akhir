@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import FS, NORMAL_SYMBOLS
+from config import NORMAL_SYMBOLS
 from src.io_mitdb import load_record
 
 PLOT_SECONDS = 10

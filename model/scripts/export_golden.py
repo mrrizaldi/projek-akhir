@@ -8,10 +8,10 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf
 
 from config import (
-    ALIGN_WIN, N_RR_BASE, R_IN_WINDOW, USE_QRSW, USE_RR_RATIO,
+    N_RR_BASE, R_IN_WINDOW, USE_QRSW, USE_RR_RATIO,
 )
 from config import (
-    ARTIFACT_DIR, FS, BANDPASS_LOW, BANDPASS_HIGH, BANDPASS_ORDER,
+    ARTIFACT_DIR, FS,
     GROUP_DELAY_SAMPLES, N_RR_FEATURES, PT_BAND_HIGH, PT_BAND_LOW, PT_BAND_ORDER,
     PT_DETECTOR_OFFSET, PT_MWI_WINDOW_MS, PT_REFINE_WIN, PT_REFRACTORY_MS,
     RR_LOCAL_WINDOW_BEATS, THRESHOLD, WIN_LEN, WIN_POST, WIN_PRE,

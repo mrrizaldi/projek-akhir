@@ -3,7 +3,7 @@ import os
 import numpy as np
 import wfdb
 
-from config import CHANNEL, DATASETS, FS, RAW_DIR, BEAT_SYMBOLS, raw_dir as _raw_dir
+from config import DATASETS, FS, BEAT_SYMBOLS, raw_dir as _raw_dir
 from src.preprocessing import resample_to_fs
 
 

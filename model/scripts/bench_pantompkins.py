@@ -8,7 +8,6 @@ import matplotlib.pyplot as plt
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from config import FS
 from src.io_mitdb import load_record
 from src.preprocessing import design_bandpass_sos, apply_bandpass, pan_tompkins_detect
 

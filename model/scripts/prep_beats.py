@@ -7,8 +7,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (
-    DATASETS, DS1, JITTER_MODEL, JITTER_SALINAN, PACED_EXCLUDED, PER_RECORD_DIR,
-    RAW_DIR, SEED, USE_RR_RATIO, WIN_PRE, WIN_POST,
+    DATASETS, DS1, JITTER_MODEL, JITTER_SALINAN, PER_RECORD_DIR,
+    SEED, USE_RR_RATIO, WIN_PRE, WIN_POST,
 )
 from src.dataset import bagi_train_test, records_tersedia
 from src.io_mitdb import load_record
@@ -67,10 +67,6 @@ def gabung(bagian: list) -> dict:
         "symbols": np.concatenate([b["symbols"] for b in bagian]),
         "n_dropped": np.int32(sum(int(b["n_dropped"]) for b in bagian)),
     }
-
-
-def available_records(raw_dir: str = RAW_DIR) -> list:
-    return records_tersedia("mitdb")
 
 
 def main() -> None:

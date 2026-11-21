@@ -179,9 +179,9 @@ hilang saat terminal ditutup.
 
 ---
 
-## 4. `available_records()` dan `main()` — lapisan kebijakan
+## 4. `records_tersedia()` dan `main()` — lapisan kebijakan
 
-`available_records()` hanya alias ke `records_tersedia(db)` di `src/dataset.py`:
+`main()` memanggil `records_tersedia(db)` di `src/dataset.py`:
 
 ```python
 ids = sorted(f[:-4] for f in ada if f.endswith(".hea")

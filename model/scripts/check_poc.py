@@ -2,13 +2,11 @@ import os
 import re
 import sys
 
-import numpy as np
-
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (
     ARTIFACT_DIR, MAX_MODEL_KB, METRICS_DIR, PACED_EXCLUDED, DS1, DS2,
-    PER_RECORD_DIR, PROCESSED_DIR, SEED, THRESHOLD,
+    PER_RECORD_DIR, SEED,
 )
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

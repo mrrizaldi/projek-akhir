@@ -11,7 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import tensorflow as tf
 
-from config import ARTIFACT_DIR, DS2, METRICS_DIR, THRESHOLD, USE_HOS, WIN_LEN
+from config import ARTIFACT_DIR, DS2, METRICS_DIR, THRESHOLD, WIN_LEN
 from src.evaluate import binary_metrics, confusion_counts, roc_auc
 from src.features_rr import (
     rakit_fitur_ritme, to_aami_class, to_binary_label,

@@ -50,7 +50,6 @@ def main() -> None:
     ap.add_argument("--threshold", type=float, default=THRESHOLD)
     args = ap.parse_args()
 
-    import tensorflow as tf
     from tensorflow import keras
 
     d = np.load(os.path.join(PROCESSED_DIR, "test.npz"))

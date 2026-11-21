@@ -287,7 +287,7 @@ database yang baru separuh terunduh menghasilkan held-out yang berbeda tanpa
 tanda. Terukur 19 Sep pada 65/75 record incartdb: I68 masuk held-out padahal
 seharusnya tidak, dan I65/I69/I73 hilang (I65 memegang 4 beat F). Karena itu
 `build_split_multi` menolak database yang jumlah recordnya tidak pas; split yang
-salah lebih buruk daripada error. `available_records` juga menuntut `.hea`,
+salah lebih buruk daripada error. `records_tersedia` juga menuntut `.hea`,
 `.dat`, dan `.atr` sekaligus, karena unduhan yang masih berjalan meninggalkan
 `.hea` tanpa `.atr`.
 
