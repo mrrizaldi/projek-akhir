@@ -3,7 +3,7 @@
 Broker MQTT, rule engine, dan dashboard web dipegang satu platform: **ThingsBoard
 Community Edition**. Tidak ada Mosquitto, tidak ada backend tambahan, tidak ada
 web app sendiri. Alasannya ada di `bab3.tex` §deduplikasi: klaim "dedup tanpa
-komponen tambahan" bergantung pada perilaku `ts_kv` ThingsBoard, sehingga
+komponen tambahan" bergantung pada perilaku `ts_kv` ThingsBoard sehingga
 penggantian broker menggugurkan klaim tersebut.
 
 ## Jalankan

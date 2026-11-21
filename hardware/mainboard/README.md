@@ -74,7 +74,7 @@ ADC2 tidak dapat dipakai saat WiFi aktif. GPIO 12 bebas.
 ```
 
 - Tanpa charger: gate Q1 ditarik R1 ke GND, Q1 menyala, baterai mencatu boost.
-- Dengan charger: VCHG 5 V mematikan Q1, sehingga baterai hanya menerima arus
+- Dengan charger: VCHG 5 V mematikan Q1 sehingga baterai hanya menerima arus
   isi dari TP4056 dan tidak mencatu beban. Boost dicatu dari VCHG lewat D1.
   Katoda D1 ada di VSYS (masukan boost), bukan di +5V. Kalau katoda D1 di +5V,
   body diode Q1 tetap mengalirkan baterai ke boost dan sel terkuras selama
@@ -125,7 +125,7 @@ kebutuhan arus menurut IPC-2221 (1 oz, kenaikan suhu 10 °C: 0,3 mm ±1 A,
 | `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,0 mm | 0,35 mm | 1,2/0,6 mm |
 
 Arus terbesar di papan: jalur baterai/boost ±1 A puncak (MT3608 dibatasi
-2 A), sehingga 1,0 mm memberi margin di atas batas boost. Sinyal hanya
+2 A) sehingga 1,0 mm memberi margin di atas batas boost. Sinyal hanya
 membawa miliampere; 0,3 mm dipilih karena tiga kali minimum JLCPCB dan muat di
 sela pin DevKit tanpa menyempit (0,3 + 2 × 0,35 = 1,0 mm ≤ celah 1,04 mm).
 
@@ -205,7 +205,7 @@ Diambil dari library resmi Espressif (`espressif/kicad-libraries`,
 diubah: 2 × 22 pin, pitch 2,54 mm, jarak antar-baris 22,86 mm. Yang diubah
 hanya lubang dan pad: lubang 0,8 mm menjadi 1,0 mm, pad oval 2,0 mm (mendatar)
 × 1,5 mm (tegak), ring 0,25 mm sesuai rekomendasi JLCPCB. Pin header persegi
-0,64 mm berdiagonal 0,9 mm, sehingga tidak masuk lubang 0,8 mm; 1,0 mm sama
+0,64 mm berdiagonal 0,9 mm sehingga tidak masuk lubang 0,8 mm; 1,0 mm sama
 dengan footprint `PinSocket` KiCad. Pad 1,5 mm tegak menyisakan celah 1,04 mm
 antar-pin satu kolom, cukup untuk jalur 0,3 mm + clearance 2 × 0,35 mm. Jalur
 3V3 ke AD8232 dan I2C ke INA219 menyeberangi kolom pin lewat celah ini. Simbol diturunkan dari format KiCad 10

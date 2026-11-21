@@ -97,7 +97,7 @@ Tiap varian menjalani rantai yang sama: rakit DS1 → split per pasien → latih
 kalibrasi threshold di VAL → ukur di DS2 (segmentasi anotasi dan ber-jitter
 empiris). Threshold tidak disetel ulang di set uji mana pun. Hasil menumpuk di
 `artifacts/metrics/ablasi/ablasi.csv`, satu baris per varian; model yang
-disimpan hanya seed utama, sehingga `cek_kalibrasi.py` dan
+disimpan hanya seed utama sehingga `cek_kalibrasi.py` dan
 `cek_titik_operasi.py` bekerja atas satu seed. `ablasi.csv` tidak punya kolom
 `db`: header hanya ditulis saat berkas belum ada, jadi menambah kolom akan
 menggeser baris lama; database dikodekan di `tag`. `lintas_db.csv` (TEST-B/C)

@@ -241,7 +241,7 @@ python3 scripts/cek_skill.py --uji
 tepat dan tidak pada kueri lain, memakai `run_eval.py` dari skill-creator dan
 `triggers/evals.json` milik skill. Jalannya terisolasi: konfigurasi Claude
 sementara (`CLAUDE_CONFIG_DIR`) hanya berisi salinan `~/.claude/.credentials.json`,
-dan proyeknya folder kosong, sehingga skill lain dan `CLAUDE.md` tidak ikut.
+dan proyeknya folder kosong sehingga skill lain dan `CLAUDE.md` tidak ikut.
 Salinan kredensial dihapus saat skrip selesai.
 
 Prasyarat: `uv`, skill-creator di `~/.claude/skills` (folder `.trash` dilewati),

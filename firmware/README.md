@@ -28,7 +28,7 @@ Penjelasan rinci: [`firmware-walkthrough`](../model/docs/firmware-walkthrough.md
 replay. Kadens deteksi memakai nilai bawaan `ECG_LIVE_TIAP = ECG_FS` (deteksi
 tiap 1 detik); `-D ECG_LIVE_TIAP=90` tersedia sebagai knob ablasi.
 
-Isi `platformio.ini` yang perlu diketahui:
+Hal penting di `platformio.ini`:
 
 - `default_envs = esp32-s3` wajib ada. Tanpanya `pio run` polos ikut me-link
   env `native`, yang tidak memiliki `main()`, dan gagal dengan
@@ -36,7 +36,7 @@ Isi `platformio.ini` yang perlu diketahui:
 - Profil board `4d_systems_esp32s3_gen4_r8n16` sudah membawa
   `-DBOARD_HAS_PSRAM`; flag itu tidak ditulis ulang.
 - `build_src_flags` mengisi `VERSI_GIT` dari `git describe --always --dirty`
-  (ditampilkan di Menu → Info). Flag ini hanya berlaku untuk `src/`, sehingga
+  (ditampilkan di Menu → Info). Flag ini hanya berlaku untuk `src/` sehingga
   pustaka tidak dikompilasi ulang setiap commit.
 - Chirale_TensorFLowLite memakai kernel referensi (belum ESP-NN); angka latensi
   inferensi di repo ini adalah baseline kernel referensi.
@@ -62,8 +62,8 @@ pio device list                          # cek port
 ```
 
 `pio run` tanpa `-e` hanya mem-build `esp32-s3` (`default_envs`). Env `native`
-tidak memiliki `main()`, sehingga hanya dipakai lewat `pio test`. Saat
-`pio test`, isi `main.cpp` dikecualikan (`PIO_UNIT_TESTING`), sehingga setiap
+tidak memiliki `main()` sehingga hanya dipakai lewat `pio test`. Saat
+`pio test`, isi `main.cpp` dikecualikan (`PIO_UNIT_TESTING`) sehingga setiap
 suite memiliki `setup()`/`loop()` sendiri.
 
 ## Test
@@ -84,7 +84,7 @@ suite memiliki `setup()`/`loop()` sendiri.
 Test perangkat hanya menjadikan syarat lulus hal yang dapat diukur tanpa
 manusia dan tanpa elektroda. Bunyi buzzer dan isi layar dinilai langsung
 (instruksi dicetak dengan `-v`); nilai ADC, LO, dan INA219 bergantung pada
-elektroda dan catu, sehingga dicetak dan tidak dijadikan syarat lulus.
+elektroda dan catu sehingga dicetak dan tidak dijadikan syarat lulus.
 Fungsi `diag_*` di `src/diagnosa.cpp` dipakai bersama oleh suite `test_hw_*`
 dan menu Tes perangkat; tidak ada salinan logika uji.
 
@@ -153,13 +153,13 @@ pengukuran ada di walkthrough yang dirujuk.
   `digitalWrite` sebelum LEDC mengambil alih, karena pin yang belum diatur
   dapat terbaca LOW oleh modul dan berbunyi saat boot. Kanal LEDC dipasang
   dengan `output_invert = 1` (kanal 0 → `LEDC_TIMER_0`, sama dengan
-  `ledcSetup`), sehingga `ledcWriteTone(kanal, NADA_DIAM)` (duty 0) menghasilkan
+  `ledcSetup`) sehingga `ledcWriteTone(kanal, NADA_DIAM)` (duty 0) menghasilkan
   HIGH = diam dan gelombang kotak tetap berbunyi. `perangkat_mulai()`
   dipanggil pertama di `setup()` supaya buzzer diam secepatnya.
 - `NADA_HZ` (`perangkat.h`) adalah knob: buzzer pasif paling keras di frekuensi
   resonansinya, yang berbeda per part.
 - Pin LO+/LO− dipasang `INPUT_PULLUP`: kabel LO yang putus terbaca HIGH
-  (elektroda lepas), bukan mengambang. Keluaran LO AD8232 push-pull, sehingga
+  (elektroda lepas), bukan mengambang. Keluaran LO AD8232 push-pull sehingga
   pull-up internal ±45 kΩ tidak melawannya.
 - LO+/LO− tidak dipakai menyetir LED. LO hanya melaporkan elektroda lepas
   total, dan pada 3-lead tanpa RL yang rapat LO menyala terus walau sinyalnya
@@ -169,7 +169,7 @@ pengukuran ada di walkthrough yang dirujuk.
 - Layar tidak dapat dibaca balik (CS ke GND, tanpa MISO). `diag_layar()`
   menilai SPI dari waktu `fillScreen` penuh (110 KB; pada 80 MHz pun ≥ 11 ms);
   di bawah `FILL_MIN_US` (5 ms) berarti tidak ada transfer.
-- INA219: modul yang tidak terpasang membalas `0x0000`/`0xFFFF`, sehingga
+- INA219: modul yang tidak terpasang membalas `0x0000`/`0xFFFF` sehingga
   `ina219_mulai()` menulis config lalu membaca balik untuk membedakan "tidak
   terpasang" dari 0 mA. Setelah config ditulis, tunggu > 68 ms (satu hasil
   rata-rata 128 sampel) sebelum membaca. Register kalibrasi on-chip tidak
@@ -190,15 +190,15 @@ pengukuran ada di walkthrough yang dirujuk.
   ±3550 < 4095) dilakukan sekali di `akuisisi_mulai()` (firmware-walkthrough
   §5c).
 - Replay rekaman membaca buffer PSRAM di ISR. Ini aman karena timer dipasang
-  tanpa `ESP_INTR_FLAG_IRAM`, sehingga ISR ikut ditahan selama flash ditulis.
+  tanpa `ESP_INTR_FLAG_IRAM` sehingga ISR ikut ditahan selama flash ditulis.
 - Akibat sisi lainnya: selama flash ditulis atau dihapus (LittleFS, NVS),
   alarm timer yang jatuh tempo dilebur menjadi satu interrupt sesudah flash
-  selesai. Sampel periode itu tidak pernah diambil dan antrean tidak meluap,
+  selesai. Sampel periode itu tidak pernah diambil dan antrean tidak meluap
   sehingga pencacah antrean saja melapor 0. `hitung_tick_hilang()` di
   `on_timer()` membandingkan `esp_cpu_get_ccount()` antar-interrupt dengan
   `siklus_per_sampel` (frekuensi CPU / 360); selang di atas 1,5 periode
   dihitung sebagai tick hilang. `akuisisi_lewat()` = antrean meluap + tick
-  hilang, sehingga header rekaman (`lewat=`), baris `s` (`sampel hilang X
+  hilang sehingga header rekaman (`lewat=`), baris `s` (`sampel hilang X
   (tick Y)`), dan halaman Kalibrasi → Status ikut melaporkannya. Terukur
   21 Okt 2026: 52, 55, dan 53 tick hilang per berkas 18 KB yang ditulis
   selama merekam (firmware dengan simpan di tengah sesi), 313 tick saat enam
@@ -206,10 +206,10 @@ pengukuran ada di walkthrough yang dirujuk.
   Pada rekaman 300 detik gejalanya RR terkompres ±40% selama ±4,7 detik di
   awal setiap berkas lanjutan.
 - `ecg_live` menyimpan beat terakhir yang dikeluarkan sebagai indeks sampel
-  absolut, bukan posisi di `r_hist`: `r_hist` bergeser (`memmove`) saat penuh,
+  absolut, bukan posisi di `r_hist`: `r_hist` bergeser (`memmove`) saat penuh
   sehingga posisi tersimpan basi dan beat dapat keluar dua kali.
 - Beat yang menunggu R berikutnya dikeluarkan setelah `ECG_LIVE_TIMEOUT`
-  (3 detik ≈ 20 bpm) dengan R semu (RR berikutnya = RR sekarang), sehingga
+  (3 detik ≈ 20 bpm) dengan R semu (RR berikutnya = RR sekarang) sehingga
   RR+1/RR0 = 1,0 sebagai sentinel netral dan `sinyal_hilang = 1`. Beat
   seperti ini tidak dipublikasi (`ditahan`).
 - Pan-Tompkins: ambang awal diinisialisasi dari `ECG_PT_INIT_N` (2 detik
@@ -246,7 +246,7 @@ pengukuran ada di walkthrough yang dirujuk.
   berebut dengan task WiFi (panic `LoadProhibited` di core 0)
   (firmware-walkthrough §5d).
 - Jam dimulai dengan `configTzTime("WIB-7", ...)`. `configTime(0, 0, ...)`
-  menyetel TZ ke UTC setiap kali WiFi tersambung ulang, sehingga jam layar
+  menyetel TZ ke UTC setiap kali WiFi tersambung ulang sehingga jam layar
   kembali ke UTC (mqtt-walkthrough §3.6). Jam dianggap tersinkron bila
   `tv_sec` ≥ `EPOCH_SNTP_MIN`.
 - Klien MQTT tidak pernah menunggu jaringan di tempat: CONNECT, PUBLISH, dan
@@ -350,7 +350,7 @@ adalah tegangan baterai dikurangi jatuh tegangan shunt, yaitu 3,0–4,2 V.
 Rentang ukur: INA219 dikonfigurasi PGA ÷8 (`INA219_CONFIG = 0x3FFF` di
 [`include/ina219.h`](include/ina219.h)), ±320 mV pada shunt 0,1 Ω = ±3,2 A,
 dengan resolusi 10 µV / 0,1 Ω = 0,1 mA. Arus di sisi baterai lebih besar dari
-arus di sisi 5V dengan faktor V_keluaran / (V_baterai × efisiensi konverter),
+arus di sisi 5V dengan faktor V_keluaran / (V_baterai × efisiensi konverter)
 sehingga burst TX WiFi terbaca paling besar saat sel mendekati 3,0 V. Puncak
 burst dirata-ratakan oleh konversi 128 sampel (±68 ms). Bit `OVF` register bus
 (dicetak `test_hw_ina219 -v`) menandai arus di luar rentang.
@@ -382,7 +382,7 @@ Arti tiap anak tangga `p0`–`p5`, kriteria sah, dan prosedur lewat laptop
 
 ### Ukur daya tanpa laptop
 
-Tangga `p0`–`p5` dijalankan board sendiri dari menu **Ukur daya**, sehingga
+Tangga `p0`–`p5` dijalankan board sendiri dari menu **Ukur daya** sehingga
 selama pengukuran tidak ada kabel USB yang ikut mencatu board. Hasil disimpan
 ke `/daya/NNN.csv` di LittleFS dan ditarik ke laptop sesudahnya.
 
@@ -458,7 +458,7 @@ Layar TFT 320×172 (landscape):
 
 Buzzer berbunyi 50 ms per detak dan 250 ms untuk detak yang diklasifikasi
 aritmia. Bip dan gelombang ditunda sama rata 1,46 detik dari R (kadens deteksi
-+ post-window + margin), sehingga jarak antar-bip sama dengan RR dan R
++ post-window + margin) sehingga jarak antar-bip sama dengan RR dan R
 tergambar tepat saat bipnya berbunyi. HR dan bip hanya muncul bila ayunan
 sinyal bersih di atas ambang 60. Syarat ini lebih longgar daripada gerbang
 publikasi MQTT, yang menuntut fase BAIK (LO± dan dengung juga dinilai), jadi
@@ -527,7 +527,7 @@ dipulihkan saat boot.
 | Info | IP dan RSSI, broker aktif, V/I INA219, uptime, versi git (`git describe` saat build), tanggal dan jam build |
 
 Setiap gerakan di menu dicetak ke serial (`menu: <judul> [i/n] <baris>`), dan
-tombol dapat disuntik lewat serial `t1`–`t3` / `T1`–`T3`, sehingga navigasi
+tombol dapat disuntik lewat serial `t1`–`t3` / `T1`–`T3` sehingga navigasi
 dapat diuji tanpa menekan tombol fisik.
 
 ### Merekam
@@ -646,12 +646,12 @@ ini (terukur 0).
 Board tersambung ke satu jaringan WiFi dan satu broker MQTT ThingsBoard pada
 satu waktu. Keduanya dipilih dari daftar yang ditulis di `include/wifi_secrets.h`
 saat build ([`src/konfig.cpp`](src/konfig.cpp)). Indeks pilihan aktif disimpan
-di NVS (`Preferences`), sehingga tetap berlaku setelah board di-reset atau
+di NVS (`Preferences`) sehingga tetap berlaku setelah board di-reset atau
 dicabut catunya. Entri 0 dipakai bila belum pernah ada pilihan.
 
 **WiFi aktif.** Sakelar menu **Jaringan → WiFi aktif** (serial `m`) mematikan
 radio WiFi dan MQTT tanpa build ulang. Nilainya disimpan di NVS (kunci
-`wifimati`, bawaan ON) dan dibaca `konfig_mulai()` sebelum radio dinyalakan,
+`wifimati`, bawaan ON) dan dibaca `konfig_mulai()` sebelum radio dinyalakan
 sehingga bila OFF, `WiFi.begin()` tidak pernah dipanggil saat boot. Perekaman
 sinyal tubuh tidak membutuhkan WiFi karena rekaman disimpan ke LittleFS. Saat
 OFF, kembalinya tangga daya ke operasi normal dan pemilihan entri WiFi tidak
@@ -821,7 +821,7 @@ menunggu sinkronisasi jam, `online` = normal, `mati` = MQTT dinonaktifkan.
 | `q` | Toggle laporan kualitas sinyal per detik |
 
 Nomor entri WiFi dan broker dimulai dari 0; nomor rekaman dan berkas daya dimulai dari 1.
-Angka sesudah huruf ditunggu sampai 500 ms per digit, sehingga dapat diketik
+Angka sesudah huruf ditunggu sampai 500 ms per digit sehingga dapat diketik
 langsung di `pio device monitor`; `t`/`T` hanya membaca satu digit. `d` ditolak
 selama merekam; `y`, `k`, `p0`–`p5`, `V`, `w<n>`, `b<n>`, dan `T2` (menu)
 ditolak selama sesi rekam (bagian Merekam).
