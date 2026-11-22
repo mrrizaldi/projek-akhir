@@ -5,6 +5,7 @@ import sys
 from pathlib import Path
 
 LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+CODE_SPAN = re.compile(r"`[^`]*`")
 EXTERNAL = ("http://", "https://", "mailto:", "#")
 
 
@@ -18,8 +19,14 @@ def tracked_markdown(root):
 def missing_targets(root, page):
     found = []
     base = (root / page).parent
+    in_fence = False
     for number, line in enumerate((root / page).read_text(encoding="utf-8").split("\n"), 1):
-        for target in LINK.findall(line):
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for target in LINK.findall(CODE_SPAN.sub("", line)):
             if target.startswith(EXTERNAL):
                 continue
             path = target.split("#", 1)[0]
