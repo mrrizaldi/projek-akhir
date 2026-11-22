@@ -11,7 +11,7 @@ Load the user-scope skill `firmware-bounded-limits` first; this skill adds only 
 
 Use these names exactly in code, messages, and test plans, because the general skill uses generic names.
 
-- ISR queue: `QUEUE_N = 256` (`firmware/include/acquisition.h`) at `ECG_FS = 360` Hz, so 256 / 360 = 711 ms. `loop()` takes one sample per iteration. Compare every save, retry, and wait constant with 711 ms.
+- ISR queue: `QUEUE_N = 256` (`firmware/include/acquisition.h`) at `ECG_FS = 360` Hz, so 256 / 360 = 711 ms. `loop()` takes one sample per iteration. Compare every save, retry, and wait constant with 711 ms. An I/O step whose duration is not measured yet (`open`, `close`, `usedBytes()`, a retry attempt) is written `[N] ms`, added to the chunk time it runs with, and that sum is compared with 711 ms, because the queue only cares about the total time `loop()` is away.
 - The queue fill is read through `acquisition_fill()`; a save chunk runs only when `acquisition_fill() == 0`.
 - Lost samples are counted by `acquisition_missed()` (the sum of `n_missed` and `n_tick_lost`). A failure-path test matches the reported number against the difference of `acquisition_missed()`.
 - Recording limits in `firmware/include/recorder.h`: `RECORDER_SECONDS` (default 300), `RECORDER_PART` (default 6), `RECORDER_NUMBER` (default 999). `RECORDER_N` in `firmware/src/recorder.cpp` derives from `ECG_FS * RECORDER_SECONDS`, so the build flag is `RECORDER_SECONDS`, not `RECORDER_N`.
