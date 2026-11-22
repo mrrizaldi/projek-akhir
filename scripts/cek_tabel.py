@@ -39,7 +39,7 @@ class Report:
     def suggestion_count(self):
         return sum(1 for t in self.temuan if not t[3])
 
-    def cetak(self, hanya_galat):
+    def emit(self, hanya_galat):
         for berkas, baris, kode, fault, pesan in self.temuan:
             if hanya_galat and not fault:
                 continue
@@ -473,7 +473,7 @@ def main():
         check_chapter_opening(table_report, berkas, sumber)
         if not arg.tanpa_prosa:
             check_prose(table_report, berkas, sumber)
-    table_report.cetak(arg.hanya_galat)
+    table_report.emit(arg.hanya_galat)
     print(f"{len(daftar)} files, {table_report.fault_count()} errors, {table_report.suggestion_count()} suggestions")
     if table_report.fault_count() or (arg.ketat and table_report.suggestion_count()):
         return 1

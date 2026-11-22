@@ -106,8 +106,8 @@ def main():
         b.kirim("j", 1.0); b.kirim("j", 2.0)
         st = b.status(); lost_during_recording.append(st["hilang"])
         o = b.kirim("T3", 20.0, r"^SIMPAN|GAGAL")
-        simpan = next((x for x in o if x.startswith("SIMPAN")), "")
-        m = re.search(r"/rekam/(\d+)\.csv", simpan)
+        save_item = next((x for x in o if x.startswith("SIMPAN")), "")
+        m = re.search(r"/rekam/(\d+)\.csv", save_item)
         nomor = int(m.group(1)) if m else None
         daftar = b.kirim("l", 2.0)
         isi = b.kirim(f"d{nomor}\n", 30.0, r"---SELESAI---") if nomor else []
@@ -116,7 +116,7 @@ def main():
         n_hdr = int((re.search(r" n=(\d+)", hdr) or [0, -1])[1])
         st = b.status()
         periksa("f. pause/resume -> T3 save", [
-            (f"SIMPAN to /rekam/NNN.csv: {simpan!r}", nomor is not None),
+            (f"SIMPAN to /rekam/NNN.csv: {save_item!r}", nomor is not None),
             ("file listed by 'l'", nomor is not None and ada(daftar, rf"^\s+{nomor}\s+\d+ B\s+# fs=")),
             ("file contains '# jeda'", "# jeda" in isi),
             (f"sample count = header n ({len(sampel)} vs {n_hdr})", len(sampel) == n_hdr > 0),

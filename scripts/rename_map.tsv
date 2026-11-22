@@ -1065,3 +1065,11 @@ DASAR	BASELINE
 JENDELA_S	WINDOW_S
 tiap	per_window
 tenang	quiet_run_s
+ekg	ecg_band
+pilih	best
+ringkas	digest
+gambar	draw_rows
+simpan	save_item
+akuisisi_dir	acquisition_dir
+filtered_penuh	filtered_full
+cetak	emit

@@ -24,7 +24,7 @@ def aami_symbols_ds2() -> np.ndarray:
     return np.array([AAMI_MAP[s] for s in np.concatenate(simbol)])
 
 
-def ringkas(y, prob, records, aami) -> dict:
+def digest(y, prob, records, aami) -> dict:
     hasil = evaluate_probabilities(y, prob, THRESHOLD)
     prediksi = prob >= THRESHOLD
     baris = per_record_metrics(y, prob, records, THRESHOLD)
@@ -61,8 +61,8 @@ def main() -> None:
     prob_int8 = predict_tflite(os.path.join(ARTIFACT_DIR, "model_int8.tflite"),
                                ds2["X_morph"], ds2["X_rr"])
 
-    fp32 = ringkas(ds2["y"], prob_fp32, ds2["records"], aami)
-    int8 = ringkas(ds2["y"], prob_int8, ds2["records"], aami)
+    fp32 = digest(ds2["y"], prob_fp32, ds2["records"], aami)
+    int8 = digest(ds2["y"], prob_int8, ds2["records"], aami)
     berubah = (prob_fp32 >= THRESHOLD) != (prob_int8 >= THRESHOLD)
 
     print(f"\n{'Metrik':<24} {'Float32':>10} {'INT8':>10} {'Delta':>10}")

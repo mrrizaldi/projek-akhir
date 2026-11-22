@@ -35,7 +35,7 @@ class Papan:
     def __init__(self):
         self.b = pcbnew.LoadBoard(PCB)
 
-    def simpan(self):
+    def save_item(self):
         pcbnew.SaveBoard(PCB, self.b)
 
     def fp(self, ref):
@@ -75,7 +75,7 @@ def hapus():
     jalur = list(p.b.GetTracks())
     for t in jalur:
         p.b.Delete(t)
-    p.simpan()
+    p.save_item()
     print(f"hapus: {len(jalur)} jalur/via")
 
 
@@ -166,7 +166,7 @@ def rute():
     rute_3v3_kiri(p, F)
     rute_sela_i2c(p, F, B)
     rute_daya(p, F, B)
-    p.simpan()
+    p.save_item()
     for ref in ("SW1", "SW2", "SW3", "R1", "D1", "D2", "J8"):
         print(ref, [(q.GetNumber(), q.GetNetname(), round(mm(q.GetPosition().x), 2), round(mm(q.GetPosition().y), 2))
                     for q in p.fp(ref).Pads()])
@@ -178,7 +178,7 @@ def bersih():
              (t.GetLength() == 0 or (t.GetNetname() in NET_MANUAL and not t.IsLocked()))]
     for t in buang:
         p.b.Delete(t)
-    p.simpan()
+    p.save_item()
     print(f"bersih: {len(buang)} segmen")
 
 
@@ -189,14 +189,14 @@ def solid():
             sambung = pcbnew.ZONE_CONNECTION_FULL if (f.GetReference(), q.GetNumber()) in PAD_GND_SOLID \
                 else pcbnew.ZONE_CONNECTION_INHERITED
             q.SetLocalZoneConnection(sambung)
-    p.simpan()
+    p.save_item()
     print(f"solid: {len(PAD_GND_SOLID)} pad solid, sisanya thermal")
 
 
 def tuang():
     p = Papan()
     pcbnew.ZONE_FILLER(p.b).Fill(p.b.Zones())
-    p.simpan()
+    p.save_item()
     print("tuang: selesai")
 
 
@@ -311,7 +311,7 @@ def teks():
             hasil[f.GetReference()].append(penempat.taruh(f, v, [0.8, 0.6, 0.5, 0.4], 1))
     u1 = p.fp("U1").Value()
     penempat.atur(u1, 0.8, 0, 101.43, 110.4)
-    p.simpan()
+    p.save_item()
     gagal = [r for r, h in hasil.items() if None in h]
     for r, h in sorted(hasil.items()):
         print(r, h)
@@ -336,7 +336,7 @@ def ukiran():
         t.SetHorizJustify(pcbnew.GR_TEXT_H_ALIGN_CENTER)
         t.SetPosition(titik(x, y))
         p.b.Add(t)
-    p.simpan()
+    p.save_item()
     print(f"ukiran: {UKIRAN[0]} / {UKIRAN[1]} di B.SilkS ({x}; {y1}/{y2})")
 
 

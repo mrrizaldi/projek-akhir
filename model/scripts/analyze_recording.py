@@ -98,7 +98,7 @@ def combine(hasil, fs):
     awal = np.cumsum([0] + [h["n"] for h in hasil])
     r = np.concatenate([h["r"] + a for h, a in zip(hasil, awal)]).astype(int)
     rr = np.concatenate([h["rr"] for h in hasil])
-    ekg, hum, hf, drift = np.sum([h["pita"] for h in hasil], axis=0)
+    ecg_band, hum, hf, drift = np.sum([h["pita"] for h in hasil], axis=0)
     ac = [(h["n"], h["ac"]) for h in hasil if h["ac"] is not None]
     if len(ac) == 1:
         strength, bpm_ac, rival_peaks = ac[0][1]
@@ -109,7 +109,7 @@ def combine(hasil, fs):
         rival_peaks = int(round(rival_peaks))
     else:
         strength, bpm_ac, rival_peaks = 0.0, 0.0, 0
-    return r, rr, (ekg, hum, hf, drift), (float(strength), float(bpm_ac), rival_peaks), awal
+    return r, rr, (ecg_band, hum, hf, drift), (float(strength), float(bpm_ac), rival_peaks), awal
 
 
 def main() -> None:
@@ -124,7 +124,7 @@ def main() -> None:
     hasil = [analyze_segment(m, fs) for m in segmen]
     x = np.concatenate([h["x"] for h in hasil])
     filtered = np.concatenate([h["filtered"] for h in hasil])
-    r, rr, (ekg, hum, hf, drift), (strength, bpm_ac, rival_peaks), awal = combine(hasil, fs)
+    r, rr, (ecg_band, hum, hf, drift), (strength, bpm_ac, rival_peaks), awal = combine(hasil, fs)
     bpm = 60 / rr if len(rr) else np.array([])
     plausible_fraction = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 
@@ -141,11 +141,11 @@ def main() -> None:
     print(f"  ADC          {int(mentah.min())}..{int(mentah.max())}   "
           f"clipping {clip} samples ({percent_clip:.3f}%, threshold {CLIPPING_PERCENT_THRESHOLD}%) "
           f"{'OK' if clip_ok else '← BROKEN'}")
-    print(f"  50Hz hum     {100 * hum / ekg:6.1f}% of ECG band   "
-          f"{'OK' if hum / ekg < 0.15 else 'TOO LARGE'}")
-    print(f"  noise >60Hz  {100 * hf / ekg:6.1f}% of ECG band   "
-          f"{'OK' if hf / ekg < 0.5 else 'TOO LARGE'}")
-    print(f"  drift <0.5Hz {100 * drift / ekg:6.1f}% of ECG band")
+    print(f"  50Hz hum     {100 * hum / ecg_band:6.1f}% of ECG band   "
+          f"{'OK' if hum / ecg_band < 0.15 else 'TOO LARGE'}")
+    print(f"  noise >60Hz  {100 * hf / ecg_band:6.1f}% of ECG band   "
+          f"{'OK' if hf / ecg_band < 0.5 else 'TOO LARGE'}")
+    print(f"  drift <0.5Hz {100 * drift / ecg_band:6.1f}% of ECG band")
     if strength <= 0.25:
         vonis = "NO clear pulse"
     elif rival_peaks > 2:
@@ -161,9 +161,9 @@ def main() -> None:
               f"   plausible {100 * plausible_fraction:.0f}%"
               f"   {'OK' if plausible_fraction > 0.9 else 'INCONSISTENT'}")
 
-    akuisisi_dir = os.path.join(METRICS_DIR, "akuisisi")
-    os.makedirs(akuisisi_dir, exist_ok=True)
-    out = os.path.join(akuisisi_dir, f"akuisisi_{nama}.png")
+    acquisition_dir = os.path.join(METRICS_DIR, "akuisisi")
+    os.makedirs(acquisition_dir, exist_ok=True)
+    out = os.path.join(acquisition_dir, f"akuisisi_{nama}.png")
     t = np.arange(n) / fs
     shown = slice(0, min(n, int(6 * fs)))
     batas = awal[1:-1] / fs

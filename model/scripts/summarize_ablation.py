@@ -31,7 +31,7 @@ def baca(path: str) -> tuple:
     return per_key, kolom
 
 
-def ringkas(baris: list, COLUMNS) -> dict:
+def digest(baris: list, COLUMNS) -> dict:
     out = {"n_seed": len(baris)}
     for kolom, _ in COLUMNS:
         nilai = [float(b[kolom]) for b in baris if b.get(kolom) not in (None, "")]
@@ -62,7 +62,7 @@ def main() -> None:
     print("-" * len(judul))
     hasil = {}
     for t in tags:
-        s = hasil[t] = ringkas(per_tag[t], COLUMNS)
+        s = hasil[t] = digest(per_tag[t], COLUMNS)
         sel = []
         for kolom, _ in COLUMNS:
             sel.append("        -        " if s[kolom] is None
