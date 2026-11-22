@@ -89,8 +89,8 @@ def average_precision(y_true, y_prob) -> float:
 
 def mcc(counts: dict) -> float:
     tp, fn, fp, tn = counts["tp"], counts["fn"], counts["fp"], counts["tn"]
-    penyebut = np.sqrt(float(tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
-    return float((tp * tn - fp * fn) / penyebut) if penyebut else 0.0
+    denominator = np.sqrt(float(tp + fp) * (tp + fn) * (tn + fp) * (tn + fn))
+    return float((tp * tn - fp * fn) / denominator) if denominator else 0.0
 
 
 def pair_detected(detected, annotation, tolerance_samples: int):

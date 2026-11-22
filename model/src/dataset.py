@@ -104,9 +104,9 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
                 f"the download and `make prep --db {db}` first, or delete the {db} folder "
                 f"if it is meant to be skipped."
             )
-        latih, uji = split_train_test(tersedia)
+        train_records, uji = split_train_test(tersedia)
         if db in TRAIN_DATABASES:
-            bagian.append(stack_records(latih, per_record_dir, db))
+            bagian.append(stack_records(train_records, per_record_dir, db))
         hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)
 
     hasil["train"] = {k: np.concatenate([b[k] for b in bagian]) for k in bagian[0]}

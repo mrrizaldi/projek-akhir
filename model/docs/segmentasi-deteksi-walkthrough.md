@@ -59,7 +59,7 @@ sekitarnya.
 
 Ini yang paling halus, dan paling merusak kalau terlewat.
 
-Window training dipotong di `r_anotasi - WIN_PRE`, sedangkan sinyal yang
+Window training dipotong di `r_annotated - WIN_PRE`, sedangkan sinyal yang
 difilter menggeser puncak R **+4 sampel** (JEBAKAN Fase 1). Jadi saat training,
 R selalu mendarat di **`WIN_PRE + 4`** — indeks **132** pada window 128/128
 yang berlaku (94 pada window baseline 90/160).

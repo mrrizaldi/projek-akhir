@@ -3,7 +3,7 @@ import shutil
 import socket
 import subprocess
 
-ABAIKAN = ("lo", "docker", "br-", "veth", "virbr")
+IGNORED_INTERFACE_PREFIXES = ("lo", "docker", "br-", "veth", "virbr")
 PORT = {1883: "MQTT ThingsBoard", 8080: "UI/REST ThingsBoard"}
 
 
@@ -17,7 +17,7 @@ def jalankan(cmd, batas=3):
 def ipv4_lan():
     data = json.loads(jalankan(["ip", "-j", "-4", "addr", "show"]) or "[]")
     return [(i["ifname"], a["local"]) for i in data
-            if not i["ifname"].startswith(ABAIKAN)
+            if not i["ifname"].startswith(IGNORED_INTERFACE_PREFIXES)
             for a in i.get("addr_info", []) if a.get("family") == "inet"]
 
 
@@ -32,7 +32,7 @@ def ssid_aktif():
     return ""
 
 
-def port_terbuka(port):
+def port_is_open(port):
     with socket.socket() as s:
         s.settimeout(1)
         return s.connect_ex(("127.0.0.1", port)) == 0
@@ -53,9 +53,9 @@ def main():
     print("".join(f"\n  {nama:<12} {ip}" for nama, ip in lan) or " none (laptop is not connected to a network)")
 
     print("Port localhost:")
-    for p, ket in PORT.items():
-        print(f"  {p:<5} {'open' if port_terbuka(p) else 'CLOSED'}  ({ket})")
-    if not port_terbuka(1883):
+    for p, description_text in PORT.items():
+        print(f"  {p:<5} {'open' if port_is_open(p) else 'CLOSED'}  ({description_text})")
+    if not port_is_open(1883):
         print("  -> run: cd dashboard && docker compose up -d")
 
     print("\nSuggested entries (firmware/include/wifi_secrets.h):")

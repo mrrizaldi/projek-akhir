@@ -18,10 +18,10 @@ from src.quantize import (
 )
 from scripts.eval_fp32 import plot_confusion
 
-METRIK = ("accuracy", "precision", "recall", "f1", "specificity")
+METRIC_NAMES = ("accuracy", "precision", "recall", "f1", "specificity")
 
 
-def _muat(nama: str) -> dict:
+def _load(nama: str) -> dict:
     path = os.path.join(PROCESSED_DIR, nama)
     if not os.path.exists(path):
         raise FileNotFoundError(f"{path} — run `make split` first")
@@ -30,7 +30,7 @@ def _muat(nama: str) -> dict:
 
 
 def main() -> None:
-    ds1, ds2 = _muat("train.npz"), _muat("test.npz")
+    ds1, ds2 = _load("train.npz"), _load("test.npz")
     keras_path = os.path.join(ARTIFACT_DIR, "model_fp32.keras")
     tflite_path = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
 
@@ -63,7 +63,7 @@ def main() -> None:
 
     print(f"\n{'Metrik':<14} {'Float32':>10} {'INT8':>10} {'Delta':>10}")
     baris = []
-    for k in METRIK + ("auc",):
+    for k in METRIC_NAMES + ("auc",):
         d = int8[k] - fp32[k]
         print(f"{k:<14} {fp32[k]:>10.4f} {int8[k]:>10.4f} {d:>+10.4f}")
         baris.append((k, fp32[k], int8[k], d))

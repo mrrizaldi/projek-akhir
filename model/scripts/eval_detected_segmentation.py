@@ -33,12 +33,12 @@ def refine_peaks(r_kasar, filtered):
 
 
 def deteksi(record_id: str, sos):
-    signal, r_anotasi, simbol, _ = load_record(record_id)
+    signal, r_annotated, simbol, _ = load_record(record_id)
     filtered = apply_bandpass(signal, sos)
-    return signal, filtered, r_anotasi, simbol, pan_tompkins_detect(filtered, FS)
+    return signal, filtered, r_annotated, simbol, pan_tompkins_detect(filtered, FS)
 
 
-def kalibrasi_offset(sos, tolerance: int) -> int:
+def calibrate_offset(sos, tolerance: int) -> int:
     selisih = []
     for rec in DS1:
         try:
@@ -55,22 +55,22 @@ def main() -> None:
     sos = design_bandpass_sos()
     tolerance = round(TOLERANCE_WINDOW_MS / 1000 * FS)
 
-    offset, n_pasangan = kalibrasi_offset(sos, tolerance)
+    offset, n_pairs = calibrate_offset(sos, tolerance)
     print(f"Detector offset calibrated on DS1: median {offset} samples "
-          f"({1000 * offset / FS:.1f} ms) over {n_pasangan:,} pairs\n")
+          f"({1000 * offset / FS:.1f} ms) over {n_pairs:,} pairs\n")
 
     model = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
 
-    W, R, Y, palsu_prob = [], [], [], []
-    n_aritmia_total = n_terdeteksi = n_palsu = 0
+    W, R, Y, false_prob = [], [], [], []
+    n_arrhythmia_total = n_detected = n_palsu = 0
     det_tp = det_fn = 0
-    kena = {}
+    hit = {}
     tot = {}
 
     for rec in DS2:
         signal, filtered, r_anot, simbol, r_det = deteksi(str(rec), sos)
         label_anot = np.array([to_binary_label(to_aami_class(s)) for s in simbol])
-        n_aritmia_total += int(label_anot.sum())
+        n_arrhythmia_total += int(label_anot.sum())
 
         r_used = refine_peaks(r_det - offset, filtered)
         pasangan = pair_detected(r_det, r_anot, tolerance)
@@ -83,7 +83,7 @@ def main() -> None:
         for symbol_short, ok in zip(simbol, terdeteksi):
             kelas = to_aami_class(symbol_short)
             tot[kelas] = tot.get(kelas, 0) + 1
-            kena[kelas] = kena.get(kelas, 0) + int(ok)
+            hit[kelas] = hit.get(kelas, 0) + int(ok)
 
         i = np.arange(len(r_used))
         muat = (r_used - WIN_PRE >= 0) & (r_used + WIN_POST <= len(signal))
@@ -96,14 +96,14 @@ def main() -> None:
         pas = pasangan[idx]
 
         cocok = pas >= 0
-        n_terdeteksi += int(cocok.sum())
+        n_detected += int(cocok.sum())
         n_palsu += int((~cocok).sum())
 
         W.append(windows[cocok])
         R.append(rr[cocok])
         Y.append(label_anot[pas[cocok]])
         if (~cocok).any():
-            palsu_prob.append(model.predict(
+            false_prob.append(model.predict(
                 [windows[~cocok].reshape(-1, WIN_LEN, 1), rr[~cocok]], verbose=0).ravel())
 
     X_morph = np.concatenate(W).reshape(-1, WIN_LEN, 1)
@@ -118,23 +118,23 @@ def main() -> None:
     print(f"Detector on DS2: {det_tp:,} beats detected, {det_fn:,} missed "
           f"(sensitivity {det_tp / (det_tp + det_fn):.4f}), {n_palsu:,} false detections")
     print("   per AAMI class: " + "  ".join(
-        f"{k} {kena[k] / tot[k]:.3f}" for k in ("N", "S", "V", "F") if tot.get(k)))
+        f"{k} {hit[k] / tot[k]:.3f}" for k in ("N", "S", "V", "F") if tot.get(k)))
     ar_t = sum(tot.get(k, 0) for k in "SVFQ")
-    ar_k = sum(kena.get(k, 0) for k in "SVFQ")
-    print(f"   Normal {kena['N'] / tot['N']:.4f} vs Arrhythmia {ar_k / ar_t:.4f} — "
+    ar_k = sum(hit.get(k, 0) for k in "SVFQ")
+    print(f"   Normal {hit['N'] / tot['N']:.4f} vs Arrhythmia {ar_k / ar_t:.4f} — "
           f"premature beats blocked by the detector 200 ms refractory period\n")
 
     print("A. Classification on beats that WERE detected")
     print(f"   n={len(y):,}  TP={c['tp']} FN={c['fn']} FP={c['fp']} TN={c['tn']}")
     print(f"   recall {m['recall']:.4f}  precision {m['precision']:.4f}  F1 {m['f1']:.4f}")
 
-    sistem_tp = int(((pred == 1) & (y == 1)).sum())
+    system_tp = int(((pred == 1) & (y == 1)).sum())
     print("\nB. SYSTEM level (denominator = all true arrhythmias in DS2)")
-    print(f"   true arrhythmias {n_aritmia_total:,}  caught {sistem_tp:,}"
-          f"  → system recall {sistem_tp / n_aritmia_total:.4f}")
+    print(f"   true arrhythmias {n_arrhythmia_total:,}  caught {system_tp:,}"
+          f"  → system recall {system_tp / n_arrhythmia_total:.4f}")
 
-    if palsu_prob:
-        pp = np.concatenate(palsu_prob)
+    if false_prob:
+        pp = np.concatenate(false_prob)
         print(f"\nC. False detections: {len(pp):,} windows without a true beat, "
               f"{int((pp >= THRESHOLD).sum()):,} classified Arrhythmia "
               f"({100 * (pp >= THRESHOLD).mean():.1f}%) → extra false alarms")
@@ -155,7 +155,7 @@ def main() -> None:
             a["recall"]))
         f.write("deteksi,%d,%d,%d,%d,%.6f,%.6f,%.6f,%.6f,%d\n" % (
             c["tp"], c["fn"], c["fp"], c["tn"], m["recall"], m["precision"], m["f1"],
-            sistem_tp / n_aritmia_total, offset))
+            system_tp / n_arrhythmia_total, offset))
     print(f"\n{out}")
 
 

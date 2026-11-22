@@ -6,15 +6,15 @@ from scripts.window_quality import (
 
 FS = 360
 INTERVAL_DETAK_S = 0.8
-LEBAR_QRS_SAMPEL = 8
-JEDA_PANJANG_S = RR_PAUSE_MAX_S + 1
+QRS_WIDTH_SAMPLES = 8
+LONG_PAUSE_S = RR_PAUSE_MAX_S + 1
 
 
 def _sinyal_detak(r):
     x = np.zeros(SQI_WINDOW_S * FS)
     t = np.arange(len(x))
     for i in r:
-        x += np.exp(-((t - i) / LEBAR_QRS_SAMPEL) ** 2)
+        x += np.exp(-((t - i) / QRS_WIDTH_SAMPLES) ** 2)
     return x
 
 
@@ -31,7 +31,7 @@ def test_regular_beats_pass_all_rules():
 
 def test_pause_over_three_seconds_rejected():
     r = _r_teratur()
-    r = np.r_[r[:3], r[3:] + int(JEDA_PANJANG_S * FS)]
+    r = np.r_[r[:3], r[3:] + int(LONG_PAUSE_S * FS)]
     r = r[r < SQI_WINDOW_S * FS]
     assert not window_scores(_sinyal_detak(r), r, FS)["lolos_aturan"]
 
