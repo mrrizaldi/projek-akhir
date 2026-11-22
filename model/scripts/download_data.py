@@ -19,7 +19,7 @@ def main() -> None:
     targets = list(DATASETS) if args.all else (args.db or ["mitdb"])
     unknown_databases = [d for d in targets if d not in DATASETS]
     if unknown_databases:
-        ap.error(f"database tak dikenal: {unknown_databases} (pilihan: {sorted(DATASETS)})")
+        ap.error(f"unknown database: {unknown_databases} (choices: {sorted(DATASETS)})")
 
     for db in targets:
         d = raw_dir(db)

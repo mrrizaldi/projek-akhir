@@ -28,7 +28,7 @@ def calibration_sets(sos) -> dict:
     val = split_val(assemble_ds1(sos, "empiris", 0, 2,
                               np.random.default_rng(SEED), ["mitdb", "svdb"]))[1]
     sv, ic = load_npz("test_svdb.npz"), load_npz("test_incartdb.npz")
-    return {"VAL (5 pasien)": val,
+    return {"VAL (5 patients)": val,
             "+svdb held-out": combine(val, sv),
             "+svdb+incart": combine(val, sv, ic)}
 

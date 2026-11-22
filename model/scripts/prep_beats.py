@@ -46,7 +46,7 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
     symbols = np.array([sym[i] for i in idx], dtype="<U2")
 
     assert len(windows) == len(rr) == len(labels) == len(symbols) == len(idx)
-    assert not np.isnan(rr).any(), f"record {record_id}: NaN lolos ke rr"
+    assert not np.isnan(rr).any(), f"record {record_id}: NaN leaked into rr"
 
     return {
         "windows": windows,
