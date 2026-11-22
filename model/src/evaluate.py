@@ -97,14 +97,14 @@ def pair_detected(detected, annotation, tolerance_samples: int):
     detected = np.asarray(detected)
     annotation = np.asarray(annotation)
     matched = np.full(len(detected), -1, dtype=np.int64)
-    terpakai = np.zeros(len(annotation), dtype=bool)
+    claimed = np.zeros(len(annotation), dtype=bool)
     for k, d in enumerate(detected):
         if len(annotation) == 0:
             break
-        selisih = np.abs(annotation - d).astype(np.int64)
-        selisih[terpakai] = np.iinfo(np.int64).max
-        i = int(np.argmin(selisih))
-        if selisih[i] <= tolerance_samples:
-            terpakai[i] = True
+        distance = np.abs(annotation - d).astype(np.int64)
+        distance[claimed] = np.iinfo(np.int64).max
+        i = int(np.argmin(distance))
+        if distance[i] <= tolerance_samples:
+            claimed[i] = True
             matched[k] = i
     return matched

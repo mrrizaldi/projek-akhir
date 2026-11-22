@@ -10,10 +10,10 @@ def _model_satu_bobot():
                              keras.layers.Dense(1, use_bias=False)])
 
 
-def _jalankan(cb, riwayat):
+def _jalankan(cb, auc_history):
     m = _model_satu_bobot()
     cb.set_model(m)
-    for auc, w in riwayat:
+    for auc, w in auc_history:
         m.set_weights([np.array([[w]], dtype=np.float32)])
         cb.on_epoch_end(0, {"val_auc": auc})
     cb.on_train_end()

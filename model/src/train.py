@@ -29,17 +29,17 @@ class BestWeightAverage(callbacks.Callback):
     def __init__(self, monitor: str, n: int):
         super().__init__()
         self.monitor, self.n = monitor, n
-        self.riwayat = []
+        self.auc_history = []
 
     def on_epoch_end(self, epoch, logs=None):
-        self.riwayat.append((float((logs or {})[self.monitor]), epoch,
+        self.auc_history.append((float((logs or {})[self.monitor]), epoch,
                              [w.copy() for w in self.model.get_weights()]))
 
     def on_train_end(self, logs=None):
-        best_epochs = sorted(self.riwayat, key=lambda t: -t[0])[:self.n]
+        best_epochs = sorted(self.auc_history, key=lambda t: -t[0])[:self.n]
         self.epochs_used = sorted(e for _, e, _ in best_epochs)
         print(f"[swa] averaged epochs: {self.epochs_used} "
-              f"of {len(self.riwayat)} epochs")
+              f"of {len(self.auc_history)} epochs")
         self.model.set_weights([np.mean(w, axis=0)
                                 for w in zip(*[b for _, _, b in best_epochs])])
 

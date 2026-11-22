@@ -21,10 +21,10 @@ def assert_split_valid() -> None:
 
 def record_int_id(record_id, db: str = "mitdb") -> int:
     rec = str(record_id)
-    angka = rec[1:] if rec[:1].isalpha() else rec
-    if not angka.isdigit():
+    digits = rec[1:] if rec[:1].isalpha() else rec
+    if not digits.isdigit():
         raise ValueError(f"record id cannot be mapped to int: {record_id!r} ({db})")
-    return DATASETS[db]["id_offset"] + int(angka)
+    return DATASETS[db]["id_offset"] + int(digits)
 
 
 def split_train_test(records) -> tuple:
@@ -92,27 +92,27 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
     for db in DATASETS:
         if db == "mitdb":
             continue
-        tersedia = [r for r in available_records(db)
+        available = [r for r in available_records(db)
                     if os.path.exists(os.path.join(per_record_dir, f"{r}.npz"))]
-        if not tersedia:
+        if not available:
             continue
         n_expected = DATASETS[db]["n_record"]
-        if len(tersedia) != n_expected:
+        if len(available) != n_expected:
             raise ValueError(
-                f"{db}: only {len(tersedia)}/{n_expected} records prepared. Held-out "
+                f"{db}: only {len(available)}/{n_expected} records prepared. Held-out "
                 f"`sorted()[::4]` would DIFFER from the intended one: finish "
                 f"the download and `make prep --db {db}` first, or delete the {db} folder "
                 f"if it is meant to be skipped."
             )
-        train_records, uji = split_train_test(tersedia)
+        train_records, uji = split_train_test(available)
         if db in TRAIN_DATABASES:
             train_parts.append(stack_records(train_records, per_record_dir, db))
         hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)
 
     hasil["train"] = {k: np.concatenate([b[k] for b in train_parts]) for k in train_parts[0]}
 
-    semua = {nama: set(np.unique(d["records"])) for nama, d in hasil.items()}
-    for nama, rec in semua.items():
-        if nama != "train" and (rec & semua["train"]):
-            raise ValueError(f"record leaks train <-> {nama}: {sorted(rec & semua['train'])}")
+    records_by_split = {name: set(np.unique(d["records"])) for name, d in hasil.items()}
+    for name, rec in records_by_split.items():
+        if name != "train" and (rec & records_by_split["train"]):
+            raise ValueError(f"record leaks train <-> {name}: {sorted(rec & records_by_split['train'])}")
     return hasil

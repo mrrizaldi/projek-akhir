@@ -48,31 +48,31 @@ def _width_at_fraction(windows: np.ndarray, frac: float, r_idx: int,
 
     lo, hi = max(0, r_idx - search_radius), min(n, r_idx + search_radius + 1)
     peak_idx = lo + np.argmax(w[:, lo:hi], axis=1)
-    puncak = w[np.arange(k), peak_idx]
-    cutoff = (frac * puncak)[:, None]
+    peak = w[np.arange(k), peak_idx]
+    cutoff = (frac * peak)[:, None]
 
     idx = np.arange(n)[None, :]
     below_cutoff = w < cutoff
-    kiri_ok = below_cutoff & (idx < peak_idx[:, None])
-    kanan_ok = below_cutoff & (idx > peak_idx[:, None])
-    kiri = np.where(kiri_ok.any(1), (idx * kiri_ok).max(1), 0)
-    kanan = np.where(kanan_ok.any(1), np.where(kanan_ok, idx, n).min(1), n - 1)
-    return (kanan - kiri).astype(np.float64)
+    left_ok = below_cutoff & (idx < peak_idx[:, None])
+    right_ok = below_cutoff & (idx > peak_idx[:, None])
+    left = np.where(left_ok.any(1), (idx * left_ok).max(1), 0)
+    right = np.where(right_ok.any(1), np.where(right_ok, idx, n).min(1), n - 1)
+    return (right - left).astype(np.float64)
 
 
 def qrs_width_features(windows: np.ndarray, r_idx: int = None,
                        w: int = RR_LOCAL_WINDOW_BEATS) -> np.ndarray:
     from config import R_IN_WINDOW
     r_idx = R_IN_WINDOW if r_idx is None else r_idx
-    kolom = []
+    columns = []
     for frac in (0.5, 0.25):
         widths = _width_at_fraction(windows, frac, r_idx)
         j = np.arange(len(widths))
         start = np.maximum(0, j - w + 1)
         csum = np.concatenate(([0.0], np.cumsum(widths)))
-        rerata = (csum[j + 1] - csum[start]) / (j + 1 - start)
-        kolom.append(widths / np.maximum(rerata, 1e-8))
-    return np.stack(kolom, axis=1).astype(np.float32)
+        window_mean = (csum[j + 1] - csum[start]) / (j + 1 - start)
+        columns.append(widths / np.maximum(window_mean, 1e-8))
+    return np.stack(columns, axis=1).astype(np.float32)
 
 
 def compute_rr_ratio_features(r_locations: np.ndarray, fs: int = FS) -> np.ndarray:
