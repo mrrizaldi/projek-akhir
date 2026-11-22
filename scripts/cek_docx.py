@@ -57,15 +57,15 @@ def bandingkan(pdf_latex, docx, wordcraft):
         hal_latex = halaman_pdf(pdf_latex)
         hal_docx = halaman_pdf(render_docx(docx, wordcraft, folder))
     bab_latex, bab_docx = awal_bab(hal_latex), awal_bab(hal_docx)
-    print(f"Halaman: PDF {len(hal_latex)}, DOCX {len(hal_docx)}")
-    print(f"{'Bagian':<16}{'PDF':>6}{'DOCX':>6}{'Selisih':>9}")
+    print(f"Pages: PDF {len(hal_latex)}, DOCX {len(hal_docx)}")
+    print(f"{'Section':<16}{'PDF':>6}{'DOCX':>6}{'Delta':>9}")
     for nama, hal in bab_latex.items():
         hal_d = bab_docx.get(nama)
         selisih = "-" if hal_d is None else f"{hal_d - hal:+d}"
         print(f"{nama:<16}{hal:>6}{hal_d if hal_d else '-':>6}{selisih:>9}")
     beda = [n for n, (a, b) in enumerate(zip(hal_latex, hal_docx), start=1) if tanda(a) != tanda(b)]
     sama = min(len(hal_latex), len(hal_docx)) - len(beda)
-    print(f"Halaman berawal sama: {sama} dari {len(hal_latex)}")
+    print(f"Pages with matching start: {sama} of {len(hal_latex)}")
     for nomor in beda[:TAMPIL_BEDA_MAKS]:
         print(f"  p{nomor} PDF : {cuplikan(hal_latex[nomor - 1])}")
         print(f"  p{nomor} DOCX: {cuplikan(hal_docx[nomor - 1])}")
@@ -73,9 +73,9 @@ def bandingkan(pdf_latex, docx, wordcraft):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Bandingkan isi per halaman PDF LaTeX dengan DOCX WordCraft (dirender ulang ke PDF).")
-    parser.add_argument("pdf", help="PDF hasil pdfLaTeX, mis. output/main.pdf")
-    parser.add_argument("docx", help="DOCX hasil make docx, mis. output/main.docx")
+    parser = argparse.ArgumentParser(description="Compare per-page content of the LaTeX PDF with the WordCraft DOCX (re-rendered to PDF).")
+    parser.add_argument("pdf", help="PDF produced by pdfLaTeX, e.g. output/main.pdf")
+    parser.add_argument("docx", help="DOCX produced by make docx, e.g. output/main.docx")
     args = parser.parse_args()
     wordcraft = os.environ.get("WORDCRAFT", "wordcraft-cli")
     sys.exit(0 if bandingkan(args.pdf, args.docx, wordcraft) else 1)

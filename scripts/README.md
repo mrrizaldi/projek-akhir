@@ -68,7 +68,7 @@ non-kode lain.
 ```bash
 python3 scripts/cek_komentar.py                       # seluruh repo
 python3 scripts/cek_komentar.py firmware/src model/x.py  # sebagian (folder/berkas)
-python3 scripts/cek_komentar.py --uji                 # uji mandiri pemeriksa
+python3 scripts/cek_komentar.py --self-test             # uji mandiri pemeriksa
 ```
 
 CI menjalankannya di `.github/workflows/cek.yml` (job `komentar`), bersama
@@ -195,7 +195,7 @@ make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build b
 `~/.claude/skills/indonesian-antislop-writing/scripts/check_slop.py`. Sumber
 pola, ambang, dan katalog ada di skill user itu (`references/catalog.md`);
 repo ini tidak menyimpan salinannya. Opsi lama dipetakan: `--ringkas` ke
-`--summary`, `--banding` ke `--compare`, `--uji` ke `--self-test`; argumen lain
+`--summary`, `--banding` ke `--compare`; `--self-test` dan argumen lain
 diteruskan apa adanya dan kode keluarnya sama dengan pemeriksa asli. Bila skill
 user tidak terpasang, pembungkus mencetak pesan dan keluar dengan kode 2.
 Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingkat
@@ -207,7 +207,7 @@ cd laporan/progres-pa-1
 python3 ../../scripts/cek_slop.py --ringkas bab/bab2.tex bab/bab3.tex bab/bab4.tex
 python3 ../../scripts/cek_slop.py bab/bab3.tex
 python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
-python3 ../../scripts/cek_slop.py --uji
+python3 ../../scripts/cek_slop.py --self-test
 ```
 
 ## cek_skill.py
@@ -228,11 +228,11 @@ python3 ../../scripts/cek_slop.py --uji
   `eval.md`, dianggap galat. Opsi `--lewati-eval-lama` melewati pemeriksaan
   eval untuk skill yang masih memakai `eval.md` (masa transisi).
 
-Kode keluar 1 bila ada galat. CI menjalankan `--uji` dan pemeriksaan tanpa opsi.
+Kode keluar 1 bila ada galat. CI menjalankan `--self-test` dan pemeriksaan tanpa opsi.
 
 ```bash
 python3 scripts/cek_skill.py
-python3 scripts/cek_skill.py --uji
+python3 scripts/cek_skill.py --self-test
 ```
 
 ## uji_pemicu.sh
@@ -281,8 +281,8 @@ cd laporan/<proyek> && make rilis CATATAN="..."
 python3 scripts/rilis.py <proyek> --rev <commit> --catatan "..."
 ```
 
-3. Keluaran: `versi=`, `rev=`, `pdf=`, `halaman=`, `galat_log=` (baris
-   `undefined` atau `Overfull` di log LaTeX), `banding=` atau `warn=`, dan
+3. Keluaran: `version=`, `rev=`, `pdf=`, `pages=`, `log_errors=` (baris
+   `undefined` atau `Overfull` di log LaTeX), `diff=` atau `warn=`, dan
    `tag=`.
 4. Hasil ada di `laporan/rilis/<proyek>/vN/`: `<proyek>-vN.pdf`,
    `<proyek>-vN.docx`, `banding-vM-vN.pdf`. Folder ini terlihat di `sajikan.py`.

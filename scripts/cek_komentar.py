@@ -170,7 +170,7 @@ def periksa(berkas):
         try:
             nomor = pemeriksa(teks)
         except (SyntaxError, tokenize.TokenError) as galat:
-            pelanggaran.append(f"{path}:0: tidak bisa diurai: {galat}")
+            pelanggaran.append(f"{path}:0: cannot parse: {galat}")
             continue
         baris = teks.splitlines()
         for no in sorted(set(nomor)):
@@ -202,19 +202,19 @@ def uji():
     assert jenis("docs/a.py") is None
     assert jenis("firmware/src/a.cpp") is komentar_c
     assert jenis(".githooks/pre-commit") is komentar_shell
-    print("uji lulus")
+    print("self-test passed")
 
 
 def main():
     argumen = sys.argv[1:]
-    if argumen == ["--uji"]:
+    if argumen == ["--self-test"]:
         uji()
         return 0
     pelanggaran = periksa(daftar_berkas(argumen))
     for p in pelanggaran:
         print(p)
     if pelanggaran:
-        print(f"{len(pelanggaran)} komentar ditemukan", file=sys.stderr)
+        print(f"{len(pelanggaran)} comments found", file=sys.stderr)
         return 1
     return 0
 

@@ -49,12 +49,12 @@ def unduh(key, cands):
         try:
             data = ambil(u)
         except Exception as e:
-            print(f"  gagal {u}: {e}")
+            print(f"  failed {u}: {e}")
             continue
         if data[:4] == b"%PDF":
             (OUT / f"{key}.pdf").write_bytes(data)
             return u
-        print(f"  bukan PDF: {u}")
+        print(f"  not a PDF: {u}")
     return None
 
 
@@ -63,7 +63,7 @@ def main():
     gagal = []
     for key, (doi, url) in entri_bib().items():
         if (OUT / f"{key}.pdf").exists():
-            print(f"[ada]    {key}")
+            print(f"[exists] {key}")
             continue
         cands, is_oa = [], None
         if doi:
@@ -75,11 +75,11 @@ def main():
             cands.append(url)
         src = unduh(key, cands) if cands else None
         if src:
-            print(f"[unduh]  {key}  <- {src}")
+            print(f"[fetched] {key}  <- {src}")
         else:
             gagal.append((key, doi, url, is_oa))
-            print(f"[gagal]  {key}  doi={doi} oa={is_oa}")
-    print(f"\nterunduh: {len(list(OUT.glob('*.pdf')))}  gagal: {len(gagal)}")
+            print(f"[failed] {key}  doi={doi} oa={is_oa}")
+    print(f"\ndownloaded: {len(list(OUT.glob('*.pdf')))}  failed: {len(gagal)}")
     for g in gagal:
         print("  ", *g)
     return 1 if gagal else 0

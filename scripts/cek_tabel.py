@@ -43,7 +43,7 @@ class Laporan:
         for berkas, baris, kode, galat, pesan in self.temuan:
             if hanya_galat and not galat:
                 continue
-            tingkat = "galat" if galat else "saran"
+            tingkat = "error" if galat else "suggestion"
             print(f"{berkas}:{baris}: [{kode} {tingkat}] {pesan}")
 
 
@@ -162,8 +162,8 @@ def angka_dalam(teks):
 
 def nama_kolom(kepala, j):
     if j < len(kepala):
-        return re.sub(r"\s+", " ", teks_polos(kepala[j])).strip() or f"kolom {j + 1}"
-    return f"kolom {j + 1}"
+        return re.sub(r"\s+", " ", teks_polos(kepala[j])).strip() or f"column {j + 1}"
+    return f"column {j + 1}"
 
 
 def periksa_isi(lap, berkas, baris_awal, baris_tabel):
@@ -175,7 +175,7 @@ def periksa_isi(lap, berkas, baris_awal, baris_tabel):
         if len(b) == 1 and rentang >= len(kepala):
             if jumlah_kata(isi) > SEL_MAKS_KATA:
                 lap.catat(berkas, baris_awal, "T-CATATAN", False,
-                          f"baris catatan selebar tabel ({jumlah_kata(isi)} kata), pindahkan ke Keterangan di bawah tabel")
+                          f"table-wide note row ({jumlah_kata(isi)} words), move it to the Keterangan below the table")
             continue
         badan.append([buka_multicolumn(s)[1] for s in b])
     for j in range(len(kepala)):
@@ -185,11 +185,11 @@ def periksa_isi(lap, berkas, baris_awal, baris_tabel):
             if j < len(b) and jumlah_kata(b[j]) > SEL_MAKS_KATA:
                 awal = " ".join(teks_polos(b[0]).split()[:4])
                 lap.catat(berkas, baris_awal, "T-SEL", False,
-                          f"sel '{nama}' pada baris '{awal}' berisi {jumlah_kata(b[j])} kata (maks {SEL_MAKS_KATA}), pindahkan alasan ke paragraf atau Keterangan")
+                          f"cell '{nama}' in row '{awal}' has {jumlah_kata(b[j])} words (max {SEL_MAKS_KATA}), move the reasoning to the paragraph or Keterangan")
         bersatuan = [s for s in kolom if jumlah_kata(s) <= 4 and re.search(r"\d\s*~?\s*" + SATUAN + r"(?![a-zA-Z])", s)]
         if len(bersatuan) >= SATUAN_MIN_SEL and "(" not in kepala[j]:
             lap.catat(berkas, baris_awal, "T-SATUAN", False,
-                      f"kolom '{nama}': satuan diulang di {len(bersatuan)} sel, tulis sekali di header, mis. '{nama} (ms)'")
+                      f"column '{nama}': unit repeated in {len(bersatuan)} cells, write it once in the header, e.g. '{nama} (ms)'")
         desimal = set()
         for s in kolom:
             m = re.fullmatch(r"[\s$+\-]*(?:\\mu)?\d[\d.]*,(\d+)\s*\$?", s)
@@ -197,11 +197,11 @@ def periksa_isi(lap, berkas, baris_awal, baris_tabel):
                 desimal.add(len(m.group(1)))
         if len(desimal) > 1:
             lap.catat(berkas, baris_awal, "T-DESIMAL", False,
-                      f"kolom '{nama}': jumlah desimal tidak seragam {sorted(desimal)}")
+                      f"column '{nama}': inconsistent decimal places {sorted(desimal)}")
         for s in kolom:
             if teks_polos(s).strip().lower() in ISIAN_SAMAR:
                 lap.catat(berkas, baris_awal, "T-ISIAN", False,
-                          f"kolom '{nama}' berisi '{s.strip()}', pakai '--' lalu jelaskan di Keterangan")
+                          f"column '{nama}' contains '{s.strip()}', use '--' and explain in Keterangan")
 
 
 def paragraf_sesudah(sumber_polos, posisi, label):
@@ -239,34 +239,34 @@ def periksa_tabel(lap, berkas, sumber, lebar_teks):
         lingkungan, blok = m.group(1), m.group(2)
         baris_awal = nomor_baris(polos, m.start())
         if Path(berkas).name in BAB_TANPA_TABEL:
-            lap.catat(berkas, baris_awal, "T-BAB", True, "Bab 1 dan Bab 5 tidak memuat tabel")
+            lap.catat(berkas, baris_awal, "T-BAB", True, "Chapters 1 and 5 contain no tables")
         lab_grid = re.search(r"\\label\{([^}]*)\}", blok)
         grid_penuh = bool(lab_grid) and lab_grid.group(1) in TABEL_GRID_PENUH
         if grid_penuh:
             if re.search(r"\\(toprule|midrule|bottomrule|rowcolor|cellcolor)", blok) or "\\hline" not in blok:
-                lap.catat(berkas, baris_awal, "T-GRID", True, "tabel penelitian terkait: grid penuh polos, \\hline dan garis vertikal, tanpa booktabs dan warna")
+                lap.catat(berkas, baris_awal, "T-GRID", True, "related-work table: plain full grid, \\hline and vertical rules, no booktabs and no color")
         elif re.search(r"\\(hline|cline)|\\rowcolor", blok):
-            lap.catat(berkas, baris_awal, "T-GRID", True, "gaya tiga garis: \\toprule, \\midrule, \\bottomrule, tanpa \\hline, \\cline, dan \\rowcolor")
+            lap.catat(berkas, baris_awal, "T-GRID", True, "three-line style: \\toprule, \\midrule, \\bottomrule, without \\hline, \\cline, and \\rowcolor")
         if not grid_penuh and not all(f"\\{garis}" in blok for garis in ("toprule", "midrule", "bottomrule")):
-            lap.catat(berkas, baris_awal, "T-HEADER", True, "tabel tanpa pasangan lengkap \\toprule, \\midrule, \\bottomrule")
+            lap.catat(berkas, baris_awal, "T-HEADER", True, "table without the full \\toprule, \\midrule, \\bottomrule set")
         if lingkungan == "table" and re.match(r"\s*\[H\]", blok):
-            lap.catat(berkas, baris_awal, "T-FLOAT", False, "[H] mengunci posisi, pakai [!ht]")
+            lap.catat(berkas, baris_awal, "T-FLOAT", False, "[H] pins the position, use [!ht]")
         jenis, lebar_x, spek, akhir_spek = cari_tabular(blok, lingkungan)
         if spek and "|" in spek and not grid_penuh:
-            lap.catat(berkas, baris_awal, "T-GRID", True, "garis vertikal | di spesifikasi kolom, gaya tiga garis tanpa garis vertikal")
+            lap.catat(berkas, baris_awal, "T-GRID", True, "vertical rule | in the column spec, three-line style has no vertical rules")
         cap = re.search(r"\\caption\{", blok)
         if not cap:
-            lap.catat(berkas, baris_awal, "T-CAPTION", True, "tabel tanpa \\caption")
+            lap.catat(berkas, baris_awal, "T-CAPTION", True, "table without \\caption")
         else:
             teks_cap, _ = isi_kurung(blok, cap.end() - 1)
             if lingkungan == "table" and jenis and blok.find("\\begin{" + jenis) < cap.start():
-                lap.catat(berkas, baris_awal, "T-CAPTION", True, "caption tabel harus di ATAS tabel")
+                lap.catat(berkas, baris_awal, "T-CAPTION", True, "table caption must be ABOVE the table")
             if teks_cap.rstrip().endswith("."):
-                lap.catat(berkas, baris_awal, "T-CAPTION", False, "caption berakhir titik, caption adalah frasa benda tanpa titik")
+                lap.catat(berkas, baris_awal, "T-CAPTION", False, "caption ends with a period, a caption is a noun phrase without one")
             if "(" in teks_polos(teks_cap):
-                lap.catat(berkas, baris_awal, "T-CAPTION", False, "caption memuat keterangan dalam kurung, pindahkan ke baris Keterangan di bawah tabel")
+                lap.catat(berkas, baris_awal, "T-CAPTION", False, "caption has a parenthetical note, move it to the Keterangan line below the table")
             if jumlah_kata(teks_cap) > CAPTION_MAKS_KATA:
-                lap.catat(berkas, baris_awal, "T-CAPTION", False, f"caption {jumlah_kata(teks_cap)} kata (maks {CAPTION_MAKS_KATA})")
+                lap.catat(berkas, baris_awal, "T-CAPTION", False, f"caption {jumlah_kata(teks_cap)} words (max {CAPTION_MAKS_KATA})")
         if spek is not None:
             lebar, kolom, garis = baca_spesifikasi(spek, lebar_teks)
             konteks = polos[max(0, m.start() - 600):m.start()] + blok
@@ -276,7 +276,7 @@ def periksa_tabel(lap, berkas, sumber, lebar_teks):
                 total = sum(lebar) + kolom * 2 * tabcolsep * PT_KE_CM + garis * 0.4 * PT_KE_CM
                 if total > lebar_teks + 0.05:
                     lap.catat(berkas, baris_awal, "T-LEBAR", True,
-                              f"lebar tabel {total:.2f} cm melebihi lebar teks {lebar_teks:.2f} cm")
+                              f"table width {total:.2f} cm exceeds text width {lebar_teks:.2f} cm")
             isi = blok[akhir_spek:] if akhir_spek else blok
             periksa_isi(lap, berkas, baris_awal, pecah_baris(isi))
         lab = re.search(r"\\label\{([^}]*)\}", blok)
@@ -284,9 +284,9 @@ def periksa_tabel(lap, berkas, sumber, lebar_teks):
         if label:
             rujukan = [r.start() for r in re.finditer(POLA_REF % re.escape(label), polos)]
             if not rujukan:
-                lap.catat(berkas, baris_awal, "T-RUJUK", True, f"{label} tidak pernah dirujuk di paragraf")
+                lap.catat(berkas, baris_awal, "T-RUJUK", True, f"{label} is never referenced in a paragraph")
             elif min(rujukan) > m.start():
-                lap.catat(berkas, baris_awal, "T-RUJUK", False, f"{label} baru dirujuk sesudah tabel, rujuk dulu di paragraf pengantar")
+                lap.catat(berkas, baris_awal, "T-RUJUK", False, f"{label} is first referenced after the table, reference it first in an introductory paragraph")
         pos, teks = paragraf_sesudah(polos, m.end(), label)
         if teks:
             penjelas.append((nomor_baris(polos, pos), teks, angka_dalam(blok), label))
@@ -306,17 +306,17 @@ def periksa_penjelas(lap, berkas, penjelas):
         sebelumnya = buka
         kata = jumlah_kata(teks)
         if kata > PARAGRAF_MAKS_KATA:
-            lap.catat(berkas, baris, "N-PANJANG", False, f"paragraf penjelas {label} {kata} kata (maks {PARAGRAF_MAKS_KATA}), pecah per fungsi")
+            lap.catat(berkas, baris, "N-PANJANG", False, f"explanatory paragraph {label} has {kata} words (max {PARAGRAF_MAKS_KATA}), split it by function")
         diulang = angka_tabel & angka_dalam(teks)
         if len(angka_tabel) >= ULANG_MIN_ANGKA and len(diulang) / len(angka_tabel) > ULANG_RASIO_MAKS:
             lap.catat(berkas, baris, "N-ULANG", False,
-                      f"paragraf penjelas {label} mengulang {len(diulang)} dari {len(angka_tabel)} angka tabel, tulis temuan dan maknanya")
+                      f"explanatory paragraph {label} repeats {len(diulang)} of {len(angka_tabel)} table numbers, write the finding and its meaning")
     if berulang:
         lap.catat(berkas, int(berulang[0]), "N-PEMBUKA", False,
-                  f"{len(berulang)} paragraf penjelas memakai pembuka yang sama dengan penjelas sebelumnya (baris {', '.join(berulang)})")
+                  f"{len(berulang)} explanatory paragraphs open the same way as the previous one (lines {', '.join(berulang)})")
     if berdasarkan > BERDASARKAN_MAKS_PER_BAB:
         lap.catat(berkas, 1, "N-PEMBUKA", False,
-                  f"'Berdasarkan Tabel' membuka {berdasarkan} paragraf (maks {BERDASARKAN_MAKS_PER_BAB} per bab), variasikan pembuka")
+                  f"'Berdasarkan Tabel' opens {berdasarkan} paragraphs (max {BERDASARKAN_MAKS_PER_BAB} per chapter), vary the openers")
 
 
 def prosa(sumber):
@@ -349,16 +349,16 @@ def periksa_prosa(lap, berkas, sumber):
                 panjang.append((n, baris, " ".join(teks_polos(kalimat).split()[:6])))
     if gaya:
         lap.catat(berkas, int(gaya[0]), "N-GAYA", False,
-                  f"titik koma atau em dash di {len(gaya)} paragraf (laporan/CLAUDE.md), baris {', '.join(gaya)}")
+                  f"semicolon or em dash in {len(gaya)} paragraphs (laporan/CLAUDE.md), lines {', '.join(gaya)}")
     if panjang:
-        contoh = "; ".join(f"baris {b} ({n} kata) '{a} ...'" for n, b, a in sorted(panjang, reverse=True)[:5])
+        contoh = "; ".join(f"line {b} ({n} words) '{a} ...'" for n, b, a in sorted(panjang, reverse=True)[:5])
         lap.catat(berkas, sorted(panjang, reverse=True)[0][1], "N-KALIMAT", False,
-                  f"{len(panjang)} kalimat lebih dari {KALIMAT_MAKS_KATA} kata, terpanjang: {contoh}")
+                  f"{len(panjang)} sentences over {KALIMAT_MAKS_KATA} words, longest: {contoh}")
     if total_kata:
         per_seribu = sehingga * 1000 / total_kata
         if per_seribu > 5:
             lap.catat(berkas, 1, "N-SEHINGGA", False,
-                      f"'sehingga' {sehingga} kali ({per_seribu:.1f} per 1.000 kata), variasikan atau pecah kalimat")
+                      f"'sehingga' {sehingga} times ({per_seribu:.1f} per 1,000 words), vary or split the sentences")
 
 
 POLA_REVISI_PCB = re.compile(r"\brev\s?[0-9]+\b|\brevisi\s+(?:pertama|kedua|ketiga)\b|\bPCB\s+revisi\b", re.I)
@@ -374,23 +374,23 @@ def periksa_label_tujuan(lap, berkas, sumber):
         m = POLA_LABEL_TUJUAN.search(teks_polos(baris))
         if m:
             lap.catat(berkas, nomor, "N-TUJUAN", True,
-                      f"label bernomor '{m.group(0)}' di teks tercetak, sebut isi tujuannya (jalur, model, pipeline) seperti buku AFIB")
+                      f"numbered label '{m.group(0)}' in printed text, name the content of the objective (path, model, pipeline) like the AFIB book")
         m = POLA_REVISI_PCB.search(teks_polos(baris))
         if m:
             lap.catat(berkas, nomor, "N-REVISI", True,
-                      f"label revisi internal '{m.group(0)}' di teks tercetak, tulis rancangan akhirnya saja")
+                      f"internal revision label '{m.group(0)}' in printed text, write only the final design")
         m = POLA_PUSTAKA.search(teks_polos(baris)) or POLA_PAPAN.search(teks_polos(baris))
         if m:
             lap.catat(berkas, nomor, "N-ISTILAH", True,
-                      f"'{m.group(0)}' untuk istilah elektronik/perangkat lunak, tulis \\textit{{library}} atau \\textit{{board}} (laporan/CLAUDE.md, Istilah Asing)")
+                      f"'{m.group(0)}' for an electronics/software term, write \\textit{{library}} atau \\textit{{board}} (laporan/CLAUDE.md, Istilah Asing)")
         m = POLA_PENUNJUK.search(baris)
         if m:
             lap.catat(berkas, nomor, "N-PENUNJUK", True,
-                      f"penunjuk '{m.group(0)}' ke bab, subbab, atau butir lain, sebut isinya langsung")
+                      f"pointer '{m.group(0)}' to another chapter, section, or item, state the content directly")
         m = POLA_META_SUBBAB.search(teks_polos(baris))
         if m:
             lap.catat(berkas, nomor, "N-META", True,
-                      f"pembuka '{m.group(0)} ...' di subbab, langsung ke isi; 'Bab ini ...' hanya di pembuka bab")
+                      f"opener '{m.group(0)} ...' in a section, go straight to the content; 'Bab ini ...' only in a chapter opener")
 
 
 def periksa_pembuka_bab(lap, berkas, sumber):
@@ -404,7 +404,7 @@ def periksa_pembuka_bab(lap, berkas, sumber):
     antara = re.sub(r"\\label\{[^}]*\}", "", antara)
     if antara.strip():
         lap.catat(berkas, nomor_baris(polos, bab.start()), "N-PEMBUKA-BAB", True,
-                  "paragraf pembuka sebelum subbab pertama, langsung ke subbab pertama seperti proposal")
+                  "opening paragraph before the first section, go straight to the first section like the proposal")
 
 
 def uji_mandiri():
@@ -446,20 +446,20 @@ def uji_mandiri():
         kode.discard("T-GRID")
     kurang = harap - kode
     if kurang:
-        print(f"uji mandiri GAGAL, tidak terdeteksi: {sorted(kurang)}")
+        print(f"self-test FAILED, not detected: {sorted(kurang)}")
         return 1
-    print(f"uji mandiri lulus ({len(lap.temuan)} temuan, {len(harap)} kode diharapkan terdeteksi)")
+    print(f"self-test passed ({len(lap.temuan)} findings, {len(harap)} expected codes detected)")
     return 0
 
 
 def main():
     akar = Path(__file__).resolve().parent.parent
-    parser = argparse.ArgumentParser(description="Pemeriksa tabel dan paragraf penjelas laporan PA")
-    parser.add_argument("berkas", nargs="*", help="berkas .tex, bawaan laporan/buku-pa/bab/bab*.tex")
+    parser = argparse.ArgumentParser(description="Checker for tables and explanatory paragraphs in the PA report")
+    parser.add_argument("berkas", nargs="*", help=".tex files, default laporan/buku-pa/bab/bab*.tex")
     parser.add_argument("--kertas", choices=sorted(LEBAR_TEKS_CM), default="a4")
     parser.add_argument("--hanya-galat", action="store_true")
-    parser.add_argument("--ketat", action="store_true", help="saran juga membuat kode keluar 1")
-    parser.add_argument("--tanpa-prosa", action="store_true", help="lewati pemeriksaan kalimat dan gaya paragraf")
+    parser.add_argument("--ketat", action="store_true", help="suggestions also make the exit code 1")
+    parser.add_argument("--tanpa-prosa", action="store_true", help="skip the sentence and paragraph style checks")
     parser.add_argument("--uji", action="store_true")
     arg = parser.parse_args()
     if arg.uji:
@@ -474,7 +474,7 @@ def main():
         if not arg.tanpa_prosa:
             periksa_prosa(lap, berkas, sumber)
     lap.cetak(arg.hanya_galat)
-    print(f"{len(daftar)} berkas, {lap.jumlah_galat()} galat, {lap.jumlah_saran()} saran")
+    print(f"{len(daftar)} files, {lap.jumlah_galat()} errors, {lap.jumlah_saran()} suggestions")
     if lap.jumlah_galat() or (arg.ketat and lap.jumlah_saran()):
         return 1
     return 0

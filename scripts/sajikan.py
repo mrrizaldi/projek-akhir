@@ -47,7 +47,7 @@ def tautan_banding(folder):
     lama, baru = pdf_rilis(proyek, nomor - 1), pdf_rilis(proyek, nomor)
     return (
         f' <a href="/banding?lama={quote(lama)}&amp;baru={quote(baru)}">'
-        f"banding v{nomor - 1} dan v{nomor}</a>"
+        f"compare v{nomor - 1} and v{nomor}</a>"
     )
 
 
@@ -68,7 +68,7 @@ def halaman_banding(kueri):
     )
     return (
         '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
-        "<title>Banding rilis</title><style>"
+        "<title>Release comparison</title><style>"
         "body{margin:0;font:14px system-ui,sans-serif;background:#fff;color:#222}"
         "main{display:flex;height:100vh}section{flex:1;display:flex;flex-direction:column}"
         "h2{font-size:.9rem;margin:.3rem .5rem}iframe{flex:1;border:0;border-left:1px solid #ccc}"
@@ -93,8 +93,8 @@ def halaman_indeks():
         bagian.append(f"<h2>{html.escape(folder)}{tautan_banding(folder)}</h2><ul>{baris}</ul>")
     return (
         '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
-        f'<base target="_blank"><title>Berkas PA</title><style>{GAYA}</style>'
-        f"<h1>Berkas PA</h1>{''.join(bagian)}"
+        f'<base target="_blank"><title>PA files</title><style>{GAYA}</style>'
+        f"<h1>PA files</h1>{''.join(bagian)}"
     )
 
 

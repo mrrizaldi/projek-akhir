@@ -42,7 +42,7 @@ def make(folder, *target):
 def bangun(pohon, proyek):
     folder = pohon / "laporan" / proyek
     if not make(folder, "pdf") or not make(folder, "docx"):
-        gagal(f"build {proyek} gagal di {folder}")
+        gagal(f"build of {proyek} failed in {folder}")
     return folder / "output"
 
 
@@ -84,25 +84,25 @@ def banding(pohon_lama, pohon_baru, proyek, tujuan):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Bekukan PDF dan DOCX laporan sebagai rilis bernomor (tag git rilis/<proyek>/vN)."
+        description="Freeze the report PDF and DOCX as a numbered release (git tag rilis/<project>/vN)."
     )
     parser.add_argument("proyek", choices=PROYEK)
-    parser.add_argument("--rev", default="HEAD", help="commit yang dibekukan (bawaan HEAD)")
-    parser.add_argument("--catatan", default="", help="isi pesan tag")
+    parser.add_argument("--rev", default="HEAD", help="commit to freeze (default HEAD)")
+    parser.add_argument("--catatan", default="", help="tag message body")
     args = parser.parse_args()
 
     rev = git("rev-parse", "--short", f"{args.rev}^{{commit}}")
     if args.rev == "HEAD" and git("status", "--porcelain", "--", "laporan"):
-        gagal("laporan/ punya perubahan yang belum di-commit; rilis dibangun dari commit, commit dulu")
+        gagal("laporan/ has uncommitted changes; the release is built from a commit, commit first")
     ada = versi_ada(args.proyek)
     nomor = max(ada) + 1 if ada else 0
     jalur_isi = [f"laporan/{args.proyek}", "laporan/shared"]
     if ada and not git("diff", "--name-only", ada[max(ada)], rev, "--", *jalur_isi):
-        gagal(f"tidak ada perubahan {args.proyek} sejak {ada[max(ada)]}")
+        gagal(f"no changes in {args.proyek} since {ada[max(ada)]}")
     nama = f"{args.proyek}-v{nomor}"
     tujuan = FOLDER_RILIS / args.proyek / f"v{nomor}"
     if tujuan.exists():
-        gagal(f"{tujuan} sudah ada")
+        gagal(f"{tujuan} already exists")
 
     with tempfile.TemporaryDirectory(prefix="rilis-") as sementara:
         pohon_baru = Path(sementara, "baru")
@@ -114,7 +114,7 @@ def main():
             shutil.copy(keluaran / "main.docx", tujuan / f"{nama}.docx")
             halaman = jumlah_halaman(tujuan / f"{nama}.pdf")
             galat = galat_log(keluaran / "main.log")
-            print(f"versi=v{nomor}\nrev={rev}\npdf={tujuan / f'{nama}.pdf'}\nhalaman={halaman}\ngalat_log={galat}")
+            print(f"version=v{nomor}\nrev={rev}\npdf={tujuan / f'{nama}.pdf'}\npages={halaman}\nlog_errors={galat}")
             if ada:
                 sebelumnya = max(ada)
                 pohon_lama = Path(sementara, "lama")
@@ -126,11 +126,11 @@ def main():
                     )
                 finally:
                     git("worktree", "remove", "--force", str(pohon_lama))
-                print(f"banding={pdf_banding}" if pdf_banding else "warn=latexdiff gagal, banding tidak dibuat")
+                print(f"diff={pdf_banding}" if pdf_banding else "warn=latexdiff failed, comparison not built")
         finally:
             git("worktree", "remove", "--force", str(pohon_baru))
 
-    pesan = f"{args.catatan}\n\nhalaman={halaman} galat_log={galat}".strip()
+    pesan = f"{args.catatan}\n\npages={halaman} log_errors={galat}".strip()
     git("tag", "-a", f"rilis/{args.proyek}/v{nomor}", rev, "-m", pesan)
     print(f"tag=rilis/{args.proyek}/v{nomor}")
 

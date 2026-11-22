@@ -88,7 +88,7 @@ Dua agen terpisah per putaran, dari Agent tool atau sesi terpisah.
 
 ## Pemeriksa
 
-- Struktur: `python3 scripts/cek_skill.py` (tanpa opsi; `--uji` untuk
+- Struktur: `python3 scripts/cek_skill.py` (tanpa opsi; `--self-test` untuk
   swauji). Jalan di CI.
 - Pemicu: `scripts/uji_pemicu.sh <folder skill>` mengukur apakah deskripsi
   memicu pada kueri `triggers/evals.json` (`scripts/README.md`).

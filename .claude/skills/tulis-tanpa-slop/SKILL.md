@@ -66,7 +66,7 @@ Satu konsep satu istilah di seluruh buku. Sebelum memperkenalkan istilah, cek `g
 
 ## Prosedur
 
-Jalankan dari folder buku yang disunting. Pembungkus `scripts/cek_slop.py` meneruskan ke pemeriksa skill user (`--ringkas` = `--summary`, `--banding` = `--compare`, `--uji` = `--self-test`) dan memberi pesan jelas bila skill user tidak terpasang.
+Jalankan dari folder buku yang disunting. Pembungkus `scripts/cek_slop.py` meneruskan ke pemeriksa skill user (`--ringkas` = `--summary`, `--banding` = `--compare`; `--self-test` diteruskan apa adanya) dan memberi pesan jelas bila skill user tidak terpasang.
 
 ```bash
 cd laporan/progres-pa-1
