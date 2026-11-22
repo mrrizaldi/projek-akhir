@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: limit-without-return
+expected_outcome: |
+  The answer fixes the silent `return` at the limit: samples past the limit are not dropped silently,
+  `active = false` is written before Serial/display_message, the sample path only marks the event
+  and does not call Serial, the display, a beep, or a file write, and the REC line is replaced by
+  HILANG while acquisition_missed() is above zero. Display text is Indonesian, written for people.

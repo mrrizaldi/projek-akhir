@@ -1,5 +1,5 @@
 ---
-tags: [batas-tidak-diam]
+tags: [firmware-limits]
 max_turns: 20
 timeout_seconds: 600
 allowed_tools: [Read, Skill, Write]
