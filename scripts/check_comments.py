@@ -13,37 +13,37 @@ HEREDOC_PATTERN = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
 MAKE_TARGET_PATTERN = re.compile(r"^[^\t#=:][^=]*?:(?!=)")
 
 
-def c_comments(teks):
+def c_comments(source_text):
     temuan = []
-    i, n, baris = 0, len(teks), 1
+    i, n, baris = 0, len(source_text), 1
     while i < n:
-        c = teks[i]
+        c = source_text[i]
         if c == "\n":
             baris += 1
             i += 1
         elif c in "\"'":
             i += 1
-            while i < n and teks[i] != c and teks[i] != "\n":
-                i += 2 if teks[i] == "\\" else 1
+            while i < n and source_text[i] != c and source_text[i] != "\n":
+                i += 2 if source_text[i] == "\\" else 1
             i += 1
-        elif teks.startswith("//", i):
+        elif source_text.startswith("//", i):
             temuan.append(baris)
-            while i < n and teks[i] != "\n":
+            while i < n and source_text[i] != "\n":
                 i += 1
-        elif teks.startswith("/*", i):
+        elif source_text.startswith("/*", i):
             temuan.append(baris)
-            akhir = teks.find("*/", i + 2)
+            akhir = source_text.find("*/", i + 2)
             akhir = n if akhir < 0 else akhir + 2
-            baris += teks.count("\n", i, akhir)
+            baris += source_text.count("\n", i, akhir)
             i = akhir
         else:
             i += 1
     return temuan
 
 
-def python_comments(teks):
+def python_comments(source_text):
     temuan = []
-    for tok in tokenize.generate_tokens(io.StringIO(teks).readline):
+    for tok in tokenize.generate_tokens(io.StringIO(source_text).readline):
         if tok.type != tokenize.COMMENT:
             continue
         no = tok.start[0]
@@ -52,7 +52,7 @@ def python_comments(teks):
         if no <= 2 and CODING_PATTERN.match(tok.line):
             continue
         temuan.append(no)
-    for syntax_node in ast.walk(ast.parse(teks)):
+    for syntax_node in ast.walk(ast.parse(source_text)):
         if not isinstance(syntax_node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if syntax_node.body and isinstance(syntax_node.body[0], ast.Expr):
@@ -84,10 +84,10 @@ def hash_position(baris, quote_char, word_starts):
     return -1, quote_char
 
 
-def shell_comments(teks):
+def shell_comments(source_text):
     temuan = []
     quote_char, terminator = None, None
-    for no, baris in enumerate(teks.splitlines(), 1):
+    for no, baris in enumerate(source_text.splitlines(), 1):
         if terminator is not None:
             if baris.strip() == terminator:
                 terminator = None
@@ -105,13 +105,13 @@ def shell_comments(teks):
     return temuan
 
 
-def ini_comments(teks):
-    return [no for no, baris in enumerate(teks.splitlines(), 1) if baris.lstrip().startswith((";", "#")) or re.search(r"\s[;#]", baris)]
+def ini_comments(source_text):
+    return [no for no, baris in enumerate(source_text.splitlines(), 1) if baris.lstrip().startswith((";", "#")) or re.search(r"\s[;#]", baris)]
 
 
-def makefile_comments(teks):
+def makefile_comments(source_text):
     temuan = []
-    for no, baris in enumerate(teks.splitlines(), 1):
+    for no, baris in enumerate(source_text.splitlines(), 1):
         if baris.startswith("\t"):
             pos, _ = hash_position(baris, None, " \t;&|()")
         else:
@@ -126,31 +126,31 @@ def makefile_comments(teks):
 
 def jenis(path):
     parts = path.split("/")
-    nama = parts[-1]
-    if parts[0] in ("laporan", "docs") or "arsip" in parts[:-1] or nama.endswith((".md", ".tex")):
+    file_name = parts[-1]
+    if parts[0] in ("laporan", "docs") or "arsip" in parts[:-1] or file_name.endswith((".md", ".tex")):
         return None
-    if nama.endswith(C_EXTENSIONS):
+    if file_name.endswith(C_EXTENSIONS):
         return c_comments
-    if nama.endswith(".py"):
+    if file_name.endswith(".py"):
         return python_comments
-    if nama.endswith(".sh") or parts[0] == ".githooks":
+    if file_name.endswith(".sh") or parts[0] == ".githooks":
         return shell_comments
-    if nama == "platformio.ini":
+    if file_name == "platformio.ini":
         return ini_comments
-    if nama == "Makefile" or nama.endswith(".mk"):
+    if file_name == "Makefile" or file_name.endswith(".mk"):
         return makefile_comments
     return None
 
 
-def collect_paths(argumen):
+def collect_paths(raw_paths):
     base_dir = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
-    argumen = [os.path.abspath(a) for a in argumen] or [base_dir]
+    raw_paths = [os.path.abspath(a) for a in raw_paths] or [base_dir]
     os.chdir(base_dir)
     found_paths = []
-    for arg in argumen:
+    for arg in raw_paths:
         if os.path.isdir(arg) and os.path.commonpath([arg, base_dir]) == base_dir:
-            keluaran = subprocess.run(["git", "ls-files", "--", arg], capture_output=True, text=True, check=True).stdout
-            found_paths.extend(keluaran.splitlines())
+            listed = subprocess.run(["git", "ls-files", "--", arg], capture_output=True, text=True, check=True).stdout
+            found_paths.extend(listed.splitlines())
         elif os.path.isdir(arg):
             for folder, _, file_names in os.walk(arg):
                 found_paths.extend(os.path.join(folder, n) for n in file_names)
@@ -166,13 +166,13 @@ def periksa(berkas):
         if checker is None:
             continue
         with open(path, encoding="utf-8", errors="replace") as f:
-            teks = f.read()
+            source_text = f.read()
         try:
-            line_numbers = checker(teks)
+            line_numbers = checker(source_text)
         except (SyntaxError, tokenize.TokenError) as fault:
             violations.append(f"{path}:0: cannot parse: {fault}")
             continue
-        baris = teks.splitlines()
+        baris = source_text.splitlines()
         for no in sorted(set(line_numbers)):
             isi = baris[no - 1].strip() if 0 < no <= len(baris) else ""
             violations.append(f"{path}:{no}: {isi}")
@@ -206,11 +206,11 @@ def uji():
 
 
 def main():
-    argumen = sys.argv[1:]
-    if argumen == ["--self-test"]:
+    raw_paths = sys.argv[1:]
+    if raw_paths == ["--self-test"]:
         uji()
         return 0
-    violations = periksa(collect_paths(argumen))
+    violations = periksa(collect_paths(raw_paths))
     for p in violations:
         print(p)
     if violations:

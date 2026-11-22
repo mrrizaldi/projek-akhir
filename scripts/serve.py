@@ -24,8 +24,8 @@ def find_files():
     paths = []
     for folder, subfolder, berkas in os.walk(REPO_ROOT):
         subfolder[:] = [d for d in subfolder if d not in SKIPPED_DIRS]
-        for nama in berkas:
-            jalur = Path(folder, nama)
+        for file_name in berkas:
+            jalur = Path(folder, file_name)
             if jalur.suffix.lower() in EXTENSIONS:
                 paths.append(jalur.relative_to(REPO_ROOT))
     return paths
@@ -40,10 +40,10 @@ def release_pdf(proyek, nomor):
 
 
 def diff_link(folder):
-    cocok = RELEASE_PATTERN.match(folder)
-    if not cocok or int(cocok["nomor"]) == 0:
+    release_match = RELEASE_PATTERN.match(folder)
+    if not release_match or int(release_match["nomor"]) == 0:
         return ""
-    proyek, nomor = cocok["proyek"], int(cocok["nomor"])
+    proyek, nomor = release_match["proyek"], int(release_match["nomor"])
     lama, baru = release_pdf(proyek, nomor - 1), release_pdf(proyek, nomor)
     return (
         f' <a href="/banding?lama={quote(lama)}&amp;baru={quote(baru)}">'
@@ -62,7 +62,7 @@ def compare_page(query_text):
     baru = param.get("baru", "")
     if not (is_safe_pdf(lama) and is_safe_pdf(baru)):
         return None
-    bingkai = "".join(
+    frames = "".join(
         f'<section><h2>{html.escape(rel)}</h2><iframe src="/{quote(rel)}"></iframe></section>'
         for rel in (lama, baru)
     )
@@ -74,7 +74,7 @@ def compare_page(query_text):
         "h2{font-size:.9rem;margin:.3rem .5rem}iframe{flex:1;border:0;border-left:1px solid #ccc}"
         "@media(max-width:48rem){main{flex-direction:column;height:auto}iframe{height:80vh}}"
         "@media(prefers-color-scheme:dark){body{background:#181818;color:#ddd}}"
-        f"</style><main>{bingkai}</main>"
+        f"</style><main>{frames}</main>"
     )
 
 
@@ -82,15 +82,15 @@ def index_page():
     folder_groups = {}
     for rel in find_files():
         folder_groups.setdefault(rel.parent.as_posix(), []).append(rel)
-    urutan = sorted(folder_groups.items(), key=lambda kv: max(map(waktu, kv[1])), reverse=True)
+    ordered = sorted(folder_groups.items(), key=lambda kv: max(map(waktu, kv[1])), reverse=True)
     sections = []
-    for folder, entries in urutan:
-        baris = "".join(
+    for folder, entries in ordered:
+        list_items = "".join(
             f'<li><a href="/{quote(r.as_posix())}">{html.escape(r.name)}</a>'
             f'<small>{time.strftime("%d %b %Y %H:%M", time.localtime(waktu(r)))}</small></li>'
             for r in sorted(entries, key=waktu, reverse=True)
         )
-        sections.append(f"<h2>{html.escape(folder)}{diff_link(folder)}</h2><ul>{baris}</ul>")
+        sections.append(f"<h2>{html.escape(folder)}{diff_link(folder)}</h2><ul>{list_items}</ul>")
     return (
         '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
         f'<base target="_blank"><title>PA files</title><style>{STYLE}</style>'
@@ -108,11 +108,11 @@ class PageHandler(SimpleHTTPRequestHandler):
         self.wfile.write(data)
 
     def do_GET(self):
-        alamat = urlsplit(self.path)
-        if alamat.path == "/":
+        url = urlsplit(self.path)
+        if url.path == "/":
             return self.send_html(index_page())
-        if alamat.path == "/banding":
-            page_html = compare_page(alamat.query)
+        if url.path == "/banding":
+            page_html = compare_page(url.query)
             if page_html is None:
                 return self.send_error(404)
             return self.send_html(page_html)
