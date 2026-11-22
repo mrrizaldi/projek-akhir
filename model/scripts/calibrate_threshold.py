@@ -32,7 +32,7 @@ def main() -> None:
     f1_max = max(r["f1"] for r in rows)
     kandidat = [r for r in rows if f1_max - r["f1"] < F1_TIE_MARGIN]
     pilih = max(kandidat, key=lambda r: r["recall"])
-    print(f"\nF1 maksimum {f1_max:.4f}; kandidat dalam margin {F1_TIE_MARGIN}: "
+    print(f"\nmax F1 {f1_max:.4f}; candidates within margin {F1_TIE_MARGIN}: "
           f"{[round(r['threshold'], 2) for r in kandidat]}")
     print(f"→ THRESHOLD = {pilih['threshold']:.2f}  "
           f"(recall {pilih['recall']:.4f}, precision {pilih['precision']:.4f})")

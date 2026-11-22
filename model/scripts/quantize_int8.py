@@ -24,7 +24,7 @@ METRIK = ("accuracy", "precision", "recall", "f1", "specificity")
 def _muat(nama: str) -> dict:
     path = os.path.join(PROCESSED_DIR, nama)
     if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} — jalankan `make split` dulu")
+        raise FileNotFoundError(f"{path} — run `make split` first")
     with np.load(path) as z:
         return {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 
@@ -35,9 +35,9 @@ def main() -> None:
     tflite_path = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
 
     idx = stratified_indices(ds1["y"], REP_SAMPLES)
-    print(f"kalibrasi {len(idx)} sampel dari DS1  "
+    print(f"calibration {len(idx)} samples from DS1  "
           f"(Normal {int((ds1['y'][idx] == 0).sum())}, "
-          f"Aritmia {int((ds1['y'][idx] == 1).sum())})   int8_io={INT8_IO}")
+          f"Arrhythmia {int((ds1['y'][idx] == 1).sum())})   int8_io={INT8_IO}")
 
     deploy = build_deploy_model(tf.keras.models.load_model(keras_path))
     blob = quantize_int8(deploy, representative_dataset_gen(
@@ -45,10 +45,10 @@ def main() -> None:
     with open(tflite_path, "wb") as f:
         f.write(blob)
     ukuran_kb = len(blob) / 1024
-    print(f"{tflite_path}  {len(blob):,} byte = {ukuran_kb:.2f} KB "
-          f"({'OK' if ukuran_kb < MAX_MODEL_KB else 'MELEBIHI'} batas {MAX_MODEL_KB} KB)")
+    print(f"{tflite_path}  {len(blob):,} bytes = {ukuran_kb:.2f} KB "
+          f"({'OK' if ukuran_kb < MAX_MODEL_KB else 'EXCEEDS'} limit {MAX_MODEL_KB} KB)")
 
-    print(f"inferensi INT8 atas {len(ds2['y']):,} beat DS2 ...")
+    print(f"INT8 inference over {len(ds2['y']):,} DS2 beats ...")
     prob = predict_tflite(tflite_path, ds2["X_morph"], ds2["X_rr"])
     int8 = evaluate_probabilities(ds2["y"], prob, THRESHOLD)
     int8["auc"] = roc_auc(ds2["y"], prob)
@@ -70,7 +70,7 @@ def main() -> None:
     print(f"{'TP/FN/FP/TN':<14} "
           f"{int(fp32['tp'])}/{int(fp32['fn'])}/{int(fp32['fp'])}/{int(fp32['tn'])}"
           f"   {int8['tp']}/{int8['fn']}/{int8['fp']}/{int8['tn']}")
-    print(f"{'ukuran model':<14} {'(n/a)':>10} {ukuran_kb:>9.2f}K")
+    print(f"{'model size':<14} {'(n/a)':>10} {ukuran_kb:>9.2f}K")
 
     with open(os.path.join(METRICS_DIR, "fase7_delta.csv"), "w") as f:
         f.write("metrik,float32,int8,delta\n")

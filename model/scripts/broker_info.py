@@ -44,28 +44,28 @@ def main():
 
     print(f"Hostname : {socket.gethostname()}")
     if ssid:
-        print(f"SSID     : {ssid}  -> board harus terhubung ke SSID yang sama")
+        print(f"SSID     : {ssid}  -> the board must connect to the same SSID")
     else:
-        print("SSID     : tidak terdeteksi (laptop memakai kabel, atau nmcli/iwgetid tidak ada);"
-              " board harus terhubung ke jaringan yang sama dengan laptop")
+        print("SSID     : not detected (laptop is wired, or nmcli/iwgetid is missing);"
+              " the board must connect to the same network as the laptop")
 
     print("IPv4 LAN :", end="")
-    print("".join(f"\n  {nama:<12} {ip}" for nama, ip in lan) or " tidak ada (laptop belum tersambung ke jaringan)")
+    print("".join(f"\n  {nama:<12} {ip}" for nama, ip in lan) or " none (laptop is not connected to a network)")
 
     print("Port localhost:")
     for p, ket in PORT.items():
-        print(f"  {p:<5} {'terbuka' if port_terbuka(p) else 'TERTUTUP'}  ({ket})")
+        print(f"  {p:<5} {'open' if port_terbuka(p) else 'CLOSED'}  ({ket})")
     if not port_terbuka(1883):
-        print("  -> jalankan: cd dashboard && docker compose up -d")
+        print("  -> run: cd dashboard && docker compose up -d")
 
-    print("\nSaran entri (firmware/include/wifi_secrets.h):")
+    print("\nSuggested entries (firmware/include/wifi_secrets.h):")
     print("  WIFI_DAFTAR:")
-    print(f'    {{"{ssid or "<ssid>"}", "<sandi>"}},')
+    print(f'    {{"{ssid or "<ssid>"}", "<password>"}},')
     print("  BROKER_DAFTAR:")
     for nama, ip in lan or [("-", "<IP>")]:
-        print(f'    {{"laptop", "{ip}", 1883, "<token>"}},   // {nama}, berlaku selama IP ini')
+        print(f'    {{"laptop", "{ip}", 1883, "<token>"}},   // {nama}, valid while this IP stays')
     print("Token: cd dashboard && python3 smoke_test.py")
-    print("IP laptop berubah (DHCP)? Jalankan ulang ini, perbarui entri, flash ulang.")
+    print("Laptop IP changed (DHCP)? Run this again, update the entries, reflash.")
 
 
 if __name__ == "__main__":

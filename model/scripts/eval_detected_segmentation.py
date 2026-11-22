@@ -56,8 +56,8 @@ def main() -> None:
     toleransi = round(TOLERANSI_MS / 1000 * FS)
 
     offset, n_pasangan = kalibrasi_offset(sos, toleransi)
-    print(f"Offset detektor dikalibrasi di DS1: median {offset} sampel "
-          f"({1000 * offset / FS:.1f} ms) atas {n_pasangan:,} pasangan\n")
+    print(f"Detector offset calibrated on DS1: median {offset} samples "
+          f"({1000 * offset / FS:.1f} ms) over {n_pasangan:,} pairs\n")
 
     model = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
 
@@ -115,33 +115,33 @@ def main() -> None:
     c = confusion_counts(y, pred)
     m = binary_metrics(c)
 
-    print(f"Detektor di DS2: {det_tp:,} beat terdeteksi, {det_fn:,} terlewat "
-          f"(sensitivity {det_tp / (det_tp + det_fn):.4f}), {n_palsu:,} deteksi palsu")
-    print("   per kelas AAMI: " + "  ".join(
+    print(f"Detector on DS2: {det_tp:,} beats detected, {det_fn:,} missed "
+          f"(sensitivity {det_tp / (det_tp + det_fn):.4f}), {n_palsu:,} false detections")
+    print("   per AAMI class: " + "  ".join(
         f"{k} {kena[k] / tot[k]:.3f}" for k in ("N", "S", "V", "F") if tot.get(k)))
     ar_t = sum(tot.get(k, 0) for k in "SVFQ")
     ar_k = sum(kena.get(k, 0) for k in "SVFQ")
-    print(f"   Normal {kena['N'] / tot['N']:.4f} vs Aritmia {ar_k / ar_t:.4f} — "
-          f"beat prematur terblokir refraktori 200 ms detektor\n")
+    print(f"   Normal {kena['N'] / tot['N']:.4f} vs Arrhythmia {ar_k / ar_t:.4f} — "
+          f"premature beats blocked by the detector 200 ms refractory period\n")
 
-    print("A. Klasifikasi pada beat yang BERHASIL terdeteksi")
+    print("A. Classification on beats that WERE detected")
     print(f"   n={len(y):,}  TP={c['tp']} FN={c['fn']} FP={c['fp']} TN={c['tn']}")
     print(f"   recall {m['recall']:.4f}  precision {m['precision']:.4f}  F1 {m['f1']:.4f}")
 
     sistem_tp = int(((pred == 1) & (y == 1)).sum())
-    print("\nB. Tingkat SISTEM (penyebut = semua aritmia asli di DS2)")
-    print(f"   aritmia asli {n_aritmia_total:,}  tertangkap {sistem_tp:,}"
-          f"  → recall sistem {sistem_tp / n_aritmia_total:.4f}")
+    print("\nB. SYSTEM level (denominator = all true arrhythmias in DS2)")
+    print(f"   true arrhythmias {n_aritmia_total:,}  caught {sistem_tp:,}"
+          f"  → system recall {sistem_tp / n_aritmia_total:.4f}")
 
     if palsu_prob:
         pp = np.concatenate(palsu_prob)
-        print(f"\nC. Deteksi palsu: {len(pp):,} window tanpa beat asli, "
-              f"{int((pp >= THRESHOLD).sum()):,} diklasifikasi Aritmia "
-              f"({100 * (pp >= THRESHOLD).mean():.1f}%) → alarm palsu tambahan")
+        print(f"\nC. False detections: {len(pp):,} windows without a true beat, "
+              f"{int((pp >= THRESHOLD).sum()):,} classified Arrhythmia "
+              f"({100 * (pp >= THRESHOLD).mean():.1f}%) → extra false alarms")
 
     with open(os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")) as f:
         a = next(csv.DictReader(f))
-    print("\nD. Pembanding Fase 6 (segmentasi anotasi, float32, threshold "
+    print("\nD. Phase 6 comparison (annotation segmentation, float32, threshold "
           f"{a['threshold']}; fase6_metrics_fp32.csv)")
     print(f"   recall {float(a['recall']):.4f}  precision {float(a['precision']):.4f}  "
           f"F1 {float(a['f1']):.4f}")

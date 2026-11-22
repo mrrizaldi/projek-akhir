@@ -20,7 +20,7 @@ def quant_params() -> dict:
     keluar = interp.get_output_details()[0]
     for nama, d in (("input", morph), ("rr", rr), ("output", keluar)):
         if d["dtype"].__name__ != "int8":
-            raise ValueError(f"{nama} bukan int8 ({d['dtype'].__name__}) — cek INT8_IO")
+            raise ValueError(f"{nama} is not int8 ({d['dtype'].__name__}) — check INT8_IO")
     return {
         "morph": morph["quantization"], "rr": rr["quantization"],
         "out": keluar["quantization"],
@@ -29,7 +29,7 @@ def quant_params() -> dict:
 
 def main() -> None:
     if not os.path.exists(TFLITE):
-        raise FileNotFoundError(f"{TFLITE} — jalankan `make quantize` dulu")
+        raise FileNotFoundError(f"{TFLITE} — run `make quantize` first")
     blob = open(TFLITE, "rb").read()
     q = quant_params()
     os.makedirs(os.path.dirname(HEADER), exist_ok=True)

@@ -44,10 +44,10 @@ def main(record_id: str) -> None:
     sensitivity = tp / (tp + fn) if (tp + fn) else 0.0
     precision = tp / (tp + fp) if (tp + fp) else 0.0
 
-    print(f"record {record_id} — anotasi={len(r_locations)}, terdeteksi={len(detected)}")
+    print(f"record {record_id} — annotations={len(r_locations)}, detected={len(detected)}")
     print(f"  TP={tp}  FN={fn}  FP={fp}")
     print(f"  sensitivity={sensitivity:.3f}  precision={precision:.3f}  "
-          f"(toleransi ±{TOLERANCE_MS}ms = ±{tolerance_samples} sampel)")
+          f"(tolerance ±{TOLERANCE_MS}ms = ±{tolerance_samples} samples)")
 
     n = PLOT_SECONDS * fs
     time = np.arange(n) / fs

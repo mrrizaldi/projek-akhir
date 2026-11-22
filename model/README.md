@@ -51,7 +51,7 @@ alur dan alasan ada di walkthrough yang disebut di kolom terakhir.
 
 | Skrip | Perintah | Guna dan catatan |
 |---|---|---|
-| `download_data.py` | `python scripts/download_data.py [svdb incartdb \| --semua]` | Unduh database PhysioNet ke `data/raw/<db>/`. Aman diulang (wfdb melewati berkas yang sudah ada). Ukuran ~100 MB mitdb, ~200 MB svdb, ~700 MB incartdb (12 kanal). Syarat database: anotasi beat-level (lihat [dataset](docs/dataset-walkthrough.md) §4) |
+| `download_data.py` | `python scripts/download_data.py [svdb incartdb \| --all]` | Unduh database PhysioNet ke `data/raw/<db>/`. Aman diulang (wfdb melewati berkas yang sudah ada). Ukuran ~100 MB mitdb, ~200 MB svdb, ~700 MB incartdb (12 kanal). Syarat database: anotasi beat-level (lihat [dataset](docs/dataset-walkthrough.md) §4) |
 | `check_dataset.py` | `make check` | Cek kelengkapan berkas, baca record 100, ringkas label, plot 30 detik pertama kanal MLII dengan simbol anotasi |
 | `plot_fase0.py` | `make plot0 REC=100` | DoD Fase 0: garis R-peak anotasi harus mendarat PAS di puncak R. Meleset berarti kanal salah baca ([io-mitdb](docs/io-mitdb-walkthrough.md)) |
 | `plot_fase1.py` | `make plot1` | Mentah vs bandpass: panel waktu, PSD, dan spectrogram memakai jendela waktu yang sama supaya energi tinggi di spectrogram bisa dicocokkan ke QRS ([preprocessing](docs/preprocessing-walkthrough.md)) |

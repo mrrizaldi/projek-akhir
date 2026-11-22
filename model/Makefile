@@ -9,7 +9,7 @@ help:
 data:  ## download MIT-BIH ke data/raw/mitdb (sekali jalan)
 	$(PY) scripts/download_data.py $(DB)
 data-semua: ## + svdb & incartdb (Fase A, ~1 GB) -> data/raw/<db>/
-	$(PY) scripts/download_data.py --semua
+	$(PY) scripts/download_data.py --all
 check: ## cek kelengkapan .hea/.dat/.atr
 	$(PY) scripts/check_dataset.py
 plot0: ## verifikasi Fase 0 — overlay R-peak anotasi (REC=<record>, bawaan 100)

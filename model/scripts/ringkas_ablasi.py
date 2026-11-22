@@ -67,7 +67,7 @@ def main() -> None:
         for kolom, _ in KOLOM:
             sel.append("        -        " if s[kolom] is None
                        else f"{s[kolom][0]:8.4f} +-{s[kolom][1]:6.4f}")
-        tanda = "" if s["n_seed"] >= SEED_MINIMAL else "  <- seed < 3, BELUM SAH"
+        tanda = "" if s["n_seed"] >= SEED_MINIMAL else "  <- seed < 3, NOT YET VALID"
         print(f"{t:<20}{s['n_seed']:>3}  " + "  ".join(sel) + tanda)
 
     if not args.vs:
@@ -80,8 +80,8 @@ def main() -> None:
         k_f1 = KOLOM[0][0]
         d_f1 = hasil[t][k_f1][0] - dasar[k_f1][0]
         d_ren = hasil[t][k_f1][1] - dasar[k_f1][1]
-        vonis = "SINYAL" if abs(d_f1) >= AMBANG else "bukan sinyal"
-        arah = "menyempit" if d_ren < 0 else "melebar"
+        vonis = "SIGNAL" if abs(d_f1) >= AMBANG else "not a signal"
+        arah = "narrows" if d_ren < 0 else "widens"
         print(f"  {t:<20} dF1 {d_f1:+.4f} ({vonis})   "
               f"range F1 {arah} {abs(d_ren):.4f}")
         for kolom, nama in KOLOM[1:]:

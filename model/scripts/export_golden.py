@@ -53,12 +53,12 @@ def main() -> None:
     filtered_penuh = apply_bandpass(sig, sos)
     filtered = apply_bandpass(potongan, sos)
     assert np.allclose(filtered, filtered_penuh[:N_SAMPLES], atol=1e-6), \
-        "filter tidak kausal — vektor uji tidak bisa berdiri sendiri"
+        "filter is not causal — the test vector cannot stand alone"
 
     idx = valid_beat_indices(len(sig), r)
     dipakai = [i for i in idx if r[i] - WIN_PRE >= 0 and r[i] + WIN_POST <= N_SAMPLES]
     if not dipakai:
-        raise ValueError("tidak ada beat yang muat di potongan")
+        raise ValueError("no beat fits in the excerpt")
 
     windows = zscore_per_window(segment_beats(filtered, r[dipakai]))
     label = [to_binary_label(to_aami_class(sym[i])) for i in dipakai]
@@ -155,8 +155,8 @@ const int golden_r_deteksi[GOLDEN_N_DETEKSI] = {{{isi_deteksi}}};
 #endif
 """)
 
-    print(f"Pan-Tompkins atas potongan: {len(r_deteksi)} R-peak -> {list(map(int, r_deteksi))}")
-    print(f"record {RECORD}, {N_SAMPLES} sampel, {len(dipakai)} beat: "
+    print(f"Pan-Tompkins over the excerpt: {len(r_deteksi)} R-peak -> {list(map(int, r_deteksi))}")
+    print(f"record {RECORD}, {N_SAMPLES} samples, {len(dipakai)} beats: "
           f"{', '.join(sym[i] for i in dipakai)}")
     for n, (i, pf, pi) in enumerate(zip(dipakai, p_fp32, p_int8)):
         print(f"  beat {n}  r={int(r[i]):>5}  {sym[i]}  label={label[n]}  "

@@ -51,13 +51,13 @@ def main() -> None:
         ds2 = {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
     aami = simbol_aami_ds2()
     if len(aami) != len(ds2["y"]):
-        raise ValueError(f"simbol {len(aami)} != detak DS2 {len(ds2['y'])}")
+        raise ValueError(f"symbols {len(aami)} != DS2 beats {len(ds2['y'])}")
     if not np.array_equal(np.isin(aami, KELAS_ARITMIA + ("Q",)), ds2["y"] == 1):
-        raise ValueError("simbol AAMI tidak sejajar dengan label DS2")
+        raise ValueError("AAMI symbols are not aligned with the DS2 labels")
 
     model = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
     prob_fp32 = model.predict([ds2["X_morph"], ds2["X_rr"]], verbose=0).ravel()
-    print(f"inferensi INT8 atas {len(ds2['y']):,} detak DS2 ...")
+    print(f"INT8 inference over {len(ds2['y']):,} DS2 beats ...")
     prob_int8 = predict_tflite(os.path.join(ARTIFACT_DIR, "model_int8.tflite"),
                                ds2["X_morph"], ds2["X_rr"])
 
@@ -68,7 +68,7 @@ def main() -> None:
     print(f"\n{'Metrik':<24} {'Float32':>10} {'INT8':>10} {'Delta':>10}")
     for k in fp32:
         print(f"{k:<24} {fp32[k]:>10.4f} {int8[k]:>10.4f} {int8[k] - fp32[k]:>+10.4f}")
-    print(f"label berubah float32 -> INT8: {int(berubah.sum())} dari {len(berubah)} "
+    print(f"labels changed float32 -> INT8: {int(berubah.sum())} of {len(berubah)} "
           f"({100 * berubah.mean():.2f}%)")
 
     with open(os.path.join(METRICS_DIR, BERKAS_KELUARAN), "w") as f:

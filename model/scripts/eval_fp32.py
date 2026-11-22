@@ -34,7 +34,7 @@ def plot_confusion(counts: dict, out_path: str, judul: str) -> None:
 def main() -> None:
     path = os.path.join(PROCESSED_DIR, "test.npz")
     if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} — jalankan `make split` dulu")
+        raise FileNotFoundError(f"{path} — run `make split` first")
     with np.load(path) as z:
         ds2 = {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 
@@ -44,8 +44,8 @@ def main() -> None:
     hasil = evaluate_probabilities(ds2["y"], prob, THRESHOLD)
     auc = roc_auc(ds2["y"], prob)
 
-    print(f"DS2  {len(ds2['y'])} beat dari {len(np.unique(ds2['records']))} pasien  "
-          f"({int(ds2['y'].sum())} aritmia)   threshold {THRESHOLD} (dari DS1/val)")
+    print(f"DS2  {len(ds2['y'])} beats from {len(np.unique(ds2['records']))} patients  "
+          f"({int(ds2['y'].sum())} arrhythmia)   threshold {THRESHOLD} (from DS1/val)")
     print(f"  TP={hasil['tp']}  FN={hasil['fn']}  FP={hasil['fp']}  TN={hasil['tn']}")
     for k in ("recall", "precision", "f1", "specificity", "accuracy"):
         print(f"  {k:<12} {hasil[k]:.4f}")
@@ -72,11 +72,11 @@ def main() -> None:
 
     ada = [r for r in rows if r["n_aritmia"] > 0]
     terburuk = sorted(ada, key=lambda r: r["recall"])[:4]
-    print("\nrecall per pasien (4 terburuk yang punya aritmia):")
+    print("\nrecall per patient (4 worst with arrhythmia):")
     for r in terburuk:
-        print(f"  rec {r['record']}  {r['n_aritmia']:>5} aritmia  recall {r['recall']:.4f}")
+        print(f"  rec {r['record']}  {r['n_aritmia']:>5} arrhythmia  recall {r['recall']:.4f}")
     print(f"  median recall {np.median([r['recall'] for r in ada]):.4f} "
-          f"atas {len(ada)} pasien beraritmia")
+          f"over {len(ada)} patients with arrhythmia")
 
 
 if __name__ == "__main__":

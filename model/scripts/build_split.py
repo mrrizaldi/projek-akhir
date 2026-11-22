@@ -12,9 +12,9 @@ from src.dataset import build_split, build_split_multi
 def _ringkas(nama: str, d: dict) -> None:
     y = d["y"]
     n, n_arr = len(y), int(y.sum())
-    print(f"{nama:<6} {len(np.unique(d['records'])):>3} record  {n:>7} beat  "
+    print(f"{nama:<6} {len(np.unique(d['records'])):>3} records  {n:>7} beats  "
           f"Normal {n - n_arr:>6} ({100 * (n - n_arr) / n:.1f}%)  "
-          f"Aritmia {n_arr:>6} ({100 * n_arr / n:.1f}%)")
+          f"Arrhythmia {n_arr:>6} ({100 * n_arr / n:.1f}%)")
 
 
 def main_multi() -> None:
