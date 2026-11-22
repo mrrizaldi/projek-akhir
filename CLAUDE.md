@@ -277,7 +277,7 @@ tests on the N16R8 board, env `native` = tests on the PC). Run from `firmware/`.
 - **Before changing a pin/driver**, make sure which hardware is in use
   (breadboard or PCB rev N). The single pin map is in
   `firmware/include/board.h`; the pin map and circuit rationale of the PCB are in
-  `hardware/mainboard/README.md` (sections "Peta pin" and "Rasional rangkaian modul").
+  `hardware/mainboard/README.md` (sections "Pin map" and "Module circuit rationale").
 
 ## Diagrams & laporan figures
 

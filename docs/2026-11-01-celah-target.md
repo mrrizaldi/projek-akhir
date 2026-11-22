@@ -5,8 +5,8 @@ penutupnya dicatat di dokumen terkait (walkthrough, `model/CLAUDE.md`, buku).
 **Sumber target:** Tujuan Bab 1, rencana pengujian Bab 3
 (`tab:pengujian-model`, `tab:pengujian-pipeline`), PRD
 (`model/PRD_Model_Aritmia_TinyML.pdf`, DoD hal. 17 dan Lampiran C hal. 18),
-`model/CLAUDE.md` §Pekerjaan terbuka, `hardware/mainboard/README.md` §Yang belum
-terverifikasi.
+`model/CLAUDE.md` §Pekerjaan terbuka, `hardware/mainboard/README.md` §Not yet
+verified.
 **Cara pindai:** `grep -rn PLACEHOLDER laporan/buku-pa/bab`, tabel ketercapaian
 dan keterbatasan Bab 4, lalu tiap target Bab 3 dicocokkan dengan cara ukurnya di
 Bab 4.
@@ -53,7 +53,7 @@ perangkat keras dan gambar.
 
 | # | Pekerjaan | Siapa | Catatan |
 |---|---|---|---|
-| D1 | Cek fisik PCB rev2: jarak header DevKit, urutan pin modul, ruang mekanik, jalur D1→VSYS, konektor baterai, tegangan lampu saklar | User | `hardware/mainboard/README.md` §Yang belum terverifikasi |
+| D1 | Cek fisik PCB rev2: jarak header DevKit, urutan pin modul, ruang mekanik, jalur D1→VSYS, konektor baterai, tegangan lampu saklar | User | `hardware/mainboard/README.md` §Not yet verified |
 | D2 | Tabel perangkat keras, foto rakitan, saran wearable di Bab 4/5 | User + Claude | Sesudah PCB dicetak |
 | D3 | 12 gambar placeholder (9 di Bab 3, 3 di Bab 4) | User | `laporan/buku-pa/gambar/daftar-placeholder.md`. `fig:4-bufer` adalah plot data, perlu keputusan apakah skrip plotnya ditulis |
 | D4 | Aturan alarm ThingsBoard dan widget `ecg_snippet` | Claude | Keduanya disebut belum ada di Bab 3/4; opsional |
