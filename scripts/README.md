@@ -71,7 +71,7 @@ python3 scripts/check_comments.py firmware/src model/x.py  # sebagian (folder/be
 python3 scripts/check_comments.py --self-test             # uji mandiri pemeriksa
 ```
 
-CI menjalankannya di `.github/workflows/cek.yml` (job `komentar`), bersama
+CI menjalankannya di `.github/workflows/cek.yml` (job `comments`), bersama
 `pio test -e native` (job `firmware-native`). Pytest model tidak ikut karena
 butuh data MIT-BIH yang tidak di-commit.
 
