@@ -52,7 +52,7 @@ Ask only about decisions that change the book's content now and cannot be answer
 
 1. History already recorded in the repo (old assembly, test dates, old pins): use it as is, do not ask.
 2. Numbers waiting for official data: write `\PlaceholderData{...}`, do not ask.
-3. Things waiting for an event (final PCB printed, official recordings): record as an item in `model/CLAUDE.md` §Pekerjaan terbuka, do not ask. In book text and tables do not write them as if they had happened: not "PCB final" but `\PlaceholderData{rakitan final}`.
+3. Things waiting for an event (final PCB printed, official recordings): record as an item in `model/CLAUDE.md` §Open work, do not ask. In book text and tables do not write them as if they had happened: not "PCB final" but `\PlaceholderData{rakitan final}`.
 4. A decision owned by the user that was never made and has no answer in the repo (cover colour, campus template, new wording): ask once with options and a recommendation. Such a decision blocks finishing the book even though other chapters can still be written; do not decide it silently with "use the default".
 
 ## Final report to the user
