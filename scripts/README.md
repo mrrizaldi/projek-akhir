@@ -1,8 +1,8 @@
-# scripts/ — otomasi lintas-komponen
+# scripts/: cross-component automation
 
-| Skrip | Fungsi |
+| Script | Function |
 |---|---|
-| `export_artifacts.sh` | Sinkronisasi artefak produsen → konsumen: `model_int8.tflite` → `firmware/include/model_int8.h`; dengan `--laporan`, figure final dari `model/artifacts/metrics/` dan `dashboard/preview.png` → `laporan/<projek>/gambar/` |
+| `export_artifacts.sh` | Artifact sync, producer → consumer: `model_int8.tflite` → `firmware/include/model_int8.h`; with `--laporan`, final figures from `model/artifacts/metrics/` and `dashboard/preview.png` → `laporan/<projek>/gambar/` |
 
 ```bash
 bash scripts/export_artifacts.sh                                 # model -> firmware
@@ -11,59 +11,60 @@ LAPORAN_PROJ=proposal-pa bash scripts/export_artifacts.sh --laporan
 AKUISISI="akuisisi/akuisisi_<tgl-jam>" bash scripts/export_artifacts.sh --laporan   # + grafik rekaman resmi
 ```
 
-Langkah figure tidak berjalan tanpa `--laporan` karena `laporan/` bersifat
-read-only tanpa konfirmasi. Artefak tidak disalin manual. `LAPORAN_PROJ`
-memilih projek tujuan (bawaan `buku-pa`; `proposal-pa` = arsip). `AKUISISI`
-berisi daftar grafik rekaman tambahan (data resmi = sesi 22 Okt 2026 siang, grafik R1 sudah ada di daftar tetap; relatif terhadap
-`model/artifacts/metrics/`, tanpa `.png`, dipisah spasi) yang ikut disalin.
+The figure step does not run without `--laporan` because `laporan/` is
+read-only without confirmation. Artifacts are not copied by hand. `LAPORAN_PROJ`
+selects the target project (default `buku-pa`; `proposal-pa` = archive).
+`AKUISISI` holds the list of extra recording plots (official data = the
+22 Oct 2026 afternoon session, the R1 plot is already in the fixed list;
+relative to `model/artifacts/metrics/`, without `.png`, separated by spaces)
+that are copied as well.
 
-## Indeks berkas lewat browser
+## File index in the browser
 
-`serve.py` menyalakan server lokal (stdlib, tanpa dependency) yang
-menyajikan seluruh repo. Halaman `/` mendaftar semua `.pdf`, `.docx`, dan
-`.pptx` di repo (kecuali `.git`, `.venv`, `node_modules`, `.pio`),
-dikelompokkan per folder. Folder dengan berkas paling baru tampil paling
-atas, jadi PDF yang baru di-`make pdf` langsung ada di urutan pertama.
-Daftar dibaca ulang setiap halaman dimuat, tanpa langkah build. Tautan
-terbuka di tab baru.
+`serve.py` starts a local server (stdlib, no dependencies) that serves the
+whole repo. The `/` page lists all `.pdf`, `.docx`, and `.pptx` files in the
+repo (except `.git`, `.venv`, `node_modules`, `.pio`), grouped by folder. The
+folder with the newest file appears at the top, so a PDF that was just built
+with `make pdf` is immediately first. The list is re-read every time the page
+loads, with no build step. Links open in a new tab.
 
-1. Jalankan dari akar repo:
+1. Run from the repo root:
 
    ```bash
    python3 scripts/serve.py          # port bawaan 8700
    python3 scripts/serve.py 9000     # port lain
    ```
 
-2. Buka `http://127.0.0.1:8700/` di browser. PDF terbuka di viewer browser;
-   `.docx`/`.pptx` terunduh.
-3. Hentikan dengan `Ctrl+C`.
+2. Open `http://127.0.0.1:8700/` in a browser. PDFs open in the browser
+   viewer; `.docx`/`.pptx` are downloaded.
+3. Stop with `Ctrl+C`.
 
-Folder `laporan/rilis/<proyek>/vN` dengan N > 0 punya tautan "banding vN-1
-dan vN" di judul grupnya. Tautan itu membuka halaman `/banding` berisi dua PDF
-berdampingan. Perubahan teks per kata ada di `banding-vM-vN.pdf` di folder yang
-sama. Parameter `lama` dan `baru` pada `/banding` hanya menerima PDF di dalam
-repo.
+Folders `laporan/rilis/<proyek>/vN` with N > 0 have a link "banding vN-1 dan
+vN" (compare vN-1 and vN) in their group title. The link opens the `/banding`
+page with two PDFs side by side. The per-word text changes are in
+`banding-vM-vN.pdf` in the same folder. The `lama` (old) and `baru` (new)
+parameters of `/banding` accept only PDFs inside the repo.
 
-Server hanya mendengar di `127.0.0.1`, jadi tidak terjangkau dari perangkat
-lain di jaringan. Selain berkas di indeks, path apa pun di repo bisa dibuka
-langsung lewat URL (`/model/artifacts/metrics/...png`).
+The server listens only on `127.0.0.1`, so it is not reachable from other
+devices on the network. Besides the files in the index, any path in the repo
+can be opened directly by URL (`/model/artifacts/metrics/...png`).
 
-## Pemeriksa
+## Checkers
 
-`check_comments.py` menegakkan aturan TANPA KOMENTAR KODE (`CLAUDE.md` root,
-Aturan keras 5). Memindai berkas tracked git dan keluar dengan kode 1 sambil
-mencetak `berkas:baris: isi` untuk tiap komentar yang ditemukan.
+`check_comments.py` enforces the NO CODE COMMENTS rule (root `CLAUDE.md`,
+Strict rule 5). It scans git-tracked files and exits with code 1 while
+printing `berkas:baris: isi` for each comment found.
 
-| Jenis | Yang dilarang | Yang boleh |
+| Kind | Forbidden | Allowed |
 |---|---|---|
-| C/C++ (`.c .cpp .h .hpp`) | `//`, `/* */` | `//` atau `/*` di dalam string/char literal |
-| Python (`.py`) | `#`, docstring modul/kelas/fungsi | shebang baris 1, baris `coding` |
-| Shell (`.sh`, `.githooks/*`) | `#` di awal kata di luar string | shebang baris 1, `$#`, `${#v}`, isi heredoc |
-| `platformio.ini` | baris diawali `;` atau `#` | — |
-| Makefile | `#` (termasuk `##` judul seksi) | `##` deskripsi di baris target (`make help`) |
+| C/C++ (`.c .cpp .h .hpp`) | `//`, `/* */` | `//` or `/*` inside a string/char literal |
+| Python (`.py`) | `#`, module/class/function docstrings | shebang on line 1, `coding` line |
+| Shell (`.sh`, `.githooks/*`) | `#` at the start of a word outside a string | shebang on line 1, `$#`, `${#v}`, heredoc contents |
+| `platformio.ini` | lines starting with `;` or `#` | — |
+| Makefile | `#` (including `##` section titles) | `##` description on a target line (`make help`) |
 
-Dikecualikan: `laporan/`, `docs/`, `*.md`, `*.tex`, folder `arsip/`, dan berkas
-non-kode lain.
+Excluded: `laporan/`, `docs/`, `*.md`, `*.tex`, `arsip/` folders, and other
+non-code files.
 
 ```bash
 python3 scripts/check_comments.py                       # seluruh repo
@@ -71,47 +72,48 @@ python3 scripts/check_comments.py firmware/src model/x.py  # sebagian (folder/be
 python3 scripts/check_comments.py --self-test             # uji mandiri pemeriksa
 ```
 
-CI menjalankannya di `.github/workflows/checks.yml` (job `comments`), bersama
-`pio test -e native` (job `firmware-native`). Pytest model tidak ikut karena
-butuh data MIT-BIH yang tidak di-commit.
+CI runs it in `.github/workflows/checks.yml` (job `comments`), together with
+`pio test -e native` (job `firmware-native`). The model pytest is not included
+because it needs MIT-BIH data that is not committed.
 
-Hook lokal opsional memeriksa berkas yang di-stage sebelum commit. Aktifkan
-sekali per clone:
+An optional local hook checks staged files before commit. Enable it once per
+clone:
 
 ```bash
 git config core.hooksPath .githooks
 ```
 
-Batasan: hook membaca isi berkas di working tree, bukan isi yang di-stage;
-raw string C++ (`R"(...)"`) dan pemisah digit (`1'000`) belum dikenali tokenizer C.
+Limitations: the hook reads the contents of the working tree file, not the
+staged contents; C++ raw strings (`R"(...)"`) and digit separators (`1'000`)
+are not yet recognized by the C tokenizer.
 
-## Pemeriksa tabel dan narasi laporan
+## Report table and narrative checker
 
-`cek_tabel.py` memeriksa tabel LaTeX dan paragraf penjelasnya di laporan PA
-(skill `tabel-pa` dan `tulis-tanpa-slop`). Galat keluar dengan kode 1, sedangkan
-saran hanya dicetak (`--ketat` membuat saran ikut gagal). Format keluaran:
-`berkas:baris: [KODE tingkat] pesan`.
+`cek_tabel.py` checks LaTeX tables and their explanatory paragraphs in the PA
+report (skills `tabel-pa` and `tulis-tanpa-slop`). Errors exit with code 1,
+while suggestions are only printed (`--ketat` makes suggestions fail as well).
+Output format: `berkas:baris: [KODE tingkat] pesan`.
 
-| Kode | Tingkat | Yang diperiksa |
+| Code | Level | What is checked |
 |---|---|---|
-| `T-BAB` | galat | tabel di Bab 1 atau Bab 5 |
-| `T-GRID` | galat | `booktabs`, padahal panduan PENS memakai grid penuh |
-| `T-HEADER` | galat | header tanpa `\rowcolor{headgray}` |
-| `T-CAPTION` | galat/saran | caption hilang atau di bawah tabel (galat), berakhir titik, memuat kurung, > 15 kata (saran) |
-| `T-LEBAR` | galat | jumlah lebar `p{}` + `\tabcolsep` melebihi lebar teks (A4 14 cm) |
-| `T-RUJUK` | galat/saran | label tidak pernah dirujuk (galat) atau baru dirujuk sesudah tabel (saran) |
-| `T-FLOAT` | saran | `[H]` |
-| `T-SEL` | saran | sel > 20 kata |
-| `T-CATATAN` | saran | baris `\multicolumn` selebar tabel berisi catatan panjang |
-| `T-SATUAN` | saran | satuan diulang di ≥ 3 sel satu kolom |
-| `T-DESIMAL` | saran | jumlah desimal tidak seragam dalam satu kolom |
-| `T-ISIAN` | saran | isian "Sama", "idem", "Tidak diulang", "Konfigurasi sama" |
-| `N-PEMBUKA` | saran | penjelas berurutan dengan pembuka sama, "Berdasarkan Tabel" > 3 per bab |
-| `N-ULANG` | saran | penjelas mengulang > 50% angka tabel (tabel ≥ 5 angka) |
-| `N-PANJANG` | saran | penjelas > 180 kata |
-| `N-KALIMAT` | saran | kalimat > 35 kata (diringkas per bab, 5 terpanjang) |
-| `N-GAYA` | saran | titik koma atau em dash di paragraf |
-| `N-SEHINGGA` | saran | "sehingga" > 5 per 1.000 kata |
+| `T-BAB` | error | table in Chapter 1 or Chapter 5 |
+| `T-GRID` | error | `booktabs`, although the PENS guideline uses a full grid |
+| `T-HEADER` | error | header without `\rowcolor{headgray}` |
+| `T-CAPTION` | error/suggestion | caption missing or below the table (error), ends with a period, contains parentheses, > 15 words (suggestion) |
+| `T-LEBAR` | error | sum of `p{}` widths + `\tabcolsep` exceeds the text width (A4 14 cm) |
+| `T-RUJUK` | error/suggestion | label never referenced (error) or only referenced after the table (suggestion) |
+| `T-FLOAT` | suggestion | `[H]` |
+| `T-SEL` | suggestion | cell > 20 words |
+| `T-CATATAN` | suggestion | `\multicolumn` row as wide as the table holding a long note |
+| `T-SATUAN` | suggestion | unit repeated in ≥ 3 cells of one column |
+| `T-DESIMAL` | suggestion | number of decimals not uniform within one column |
+| `T-ISIAN` | suggestion | fill-in values "Sama", "idem", "Tidak diulang", "Konfigurasi sama" (same, idem, not repeated, same configuration) |
+| `N-PEMBUKA` | suggestion | consecutive explanatory paragraphs with the same opening, "Berdasarkan Tabel" (based on Table) > 3 per chapter |
+| `N-ULANG` | suggestion | explanatory paragraph repeats > 50% of the table numbers (table with ≥ 5 numbers) |
+| `N-PANJANG` | suggestion | explanatory paragraph > 180 words |
+| `N-KALIMAT` | suggestion | sentence > 35 words (summarized per chapter, 5 longest) |
+| `N-GAYA` | suggestion | semicolon or em dash in a paragraph |
+| `N-SEHINGGA` | suggestion | "sehingga" (so that) > 5 per 1,000 words |
 
 ```bash
 python3 scripts/cek_tabel.py                                 # laporan/buku-pa/bab/bab*.tex
@@ -121,66 +123,70 @@ python3 scripts/cek_tabel.py --kertas a5 <berkas-bab.tex>    # lebar teks A5
 python3 scripts/cek_tabel.py --uji                           # uji mandiri pemeriksa
 ```
 
-## Pengunduh daftar pustaka
+## Reference list downloader
 
-`fetch_references.py` mengunduh PDF untuk entri `laporan/*/referensi.bib` ke
-`laporan/pustaka/<kunci-bib>.pdf` (folder di-ignore git: PDF penerbit tidak
-boleh masuk repo). Sumber: DOI → Unpaywall → URL PDF open access; entri
-`@misc` yang `url`-nya langsung `.pdf` diunduh apa adanya. Berkas yang sudah
-ada dilewati, jadi aman dijalankan berulang. Entri tanpa DOI di bib proposal
-(beku) diberi DOI lewat tabel `EXTRA_DOIS` di skrip, hasil pencarian judul
-di Scopus (15 Okt 2026).
+`fetch_references.py` downloads PDFs for the `laporan/*/referensi.bib` entries
+into `laporan/pustaka/<kunci-bib>.pdf` (the folder is git-ignored: publisher
+PDFs must not enter the repo). Sources: DOI → Unpaywall → open access PDF URL;
+`@misc` entries whose `url` is directly a `.pdf` are downloaded as is. Files
+that already exist are skipped, so it is safe to run repeatedly. Entries
+without a DOI in the proposal bib (frozen) are given a DOI through the
+`EXTRA_DOIS` table in the script, the result of title searches in Scopus
+(15 Oct 2026).
 
 ```bash
 cd model && .venv/bin/python ../scripts/fetch_references.py   # python3 biasa juga bisa, stdlib saja
 ```
 
-Keluaran: baris `[unduh]`, `[ada]`, atau `[gagal]` per kunci, lalu rekap.
-Kode keluar 1 bila ada yang gagal. Skrip ini hanya menjangkau penerbit yang
-mengizinkan unduhan otomatis; sisanya diunduh manual lewat browser dengan
-akun kampus, lalu disimpan dengan nama `<kunci-bib>.pdf` di folder yang sama.
+Output: a `[unduh]` (downloaded), `[ada]` (exists), or `[gagal]` (failed) line
+per key, then a summary. Exit code 1 if any failed. This script only reaches
+publishers that allow automated downloads; the rest are downloaded manually
+through a browser with a campus account, then saved as `<kunci-bib>.pdf` in the
+same folder.
 
-Kondisi 15 Okt 2026 (48 entri gabungan tiga bib):
+State on 15 Oct 2026 (48 entries combined from three bibs):
 
-| Status | Entri |
+| Status | Entries |
 |---|---|
-| Terunduh otomatis (10) | `al_quayed_2026`, `david_2021`, `escobedo_2026`, `jacob_2018`, `kim_2023`, `li_2020`, `reoukadji_2025`, `saito_2015`, `tipparaju_2021`, `zambrano_2026` |
-| Terunduh lewat browser Chrome headed (4; MDPI, IEEE OA, Nature) | `xiao_2023`, `orphanidou_2015`, `lueken_2023`, `joutsen_2024` (tiga terakhir belum di bib, bahan bedah paper) |
-| Terunduh dari repositori institusi penulis (1; 20 Okt 2026) | `yaacoub_2020` (AUB ScholarWorks, `https://scholarworks.aub.edu.lb/server/api/core/bitstreams/eb7f173e-d502-4682-9b35-c2b2acfe60bd/content`) |
-| Elsevier/ScienceDirect: CAPTCHA, unduh manual (18; 8 di antaranya open access) | `tinyml_iot_review`, `resilient_edge_cloud`, `mekhfioui_2025`, `xie_2021`, `karri_2023`, `laiu_2026`, `crespi_2026`, `sheeba_rani_2026`, `chowdhury_2023`, `dias_2021`, `safdar_2023`, `bui_2021`, `elhadad_2025`, `khan_2025`, `fahoum_2026`, `xiang_2026`, `kumaran_2026`, `verma_2024` |
-| IEEE berbayar, perlu akun kampus (6) | `pan_tompkins_1985`, `moody_mark_2001`, `dechazal_2004`, `shi_2016`, `kiranyaz_2016`, `lee_2013` |
-| Open access tetapi diblokir untuk otomasi (3) | `yahyati_2025` (IEEE Access), `goldberger_2000_physionet` (AHA), `skorinkapov_2010` (Wiley) |
-| Springer berbayar (1) | `bahrami_2025` |
-| Bukan artikel: buku, tesis, standar, halaman web (8) | `ecg_goldberger`, `sornmo_laguna_2005`, `mulyawan_2026`, `aami_ec57_2012`, `iec_60601_2_27_2011`, `who_cvd`, `oasis_mqtt5`, `analog_ad8232` |
+| Downloaded automatically (10) | `al_quayed_2026`, `david_2021`, `escobedo_2026`, `jacob_2018`, `kim_2023`, `li_2020`, `reoukadji_2025`, `saito_2015`, `tipparaju_2021`, `zambrano_2026` |
+| Downloaded through headed Chrome browser (4; MDPI, IEEE OA, Nature) | `xiao_2023`, `orphanidou_2015`, `lueken_2023`, `joutsen_2024` (the last three are not yet in the bib, material for the paper dissection) |
+| Downloaded from the authors' institutional repository (1; 20 Oct 2026) | `yaacoub_2020` (AUB ScholarWorks, `https://scholarworks.aub.edu.lb/server/api/core/bitstreams/eb7f173e-d502-4682-9b35-c2b2acfe60bd/content`) |
+| Elsevier/ScienceDirect: CAPTCHA, manual download (18; 8 of them open access) | `tinyml_iot_review`, `resilient_edge_cloud`, `mekhfioui_2025`, `xie_2021`, `karri_2023`, `laiu_2026`, `crespi_2026`, `sheeba_rani_2026`, `chowdhury_2023`, `dias_2021`, `safdar_2023`, `bui_2021`, `elhadad_2025`, `khan_2025`, `fahoum_2026`, `xiang_2026`, `kumaran_2026`, `verma_2024` |
+| IEEE paywalled, needs a campus account (6) | `pan_tompkins_1985`, `moody_mark_2001`, `dechazal_2004`, `shi_2016`, `kiranyaz_2016`, `lee_2013` |
+| Open access but blocked for automation (3) | `yahyati_2025` (IEEE Access), `goldberger_2000_physionet` (AHA), `skorinkapov_2010` (Wiley) |
+| Springer paywalled (1) | `bahrami_2025` |
+| Not an article: book, thesis, standard, web page (8) | `ecg_goldberger`, `sornmo_laguna_2005`, `mulyawan_2026`, `aami_ec57_2012`, `iec_60601_2_27_2011`, `who_cvd`, `oasis_mqtt5`, `analog_ad8232` |
 
-MDPI, IEEE open access, dan Unpaywall menolak `curl`/`urllib` dengan 403;
-yang berhasil untuk mereka adalah unduhan lewat browser sungguhan (Chrome
-headed), bukan headless. CAPTCHA ScienceDirect/AHA/Wiley tidak dilewati.
+MDPI, IEEE open access, and Unpaywall reject `curl`/`urllib` with 403; what
+works for them is a download through a real browser (headed Chrome), not
+headless. The ScienceDirect/AHA/Wiley CAPTCHAs are not bypassed.
 
-Paper berbayar yang ditandai Unpaywall `closed` kadang punya salinan legal
-di repositori institusi penulis (DSpace, mis. AUB ScholarWorks, QSpace).
-Cari judulnya di sana sebelum meminta akun kampus. Pada DSpace 7, berkas
-diambil lewat `/server/api/core/bitstreams/<uuid>/content`.
+Paywalled papers marked `closed` by Unpaywall sometimes have a legal copy in
+the authors' institutional repository (DSpace, e.g. AUB ScholarWorks,
+QSpace). Search for the title there before asking for a campus account. On
+DSpace 7, files are fetched through `/server/api/core/bitstreams/<uuid>/content`.
 
-Verifikasi entri bib: keberadaan dokumen, jurnal, dan DOI dicek di Scopus (MCP
-`scopus`); penulis, volume, dan halaman diambil dari Crossref
-(`api.crossref.org/works/<DOI>`) karena `get_abstract_details` pada langganan
-ini tidak mengembalikannya. Yang tidak terindeks Scopus diverifikasi ke sumber
-resminya: `david_2021` (MLSys) ke proceedings.mlsys.org, `aami_ec57_2012` ke
-webstore ANSI, `iec_60601_2_27_2011` ke webstore IEC, dan entri web, standar,
-atau *datasheet* lain (`who_cvd`, `oasis_mqtt5`, `analog_ad8232`) ke halaman
-penerbitnya.
+Bib entry verification: the existence of the document, journal, and DOI is
+checked in Scopus (MCP `scopus`); authors, volume, and pages are taken from
+Crossref (`api.crossref.org/works/<DOI>`) because `get_abstract_details` on
+this subscription does not return them. Entries not indexed by Scopus are
+verified against their official source: `david_2021` (MLSys) at
+proceedings.mlsys.org, `aami_ec57_2012` at the ANSI webstore,
+`iec_60601_2_27_2011` at the IEC webstore, and web entries, standards, or other
+*datasheets* (`who_cvd`, `oasis_mqtt5`, `analog_ad8232`) at the publisher's
+page.
 
-## Pemeriksa kemiripan DOCX terhadap PDF
+## DOCX vs PDF similarity checker
 
-`cek_docx.py` membandingkan PDF hasil pdfLaTeX dengan DOCX hasil WordCraft per
-halaman. DOCX dirender ulang ke PDF lewat `wordcraft-cli convert` di folder
-sementara, lalu kedua PDF dibaca dengan `pdftotext`. Sebuah halaman dianggap
-sama bila enam kata pertamanya sama (huruf kecil, tanda baca dan nomor halaman
-dibuang, kata terpenggal di akhir baris disambung). Keluaran berisi jumlah
-halaman, halaman awal tiap bab beserta selisihnya, jumlah halaman yang berawal
-sama, dan cuplikan lima halaman pertama yang berbeda. Kode keluar 0 hanya bila
-jumlah halaman dan awal setiap halaman sama.
+`cek_docx.py` compares the PDF produced by pdfLaTeX with the DOCX produced by
+WordCraft, page by page. The DOCX is re-rendered to PDF through
+`wordcraft-cli convert` in a temporary folder, then both PDFs are read with
+`pdftotext`. A page is considered the same if its first six words are the same
+(lowercase, punctuation and page numbers removed, words hyphenated at line
+ends joined). The output contains the page count, the starting page of each
+chapter with the difference, the number of pages that start the same, and
+excerpts of the first five pages that differ. The exit code is 0 only if the
+page count and the start of every page are the same.
 
 ```bash
 cd laporan/buku-pa
@@ -189,17 +195,17 @@ make cek-docx                                  # memakai wordcraft-cli di PATH
 make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build branch
 ```
 
-## Pemeriksa pola tulisan AI
+## AI writing pattern checker
 
-`check_slop.py` adalah pembungkus tipis atas
-`~/.claude/skills/indonesian-antislop-writing/scripts/check_slop.py`. Sumber
-pola, ambang, dan katalog ada di skill user itu (`references/catalog.md`);
-repo ini tidak menyimpan salinannya. Semua opsi
-diteruskan apa adanya dan kode keluarnya sama dengan pemeriksa asli. Bila skill
-user tidak terpasang, pembungkus mencetak pesan dan keluar dengan kode 2.
-Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingkat
-`error` (kode keluar 1) dan `review`; `--compare` gagal bila angka, kunci
-`\cite`/`\ref`/`\label`, atau baris komentar `%` berubah.
+`check_slop.py` is a thin wrapper around
+`~/.claude/skills/indonesian-antislop-writing/scripts/check_slop.py`. The
+source of patterns, thresholds, and catalog is in that user skill
+(`references/catalog.md`); this repo does not keep a copy. All options are
+forwarded as is and the exit code is the same as the original checker. If the
+user skill is not installed, the wrapper prints a message and exits with code
+2. Table, figure, equation environments, and `%` comments are skipped.
+Findings are graded `error` (exit code 1) and `review`; `--compare` fails if
+numbers, `\cite`/`\ref`/`\label` keys, or `%` comment lines change.
 
 ```bash
 cd laporan/progres-pa-1
@@ -211,23 +217,24 @@ python3 ../../scripts/check_slop.py --self-test
 
 ## check_skills.py
 
-`check_skills.py` memeriksa struktur setiap skill di `.claude/skills/*/`
-(`.claude/skills-arsip/` tidak diperiksa). Yang diperiksa:
+`check_skills.py` checks the structure of every skill in `.claude/skills/*/`
+(`.claude/skills-arsip/` is not checked). What is checked:
 
-- `SKILL.md`: frontmatter hanya `name` dan `description`, `name` sama dengan
-  nama folder, `description` satu baris dan paling banyak 1.024 karakter,
-  badan kurang dari 500 baris.
-- `evals/<kasus>/`: `prompt.md` (frontmatter dan teks), `case.yaml`
-  (`schema_version: "1.1"`, `name` sama dengan nama folder,
-  `expected_outcome`), dan minimal satu `graders/*.md` berfrontmatter
+- `SKILL.md`: frontmatter only `name` and `description`, `name` equal to the
+  folder name, `description` on one line and at most 1,024 characters, body
+  under 500 lines.
+- `evals/<kasus>/`: `prompt.md` (frontmatter and text), `case.yaml`
+  (`schema_version: "1.1"`, `name` equal to the folder name,
+  `expected_outcome`), and at least one `graders/*.md` with frontmatter
   `type`, `focus`, `weight`.
-- `triggers/evals.json`: daftar `{query, should_trigger}` dengan kelas true
-  dan false.
-- Skill yang tidak punya `evals/` atau `triggers/`, atau yang masih punya
-  `eval.md`, dianggap galat. Opsi `--lewati-eval-lama` melewati pemeriksaan
-  eval untuk skill yang masih memakai `eval.md` (masa transisi).
+- `triggers/evals.json`: a list of `{query, should_trigger}` with both true and
+  false classes.
+- A skill without `evals/` or `triggers/`, or one that still has `eval.md`,
+  counts as an error. The option `--lewati-eval-lama` skips the eval checks for
+  skills that still use `eval.md` (transition period).
 
-Kode keluar 1 bila ada galat. CI menjalankan `--self-test` dan pemeriksaan tanpa opsi.
+Exit code 1 if there are errors. CI runs `--self-test` and the check without
+options.
 
 ```bash
 python3 scripts/check_skills.py
@@ -236,56 +243,58 @@ python3 scripts/check_skills.py --self-test
 
 ## trigger_eval.sh
 
-`trigger_eval.sh` mengukur apakah deskripsi sebuah skill memicu pada kueri yang
-tepat dan tidak pada kueri lain, memakai `run_eval.py` dari skill-creator dan
-`triggers/evals.json` milik skill. Jalannya terisolasi: konfigurasi Claude
-sementara (`CLAUDE_CONFIG_DIR`) hanya berisi salinan `~/.claude/.credentials.json`,
-dan proyeknya folder kosong sehingga skill lain dan `CLAUDE.md` tidak ikut.
-Salinan kredensial dihapus saat skrip selesai.
+`trigger_eval.sh` measures whether a skill's description triggers on the right
+queries and not on others, using `run_eval.py` from skill-creator and the
+skill's own `triggers/evals.json`. It runs in isolation: the temporary Claude
+configuration (`CLAUDE_CONFIG_DIR`) contains only a copy of
+`~/.claude/.credentials.json`, and the project is an empty folder so other
+skills and `CLAUDE.md` are not included. The credentials copy is deleted when
+the script finishes.
 
-Prasyarat: `uv`, skill-creator di `~/.claude/skills` (folder `.trash` dilewati),
-dan login aktif (`claude login`). Prasyarat yang kurang membuat skrip keluar
-dengan kode 2 dan pesan.
+Prerequisites: `uv`, skill-creator in `~/.claude/skills` (the `.trash` folder is
+skipped), and an active login (`claude login`). A missing prerequisite makes
+the script exit with code 2 and a message.
 
 ```bash
 scripts/trigger_eval.sh .claude/skills/<skill> [.claude/skills/<skill2> ...]
 ```
 
-Keluaran per skill: `name=<skill> passed=<n>/<total>` dan `json=<path>`; JSON
-lengkap dan log galat ada di folder sementara `$T/out/`. Satu kueri dijalankan
-satu kali (`--runs-per-query 1`), jadi hasilnya sampel kecil dan bisa
-bergeser antarjalan. Biaya: satu panggilan model per kueri, sekitar 20
-panggilan per skill dengan 20 kueri, dan sekitar 25 detik.
+Output per skill: `name=<skill> passed=<n>/<total>` and `json=<path>`; the full
+JSON and error logs are in the temporary folder `$T/out/`. Each query is run
+once (`--runs-per-query 1`), so the result is a small sample and can shift
+between runs. Cost: one model call per query, about 20 calls per skill with 20
+queries, and about 25 seconds.
 
-Jebakan kebocoran: uji pemicu dapat meninggalkan berkas `*-skill-*` di
-`~/.claude/commands` yang lalu terbaca sebagai perintah di sesi lain. Skrip
-berhenti dengan kode 3 bila folder itu sudah memuatnya sebelum mulai, dan
-memeriksa lagi di akhir. Bersihkan berkas itu sebelum menjalankan ulang.
+Leak pitfall: a trigger test can leave `*-skill-*` files in
+`~/.claude/commands` that are then read as commands in other sessions. The
+script stops with code 3 if that folder already contains them before it
+starts, and checks again at the end. Clean those files before running again.
 
 ## rilis.py
 
-`rilis.py` membekukan PDF dan DOCX `buku-pa` atau `progres-pa-1` sebagai rilis
-bernomor. Build berjalan dari sebuah commit di git worktree sementara, jadi
-suntingan yang belum di-commit tidak ikut. Keluaran disalin ke
-`laporan/rilis/<proyek>/vN/` (gitignored), PDF latexdiff terhadap rilis
-sebelumnya dibuat bila ada, dan tag beranotasi `rilis/<proyek>/vN` dipasang
-pada commit yang dibangun. Berkas rilis tidak di-commit, hanya tagnya; tag
-tidak di-push.
+`rilis.py` freezes the PDF and DOCX of `buku-pa` or `progres-pa-1` as a
+numbered release. The build runs from a commit in a temporary git worktree, so
+uncommitted edits are not included. The output is copied to
+`laporan/rilis/<proyek>/vN/` (gitignored), a latexdiff PDF against the previous
+release is produced if there is one, and an annotated tag
+`rilis/<proyek>/vN` is placed on the built commit. Release files are not
+committed, only the tag; the tag is not pushed.
 
-1. Commit semua perubahan laporan.
-2. Jalankan salah satu:
+1. Commit all report changes.
+2. Run one of:
 
 ```bash
 cd laporan/<proyek> && make rilis CATATAN="..."
 python3 scripts/rilis.py <proyek> --rev <commit> --catatan "..."
 ```
 
-3. Keluaran: `version=`, `rev=`, `pdf=`, `pages=`, `log_errors=` (baris
-   `undefined` atau `Overfull` di log LaTeX), `diff=` atau `warn=`, dan
+3. Output: `version=`, `rev=`, `pdf=`, `pages=`, `log_errors=` (lines
+   `undefined` or `Overfull` in the LaTeX log), `diff=` or `warn=`, and
    `tag=`.
-4. Hasil ada di `laporan/rilis/<proyek>/vN/`: `<proyek>-vN.pdf`,
-   `<proyek>-vN.docx`, `banding-vM-vN.pdf`. Folder ini terlihat di `serve.py`.
-5. Folder rilis yang hilang dibangun ulang dari tag:
+4. The result is in `laporan/rilis/<proyek>/vN/`: `<proyek>-vN.pdf`,
+   `<proyek>-vN.docx`, `banding-vM-vN.pdf`. This folder is visible in
+   `serve.py`.
+5. A missing release folder is rebuilt from the tag:
 
 ```bash
 git worktree add --detach /tmp/r rilis/<proyek>/vN
@@ -293,9 +302,9 @@ make -C /tmp/r/laporan/<proyek> pdf docx
 git worktree remove --force /tmp/r
 ```
 
-Salin `output/main.pdf` dan `output/main.docx` dari `/tmp/r` sebelum worktree
-dihapus.
+Copy `output/main.pdf` and `output/main.docx` from `/tmp/r` before the
+worktree is removed.
 
-Penolakan: pohon `laporan/` punya perubahan yang belum di-commit (hanya untuk
-`--rev HEAD`), tidak ada perubahan di `laporan/<proyek>` atau `laporan/shared`
-sejak rilis terakhir, atau folder versi sudah ada.
+Refusals: the `laporan/` tree has uncommitted changes (only for `--rev HEAD`),
+there are no changes in `laporan/<proyek>` or `laporan/shared` since the last
+release, or the version folder already exists.
