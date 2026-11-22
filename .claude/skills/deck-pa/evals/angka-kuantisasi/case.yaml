@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: angka-kuantisasi
-expected_outcome: |
-  Slide memakai 0,7213, 0,7104, dan 21.344 byte dalam format Indonesia. Recall subjek tampil sebagai `[PLACEHOLDER DATA: recall rekaman subjek S01--S05]`. Angka 0,68 dari uji coba tidak dipakai. Judul slide berupa kalimat temuan.

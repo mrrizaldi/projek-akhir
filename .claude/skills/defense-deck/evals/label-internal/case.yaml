@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: label-internal
+expected_outcome: |
+  The new slide text has no Fase n, path or script name, PA_*, "walkthrough" or RM2. The title is a finding sentence, at most 6 bullets, each at most 12 words.
