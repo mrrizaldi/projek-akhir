@@ -12,7 +12,7 @@
 | `acquisition.h` | Timer ISR 360 Hz, antrean sampel, sumber ADC / replay acuan / replay rekaman | ditulis tangan |
 | `gate.h` | Kualitas sinyal dan fase kalibrasi | ditulis tangan |
 | `classifier.h` | Inferensi TFLM per beat dan publikasi ke antrean MQTT | ditulis tangan |
-| `tampilan.h` | TFT (monitor dan layar menu), NeoPixel, buzzer | ditulis tangan |
+| `display.h` | TFT (monitor dan layar menu), NeoPixel, buzzer | ditulis tangan |
 | `buttons.h` | Debounce dan event tombol B1–B3 (tekan lama 800 ms), event suntikan serial | ditulis tangan |
 | `menu.h` | Menu di perangkat: buka, teruskan event tombol, halaman teks 1 Hz | ditulis tangan |
 | `diagnostics.h` | Tes perangkat `diag_*` untuk menu Tes perangkat dan `test_hw_*` | ditulis tangan |

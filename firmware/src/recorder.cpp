@@ -10,7 +10,7 @@
 #include "ecg_pipeline.h"
 #include "menu.h"
 #include "board.h"
-#include "tampilan.h"
+#include "display.h"
 
 constexpr size_t RECORDER_N = RECORDER_SAMPLE_MAX;
 constexpr int LIST_MAX = 64;
@@ -123,7 +123,7 @@ static bool open_part(int k)
         held_back = true;
         Serial.printf("GAGAL membuka %s: bagian %d-%d tetap di PSRAM, ulangi simpan dengan r / tahan B3\n",
                       writer.path, k + 1, writer.n_parts);
-        tampilan_pesan("GAGAL SIMPAN", "tekan r ulangi");
+        display_message("GAGAL SIMPAN", "tekan r ulangi");
         return false;
     }
     const size_t start = (size_t)k * RECORDER_N;
@@ -165,7 +165,7 @@ static void close_write(bool failed)
     t_saved = millis();
     writing = false;
     if (!failed && writer.part + 1 < writer.n_parts) { open_part(writer.part + 1); return; }
-    tampilan_bunyi(BEEP_SAVE_MS);
+    display_sound(BEEP_SAVE_MS);
 }
 
 static void write_step()
@@ -215,7 +215,7 @@ void recorder_service(void)
         const bool has_room = part_max < RECORDER_PART_MAX;
         Serial.printf("REKAM berhenti: batas sesi %d bagian (%u detik) tercapai%s\n", part_max,
                       (unsigned)(session_limit / ECG_FS), has_room ? ", LittleFS tidak cukup untuk bagian berikutnya" : "");
-        tampilan_pesan(has_room ? "RUANG PENUH" : "BATAS SESI", "menyimpan...");
+        display_message(has_room ? "RUANG PENUH" : "BATAS SESI", "menyimpan...");
         save_session();
     }
     if (writing && !acquisition_fill()) write_step();
@@ -248,7 +248,7 @@ void recorder_toggle(void)
     if (reject) {
         Serial.println(reject);
         const bool waiting = writing;
-        tampilan_pesan(waiting ? "TUNGGU" : acquisition_source() != SOURCE_ADC || power_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
+        display_message(waiting ? "TUNGGU" : acquisition_source() != SOURCE_ADC || power_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
                        waiting ? "masih menyimpan" : acquisition_replay() ? "hanya sensor ADC" : "rekam ditolak");
         return;
     }

@@ -107,7 +107,7 @@ Angka `ayun_bersih` inilah yang dinilai terhadap ambang 60, dan yang dicetak
 dinilai terhadap ambang 500, dan LO± dinilai lepas bila satu sampel saja dalam
 detik itu menunjukkan lepas.
 
-LED dievaluasi tiap 250 ms dengan urutan prioritas berikut (`perbarui_led()`):
+LED dievaluasi tiap 250 ms dengan urutan prioritas berikut (`update_led()`):
 
 | LED | Kondisi | Artinya |
 |---|---|---|

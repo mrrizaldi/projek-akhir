@@ -2,6 +2,6 @@ schema_version: "1.1"
 name: batas-rekam-tanpa-return
 expected_outcome: |
   Jawaban memperbaiki `return` diam di batas: sampel yang lewat batas tidak dibuang diam-diam,
-  `aktif = false` ditulis sebelum Serial/tampilan_pesan, jalur sampel hanya menandai kejadian
+  `aktif = false` ditulis sebelum Serial/display_message, jalur sampel hanya menandai kejadian
   dan tidak memanggil Serial, layar, bip, atau tulis berkas, dan baris REC diganti HILANG saat
   acquisition_missed() di atas nol. Teks layar berbahasa Indonesia untuk manusia.

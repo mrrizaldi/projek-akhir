@@ -101,7 +101,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integration` 5,
 | `src/acquisition.cpp` | Timer ISR 360 Hz → antrean → `loop()`; sumber sinyal ADC AD8232, replay acuan `golden_raw`, atau replay rekaman `/rekam/NNN.csv`; pilihan tersimpan di NVS |
 | `src/gate.cpp` | Kualitas sinyal per detik (ayunan, dengung 50 Hz Goertzel, LO±, clipping), penilaian kontak, dan fase kalibrasi (pemanasan 60 s) → pemantauan |
 | `src/classifier.cpp` | Inferensi TFLM INT8 per beat dan publikasi hasilnya ke antrean MQTT |
-| `src/tampilan.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
+| `src/display.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
 | `src/buttons.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
 | `src/menu.cpp` | Pohon menu (array struct statis + pointer fungsi), navigasi tiga tombol, halaman teks diperbarui 1 Hz |
 | `src/diagnostics.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
@@ -165,7 +165,7 @@ pengukuran ada di walkthrough yang dirujuk.
   total, dan pada 3-lead tanpa RL yang rapat LO menyala terus walau sinyalnya
   bagus. LED disetir ayunan bersih (akuisisi-walkthrough §2).
 - `neopixelWrite()` mematikan interrupt ±30 µs per panggilan; LED karena itu
-  diperbarui paling sering tiap `PERIODE_LED_MS` (250 ms), bukan tiap loop.
+  diperbarui paling sering tiap `PERIOD_LED_MS` (250 ms), bukan tiap loop.
 - Layar tidak dapat dibaca balik (CS ke GND, tanpa MISO). `diag_screen()`
   menilai SPI dari waktu `fillScreen` penuh (110 KB; pada 80 MHz pun ≥ 11 ms);
   di bawah `FILL_MIN_US` (5 ms) berarti tidak ada transfer.
@@ -294,7 +294,7 @@ pengukuran ada di walkthrough yang dirujuk.
 | Menulis berkas sesudah sesi menahan ISR akuisisi | Selama ±4,7 detik per bagian 300 detik, jalur live kehilangan sampel (dihitung di `sampel hilang`); RR dan klasifikasi detak di jendela itu tidak sahih | Sama dengan baris di atas |
 | Daftar rekaman di menu `LIST_MAX` = 64 | Hanya batas tampilan; nomor berkas baru tetap dari pindai penuh | — |
 | Angka sesudah perintah serial ditunggu sampai 500 ms per digit | `loop()` terblokir selama menunggu | Perintah bench, tidak dipakai saat merekam sinyal tubuh |
-| Antrean jadwal bip `JADWAL_N` = 8 | Saat lonjakan detak lebih dari 8 bip menunggu, bip berikutnya tidak dibunyikan; data beat dan klasifikasi tidak terpengaruh | Perbesar `JADWAL_N` di `tampilan.cpp` |
+| Antrean jadwal bip `SCHEDULE_N` = 8 | Saat lonjakan detak lebih dari 8 bip menunggu, bip berikutnya tidak dibunyikan; data beat dan klasifikasi tidak terpengaruh | Perbesar `SCHEDULE_N` di `display.cpp` |
 | Memilih WiFi saat tangga daya `p0`–`p4` | Radio ikut menyala lagi lewat `ecg_mqtt_mulai()` | Pilih jaringan di operasi normal |
 
 ## Catu daya dan pengukuran arus

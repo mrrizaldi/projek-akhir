@@ -91,8 +91,8 @@ static void test_antre_pasang_kapasitas(void)
 {
     TEST_ASSERT_EQUAL_size_t(UJI_KAP, ecg_mqtt_antre_kapasitas());
 
-    static ecg_mqtt_beat_t besar[100];
-    ecg_mqtt_antre_pasang(besar, 100);
+    static ecg_mqtt_beat_t large[100];
+    ecg_mqtt_antre_pasang(large, 100);
     TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_kapasitas());
     for (uint32_t i = 0; i < 100; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_antre_isi(&b); }
     TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_n());

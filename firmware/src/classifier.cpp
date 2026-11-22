@@ -14,7 +14,7 @@
 #include "ecg_mqtt.h"
 #include "gate.h"
 #include "model_int8.h"
-#include "tampilan.h"
+#include "display.h"
 
 constexpr int ARENA_N = 24 * 1024;
 alignas(16) static uint8_t arena[ARENA_N];
@@ -44,7 +44,7 @@ void classifier_begin(void)
     interp = &it;
     if (interp->AllocateTensors() != kTfLiteOk) {
         Serial.println("FATAL: AllocateTensors gagal");
-        while (true) { tampilan_led(64, 0, 0); delay(200); tampilan_led(0, 0, 0); delay(200); }
+        while (true) { display_led(64, 0, 0); delay(200); display_led(0, 0, 0); delay(200); }
     }
     TfLiteTensor *a = interp->input(0), *b = interp->input(1);
     const bool a_small = a->bytes < b->bytes;

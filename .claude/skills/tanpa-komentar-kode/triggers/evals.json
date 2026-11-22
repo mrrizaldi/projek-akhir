@@ -3,7 +3,7 @@
   {"query": "ubah ambang ayunan di gate.h jadi 80 terus build ulang", "should_trigger": true},
   {"query": "tulis skrip Python di model/scripts buat plot histogram RR dari rekaman", "should_trigger": true},
   {"query": "edit main.cpp supaya menu Sumber sinyal punya opsi baru", "should_trigger": true},
-  {"query": "add a function to firmware/src/tampilan.cpp that shows the battery percent", "should_trigger": true},
+  {"query": "add a function to firmware/src/display.cpp that shows the battery percent", "should_trigger": true},
   {"query": "buat generator header yang menulis array int16_t dari npz", "should_trigger": true},
   {"query": "ganti pin buzzer di board.h ke GPIO 14", "should_trigger": true},
   {"query": "write a shell script in scripts/ that renames recordings with timestamps", "should_trigger": true},

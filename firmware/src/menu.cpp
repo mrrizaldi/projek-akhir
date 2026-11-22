@@ -14,14 +14,14 @@
 #include "recorder.h"
 #include "diagnostics.h"
 #include "power.h"
-#include "tampilan.h"
+#include "display.h"
 #include "buttons.h"
 
 #ifndef VERSI_GIT
 #define VERSI_GIT "?"
 #endif
 
-typedef char baris_t[TAMPILAN_KOLOM + 1];
+typedef char baris_t[DISPLAY_COLUMNS + 1];
 
 struct halaman_t;
 struct item_t {
@@ -124,9 +124,9 @@ static void tes_jalan(const char *nama, diag_result_t (*f)(void))
 }
 static diag_result_t tombol_10s()
 {
-    tampilan_menu_bingkai("Tes tombol", "B2 yang masih ditahan: lepas dulu", "");
-    tampilan_menu_baris(1, "Tekan B1, B2, B3", false);
-    tampilan_menu_baris(2, "batas 10 detik", false);
+    display_menu_frame("Tes tombol", "B2 yang masih ditahan: lepas dulu", "");
+    display_menu_row(1, "Tekan B1, B2, B3", false);
+    display_menu_row(2, "batas 10 detik", false);
     return diag_button(10000);
 }
 static void tes_buzzer() { tes_jalan("Buzzer", diag_buzzer); }
@@ -139,8 +139,8 @@ static void tes_isi(baris_t *b)
     snprintf(b[0], sizeof *b, "%s", tes_nama ? tes_nama : "-");
     snprintf(b[1], sizeof *b, "%s", tes_hasil.pass ? "LULUS" : "GAGAL");
     const char *r = tes_hasil.summary;
-    for (int k = 2; k < TAMPILAN_BARIS && *r; k++, r += min<size_t>(strlen(r), TAMPILAN_KOLOM))
-        snprintf(b[k], sizeof *b, "%.*s", TAMPILAN_KOLOM, r);
+    for (int k = 2; k < DISPLAY_ROWS && *r; k++, r += min<size_t>(strlen(r), DISPLAY_COLUMNS))
+        snprintf(b[k], sizeof *b, "%.*s", DISPLAY_COLUMNS, r);
 }
 static const halaman_t H_TES_HASIL = TEKS("Hasil tes", tes_isi);
 static const item_t I_TES[] = {
@@ -159,8 +159,8 @@ static void daya_isi(baris_t *b)
         snprintf(b[1], sizeof *b, "Langkah p%d (%d/6)", power_sweep_step(), power_sweep_step() + 1);
         return;
     }
-    power_row_t h[TAMPILAN_BARIS];
-    const int n = power_sweep_result(h, TAMPILAN_BARIS);
+    power_row_t h[DISPLAY_ROWS];
+    const int n = power_sweep_result(h, DISPLAY_ROWS);
     if (!n) { snprintf(b[0], sizeof *b, "Belum ada hasil"); return; }
     for (int k = 0; k < n; k++)
         snprintf(b[k], sizeof *b, "%-3s%6.1fmA %5.0fmW", h[k].mode, h[k].i_ma, h[k].p_mw);
@@ -269,7 +269,7 @@ static void label(const halaman_t *h, int i, char *out, size_t n)
     if (!h->item) { h->teks_dyn(i, out, n); return; }
     const item_t &it = h->item[i];
     const char *v = it.nilai ? it.nilai() : it.anak ? ">" : "";
-    const int pad = TAMPILAN_KOLOM - (int)strlen(it.teks);
+    const int pad = DISPLAY_COLUMNS - (int)strlen(it.teks);
     snprintf(out, n, "%s%*s", it.teks, pad > 0 ? pad : 1, v);
 }
 
@@ -277,26 +277,26 @@ static void gambar(bool bingkai)
 {
     auto &t = tumpuk[dalam];
     if (bingkai)
-        tampilan_menu_bingkai(t.h->judul,
+        display_menu_frame(t.h->judul,
                               t.h->isi ? "B2 kembali" : "B3 naik   B1 turun   tahan B2 pilih",
                               t.h->isi ? "tahan B1/B3 keluar ke monitor"
                                        : "B2 kembali   tahan B1/B3 keluar ke monitor");
     if (t.h->isi) {
-        baris_t b[TAMPILAN_BARIS] = {};
+        baris_t b[DISPLAY_ROWS] = {};
         t.h->isi(b);
-        for (int r = 0; r < TAMPILAN_BARIS; r++) tampilan_menu_baris(r, b[r], false);
+        for (int r = 0; r < DISPLAY_ROWS; r++) display_menu_row(r, b[r], false);
         return;
     }
     const int n = jumlah(t.h);
     if (t.sel >= n) t.sel = n ? n - 1 : 0;
     if (t.sel < t.atas) t.atas = t.sel;
-    if (t.sel >= t.atas + TAMPILAN_BARIS) t.atas = t.sel - TAMPILAN_BARIS + 1;
-    for (int r = 0; r < TAMPILAN_BARIS; r++) {
+    if (t.sel >= t.atas + DISPLAY_ROWS) t.atas = t.sel - DISPLAY_ROWS + 1;
+    for (int r = 0; r < DISPLAY_ROWS; r++) {
         const int i = t.atas + r;
         baris_t s = "";
         if (i < n) label(t.h, i, s, sizeof s);
         else if (n == 0 && r == 0) strcpy(s, "(kosong)");
-        tampilan_menu_baris(r, s, i < n && i == t.sel);
+        display_menu_row(r, s, i < n && i == t.sel);
     }
 }
 
@@ -304,7 +304,7 @@ static void lapor()
 {
     auto &t = tumpuk[dalam];
     if (t.h->isi) {
-        baris_t b[TAMPILAN_BARIS] = {};
+        baris_t b[DISPLAY_ROWS] = {};
         t.h->isi(b);
         Serial.printf("menu: %s\n", t.h->judul);
         for (auto &s : b) if (s[0]) Serial.printf("menu:   %s\n", s);
@@ -328,15 +328,15 @@ static void masuk(const halaman_t *h)
 void menu_buka(void)
 {
     if (dalam >= 0) return;
-    if (recorder_reject("menu")) { tampilan_pesan("TERKUNCI", "tahan B3=simpan"); return; }
-    tampilan_set_monitor(false);
+    if (recorder_reject("menu")) { display_message("TERKUNCI", "tahan B3=simpan"); return; }
+    display_set_monitor(false);
     masuk(&H_AKAR);
 }
 
 static void tutup()
 {
     dalam = -1;
-    tampilan_set_monitor(true);
+    display_set_monitor(true);
     Serial.println("menu: tutup");
 }
 
@@ -388,7 +388,7 @@ void menu_layani(void)
     static bool daya_lalu;
     const bool d = power_sweep_active();
     if (daya_lalu && !d && (dalam < 0 || tumpuk[dalam].h != &H_DAYA)) {
-        if (dalam < 0) tampilan_set_monitor(false);
+        if (dalam < 0) display_set_monitor(false);
         masuk(&H_DAYA);
     }
     daya_lalu = d;

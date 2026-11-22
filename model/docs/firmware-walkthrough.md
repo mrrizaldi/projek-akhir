@@ -395,14 +395,14 @@ dilepas karena tekanan yang sama bisa berlanjut menjadi tekan lama.
 
 Menu bukan mode terpisah. `loop()` tetap menguras antrean, menjalankan
 `ecg_live`, inferensi, rekam, dan MQTT di setiap iterasi; yang berubah hanya
-siapa yang memakai layar (`tampilan_set_monitor(false)`) dan siapa yang
+siapa yang memakai layar (`display_set_monitor(false)`) dan siapa yang
 menerima event tombol. Gelombang tidak digambar selama menu terbuka, tetapi
 bip detak tetap dijadwalkan dan NeoPixel tetap mengikuti fase.
 
 Konsekuensinya, setiap penggambaran menu berjalan di `loop()` yang sama dengan
 pengurasan antrean dan memblokirnya selama menggambar. Batasnya adalah
 kedalaman antrean ISR, 256 sampel = **711 ms**. Pohon menu berupa array struct
-statis; `tampilan_menu_baris()` mengingat isi tiap baris dan hanya menggambar
+statis; `display_menu_row()` mengingat isi tiap baris dan hanya menggambar
 ulang baris yang berubah sehingga menggeser sorotan menyentuh dua baris saja.
 
 Terukur di board (13 Okt 2026):

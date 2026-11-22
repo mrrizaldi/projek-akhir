@@ -6,7 +6,7 @@
 #include "acquisition.h"
 #include "board.h"
 #include "recorder.h"
-#include "tampilan.h"
+#include "display.h"
 
 constexpr int ADC_UPPER = 4090, ADC_LOWER = 5;
 
@@ -36,13 +36,13 @@ void gate_set_report(bool on) { report_quality = on; }
 
 void gate_begin_session(void)
 {
-    tampilan_bunyi(BEEP_CALIBRATION_MS);
+    display_sound(BEEP_CALIBRATION_MS);
     ecg_live_reset();
     t_session_ms = millis();
     phase = PHASE_CALIBRATION;
     t_rr_violation = millis();
     q.contact = false;
-    tampilan_hapus_jadwal();
+    display_clear_schedule();
 }
 
 void gate_set_skip(bool on)
@@ -71,7 +71,7 @@ void gate_assess_phase(const ecg_beat_t &beat)
     const bool rr_quiet = millis() - t_rr_violation >= RR_QUIET_MS;
     if ((skip_calibration || replay || (warm && rr_quiet)) && q.contact) {
         phase = PHASE_GOOD;
-        tampilan_bunyi(BEEP_CALIBRATION_MS);
+        display_sound(BEEP_CALIBRATION_MS);
         Serial.printf("kualitas: calibrating -> good (%s, kontak %lu s, RR tenang %lu s, ayun %d, dengung %d)\n",
                       replay ? "GERBANG DILEWATI (replay)"
                       : skip_calibration ? "GERBANG DILEWATI (bench)" : "gerbang penuh",

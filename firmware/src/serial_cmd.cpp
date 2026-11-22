@@ -14,7 +14,7 @@
 #include "board.h"
 #include "recorder.h"
 #include "power.h"
-#include "tampilan.h"
+#include "display.h"
 #include "buttons.h"
 
 constexpr uint32_t TUNGGU_DIGIT_MS = 500;
@@ -59,7 +59,7 @@ static void status()
                   (unsigned)(h.latency_n ? h.latency_sum / h.latency_n : 0), (unsigned)h.latency_max,
                   (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
                   ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
-                  power_ina_text(), (int)tampilan_bisu(), (int)tampilan_beku(),
+                  power_ina_text(), (int)display_mute(), (int)display_freeze(),
                   (int)gate_skip(), power_mode(),
                   acquisition_source() == SOURCE_ADC ? "adc"
                   : acquisition_source() == SOURCE_REFERENCE ? "acuan" : "rekaman",

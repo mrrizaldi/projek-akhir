@@ -23,7 +23,7 @@ Total 20 butir hapus-kandidat, 1 pertahankan. Semua skrip di `model/scripts/`, `
 |---|---|---|---|---|
 | firmware/include/ecg_mqtt.h:35, firmware/src/ecg_mqtt.cpp:21 | fungsi tak dipanggil `ecg_mqtt_antre_reset` | `grep -rnw ecg_mqtt_antre_reset src include test ../scripts ../model/scripts README.md` hanya mengembalikan deklarasi dan definisi. Tidak ada di test_mqtt maupun README. | hapus deklarasi + definisi | rendah; `antre_kepala/isi/hilang` tetap dipakai internal |
 | firmware/include/ecg_mqtt.h:47, firmware/src/ecg_mqtt.cpp:350 | fungsi tak dipanggil `ecg_mqtt_tersambung` | grep yang sama: hanya deklarasi + definisi. | hapus; cek bahwa variabel `tersambung` masih dipakai fungsi lain (dipakai di ecg_mqtt.cpp) | rendah |
-| firmware/include/tampilan.h:21, firmware/src/tampilan.cpp:313 | fungsi tak dipanggil `tampilan_monitor` | grep: hanya deklarasi + definisi. Variabel `monitor` dipakai di tempat lain di tampilan.cpp. | hapus accessor | rendah |
+| firmware/include/display.h:21, firmware/src/display.cpp:313 | fungsi tak dipanggil `tampilan_monitor` | grep: hanya deklarasi + definisi. Variabel `monitor` dipakai di tempat lain di display.cpp. | hapus accessor | rendah |
 
 Metode verifikasi tiga di atas: skrip memindai semua prototipe di `include/*.h` (kecuali `model_int8.h`, `wifi_secrets*.h`), lalu menghitung pemanggilan di `src/`, `include/`, `test/` di luar header dan di luar baris definisi. Hanya tiga nama itu bernilai nol. Macro/konstanta file-lokal (`constexpr`, `#define`, `enum`) dihitung: semuanya punya pemakaian >= 2 kali atau dipakai di test/generator (mis. `ECG_PT_OFFSET` dan `ECG_ZSCORE_EPS` di `ecg_preproc.h` dihasilkan `export_golden.py`, dipakai `ecg_pipeline.cpp`).
 
@@ -76,7 +76,7 @@ Catatan: `model/artifacts/metrics/akuisisi/akuisisi_device.png` (untracked pada 
 
 1. `ecg_mqtt_antre_reset` (firmware/include/ecg_mqtt.h:35, src/ecg_mqtt.cpp:21): nol pemanggil di src, include, test, skrip.
 2. `ecg_mqtt_tersambung` (ecg_mqtt.h:47, ecg_mqtt.cpp:350): nol pemanggil.
-3. `tampilan_monitor` (tampilan.h:21, tampilan.cpp:313): nol pemanggil.
+3. `tampilan_monitor` (display.h:21, display.cpp:313): nol pemanggil.
 4. `available_records` (model/scripts/prep_beats.py:72): nol pemanggil, parameter diabaikan.
 5. Impor mati: `model/scripts/export_golden.py` (`ALIGN_WIN`, `BANDPASS_LOW/HIGH/ORDER`) dan `model/src/io_mitdb.py` (`CHANNEL`, `RAW_DIR`), hanya baris import.
 

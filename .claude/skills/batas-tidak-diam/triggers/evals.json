@@ -24,7 +24,7 @@
     "should_trigger": true
   },
   {
-    "query": "tambah pesan layar saat nomor rekaman habis di tampilan_pesan",
+    "query": "tambah pesan layar saat nomor rekaman habis di display_message",
     "should_trigger": true
   },
   {

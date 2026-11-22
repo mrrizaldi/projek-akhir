@@ -107,7 +107,7 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
     static ecg_beat_t beat;
     int hr = 0;
     bool arrhythmia = false;
-    uint32_t t_layar = 0, buzz_sampai = 0;
+    uint32_t t_layar = 0, buzz_until = 0;
 
     hw_timer_t *timer = timerBegin(0, 80, true);
     timerAttachInterrupt(timer, &on_timer, true);
@@ -126,7 +126,7 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
                 arrhythmia = p >= ECG_THRESHOLD;
                 hr = (int)lroundf(60.0f / beat.rr[0]);
                 buzzer(true);
-                buzz_sampai = millis() + (arrhythmia ? 250 : 50);
+                buzz_until = millis() + (arrhythmia ? 250 : 50);
                 for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT && beat.r_abs < GOLDEN_N; b++) {
                     if (abs(beat.r_abs - golden_r[b]) > 20) continue;
                     cocok++;
@@ -141,7 +141,7 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
             plot(ecg_live_tersaring_terakhir());
         }
         if (millis() - t_layar >= 1000) { t_layar = millis(); layar_hr(hr, arrhythmia); }
-        if (buzz_sampai && (int32_t)(millis() - buzz_sampai) >= 0) { buzzer(false); buzz_sampai = 0; }
+        if (buzz_until && (int32_t)(millis() - buzz_until) >= 0) { buzzer(false); buzz_until = 0; }
         loop_maks_us = max(loop_maks_us, (uint32_t)(micros() - t0));
     }
     timerAlarmDisable(timer);

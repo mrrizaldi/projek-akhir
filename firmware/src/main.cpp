@@ -15,7 +15,7 @@
 #include "serial_cmd.h"
 #include "diagnostics.h"
 #include "power.h"
-#include "tampilan.h"
+#include "display.h"
 #include "buttons.h"
 
 constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60;
@@ -24,19 +24,19 @@ static void layani_tombol()
 {
     int i, e;
     while ((e = buttons_event(&i)) != BUTTON_NONE) {
-        if (e == BUTTON_PRESS) tampilan_bunyi(KLIK_MS);
-        if (e == BUTTON_LONG) tampilan_bunyi(BIP_LAMA_MS);
+        if (e == BUTTON_PRESS) display_sound(KLIK_MS);
+        if (e == BUTTON_LONG) display_sound(BIP_LAMA_MS);
         if (e == BUTTON_SHORT || e == BUTTON_LONG)
             Serial.printf("tombol B%d %s\n", i + 1, e == BUTTON_LONG ? "tahan" : "pendek");
         if (menu_terbuka()) { menu_tombol(i, e); continue; }
         if (e == BUTTON_SHORT) {
-            if (i == 0) tampilan_set_bisu(!tampilan_bisu());
-            if (i == 1) tampilan_set_beku(!tampilan_beku());
+            if (i == 0) display_set_mute(!display_mute());
+            if (i == 1) display_set_freeze(!display_freeze());
             if (i == 2) { if (recorder_active()) recorder_pause(); else recorder_toggle(); }
         }
         if (e == BUTTON_LONG && i == 1) { menu_buka(); continue; }
         if (e == BUTTON_LONG && i == 2 && recorder_active()) recorder_toggle();
-        tampilan_gambar_tombol(i);
+        display_draw_button(i);
     }
 }
 
@@ -46,7 +46,7 @@ void setup()
     Serial.begin(115200);
     delay(1500);
     power_begin();
-    tampilan_mulai();
+    display_begin();
 
     ecg_mqtt_beat_t *ring = (ecg_mqtt_beat_t *)ps_malloc(
         ECG_MQTT_ANTRE_TARGET * sizeof(ecg_mqtt_beat_t));
@@ -99,9 +99,9 @@ void loop()
             gate_assess_phase(beat);
             if (gate_phase() == PHASE_CALIBRATION) gate_report_calibration(beat);
             else if (cnn) arrhythmia = classifier_process(beat);
-            if (ui) tampilan_beat(beat, arrhythmia);
+            if (ui) display_beat(beat, arrhythmia);
         }
-        if (ui) tampilan_sampel();
+        if (ui) display_sample();
     }
 
     recorder_service();
@@ -111,6 +111,6 @@ void loop()
     serial_cmd_layani();
     layani_tombol();
     menu_layani();
-    tampilan_layani();
+    display_service();
 }
 #endif

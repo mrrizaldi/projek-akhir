@@ -1,6 +1,6 @@
 ---
 name: batas-tidak-diam
-description: Lapisan repo PA untuk firmware yang punya batas atau operasi lambat di loop(). Pakai setiap kali menulis, menyunting, atau meninjau firmware/src (recorder.cpp, acquisition.cpp, tampilan.cpp, serial_cmd.cpp) yang menyentuh buffer atau array penuh, RECORDER_SECONDS/RECORDER_N, antrean ISR, kapasitas LittleFS atau PSRAM, nomor berkas rekaman, atau tulis berkas, jaringan di loop(). Juga untuk keluhan "rekaman terpotong", "sampel hilang", "buffer penuh", "loop macet", "simpan memblok", "data hilang", "rekam berhenti sendiri", dan saat merencanakan uji batas rekam. Memuat skill umum firmware-bounded-limits lalu menambahkan nilai, nama, dan berkas khusus PA.
+description: Lapisan repo PA untuk firmware yang punya batas atau operasi lambat di loop(). Pakai setiap kali menulis, menyunting, atau meninjau firmware/src (recorder.cpp, acquisition.cpp, display.cpp, serial_cmd.cpp) yang menyentuh buffer atau array penuh, RECORDER_SECONDS/RECORDER_N, antrean ISR, kapasitas LittleFS atau PSRAM, nomor berkas rekaman, atau tulis berkas, jaringan di loop(). Juga untuk keluhan "rekaman terpotong", "sampel hilang", "buffer penuh", "loop macet", "simpan memblok", "data hilang", "rekam berhenti sendiri", dan saat merencanakan uji batas rekam. Memuat skill umum firmware-bounded-limits lalu menambahkan nilai, nama, dan berkas khusus PA.
 ---
 
 # Batas tidak diam (lapisan PA)
@@ -18,11 +18,11 @@ Pakai nama ini persis di kode, pesan, dan rencana uji, karena skill umum memakai
 - Desain rekam yang berlaku (`recorder.cpp`): seluruh sesi ditahan di PSRAM dengan `SESSION_N = RECORDER_N * RECORDER_PART_MAX`, baru ditulis ke LittleFS sesudah berhenti, dari `recorder_service()` saat `acquisition_fill() == 0`. Kapasitas per bagian `FULL_FILE_SPACE`, dan `part_max` dihitung saat mulai dari ruang bebas dan `RECORDER_NUMBER_MAX`. Perubahan dimulai dari desain ini, bukan dari rancangan baru, karena skema ini sudah ada di repo.
 - Penghitung nama PA: sampel dilewati antrean = `lewat` (`acquisition_missed()`, juga `lewat=` di header CSV); data yang belum tersimpan = `belum` (belum ada di firmware, ditambahkan ke baris `s` bila uji membutuhkannya). Jangan pakai `lewati`: nama itu sudah dipakai di baris `s` untuk gerbang kalibrasi bench.
 - Penulis wadah di `recorder.cpp` memeriksa batasnya sendiri; fungsi dari jalur sampel (`recorder_sample`) hanya menulis `aktif = false` dan menandai kejadian.
-- Variabel penanda sesi di `recorder.cpp` bernama `aktif`; setiap jalur berhenti menulis `aktif = false` sebelum `Serial`, `tampilan_pesan`, atau `tampilan_bunyi`.
+- Variabel penanda sesi di `recorder.cpp` bernama `aktif`; setiap jalur berhenti menulis `aktif = false` sebelum `Serial`, `display_message`, atau `display_sound`.
 
 ## Teks layar dan serial
 
-Teks layar berbahasa Indonesia, untuk manusia: `RUANG PENUH`, `BATAS SESI`, `TUNGGU`, `TOLAK`, `PENUH`, `GAGAL SIMPAN`. Baris REC (`REC05:00`, di `tampilan.cpp`) tampil hanya saat sampel benar-benar masuk wadah; saat `acquisition_missed()` di atas nol diganti `HILANG` (merah), dan saat menyimpan tampil `SIMPAN..` lalu `SIMPAN`. Pesan baru mengikuti gaya itu lewat `tampilan_pesan(besar, kecil)`.
+Teks layar berbahasa Indonesia, untuk manusia: `RUANG PENUH`, `BATAS SESI`, `TUNGGU`, `TOLAK`, `PENUH`, `GAGAL SIMPAN`. Baris REC (`REC05:00`, di `display.cpp`) tampil hanya saat sampel benar-benar masuk wadah; saat `acquisition_missed()` di atas nol diganti `HILANG` (merah), dan saat menyimpan tampil `SIMPAN..` lalu `SIMPAN`. Pesan baru mengikuti gaya itu lewat `display_message(besar, kecil)`.
 
 Perintah serial 115200 untuk uji: `r` mulai atau stop rekam, `j` jeda, `s` status (memuat `rekam=<0|1> n=<n>`, `antrean <n>`, `sampel hilang <n> (tick <n>)`), `l` daftar berkas, `d<n>` cetak berkas, `h<n>` hapus, `y` ganti sumber sinyal (replay tanpa sensor; `r` menolak bila sumber bukan ADC: serial `REKAM hanya dari sensor`, layar `TOLAK`, jadi uji batas rekam memakai sensor, bukan replay). Penghitung yang dibutuhkan uji tetapi belum ada di baris `s` ditambahkan ke baris status pada perubahan yang sama.
 
