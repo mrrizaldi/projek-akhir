@@ -1,7 +1,7 @@
 # HW-6: MQTT publication, from a beat on the device to a row on the dashboard
 
 > **Scope:** publishing per-beat classification results from the ESP32-S3 to ThingsBoard CE over MQTT QoS 1, together with the quality gate, the backlog, and the procedure for testing without electrodes.
-> **Related code:** `firmware/src/ecg_mqtt.cpp`, `firmware/include/ecg_mqtt.h`, `firmware/src/main.cpp` (`nilai_fase()`, `publikasi()`), `firmware/test/test_mqtt/`, `dashboard/`
+> **Related code:** `firmware/src/ecg_mqtt.cpp`, `firmware/include/ecg_mqtt.h`, `firmware/src/gate.cpp` (`gate_assess_phase()`), `firmware/src/classifier.cpp` (`publish()`), `firmware/test/test_mqtt/`, `dashboard/`
 > **Prerequisite:** [`firmware-walkthrough.md`](firmware-walkthrough.md) §5b–5c, [`acquisition-walkthrough.md`](acquisition-walkthrough.md) §2
 
 Condition: verified on the board (N16R8, 19 Sep 2026). The whole mechanism of
@@ -234,7 +234,7 @@ ThingsBoard contract (`dashboard/README.md`: real-time vs batch flush).
 **`ts` of each beat = `ts_base_ms + beat.ms`.** This is the core of the resilience claim:
 a beat held for 40 seconds in the backlog still carries the time it **occurred**.
 
-`beat.ms` is filled by `publikasi()` from the sample index of the R peak, not from
+`beat.ms` is filled by `publish()` from the sample index of the R peak, not from
 `millis()` at the moment the beat comes out:
 
 ```c
@@ -255,7 +255,7 @@ Insufficient buffer → return **0**, not a truncated payload. Half a JSON is ac
 broker as garbage with no visible error on the board. Tested:
 `test_payload_buffer_short`.
 
-### 3.4 The backlog ring, and why `intip` is separate from `buang`
+### 3.4 The backlog ring, and why `peek` is separate from `drop`
 
 ```c
 size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *keluar, size_t maks);
@@ -385,7 +385,7 @@ Prerequisites: the broker is up (`docker compose up -d` in `dashboard/`) and
 **Why replay passes the contact gate without special treatment on the publication path:** its swing is
 ~2700 counts, far above `THRESHOLD_SWING` 60, its hum is ±10–19, and the LO± status is ignored during replay. So the dummy and the body signal
 go through the **exact same per-beat gate and publication path**: there is no
-`if (dummy)` branch in `publikasi()` or `ecg_mqtt.cpp`. The only
+`if (dummy)` branch in `publish()` or `ecg_mqtt.cpp`. The only
 special treatment of replay is skipping the calibration gate while replay is on, and
 that is announced on serial (§3.1b). A dummy-specific branch in the publication path would mean that what is demonstrated is not what is
 used.
@@ -606,7 +606,7 @@ The fix in force in the code:
   a batch of 50; one buffer takes half.
 - `send_all()` repeats `sock.write()` for the remainder that has not been
   written, with a 200 ms limit, below the ADC queue depth of 711 ms. Not
-  done within that limit → `gagal++` and `putus()`, the backlog is not advanced.
+  done within that limit → `gagal++` and `disconnect()`, the backlog is not advanced.
 - Because of this staged writing, `ECG_MQTT_BATCH_N` = **50** (~15 KB), the lower
   bound of the `bab3.tex` target of 50–100 records per packet.
 
@@ -714,7 +714,7 @@ Playwright, 2-minute Realtime window).
 
 ### Latency broken down
 
-`tunda alat` (beat OCCURS → beat enters the ring in `publikasi()`; with an empty backlog,
+`tunda alat` (beat OCCURS → beat enters the ring in `publish()`; with an empty backlog,
 the ring is drained in ≤ 20 ms) is counted by the firmware and is **stable across 7
 measurements**: 887 / 880 / 879 / 878 / 876 / 870 / **869 ms**
 (max 1,353 ms).

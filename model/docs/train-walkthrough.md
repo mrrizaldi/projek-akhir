@@ -252,7 +252,7 @@ needs to be printed again to see where the peak is.
 
 Hypothesis: if what picks the final weights is a noisy `val_auc` lottery,
 just average the top few epochs instead of picking up the argmax.
-`RataBobotTerbaik` is attached **after** `EarlyStopping` so that it overwrites the result of
+`BestWeightAverage` is attached **after** `EarlyStopping` so that it overwrites the result of
 `restore_best_weights`.
 
 Safe without recomputing anything: this model has **no BatchNorm**
@@ -380,7 +380,7 @@ be repeated by the examiners.
 | Command | Looks at |
 |---|---|
 | `make train` | Train + save model & curve + val confusion matrix summary |
-| `make test` | The whole test suite; `tests/test_train.py` locks the class weight formula and `RataBobotTerbaik` |
+| `make test` | The whole test suite; `tests/test_train.py` locks the class weight formula and `BestWeightAverage` |
 
 ---
 

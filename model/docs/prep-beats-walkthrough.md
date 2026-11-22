@@ -204,7 +204,7 @@ skipped with the message `make data DB=<db>`), then for each record:
 1. One clean copy is always processed.
 2. For **DS1 mitdb** records only, `JITTER_COPIES` (2) jittered copies are added, using the
    `JITTER_MODEL` model (`"empiris"`). All copies are stacked into the same record `.npz`
-   by `gabung()`.
+   by `combine()`.
 3. DS2 and the extra databases are never jittered: DS2 is the benchmark, and the empirical
    residual was measured from the detector on mitdb at 360 Hz, so it does not apply
    to resampled signals.

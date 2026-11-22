@@ -76,7 +76,7 @@ pasangan = pair_detected(r_used, r_annotated, toleransi 150 ms)
 residu   = r_used[cocok] - r_annotated[pasangan[cocok]]
 ```
 
-`haluskan()` and `pair_detected()` are **not rewritten**: both already exist
+`refine_peaks()` and `pair_detected()` are **not rewritten**: both already exist
 from Phase 6b (`scripts/eval_detected_segmentation.py`, `src/evaluate.py`). What
 is new is only the collection of statistics.
 
