@@ -23,7 +23,7 @@ static void compare(const char *stage, const float *got, const float *expected,
     if (worst > tol) {
         char message[192];
         snprintf(message, sizeof(message),
-                 "%s: selisih terbesar %.6g di indeks %zu (dapat %.6g, harus %.6g)",
+                 "%s: largest difference %.6g at index %zu (got %.6g, expected %.6g)",
                  stage, (double)worst, i_worst,
                  (double)got[i_worst], (double)expected[i_worst]);
         TEST_FAIL_MESSAGE(message);
@@ -56,7 +56,7 @@ void test_window_zscore(void)
     for (int b = 0; b < GOLDEN_N_BEAT; b++) {
         TEST_ASSERT_TRUE_MESSAGE(
             ecg_window_zscore(golden_filtered, GOLDEN_N, golden_r[b], buf_window),
-            "window seharusnya muat di sinyal");
+            "window should fit in the signal");
         compare("z-score", buf_window, golden_window + (size_t)b * GOLDEN_WIN_LEN,
                    GOLDEN_WIN_LEN, GOLDEN_TOL_ZSCORE);
     }
@@ -80,7 +80,7 @@ void test_rr_features(void)
     for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT; b++) {
         TEST_ASSERT_TRUE_MESSAGE(
             ecg_rr_features(golden_r, GOLDEN_N_BEAT, b, ECG_FS, rr),
-            "rr_features seharusnya berhasil untuk i >= 2");
+            "rr_features should succeed for i >= 2");
         compare("rr", rr, golden_rr + (size_t)b * GOLDEN_N_RR,
                    GOLDEN_N_RR, 1e-4f);
     }
@@ -114,10 +114,10 @@ void test_detect_r(void)
 {
     const int n = ecg_detect_r(golden_filtered, GOLDEN_N, buf_scratch, buf_r, 64);
     char message[96];
-    snprintf(message, sizeof(message), "dapat %d R-peak, harus %d", n, GOLDEN_N_DETECTION);
+    snprintf(message, sizeof(message), "got %d R-peaks, expected %d", n, GOLDEN_N_DETECTION);
     TEST_ASSERT_EQUAL_MESSAGE(GOLDEN_N_DETECTION, n, message);
     for (int i = 0; i < n; i++) {
-        snprintf(message, sizeof(message), "peak %d: dapat %d, harus %d",
+        snprintf(message, sizeof(message), "peak %d: got %d, expected %d",
                  i, buf_r[i], golden_r_detection[i]);
         TEST_ASSERT_INT_WITHIN_MESSAGE(1, golden_r_detection[i], buf_r[i], message);
     }
@@ -137,11 +137,11 @@ void test_align_r_puts_peak_at_r_idx(void)
         for (int k = R_IDX - 20; k <= R_IDX + 20; k++)
             if (buf_window[k] > buf_window[peak]) peak = k;
         char message[96];
-        snprintf(message, sizeof(message), "beat %d: puncak di %d, harus %d", i, peak, R_IDX);
+        snprintf(message, sizeof(message), "beat %d: peak at %d, expected %d", i, peak, R_IDX);
         TEST_ASSERT_INT_WITHIN_MESSAGE(2, R_IDX, peak, message);
         tested++;
     }
-    TEST_ASSERT_GREATER_THAN_MESSAGE(3, tested, "terlalu sedikit beat teruji");
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, tested, "too few beats tested");
 }
 
 static ecg_beat_t beat;
@@ -165,7 +165,7 @@ void test_live_emits_beat(void)
     }
 
     char message[128];
-    snprintf(message, sizeof(message), "%d beat keluar, %d cocok anotasi, %d puncak di R_IDX",
+    snprintf(message, sizeof(message), "%d beats out, %d match annotations, %d peaks at R_IDX",
              emitted, matched, peak_correct);
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, emitted, message);
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, message);

@@ -51,7 +51,7 @@ static void prepare_model(void)
 #endif
     interpreter = &static_interpreter;
     TEST_ASSERT_EQUAL_MESSAGE(kTfLiteOk, interpreter->AllocateTensors(),
-                              "AllocateTensors gagal — arena kurang besar?");
+                              "AllocateTensors failed: arena too small?");
 
     TfLiteTensor *a = interpreter->input(0);
     TfLiteTensor *b = interpreter->input(1);
@@ -142,7 +142,7 @@ void test_diagnostic_golden_input(void)
     for (int i = 0; i < GOLDEN_WIN_LEN; i++) in_morph->data.int8[i] = ECG_IN_MORPH_ZERO;
     for (int i = 0; i < GOLDEN_N_RR; i++)    in_rr->data.int8[i] = ECG_IN_RR_ZERO;
     interpreter->Invoke();
-    Serial.printf("DIAG nol    : q_out=%d  p=%.6f\n",
+    Serial.printf("DIAG zero   : q_out=%d  p=%.6f\n",
                   (int)out->data.int8[0],
                   (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE);
 
@@ -191,9 +191,9 @@ void test_lifecycle(void)
             if (abs(beat.r_abs - golden_r[b]) <= 20) {
                 matched++;
                 if (prediction == golden_label[b]) correct++;
-                Serial.printf("  beat r=%4d (%s) p=%.4f -> %d, seharusnya %d %s\n",
+                Serial.printf("  beat r=%4d (%s) p=%.4f -> %d, expected %d %s\n",
                               beat.r_abs, golden_sym[b], p, prediction, golden_label[b],
-                              prediction == golden_label[b] ? "OK" : "SALAH");
+                              prediction == golden_label[b] ? "OK" : "WRONG");
                 break;
             }
         }
@@ -204,26 +204,26 @@ void test_lifecycle(void)
     const float load = 100.0f * us_mean / 2778.0f;
     const uint32_t backlog = (us_max + 2777) / 2778;
 
-    Serial.printf("\n=== ALUR HIDUP ===\n");
-    Serial.printf("beat keluar   : %d (%d cocok anotasi, %d prediksi benar)\n",
+    Serial.printf("\n=== LIVE FLOW ===\n");
+    Serial.printf("beats out     : %d (%d match annotations, %d predictions correct)\n",
                   emitted, matched, correct);
-    Serial.printf("total         : %lu us untuk %d sampel (%.1f detik sinyal)\n",
+    Serial.printf("total         : %lu us for %d samples (%.1f s of signal)\n",
                   (unsigned long)us_run, GOLDEN_N, (float)GOLDEN_N / ECG_FS);
-    Serial.printf("rata-rata     : %lu us/sampel dari anggaran 2778 us -> beban %.1f%%\n",
+    Serial.printf("average       : %lu us/sample of a 2778 us budget -> load %.1f%%\n",
                   (unsigned long)us_mean, load);
-    Serial.printf("puncak burst  : %lu us (deteksi 4 detik + inferensi bersamaan)\n",
+    Serial.printf("burst peak    : %lu us (4 s detection + inference together)\n",
                   (unsigned long)us_max);
-    Serial.printf("antrean min   : %lu sampel agar tidak bolong saat burst\n",
+    Serial.printf("queue min     : %lu samples so a burst leaves no gap\n",
                   (unsigned long)backlog);
     Serial.printf("==================\n");
 
-    TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, "terlalu sedikit beat cocok anotasi");
-    TEST_ASSERT_EQUAL_MESSAGE(matched, correct, "ada prediksi yang beda dari jawaban PC");
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, "too few beats match the annotations");
+    TEST_ASSERT_EQUAL_MESSAGE(matched, correct, "a prediction differs from the PC answer");
 
     TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(2778, us_mean,
-        "rata-rata > 2778 us/sampel — tidak mungkin real-time pada 360 Hz");
+        "average > 2778 us/sample: real time at 360 Hz is impossible");
     TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(ECG_LIVE_RING, backlog * 4,
-        "burst terlalu panjang untuk ring 4 detik");
+        "burst too long for the 4 s ring");
 }
 
 void test_latency_and_memory(void)
@@ -237,17 +237,17 @@ void test_latency_and_memory(void)
     const size_t arena = interpreter->arena_used_bytes();
 
     Serial.printf("\n=== BENCHMARK ESP32-S3 ===\n");
-    Serial.printf("inferensi     : %lu us rata-rata, %lu us maksimum (%d beat)\n",
+    Serial.printf("inference     : %lu us average, %lu us maximum (%d beats)\n",
                   (unsigned long)(total / n), (unsigned long)max_us, n);
-    Serial.printf("tensor arena  : %u byte terpakai dari %d byte dialokasikan\n",
+    Serial.printf("tensor arena  : %u bytes used of %d bytes allocated\n",
                   (unsigned)arena, kArenaSize);
-    Serial.printf("heap bebas    : %u byte\n", (unsigned)ESP.getFreeHeap());
+    Serial.printf("free heap     : %u bytes\n", (unsigned)ESP.getFreeHeap());
     Serial.printf("CPU           : %u MHz\n", (unsigned)ESP.getCpuFreqMHz());
     Serial.printf("==========================\n");
 
     TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(200000, max_us,
-        "inferensi > 200 ms — terlalu lambat untuk kontinu, pertimbangkan ESP-NN");
-    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(kArenaSize, arena, "arena kurang besar");
+        "inference > 200 ms: too slow for continuous use, consider ESP-NN");
+    TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(kArenaSize, arena, "arena too small");
 }
 
 void setup()
