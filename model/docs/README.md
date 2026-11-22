@@ -9,7 +9,7 @@ ditolak, angka nyata, dan soal cek pemahaman.
 di `../CLAUDE.md`.
 
 **Pekerjaan terbuka** (konsumsi daya, WiFi OFF darurat, rekaman ke server, PCB rev2):
-daftar bertanggal di [`../CLAUDE.md` §Pekerjaan terbuka](../CLAUDE.md#pekerjaan-terbuka).
+daftar bertanggal di [`../CLAUDE.md` §Open work](../CLAUDE.md#open-work).
 Data resmi sinyal tubuh = sesi 22 Okt 2026 siang
 ([`../data/recordings/README.md`](../data/recordings/README.md)); rekaman pengembangan
 diarsipkan di [`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md).

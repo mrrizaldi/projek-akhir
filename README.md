@@ -1,38 +1,38 @@
-# Proyek Akhir — Sistem Monitoring Detak Jantung Kontinu (IoT Edge Computing)
+# Final Project: Continuous Heart Rate Monitoring System (IoT Edge Computing)
 
-Monorepo Proyek Akhir untuk pemantauan EKG kontinu dengan klasifikasi aritmia
-**di edge**. Sinyal EKG satu lead diakuisisi AD8232, diproses dan diklasifikasi
-oleh model TinyML INT8 di ESP32-S3, lalu hasil per detak dipublikasikan lewat
-MQTT ke ThingsBoard. Klasifikasi berjalan di alat, bukan di server.
+Final Project monorepo for continuous ECG monitoring with arrhythmia classification
+**at the edge**. A single-lead ECG signal is acquired by the AD8232, processed and
+classified by a TinyML INT8 model on the ESP32-S3, and the per-beat result is
+published over MQTT to ThingsBoard. Classification runs on the device, not on a server.
 
-## Struktur
+## Structure
 
-| Subdir | Isi | Toolchain |
+| Subdir | Contents | Toolchain |
 |---|---|---|
-| `model/` | Jalur TinyML: data MIT-BIH → preprocessing → pelatihan → kuantisasi INT8 → ekspor | Python 3.11 + TensorFlow/TFLite |
-| `firmware/` | Program ESP32-S3: akuisisi 360 Hz, deteksi R-peak, inferensi TFLite Micro, MQTT | PlatformIO (C/C++) |
-| `dashboard/` | ThingsBoard CE (broker MQTT, rule engine, dashboard) dan skrip pengukuran pipeline | Docker Compose, Python |
-| `hardware/` | PCB mainboard rev2: skematik, layout, library DevKitC-1, pemeriksaan otomatis ([`hardware/mainboard/`](hardware/mainboard/README.md)) | KiCad 9 |
-| `laporan/` | Dokumen LaTeX: `proposal-pa`, `buku-pa`, `surat-magang`, `shared` | pdflatex + bibtex |
-| `scripts/` | Otomasi lintas-komponen (sinkronisasi artefak) | bash |
-| `docs/` | Dokumen kerja lintas komponen yang masih berjalan ([indeks](docs/README.md)) | Markdown |
+| `model/` | TinyML track: MIT-BIH data → preprocessing → training → INT8 quantization → export | Python 3.11 + TensorFlow/TFLite |
+| `firmware/` | ESP32-S3 program: 360 Hz acquisition, R-peak detection, TFLite Micro inference, MQTT | PlatformIO (C/C++) |
+| `dashboard/` | ThingsBoard CE (MQTT broker, rule engine, dashboard) and pipeline measurement scripts | Docker Compose, Python |
+| `hardware/` | PCB mainboard rev2: schematic, layout, DevKitC-1 library, automatic checks ([`hardware/mainboard/`](hardware/mainboard/README.md)) | KiCad 9 |
+| `laporan/` | LaTeX documents: `proposal-pa`, `buku-pa`, `surat-magang`, `shared` | pdflatex + bibtex |
+| `scripts/` | Cross-component automation (artifact sync) | bash |
+| `docs/` | Running working documents across components ([index](docs/README.md)) | Markdown |
 
-## Alur artefak (produsen → konsumen)
+## Artifact flow (producer → consumer)
 
-- `model/` menghasilkan `model_int8.h` → dikonsumsi `firmware/include/`.
-- `model/scripts/export_golden.py` menghasilkan `firmware/test/golden_ref.h`
-  (regression test C ↔ Python).
-- `model/artifacts/metrics/` (plot eksperimen) dan `dashboard/preview.png`
-  menghasilkan figure → dikonsumsi `laporan/*/gambar/`. Diagram ilustrasi
-  digambar penulis langsung ke `laporan/*/gambar/`.
-- Sinkronisasi lewat `scripts/export_artifacts.sh`. Artefak tidak disalin manual.
+- `model/` produces `model_int8.h` → consumed by `firmware/include/`.
+- `model/scripts/export_golden.py` produces `firmware/test/golden_ref.h`
+  (C ↔ Python regression test).
+- `model/artifacts/metrics/` (experiment plots) and `dashboard/preview.png`
+  produce figures → consumed by `laporan/*/gambar/`. Illustration diagrams
+  are drawn by the author directly into `laporan/*/gambar/`.
+- Sync goes through `scripts/export_artifacts.sh`. Artifacts are not copied by hand.
 
-Kebijakan commit: figure final dan header `.h` hasil generate **di-commit**
-sehingga laporan dan firmware dapat di-build tanpa menjalankan seluruh pipeline
-model. Data mentah MIT-BIH dan berkas intermediate (`.npz`) **di-ignore**
-(lihat `.gitignore`).
+Commit policy: final figures and generated `.h` headers **are committed**
+so the laporan and the firmware can be built without running the whole model
+pipeline. Raw MIT-BIH data and intermediate files (`.npz`) **are ignored**
+(see `.gitignore`).
 
-## Build cepat
+## Quick build
 
 ```bash
 # Laporan (ukuran kertas tetap per projek)
@@ -46,36 +46,36 @@ cd firmware && pio test -e native         # uji di PC, tanpa board
 cd dashboard && docker compose up -d      # -> http://localhost:8080
 ```
 
-## Status komponen
+## Component status
 
-| Komponen | Kondisi | Bukti |
+| Component | Condition | Evidence |
 |---|---|---|
-| `model/` Fase 0-8 | Selesai | `make poc` 8/8, INT8 22,94 KB, DS2 F1 0,6594, AUC 0,9334 |
-| `model/` ablasi Fase A-G | Selesai, konfigurasi tidak berubah | 10 usul × 3-6 seed; TEST-B/C 85.812 beat / 39 pasien ([peta](model/docs/README.md)) |
-| `firmware/` env `esp32-s3` | Berjalan di board | Inferensi 26,6 ms/detak, tensor arena 12.948 B, sampel hilang 0; MQTT PDSR 99,2-100%, latensi median 939-1.108 ms |
-| Akuisisi sinyal tubuh | Selesai: data resmi = sesi 22 Okt 2026 siang (R1–R4, 927,1 s, 4/4 Berhasil) | Indeks sesi di [`model/data/recordings/README.md`](model/data/recordings/README.md); rekaman pengembangan diarsipkan di [`model/data/arsip/rekaman-uji-coba/`](model/data/arsip/rekaman-uji-coba/README.md) |
-| `firmware/` test perangkat | Lulus di board | `pio test -e esp32-s3`: 29 test (preprocessing, inferensi, buzzer, TFT, ADC, INA219, tombol, integrasi replay) |
-| `firmware/` env `native` | Lulus | `pio test -e native`: 23 test |
-| `dashboard/` | Berjalan | ThingsBoard CE self-host, dashboard tujuh widget, uji deduplikasi |
-| `laporan/proposal-pa` | Lengkap | Bab 1-3 dan abstrak |
-| `laporan/buku-pa` | Draf Bab 1-5 | Gambar ilustrasi berupa placeholder (`grep -rn PLACEHOLDER-GAMBAR laporan/`); angka konsumsi daya menunggu pengukuran (`grep -rn PLACEHOLDER-DATA laporan/buku-pa`) |
+| `model/` Phase 0-8 | Done | `make poc` 8/8, INT8 22.94 KB, DS2 F1 0.6594, AUC 0.9334 |
+| `model/` ablation Phase A-G | Done, configuration unchanged | 10 proposals × 3-6 seeds; TEST-B/C 85,812 beats / 39 patients ([map](model/docs/README.md)) |
+| `firmware/` env `esp32-s3` | Runs on the board | Inference 26.6 ms/beat, tensor arena 12,948 B, lost samples 0; MQTT PDSR 99.2-100%, median latency 939-1,108 ms |
+| Body signal acquisition | Done: official data = 22 Oct 2026 midday session (R1–R4, 927.1 s, 4/4 Berhasil) | Session index in [`model/data/recordings/README.md`](model/data/recordings/README.md); development recordings archived in [`model/data/arsip/rekaman-uji-coba/`](model/data/arsip/rekaman-uji-coba/README.md) |
+| `firmware/` device tests | Passes on the board | `pio test -e esp32-s3`: 29 tests (preprocessing, inference, buzzer, TFT, ADC, INA219, buttons, replay integration) |
+| `firmware/` env `native` | Passes | `pio test -e native`: 23 tests |
+| `dashboard/` | Running | self-hosted ThingsBoard CE, seven-widget dashboard, deduplication test |
+| `laporan/proposal-pa` | Complete | Bab 1-3 and abstract |
+| `laporan/buku-pa` | Draft Bab 1-5 | Illustration figures are placeholders (`grep -rn PLACEHOLDER-GAMBAR laporan/`); power consumption numbers wait for measurement (`grep -rn PLACEHOLDER-DATA laporan/buku-pa`) |
 
-Status rinci per fase model berada di `model/CLAUDE.md`. Berkas ini hanya peta,
-agar tidak ada dua sumber kebenaran. Pekerjaan yang masih terbuka (konsumsi
-daya, WiFi OFF darurat, rekaman ke server, PCB rev2) didaftar bertanggal di
-[`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka).
+Detailed status per model phase is in `model/CLAUDE.md`. This file is only a map,
+so there are not two sources of truth. Work that is still open (power
+consumption, emergency WiFi OFF, recording to the server, PCB rev2) is listed with dates in
+[`model/CLAUDE.md` §Open work](model/CLAUDE.md#open-work).
 
-## Peta dokumentasi
+## Documentation map
 
-| Dokumen | Isi |
+| Document | Contents |
 |---|---|
-| [`CLAUDE.md`](CLAUDE.md) | Aturan kerja repo, gate point, kebijakan gambar |
-| [`model/README.md`](model/README.md) | Ringkasan komponen model |
-| [`model/docs/README.md`](model/docs/README.md) | Peta walkthrough Fase 0-8 dan HW, angka rujukan, eksperimen yang tidak diadopsi |
-| [`firmware/README.md`](firmware/README.md) | Env PlatformIO, perintah, pin map, perintah serial |
-| [`dashboard/README.md`](dashboard/README.md) | ThingsBoard, kontrak payload, pengukuran pipeline |
-| [`.claude/skills/`](.claude/skills/) | Indeks skill repo (laporan: `struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`, `deck-pa`; firmware: `batas-tidak-diam`; kode: `tanpa-komentar-kode`; PCB: `kicad-pcb-pa`; `ingest-word`) dan skill user yang dimuatnya |
-| [`scripts/README.md`](scripts/README.md) | Otomasi lintas-komponen (sinkronisasi artefak) |
-| [`hardware/mainboard/README.md`](hardware/mainboard/README.md) | PCB mainboard: peta pin, catu daya, rasional rangkaian modul, perbedaan terhadap skematik rev2, yang belum terverifikasi |
-| `laporan/CLAUDE.md` | Aturan gaya penulisan laporan |
-| `model/PRD_Model_Aritmia_TinyML.pdf` | Spesifikasi resmi jalur model |
+| [`CLAUDE.md`](CLAUDE.md) | Repo working rules, gate points, figure policy |
+| [`model/README.md`](model/README.md) | Summary of the model component |
+| [`model/docs/README.md`](model/docs/README.md) | Map of the Phase 0-8 and HW walkthroughs, reference numbers, experiments that were not adopted |
+| [`firmware/README.md`](firmware/README.md) | PlatformIO envs, commands, pin map, serial commands |
+| [`dashboard/README.md`](dashboard/README.md) | ThingsBoard, payload contract, pipeline measurement |
+| [`.claude/skills/`](.claude/skills/) | Index of repo skills (laporan: `struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`, `deck-pa`; firmware: `batas-tidak-diam`; code: `tanpa-komentar-kode`; PCB: `kicad-pcb-pa`; `ingest-word`) and the user skills they load |
+| [`scripts/README.md`](scripts/README.md) | Cross-component automation (artifact sync) |
+| [`hardware/mainboard/README.md`](hardware/mainboard/README.md) | Mainboard PCB: pin map, power supply, circuit rationale of the modules, differences from the rev2 schematic, what is not yet verified |
+| `laporan/CLAUDE.md` | Report writing style rules |
+| `model/PRD_Model_Aritmia_TinyML.pdf` | Official specification of the model track |

@@ -1,216 +1,223 @@
-# CLAUDE.md — Proyek Akhir (monorepo PA)
+# CLAUDE.md: Final Project (PA monorepo)
 
-Panduan untuk Claude Code saat bekerja di repo ini. Baca dulu sebelum aksi.
-Aturan khusus subdir: `model/CLAUDE.md` (jalur TinyML, decision point, jebakan)
-dan `laporan/CLAUDE.md` (gaya tulis laporan).
+Guide for Claude Code when working in this repo. Read it before acting.
+Subdir-specific rules: `model/CLAUDE.md` (TinyML track, decision points, pitfalls)
+and `laporan/CLAUDE.md` (report writing style).
 
-## Apa ini
+## What this is
 
-Monorepo Proyek Akhir: **monitoring detak jantung kontinu, klasifikasi
-aritmia di edge** (ESP32-S3 + TinyML INT8). Komponen per subdir — lihat
-`README.md` untuk tabel & alur artefak.
+Final Project (PA) monorepo: **continuous heart rate monitoring, arrhythmia
+classification at the edge** (ESP32-S3 + TinyML INT8). Components per subdir;
+see `README.md` for the table and the artifact flow.
 
-**Dokumen kerja yang sedang berjalan** lintas komponen ada di `docs/`
-(indeks `docs/README.md`). Riwayat ada di git.
+**Running working documents** that span components live in `docs/`
+(index `docs/README.md`). History is in git.
 
-**Pekerjaan terbuka** (bertanggal, jangan sampai lupa): daftar tunggal di
-[`model/CLAUDE.md` §Pekerjaan terbuka](model/CLAUDE.md#pekerjaan-terbuka) —
-konsumsi daya, **WiFi board sengaja OFF (darurat sejak 14 Okt 2026, kembalikan
-ke ON setelah konverter baterai disetel 5 V)**, lalu rencana rekaman mentah
-langsung ke server lewat WiFi, serta PCB rev2. Data resmi sinyal tubuh = sesi
-22 Okt 2026 siang (`model/data/recordings/README.md`); data sebelum 13 Okt 2026
-= uji coba. Angka laporan yang menunggu data: `grep -rn
-PLACEHOLDER-DATA laporan/buku-pa` (tinggal daya).
+**Open work** (dated, do not lose track): single list in
+[`model/CLAUDE.md` §Open work](model/CLAUDE.md#open-work):
+power consumption, **board WiFi deliberately OFF (emergency since 14 Oct 2026,
+turn it back ON after the battery converter is set to 5 V)**, then the plan to
+record raw data straight to the server over WiFi, and PCB rev2. Official body
+signal data = the 22 Oct 2026 midday session (`model/data/recordings/README.md`);
+data before 13 Oct 2026 = trial runs. Report numbers waiting for data: `grep -rn
+PLACEHOLDER-DATA laporan/buku-pa` (only power is left).
 
-## Aturan keras (STRICT, ditetapkan user 13 Okt 2026)
+## Hard rules (STRICT, set by the user 13 Oct 2026)
 
-Berlaku untuk semua kode di repo. Tidak ada pengecualian tanpa izin user.
+Apply to all code in the repo. No exceptions without the user's permission.
 
-### Verifikasi pekerjaan sendiri
-A. **Jalankan sendiri sebelum bilang selesai.** Build, flash, jalankan di board
-   (board tercolok = Claude yang menjalankan), tekan/suntik tombolnya, baca log
-   serial, jalankan skrip. User bukan verifikator.
-B. **Setiap commit membawa bukti:** keluaran test yang lulus, potongan log serial,
-   keluaran skrip, atau tangkapan layar/foto. Bukti ditulis di pesan commit atau
-   laporan akhir. Tanpa bukti, tidak di-commit.
-C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
-   yang belum terbukti (mis. tampilan layar, bunyi buzzer, angka daya dengan
-   baterai) dan cara user mengeceknya. Tebakan yang tampak selesai adalah hal
-   terburuk yang bisa diserahkan.
+### Verify your own work
+A. **Run it yourself before saying it is done.** Build, flash, run on the board
+   (board plugged in = Claude runs it), press/inject its buttons, read the serial
+   log, run the script. The user is not the verifier.
+B. **Every commit carries evidence:** passing test output, a serial log excerpt,
+   script output, or a screenshot/photo. Write the evidence in the commit message
+   or the final report. No evidence, no commit.
+C. **If it cannot be verified, stop and say so.** State exactly what is not yet
+   proven (e.g. screen display, buzzer sound, power figures on battery) and how
+   the user can check it. A guess that looks finished is the worst thing that
+   can be handed over.
 
-### Kenali kode dulu
-1. **Baca peta fitur sebelum menyentuh modul.** Peta yang sudah tertulis:
-   `README.md` (komponen), `firmware/README.md` (modul, tombol, menu, perintah
-   serial), `model/docs/README.md` (pipeline model), `model/CLAUDE.md`
-   (decision point). Jangan menebak struktur yang sudah didokumentasikan.
-2. **Buka berkas sebelum mengeditnya.** Jangan pernah menulis kode dari ingatan
-   tentang isi berkas.
-3. **Satu fitur per commit.** Fitur tidak meng-include fitur lain; kode bersama
-   lewat lapisan bersama. Firmware: lapisan bersama = `perangkat`, `konfig`,
-   `ecg_*`, `ina219`; perangkai = `main.cpp` dan `menu.cpp`; fitur lain tidak
-   saling meng-include.
+### Know the code first
+1. **Read the feature map before touching a module.** Maps already written:
+   `README.md` (components), `firmware/README.md` (modules, buttons, menus, serial
+   commands), `model/docs/README.md` (model pipeline), `model/CLAUDE.md`
+   (decision points). Do not guess a structure that is already documented.
+2. **Open a file before editing it.** Never write code from memory of a file's
+   contents.
+3. **One feature per commit.** A feature does not include another feature; shared
+   code goes through a shared layer. Firmware: shared layer = `perangkat`, `konfig`,
+   `ecg_*`, `ina219`; wiring = `main.cpp` and `menu.cpp`; other features do not
+   include each other.
 
-### Aturan keras, ditegakkan pemeriksa
-4. **Tanpa `useEffect`** (berlaku bila ada kode React/frontend): turunkan
-   nilainya atau tangani di event.
-5. **TANPA KOMENTAR KODE.** C/C++, Python (termasuk docstring), shell, dan
-   `platformio.ini`. Kalau kode butuh komentar, ganti namanya atau pecah sampai
-   tidak butuh. Penjelasan, rasional, jebakan, dan cara pakai ditulis di
-   DOKUMEN tersendiri (`firmware/README.md`, walkthrough, `model/docs/`), bukan
-   di kode. Berkas GENERATED juga tanpa komentar (generatornya tidak menulis
-   komentar). Pengecualian fungsional saja: deskripsi target `##` di Makefile
-   (dipakai `make help`) dan teks bantuan CLI yang dicetak program.
-6. **Aturan hidup di CI.** Pemeriksa: `python3 scripts/check_comments.py` dan
-   `.github/workflows/checks.yml`. Aturan yang tidak bisa diperiksa mesin diubah
-   jadi pemeriksaan, atau dihapus dari berkas ini.
+### Hard rules, enforced by the checker
+4. **No `useEffect`** (applies when there is React/frontend code): derive the
+   value or handle it in the event.
+5. **NO CODE COMMENTS.** C/C++, Python (including docstrings), shell, and
+   `platformio.ini`. If code needs a comment, rename it or split it until it does
+   not. Explanations, rationale, pitfalls, and usage are written in separate
+   DOCUMENTS (`firmware/README.md`, walkthrough, `model/docs/`), not in the code.
+   GENERATED files also have no comments (the generator writes no comments).
+   Functional exceptions only: the `##` target descriptions in the Makefile (used
+   by `make help`) and CLI help text that the program prints.
+6. **The rules live in CI.** Checkers: `python3 scripts/check_comments.py` and
+   `.github/workflows/checks.yml`. A rule that a machine cannot check is turned
+   into a check, or removed from this file.
 
-### Tutup lingkarannya
-7. **Setiap kegagalan yang ditangkap user menjadi skill hari itu juga**
-   (`.claude/skills/<nama>/SKILL.md`, atau repo skill user bila aturannya
-   generik). Kegagalan yang sama tidak boleh terulang.
-8. **Setiap skill punya eval** dalam format skill-creator
-   (`.claude/skills/<nama>/evals/<kasus>/{prompt.md,case.yaml,graders/}`) dan
-   set pemicu `triggers/evals.json`, dinilai model berbeda dari penulis,
-   target lulus semua grader, **maksimal 3 putaran**. Belum lulus sesudah
-   putaran ke-3 → berhenti, tulis skor terbaik dan temuannya di pesan
-   commit, lalu tanya user. Soal eval sempit dan berjawaban pasti
-   (kegagalan aslinya). Skor yang tidak naik dua putaran berturut-turut =
-   berhenti lebih awal. Skor tidak disimpan sebagai tabel di repo.
-9. **Pemeriksaan hijau → commit langsung**, tanpa menunggu persetujuan; user
-   meninjau setelahnya. Satu revert lebih murah daripada agen yang tertahan.
-   Push ke remote tetap hanya atas permintaan eksplisit.
+### Close the loop
+7. **Every failure the user catches becomes a skill the same day**
+   (`.claude/skills/<nama>/SKILL.md`, or a user repo skill if the rule is
+   generic). The same failure must not happen again.
+8. **Every skill has an eval** in skill-creator format
+   (`.claude/skills/<nama>/evals/<kasus>/{prompt.md,case.yaml,graders/}`) and a
+   trigger set `triggers/evals.json`, graded by a model different from the
+   author, target = pass all graders, **at most 3 rounds**. Not passing after the
+   3rd round → stop, write the best score and the findings in the commit
+   message, then ask the user. Eval questions are narrow with a definite answer
+   (the original failure). A score that does not rise for two rounds in a row =
+   stop early. Scores are not stored as a table in the repo.
+9. **Checks green → commit right away**, without waiting for approval; the user
+   reviews afterwards. One revert is cheaper than a blocked agent.
+   Push to the remote stays only on explicit request.
 
 ### Refactor
-10. **Refactor tanpa ubah perilaku.** Refactor commits must not change behavior; never mix with feature or bugfix changes.
-11. **Tiap commit hijau.** Each commit must leave all tests green.
-12. **Area tanpa test: berhenti dan tanya.** If the area lacks test coverage, stop and
+10. **Refactor without behavior change.** Refactor commits must not change behavior; never mix with feature or bugfix changes.
+11. **Every commit green.** Each commit must leave all tests green.
+12. **Area without tests: stop and ask.** If the area lacks test coverage, stop and
     ask before refactoring. A rename-only
     commit (only identifiers and file names change, every string literal stays) counts
     as covered when `python3 scripts/renames.py firmware <rev-a> <rev-b>` (C/C++) or
     `python3 scripts/renames.py python <rev-a> <rev-b>` (Python) passes. A commit that
     changes a string literal, CLI flag, make target or printed text is not a refactor.
 
-## Skill, muat sebelum mulai
+## Skills, load before starting
 
-Skill sering tidak terpicu sendiri; muat skill di tabel ini sebelum mulai
-pekerjaan yang cocok. Tabel diperbarui setiap skill ditambah, diganti nama,
-atau diekstrak.
+Skills often do not trigger on their own; load the skill in this table before
+starting matching work. The table is updated whenever a skill is added, renamed,
+or extracted.
 
-| Pekerjaan | Muat skill |
+| Task | Load skill |
 |---|---|
-| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware dengan batas atau operasi lambat | `batas-tidak-diam` (memuat `firmware-bounded-limits`) |
-| "sunting buku-pa", "Bab 1", "tanya user soal isi buku", sinkron proposal | `buku-ikut-proposal` |
+| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware with limits or slow operations | `batas-tidak-diam` (loads `firmware-bounded-limits`) |
+| "sunting buku-pa", "Bab 1", "tanya user soal isi buku", proposal sync | `buku-ikut-proposal` |
 | "bikin slide", "deck seminar", "slide bimbingan", "PPTX sidang" | `deck-pa` |
-| "ingest", "sync balik", "masukin suntingan Word ke tex" | `ingest-word` (memuat `wordcraft-latex-ingest`) |
-| "PCB", "skematik KiCad", "routing", "Freerouting", berkas KiCad dari teman | `kicad-pcb-pa` (memuat `kicad-mcp-pcb`) |
+| "ingest", "sync balik", "masukin suntingan Word ke tex" | `ingest-word` (loads `wordcraft-latex-ingest`) |
+| "PCB", "skematik KiCad", "routing", "Freerouting", KiCad files from a friend | `kicad-pcb-pa` (loads `kicad-mcp-pcb`) |
 | "tambah bab/subbab", "abstrak", "Bab 4/Bab 5", "pasang gambar", "QA sebelum kumpul" | `struktur-pa` |
-| "buat tabel", "rapikan tabel", tabel hasil Bab 4 | `tabel-pa` |
-| "dokumentasikan fitur", "update docs", halaman `docs/features`, setelah fitur firmware/model berubah | `feature-docs` |
-| menulis atau menyunting kode (C/C++, Python, shell, `platformio.ini`), prompt ke subagen penulis kode | `tanpa-komentar-kode` (memuat `no-code-comments`) |
-| "indeks rujukan", "daftar bukti", dokumen dengan tautan ke berkas lokal | skill user `local-file-links` (PA: indeks rujukan di `laporan/pustaka/`, daftar bukti dari `model/artifacts`) |
-| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` (memuat `indonesian-antislop-writing`) |
-| `git stash`/`reset`/`checkout` path/`clean`, commit saat sesi atau agen lain bekerja, `index.lock`, `git status` kotor menghalangi | skill user `shared-worktree` |
+| "buat tabel", "rapikan tabel", Bab 4 result tables | `tabel-pa` |
+| "dokumentasikan fitur", "update docs", `docs/features` pages, after a firmware/model feature changes | `feature-docs` |
+| writing or editing code (C/C++, Python, shell, `platformio.ini`), prompts to code-writing subagents | `tanpa-komentar-kode` (loads `no-code-comments`) |
+| "indeks rujukan", "daftar bukti", documents with links to local files | user skill `local-file-links` (PA: reference index in `laporan/pustaka/`, evidence list from `model/artifacts`) |
+| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` (loads `indonesian-antislop-writing`) |
+| `git stash`/`reset`/`checkout` path/`clean`, committing while another session or agent is working, `index.lock`, a dirty `git status` blocking | user skill `shared-worktree` |
 
-## Aturan kerja (non-negotiable)
+## Working rules (non-negotiable)
 
-1. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua
-   pembuatan file pola "buat jika belum ada", jangan overwrite. Dokumen rencana
-   dan alat sekali pakai yang selesai dihapus sesuai **Dokumentasi**, hanya
-   dengan persetujuan user. Rename lewat `git mv` yang tercantum di rencana yang
-   disetujui user diperbolehkan, kecuali di `laporan/` (tetap gate point).
-2. **`laporan/` read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
-   jangan diutak-atik tanpa konfirmasi. Path relatif rapuh. Aturan detail
-   (gaya tulis, konvensi tabel/gambar, struktur bab) ada di `laporan/CLAUDE.md`
-   — baca itu dulu kalau kerja di `laporan/`.
-3. **PRD = `model/PRD_Model_Aritmia_TinyML.pdf`** (PDF, bukan `.md`; baca pakai
-   Read `pages=`). Ikuti kontrak fungsi & jebakan di sana; jangan vibe-coding.
-4. **Cari dulu di repo sendiri sebelum merancang.** Rencana, skrip, dan
-   mekanisme yang dibutuhkan sering SUDAH ada, tinggal dikerjakan atau diperluas.
-   Contoh: sumber sinyal replay untuk uji tanpa hardware sudah ada di firmware
-   (menu Sumber sinyal, atau toggle serial `y`), dan rantai penyelarasan R-peak sudah jadi di
-   `model/scripts/eval_detected_segmentation.py`. Merancang
-   ulang dari nol di tempat seperti itu = pekerjaan ganda yang sia-sia.
+1. **Non-destructive.** Do not delete/move/rename existing files. All file
+   creation follows the "create if not present" pattern, never overwrite. Plan
+   documents and one-off tools that are finished are deleted per
+   **Documentation**, only with the user's approval. A rename through `git mv`
+   that is listed in a plan the user approved is allowed, except in `laporan/`
+   (still a gate point).
+2. **`laporan/` is read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
+   must not be touched without confirmation. Relative paths are fragile. Detailed
+   rules (writing style, table/figure conventions, chapter structure) are in
+   `laporan/CLAUDE.md`; read it first when working in `laporan/`.
+3. **PRD = `model/PRD_Model_Aritmia_TinyML.pdf`** (a PDF, not `.md`; read it with
+   Read `pages=`). Follow the function contracts and pitfalls there; no
+   vibe-coding.
+4. **Search your own repo before designing.** The plans, scripts, and
+   mechanisms you need often ALREADY exist and only need to be carried out or
+   extended. Example: the replay signal source for tests without hardware
+   already exists in the firmware (the "Sumber sinyal" menu, or serial toggle
+   `y`), and the R-peak alignment chain is already built in
+   `model/scripts/eval_detected_segmentation.py`. Redesigning from scratch in
+   such a place = wasted duplicate work.
 
-## Bukti mengalahkan kekakuan
+## Evidence beats rigidity
 
-Aturan di atas menjaga hal yang sudah terbukti. Aturan ini menjaga supaya yang
-terbukti tidak membeku jadi dogma.
+The rules above protect what is already proven. This section keeps what is
+proven from freezing into dogma.
 
-- **Golden reference (`firmware/test/golden_ref.h`) itu REGRESSION TEST, bukan
-  pagar desain.** Yang dijamin: C dan Python menghitung hal yang sama. Yang
-  TIDAK dijamin: parameternya sudah optimal. Kalau ada bukti konkret (paper
-  ber-ablasi, atau eksperimen sendiri) bahwa parameter lain lebih baik, ubah
-  parameternya lalu **regenerasi** golden (`python scripts/export_golden.py`
-  dari `model/`) dan jalankan `pio test -e native`. Regenerasi = prosedur
-  rutin. Menolak perubahan "karena nanti golden berubah" = alasan yang salah.
-- **Adopsi dari paper hanya kalau papernya mengablasi klaimnya.** Kalau paper
-  cuma memakai metode X tanpa pernah membandingkannya, yang kita punya bukan
-  bukti melainkan preseden. Boleh ditiru — setelah kita sendiri yang mengablasi.
-  Contoh: Dias 2021 mengablasi jitter (Tabel 3, 6-8, 33 ulangan) tapi tidak
-  pernah mengablasi filternya, jadi jitter-nya diadopsi dan filternya tidak.
-- **Jangan menyalin konstanta empiris paper kalau kita bisa mengukur sendiri.**
-  Dias memakai jitter seragam ±18 sampel karena mereka tidak punya detektor.
-  Kita punya, dan residunya berbentuk lain sama sekali (inti tajam ±2, ekor
-  berat sampai 54). Menyalin 18 berarti melatih model melawan error yang bukan
-  milik kita.
-- **Knob eksperimen lewat environment, bukan lewat mengedit nilai final.**
-  `config.py` membaca `PA_WIN_PRE`, `PA_WIN_POST`, `PA_HOS` (dan knob ablasi
-  lain yang tercatat di `model/CLAUDE.md`); tanpa env, nilainya persis bawaan.
-  Ablasi jalan tanpa menyentuh gate point. Nilai yang MENANG dikunci dengan
-  mengubah bawaannya — dan itu tetap gate point.
+- **The golden reference (`firmware/test/golden_ref.h`) is a REGRESSION TEST, not
+  a design fence.** What it guarantees: C and Python compute the same thing. What
+  it does NOT guarantee: that the parameters are optimal. If there is concrete
+  evidence (a paper with ablations, or our own experiment) that other parameters
+  are better, change the parameters, then **regenerate** the golden
+  (`python scripts/export_golden.py` from `model/`) and run `pio test -e native`.
+  Regeneration = routine procedure. Refusing a change "because the golden will
+  change" = the wrong reason.
+- **Adopt from a paper only if the paper ablates its claim.** If a paper just
+  uses method X without ever comparing it, what we have is not evidence but
+  precedent. It may be copied, after we ablate it ourselves.
+  Example: Dias 2021 ablates jitter (Tables 3, 6-8, 33 repetitions) but never
+  ablates its filter, so the jitter was adopted and the filter was not.
+- **Do not copy a paper's empirical constants if we can measure our own.**
+  Dias uses uniform jitter of ±18 samples because they have no detector.
+  We have one, and the residual has a completely different shape (sharp core
+  ±2, heavy tail up to 54). Copying 18 means training the model against an
+  error that is not ours.
+- **Experiment knobs go through the environment, not through editing final
+  values.** `config.py` reads `PA_WIN_PRE`, `PA_WIN_POST`, `PA_HOS` (and other
+  ablation knobs recorded in `model/CLAUDE.md`); without env, the values are
+  exactly the defaults. Ablations run without touching a gate point. The
+  WINNING value is locked in by changing the default, and that is still a gate
+  point.
 
-## Cara kerja yang diminta user
+## How the user wants to work
 
-- **Data, bukan asumsi.** Penyebab masalah (hardware rusak, broker lambat,
-  noise dari modul) baru boleh disimpulkan setelah diukur. Kalau hipotesis
-  gagal, pasang pencacah/ukur dulu, jangan menebak tersangka berikutnya dan
-  jangan berputar-putar.
-- **Rencana yang disetujui dijalankan sampai selesai** tanpa minta konfirmasi
-  tiap langkah; berhenti hanya pada anomali atau gate point. Pekerjaan yang bisa
-  paralel boleh disebar ke subagen.
-- **Keputusan desain/trade-off milik user.** Sajikan opsi + rekomendasi beserta
-  alasannya (rujuk PRD/data), lalu biarkan user memilih. Usulan dari riset paper
-  yang menyimpang dari rencana awal ditulis ringkasannya dulu sebelum
-  implementasi.
-- **Eksplorasi di luar rencana tidak otomatis jadi rencana.** Cek spek/percobaan
-  sampingan cukup dilaporkan; jangan ditulis ke dokumen rencana tanpa diminta.
-- **Rujukan resmi menang atas ingatan.** Datasheet/dokumentasi resmi modul
-  (penempatan elektroda, pin I2C, polaritas buzzer, dll.) yang dirujuk user
-  diikuti; jangan berdebat dari ingatan.
-- **Sederhana.** Jangan memecah fungsi/abstraksi tanpa alasan; hindari
+- **Data, not assumptions.** The cause of a problem (broken hardware, slow broker,
+  noise from a module) may be concluded only after it is measured. If a hypothesis
+  fails, add a counter/measure first, do not guess the next suspect and do not
+  go in circles.
+- **An approved plan is carried out to the end** without asking for confirmation
+  at every step; stop only at an anomaly or a gate point. Work that can run in
+  parallel may be spread across subagents.
+- **Design/trade-off decisions belong to the user.** Present options + a
+  recommendation with its reasons (cite the PRD/data), then let the user choose.
+  Proposals from paper research that deviate from the original plan are
+  summarized first, before implementation.
+- **Exploration outside the plan does not automatically become the plan.** A
+  side check of a spec or experiment is only reported; do not write it into a
+  plan document unless asked.
+- **The official reference beats memory.** A module's official datasheet/docs
+  (electrode placement, I2C pins, buzzer polarity, etc.) that the user cites
+  are followed; do not argue from memory.
+- **Simple.** Do not split functions/abstractions without a reason; avoid
   over-engineering.
-- **Laporan hanya kalau diminta.** Saat mengerjakan program, jangan menyisipkan
-  atau menyarankan pekerjaan `laporan/` sebagai langkah berikutnya.
-- **Git:** commit otomatis setelah pemeriksaan hijau (Aturan keras 9); push hanya
-  kalau diminta eksplisit (user sering push sendiri).
-- **Akhiri tugas dengan laporan ringkas:** apa yang dikerjakan, angka hasil
-  verifikasi, dan sisa pekerjaan terhadap rencana.
-- **Yang dipelajari dicatat di repo**, bukan cuma di chat: keputusan & jebakan
-  ke `CLAUDE.md` yang relevan, penjelasan ke walkthrough/README — tidak pernah
-  ke komentar kode.
+- **Report only when asked.** When working on the program, do not slip in or
+  suggest `laporan/` work as a next step.
+- **Git:** commit automatically after the checks are green (Hard rule 9); push
+  only when explicitly asked (the user often pushes themselves).
+- **End a task with a short report:** what was done, the verification numbers,
+  and the work remaining against the plan.
+- **What is learned is recorded in the repo**, not only in chat: decisions and
+  pitfalls to the relevant `CLAUDE.md`, explanations to the walkthrough/README,
+  never to code comments.
 
-## Dokumentasi
+## Documentation
 
-- **Tiap pekerjaan selesai → dokumentasinya ikut ditulis**, cukup lengkap supaya
-  user bisa mengulang sendiri tanpa Claude: data disimpan di mana, cara
-  menariknya, cara menganalisis & membuat grafik, cara toggle/flag. Walkthrough
-  model: aturan di `model/CLAUDE.md`, peta di `model/docs/README.md`.
-- **Dokumen aktif = dokumentasi resmi kondisi SAAT INI.** Tanpa penanda revisi
-  ("KOREKSI", "revisi dari ...", "update:"), narasi sesi, kata waktu-relatif
-  ("dulu", "semula", "ternyata"), checklist progres, atau emoji penanda. Klaim
-  yang pernah dikoreksi cukup ditulis versi benarnya. Rasional desain dan
-  alternatif yang ditolak tetap ditulis ("Alternatif X tidak dipakai karena ...").
-  Tanggal hanya sebagai metadata pengukuran ("Kondisi uji: board N16R8, 19 Sep 2026").
-- **`docs/` = dokumen kerja yang masih berlaku** (daftar kerja, riset yang
-  aksinya belum diputuskan, rencana yang belum selesai), nama
-  `YYYY-MM-DD-<topik>.md`, didaftar di `docs/README.md`.
-- **Riwayat ada di git, bukan di dokumen.** Rencana dan catatan yang selesai
-  dihapus sesudah hasilnya tercatat di dokumen yang berlaku; fakta operasional
-  yang masih berlaku (lokasi data, cara memulihkan, nilai konfigurasi) dipindah
-  dulu ke README atau walkthrough komponennya. Alat sekali pakai dihapus bila
-  tidak dirujuk lagi.
-- **Yang usang dibuang dari dokumen aktif dan kode**, bukan ditandai "lama"
-  (contoh: buzzer aktif yang sudah tidak dipakai).
+- **Every finished piece of work gets its documentation written too**, complete
+  enough that the user can repeat it without Claude: where data is stored, how to
+  pull it, how to analyze it and make plots, how to toggle/flag. Model
+  walkthrough: rules in `model/CLAUDE.md`, map in `model/docs/README.md`.
+- **Active document = official documentation of the CURRENT state.** No revision
+  markers ("CORRECTION", "revised from ...", "update:"), session narration,
+  relative-time words ("formerly", "originally", "it turned out"), progress
+  checklists, or marker emoji. A claim that was once corrected is written only in
+  its correct version. Design rationale and rejected alternatives are still
+  written ("Alternative X is not used because ..."). Dates only as measurement
+  metadata ("Test condition: N16R8 board, 19 Sep 2026").
+- **`docs/` = working documents that are still valid** (work lists, research
+  whose action is not yet decided, plans not yet finished), named
+  `YYYY-MM-DD-<topik>.md`, listed in `docs/README.md`.
+- **History is in git, not in documents.** Plans and notes that are finished
+  are deleted after their results are recorded in the document that applies;
+  operational facts that still apply (data location, how to recover,
+  configuration values) are moved first to the component's README or
+  walkthrough. One-off tools are deleted when they are no longer referenced.
+- **What is obsolete is removed from active documents and code**, not marked
+  "old" (example: the active buzzer that is no longer used).
 - **Language:** English for everything developers and agents read: docs, README,
   `CLAUDE.md` files, skills, commit messages, identifiers, file names, script output,
   serial log text. Indonesian stays for `laporan/` text, `presentasi/`, TFT strings
@@ -219,113 +226,114 @@ terbukti tidak membeku jadi dogma.
   thousands (85.812). Things that are run (build, record, flash, calibrate) are
   written as procedures: numbered steps, commands in code blocks, expected result.
   Files not yet migrated stay as they are until their task in that plan runs.
-- **Berkas hasil** (rekaman, grafik) bernama ber-timestamp dan dikelompokkan per
-  folder kategori, bukan nama generik seperti "percobaan".
+- **Result files** (recordings, plots) are named with a timestamp and grouped in
+  one folder per category, not a generic name such as "percobaan".
 
-## Artefak: produsen → konsumen
+## Artifacts: producer → consumer
 
-- `model/` → `model_int8.h` → `firmware/include/` (GENERATED, jangan edit tangan)
+- `model/` → `model_int8.h` → `firmware/include/` (GENERATED, do not edit by hand)
 - `model/scripts/export_golden.py` → `firmware/test/golden_ref.h` (GENERATED)
 - `model/artifacts/metrics/*.png` & `dashboard/preview.png` → figure →
   `laporan/*/gambar/` (`export_artifacts.sh --laporan`)
-- Sinkron via `scripts/export_artifacts.sh`. **Jangan copy manual.**
-- Kebijakan commit: **B1** — figure final + `.h` di-commit; data mentah
-  MIT-BIH & `.npz` intermediate di-ignore (`.gitignore`).
+- Synced via `scripts/export_artifacts.sh`. **Do not copy by hand.**
+- Commit policy: **B1**: final figures + `.h` are committed; raw MIT-BIH data
+  and intermediate `.npz` are ignored (`.gitignore`).
 
 ## Build
 
 - Laporan:  `cd laporan/<projek> && make pdf` → `output/main.pdf` (gitignored).
-  Projek: `proposal-pa` (A4), `buku-pa`, `surat-magang`; `shared/` = preamble +
-  `Makefile.inc`. **Ukuran kertas fixed per projek** (`\input ../shared/size-aX`),
-  tidak ada `make a4`/`make a5`.
-- Model:    `cd model && make <target>` (daftar: `make help`; ringkasan di
-  `model/CLAUDE.md`). Python 3.11.9 (`model/.python-version`), venv di
-  `model/.venv`, deps di `model/requirements.txt`. Script cek/eksplorasi ad-hoc
-  → `model/scripts/` (dijalankan dari folder `model/`).
-- **Checkpoint laporan:** user bilang *checkpoint* → commit dulu, lalu `make rilis` di `laporan/buku-pa` dan `laporan/progres-pa-1` (yang ditolak karena tidak berubah dilewati), laporkan `version=` dan `diff=`. Tag rilis tidak di-push.
-- Firmware: lihat **ESP32 / mikrokontroler** di bawah.
+  Projects: `proposal-pa` (A4), `buku-pa`, `surat-magang`; `shared/` = preamble +
+  `Makefile.inc`. **Paper size is fixed per project** (`\input ../shared/size-aX`),
+  there is no `make a4`/`make a5`.
+- Model:    `cd model && make <target>` (list: `make help`; summary in
+  `model/CLAUDE.md`). Python 3.11.9 (`model/.python-version`), venv in
+  `model/.venv`, deps in `model/requirements.txt`. Ad-hoc check/exploration
+  scripts → `model/scripts/` (run from the `model/` folder).
+- **Laporan checkpoint:** the user says *checkpoint* → commit first, then `make rilis` in `laporan/buku-pa` and `laporan/progres-pa-1` (those rejected because nothing changed are skipped), report `version=` and `diff=`. The release tag is not pushed.
+- Firmware: see **ESP32 / microcontroller** below.
 - Dashboard: `cd dashboard && docker compose up -d` (ThingsBoard CE).
 
-## ESP32 / mikrokontroler → PlatformIO
+## ESP32 / microcontroller → PlatformIO
 
-Semua kerja ESP32/mikrokontroler (build, flash, monitor, test, cek library,
-cek board/pin) **lewat PlatformIO CLI (`pio`)**, bukan Arduino IDE/CLI, bukan
-`idf.py`/`esptool.py` langsung. Konfigurasi tunggal = `firmware/platformio.ini`
-(env `esp32-s3` = firmware utama + test perangkat `test_hw_*` di board N16R8,
-env `native` = test di PC). Jalankan dari `firmware/`.
+All ESP32/microcontroller work (build, flash, monitor, test, library check,
+board/pin check) goes **through the PlatformIO CLI (`pio`)**, not the Arduino
+IDE/CLI, not `idf.py`/`esptool.py` directly. The single configuration =
+`firmware/platformio.ini` (env `esp32-s3` = main firmware + `test_hw_*` device
+tests on the N16R8 board, env `native` = tests on the PC). Run from `firmware/`.
 
 - Build:        `pio run` (default env `esp32-s3`)
 - Flash:        `pio run -t upload` · monitor: `pio device monitor` (115200)
 - Port/board:   `pio device list` · `pio boards <kata>`
-- Test PC:      `pio test -e native` (tanpa board) · di device: `pio test -e esp32-s3`
-- Library:      `pio pkg search|show <nama>`; tambah ke `lib_deps` di
-  `platformio.ini` = dependency baru → **gate point, tanya dulu**.
-- Info board/framework: baca dari `~/.platformio/platforms/espressif32` &
-  `~/.platformio/packages/` (versi terpasang) sebelum menebak dari ingatan.
-- **Board tercolok → Claude sendiri** yang menjalankan `pio device list`, flash,
-  monitor, dan membaca hasilnya. Port jangan di-hardcode: berpindah antara
-  `/dev/ttyACM*` dan `/dev/ttyUSB*`.
-- **Uji tanpa sensor lewat flag/mode simulasi** (replay golden, toggle serial,
-  build flag), bukan salinan kode terpisah.
-- **Sebelum mengubah pin/driver**, pastikan perangkat keras yang sedang dipakai
-  (breadboard atau PCB rev N). Pin map tunggal ada di
-  `firmware/include/board.h`; peta pin dan rasional rangkaian PCB di
-  `hardware/mainboard/README.md` (bagian Peta pin dan Rasional rangkaian modul).
+- PC test:      `pio test -e native` (no board) · on device: `pio test -e esp32-s3`
+- Library:      `pio pkg search|show <nama>`; adding to `lib_deps` in
+  `platformio.ini` = new dependency → **gate point, ask first**.
+- Board/framework info: read from `~/.platformio/platforms/espressif32` &
+  `~/.platformio/packages/` (installed versions) before guessing from memory.
+- **Board plugged in → Claude itself** runs `pio device list`, flash,
+  monitor, and reads the result. Do not hardcode the port: it moves between
+  `/dev/ttyACM*` and `/dev/ttyUSB*`.
+- **Test without a sensor through a flag/simulation mode** (golden replay,
+  serial toggle, build flag), not a separate copy of the code.
+- **Before changing a pin/driver**, make sure which hardware is in use
+  (breadboard or PCB rev N). The single pin map is in
+  `firmware/include/board.h`; the pin map and circuit rationale of the PCB are in
+  `hardware/mainboard/README.md` (sections "Peta pin" and "Rasional rangkaian modul").
 
-## Diagrams & gambar laporan
+## Diagrams & laporan figures
 
-- **Claude TIDAK membuat diagram/gambar ilustrasi sendiri** (untuk `laporan/`; dokumen dev di `docs/features/` boleh memuat Mermaid buatan Claude dengan nama nyata): tidak ada Mermaid,
-  TikZ, PlantUML, Graphviz, SVG/draw.io, skrip gambar baru, atau gambar AI.
-  Di posisi gambar, taruh
-  **placeholder** + kartu spesifikasi isi (jenis, pesan, elemen wajib, alur
-  baca, bahan di repo); **user yang menggambar**. Caption, `\label`, `\ref`, dan
-  paragraf pengantar/penjelas tetap ditulis final. Templat: skill
-  `struktur-pa` aturan 9.
-  Sisa placeholder: `grep -rn "PLACEHOLDER-GAMBAR" laporan/`.
-- Plot data eksperimen (confusion matrix, kurva, grafik latensi) hasil pipeline
-  repo bukan ilustrasi: rujuk berkas yang sudah di-export. Kalau belum ada →
-  placeholder + sebut skrip penghasilnya, jangan tulis skrip plot baru tanpa diminta.
-- Label requirement `RM1..RM4` **TIDAK boleh muncul** di diagram apa pun.
+- **Claude does NOT make diagrams/illustration figures itself** (for `laporan/`; dev docs in `docs/features/` may contain Claude-made Mermaid with real names): no Mermaid,
+  TikZ, PlantUML, Graphviz, SVG/draw.io, new figure scripts, or AI images.
+  At the figure position, put a
+  **placeholder** + a content spec card (type, message, required elements,
+  reading flow, material in the repo); **the user draws it**. The caption, `\label`, `\ref`, and
+  the intro/explanatory paragraph are still written in final form. Template: skill
+  `struktur-pa` rule 9.
+  Remaining placeholders: `grep -rn "PLACEHOLDER-GAMBAR" laporan/`.
+- Experiment data plots (confusion matrix, curves, latency charts) produced by
+  the repo pipeline are not illustrations: reference the already-exported file. If
+  it does not exist yet → placeholder + name the script that produces it, do not
+  write a new plot script unless asked.
+- The requirement labels `RM1..RM4` **MUST NOT appear** in any diagram.
 
-## Menulis laporan (progres / buku PA)
+## Writing the report (progress / PA book)
 
-Acuan penulisan = empat skill di `.claude/skills/`: `struktur-pa` (kerangka
-bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
-`tulis-tanpa-slop` (lapisan atas skill user `indonesian-antislop-writing`:
-paragraf tanpa pola tulisan AI, diperiksa `scripts/check_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
-dan sinkronisasi proposal). `narasi-pa` nonaktif dan
-disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6
-laporan PA PENS yang menjadi asal aturannya sudah didistilasi ke skill. Aturan gaya tulis tetap `laporan/CLAUDE.md`.
-Keputusan lingkup yang sudah diambil user: PA individu, subjek uji anonim
-(kode S01, S02, ...), tempat uji laboratorium, TLS/keamanan transport tidak
-dibahas sama sekali. Buku hanya membahas MIT-BIH: SVDB/INCART dan uji
-lintas basis data tidak ditulis walau hasilnya ada di repo (19 Okt 2026).
-Pustaka diutamakan terbitan 2020 ke atas, kecuali sumber asli metode/data
-dan standar yang masih berlaku (arahan dosen; rasional per entri di
-`laporan/CLAUDE.md` bagian Daftar Pustaka). Buku full =
-`laporan/buku-pa` (dikerjakan), buku tahap 1 = `laporan/progres-pa-1`
-(buku-pa tanpa INA219 dan catu daya, isi 50–70% menurut pembimbing;
-prosedur regenerasi di `laporan/CLAUDE.md`). **`laporan/proposal-pa` sudah
-diserahkan dan dibekukan (15 Okt 2026): tidak disunting lagi, termasuk
-`.bib`-nya.** Buku tidak memuat tabel "perubahan dari proposal" dan tidak
-memberi label bernomor "Tujuan N" di judul atau kalimat; gaya mengikuti buku
-AFIB (keputusan user 19 Okt 2026, skill `struktur-pa` aturan 2).
+Writing reference = four skills in `.claude/skills/`: `struktur-pa` (chapter
+skeleton, thread, register, figure placeholders, QA before submission),
+`tulis-tanpa-slop` (layer on top of the user skill `indonesian-antislop-writing`:
+paragraphs without AI-writing patterns, checked by `scripts/check_slop.py`), `tabel-pa` (tables), and `buku-ikut-proposal` (Bab 1
+and proposal sync). `narasi-pa` is inactive and
+kept in `.claude/skills-arsip/narasi-pa/` as a reference. The dissection of 6
+PENS PA reports that rules come from is already distilled into the skills. The writing style rules remain in `laporan/CLAUDE.md`.
+Scope decisions the user already made: individual PA, anonymous test subjects
+(codes S01, S02, ...), test place = laboratory, TLS/transport security is not
+discussed at all. The book covers only MIT-BIH: SVDB/INCART and the
+cross-database test are not written even though the results are in the repo (19 Oct 2026).
+References prefer 2020 and later, except the original source of a method/data
+and standards that are still in force (lecturer's directive; rationale per entry in
+`laporan/CLAUDE.md`, section Daftar Pustaka). Full book =
+`laporan/buku-pa` (in progress), stage 1 book = `laporan/progres-pa-1`
+(buku-pa without INA219 and power supply, content 50–70% according to the supervisor;
+regeneration procedure in `laporan/CLAUDE.md`). **`laporan/proposal-pa` has been
+submitted and frozen (15 Oct 2026): no longer edited, including its
+`.bib`.** The book has no "changes from the proposal" table and does not
+give numbered "Tujuan N" labels in headings or sentences; style follows the
+AFIB book (user decision 19 Oct 2026, skill `struktur-pa` rule 2).
 
-- **Label kerja internal repo TIDAK boleh muncul di teks laporan resmi**
-  (`laporan/**/*.tex` yang dicetak): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,
-  revisi PCB (rev1, rev2, "PCB revisi kedua"),
-  path berkas, nama skrip, nama env/knob (`PA_*`, env PlatformIO), dan kata
-  "walkthrough". Label itu hanya untuk dokumen internal repo (`model/docs/`,
-  `CLAUDE.md`, README). Di laporan, sebut isinya dengan istilah umum
-  ("pengujian akuisisi sinyal tubuh", "ablasi ukuran window"). Komentar
-  `% sumber:` di `.tex` tidak dicetak, jadi boleh memuat path.
+- **Internal repo work labels MUST NOT appear in the official report text**
+  (printed `laporan/**/*.tex`): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,
+  PCB revisions (rev1, rev2, "PCB revisi kedua"),
+  file paths, script names, env/knob names (`PA_*`, PlatformIO env), and the word
+  "walkthrough". Those labels are only for internal repo documents (`model/docs/`,
+  `CLAUDE.md`, README). In the report, name the content with general terms
+  ("pengujian akuisisi sinyal tubuh", "ablasi ukuran window"). The
+  `% sumber:` comments in `.tex` are not printed, so they may contain paths.
 
-## Gate points (berhenti, minta konfirmasi)
+## Gate points (stop, ask for confirmation)
 
-- Memindahkan/rename apa pun di `laporan/` → pakai `git mv`, konfirmasi dulu.
-- Menambah dependency baru → tanya dulu; utamakan stdlib/yang sudah ada.
-- Mengubah nilai final di `model/config.py` (FS, bandpass, window, label map)
-  → milik user, konfirmasi dulu.
-- Push ke remote → hanya atas permintaan eksplisit.
-- Refactor di area tanpa test yang tidak bisa dibuktikan setara dengan
-  `scripts/renames.py` → tanya dulu (Aturan keras 12).
+- Moving/renaming anything in `laporan/` → use `git mv`, confirm first.
+- Adding a new dependency → ask first; prefer stdlib/what already exists.
+- Changing a final value in `model/config.py` (FS, bandpass, window, label map)
+  → belongs to the user, confirm first.
+- Push to the remote → only on explicit request.
+- Refactor in an area without tests that cannot be proven equivalent with
+  `scripts/renames.py` → ask first (Hard rule 12).
