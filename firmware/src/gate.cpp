@@ -3,7 +3,7 @@
 
 #include <Arduino.h>
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "board.h"
 #include "rekam.h"
 #include "tampilan.h"
@@ -64,7 +64,7 @@ void gate_assess_phase(const ecg_beat_t &beat)
     const bool rr_plausible = rr >= RR_MIN_S && rr <= RR_MAX_S && drr <= DRR_MAX_S;
     if (!rr_plausible) t_rr_violation = millis();
 
-    const bool replay = akuisisi_replay();
+    const bool replay = acquisition_replay();
 
     if (phase != PHASE_CALIBRATION) return;
     const bool warm = gate_contact_ms() >= WARMUP_MS;
@@ -82,7 +82,7 @@ void gate_assess_phase(const ecg_beat_t &beat)
 
 static void assess_contact(void)
 {
-    const bool good = (akuisisi_replay() || !q.leadoff) && q.swing_clean >= THRESHOLD_SWING
+    const bool good = (acquisition_replay() || !q.leadoff) && q.swing_clean >= THRESHOLD_SWING
                       && q.hum50 <= THRESHOLD_HUM;
     if (good && !q.contact) t_contact = millis();
     q.contact = good;
@@ -108,7 +108,7 @@ void gate_report_calibration(const ecg_beat_t &beat)
                   q.hum50, THRESHOLD_HUM, (int)q.leadoff,
                   (unsigned long)(gate_contact_ms() / 1000),
                   (unsigned long)(WARMUP_MS / 1000), (int)skip_calibration,
-                  (int)akuisisi_replay());
+                  (int)acquisition_replay());
 }
 
 void gate_assess_quality(float raw)

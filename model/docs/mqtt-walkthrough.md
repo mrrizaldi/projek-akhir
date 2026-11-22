@@ -56,7 +56,7 @@ kalibrasi (§3.1).
 
 | Bagian | Letak |
 |---|---|
-| Sumber sinyal dummy | `akuisisi.cpp` `rp_data` / `sim_counts[]`, menu Sumber sinyal atau toggle `'y'` ([firmware §5c](firmware-walkthrough.md)) |
+| Sumber sinyal dummy | `acquisition.cpp` `rp_data` / `sim_counts[]`, menu Sumber sinyal atau toggle `'y'` ([firmware §5c](firmware-walkthrough.md)) |
 | Broker + rule engine + dashboard | `dashboard/` (ThingsBoard CE) |
 | Kontrak payload (7 field, QoS 1, topic) | `dashboard/README.md`, `bab3.tex` |
 | Referensi kawat MQTT yang terbukti | `dashboard/smoke_test.py` |
@@ -144,7 +144,7 @@ if ((skip_calibration || replay || (hangat && rr_quiet)) && q.kontak)
 ```
 
 `replay` bernilai benar untuk kedua sumber replay, acuan maupun rekaman
-(`akuisisi_replay()` = sumber bukan ADC). Selama replay, gerbang waktu dan RR
+(`acquisition_replay()` = sumber bukan ADC). Selama replay, gerbang waktu dan RR
 dilewati dan serial mencetak `GERBANG DILEWATI (replay)` saat fase berpindah.
 Kembali ke Sensor (ADC), lewat menu Sumber sinyal atau `y` kedua, memanggil
 `gate_begin_session()` sehingga sinyal tubuh kembali ke `calibrating` dan

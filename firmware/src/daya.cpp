@@ -6,7 +6,7 @@
 #include <time.h>
 #include "esp_wifi.h"
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "ecg_mqtt.h"
 #include "ina219.h"
 #include "konfig.h"
@@ -51,7 +51,7 @@ void daya_set_mode(int m)
     static bool wifi_mati;
     if (rekam_tolak("mode daya")) return;
     mode_daya = m;
-    akuisisi_timer(m != 0);
+    acquisition_timer(m != 0);
     if (m >= 0 && m < 5) {
         if (!wifi_mati) { ecg_mqtt_set_aktif(0); esp_wifi_stop(); }
         wifi_mati = true;
@@ -78,16 +78,16 @@ void daya_layani(void)
     if (mulai_ulang) {
         mulai_ulang = false;
         jml = jml2 = jml_v = 0; n = 0;
-        t_jendela = millis(); beat0 = beat_dsp; lewat0 = akuisisi_lewat();
+        t_jendela = millis(); beat0 = beat_dsp; lewat0 = acquisition_missed();
     }
     float mA, V;
     if (ina219_baca(R_SHUNT, &mA, &V)) { jml += mA; jml2 += (double)mA * mA; jml_v += V; n++; }
     if (millis() - t_jendela < JENDELA_DAYA_MS || n == 0) return;
     const double i = jml / n, v = jml_v / n;
     const double sd = sqrt(fmax(jml2 / n - i * i, 0.0));
-    const unsigned beat = beat_dsp - beat0, lewat = akuisisi_lewat() - lewat0;
+    const unsigned beat = beat_dsp - beat0, lewat = acquisition_missed() - lewat0;
     Serial.printf("DAYA p%d n=%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW beat=%u lewat=%u replay=%d\n",
-                  mode_daya, n, i, sd, v, i * v, beat, lewat, (int)akuisisi_replay());
+                  mode_daya, n, i, sd, v, i * v, beat, lewat, (int)acquisition_replay());
     tangga_catat(n, i, sd, v, beat, lewat);
     mulai_ulang = true;
 }
@@ -155,7 +155,7 @@ static void tangga_catat(int n, double i, double sd, double v, unsigned beat, un
         snprintf(j.waktu, sizeof j.waktu, "+%lus", (unsigned long)(millis() / 1000));
     }
     j.mode = langkah; j.n = n; j.i = i; j.sd = sd; j.v = v;
-    j.beat = beat; j.lewat = lewat; j.replay = akuisisi_replay();
+    j.beat = beat; j.lewat = lewat; j.replay = acquisition_replay();
 }
 
 static void mulai_langkah(int m)
@@ -174,9 +174,9 @@ void daya_tangga_mulai(void)
     if (langkah >= 0) { Serial.println("tangga: sudah berjalan"); return; }
     if (!ina_ada) { Serial.println("tangga: INA219 tidak terdeteksi, batal"); return; }
     jd_n = hasil_n = 0;
-    sumber_awal = akuisisi_sumber();
-    rekam_awal = akuisisi_sumber_rekam();
-    if (sumber_awal != SUMBER_ACUAN) akuisisi_set_sumber(SUMBER_ACUAN, 0, false);
+    sumber_awal = acquisition_source();
+    rekam_awal = acquisition_source_recording();
+    if (sumber_awal != SOURCE_REFERENCE) acquisition_set_source(SOURCE_REFERENCE, 0, false);
     Serial.printf("tangga: mulai, perkiraan %lu s\n",
                   (unsigned long)(TANGGA_N * (DAYA_BLOK + 1) * JENDELA_DAYA_MS / 1000));
     mulai_langkah(0);
@@ -186,7 +186,7 @@ static void selesai(const char *batal)
 {
     langkah = -1;
     daya_set_mode(-1);
-    if (akuisisi_sumber() != sumber_awal) akuisisi_set_sumber(sumber_awal, rekam_awal, false);
+    if (acquisition_source() != sumber_awal) acquisition_set_source(sumber_awal, rekam_awal, false);
     if (batal) Serial.printf("tangga: BATAL, %s\n", batal);
 
     bool sah[TANGGA_N] = {};

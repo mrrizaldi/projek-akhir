@@ -98,7 +98,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | Lokasi | Isi |
 |---|---|
 | `src/main.cpp` | Firmware utama: hanya merangkai modul di bawah (`setup()`/`loop()`) dan memetakan event tombol mode monitor; selama menu terbuka event diteruskan ke `menu.cpp` |
-| `src/akuisisi.cpp` | Timer ISR 360 Hz → antrean → `loop()`; sumber sinyal ADC AD8232, replay acuan `golden_raw`, atau replay rekaman `/rekam/NNN.csv`; pilihan tersimpan di NVS |
+| `src/acquisition.cpp` | Timer ISR 360 Hz → antrean → `loop()`; sumber sinyal ADC AD8232, replay acuan `golden_raw`, atau replay rekaman `/rekam/NNN.csv`; pilihan tersimpan di NVS |
 | `src/gate.cpp` | Kualitas sinyal per detik (ayunan, dengung 50 Hz Goertzel, LO±, clipping), penilaian kontak, dan fase kalibrasi (pemanasan 60 s) → pemantauan |
 | `src/klasifikasi.cpp` | Inferensi TFLM INT8 per beat dan publikasi hasilnya ke antrean MQTT |
 | `src/tampilan.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
@@ -180,24 +180,24 @@ pengukuran ada di walkthrough yang dirujuk.
 **Akuisisi dan pipeline**
 
 - ADC dibaca di ISR, bukan di `loop()`: beban pemrosesan rata-rata 82 µs per
-  sampel tetapi puncaknya 33 ms saat deteksi dan inferensi bersamaan; `ANTRE_N`
+  sampel tetapi puncaknya 33 ms saat deteksi dan inferensi bersamaan; `QUEUE_N`
   = 256 (≥ 13 sampel puncak burst, dibulatkan ke pangkat 2) = 711 ms penyangga
   (firmware-walkthrough §5b).
 - Tidak ada operasi float di ISR. ESP32 tidak menyimpan register FPU di konteks
   interrupt; float di `on_timer()` merusak state FPU task yang diinterupsi dan
   baru panic `Coprocessor exception` setelah ±18 detik. Konversi `golden_raw`
-  (mV) ke counts (`SKALA_REPLAY` 1000 counts/mV + `OFFSET_REPLAY` 2048, puncak R
-  ±3550 < 4095) dilakukan sekali di `akuisisi_mulai()` (firmware-walkthrough
+  (mV) ke counts (`SCALE_REPLAY` 1000 counts/mV + `OFFSET_REPLAY` 2048, puncak R
+  ±3550 < 4095) dilakukan sekali di `acquisition_begin()` (firmware-walkthrough
   §5c).
 - Replay rekaman membaca buffer PSRAM di ISR. Ini aman karena timer dipasang
   tanpa `ESP_INTR_FLAG_IRAM` sehingga ISR ikut ditahan selama flash ditulis.
 - Akibat sisi lainnya: selama flash ditulis atau dihapus (LittleFS, NVS),
   alarm timer yang jatuh tempo dilebur menjadi satu interrupt sesudah flash
   selesai. Sampel periode itu tidak pernah diambil dan antrean tidak meluap
-  sehingga pencacah antrean saja melapor 0. `hitung_tick_hilang()` di
+  sehingga pencacah antrean saja melapor 0. `count_lost_ticks()` di
   `on_timer()` membandingkan `esp_cpu_get_ccount()` antar-interrupt dengan
-  `siklus_per_sampel` (frekuensi CPU / 360); selang di atas 1,5 periode
-  dihitung sebagai tick hilang. `akuisisi_lewat()` = antrean meluap + tick
+  `cycles_per_sample` (frekuensi CPU / 360); selang di atas 1,5 periode
+  dihitung sebagai tick hilang. `acquisition_missed()` = antrean meluap + tick
   hilang sehingga header rekaman (`lewat=`), baris `s` (`sampel hilang X
   (tick Y)`), dan halaman Kalibrasi → Status ikut melaporkannya. Terukur
   21 Okt 2026: 52, 55, dan 53 tick hilang per berkas 18 KB yang ditulis
@@ -275,7 +275,7 @@ pengukuran ada di walkthrough yang dirujuk.
   Batas bagian (setiap `REKAM_SAMPEL_MAKS`) hanya dicatat sebagai indeks.
   Sesudah sesi berhenti, `rekam_layani()` menulis bagian demi bagian ke berkas
   berurutan per `SAMPEL_PER_TULIS` (256) sampel, hanya saat antrean ISR kosong
-  (`akuisisi_isi() == 0`). Menulis di setiap iterasi membuat antrean terisi
+  (`acquisition_fill() == 0`). Menulis di setiap iterasi membuat antrean terisi
   lebih cepat daripada dikuras dan meluap. Ukuran berkas sesudah `close()`
   dibandingkan dengan byte yang tertulis (`PERINGATAN: ... berukuran`).
   Buzzer dimatikan saat sesi berhenti; bip simpan dibunyikan sesudah berkas
@@ -601,7 +601,7 @@ sinyal dan menu tidak dapat diubah:
 | `s`, `l`, `q`, `v`, `h<n>` | tetap berlaku; `d` ditolak (`Sedang merekam.`) |
 
 Pemeriksaan ada di satu fungsi, `rekam_tolak()` (`rekam.h`), yang dipanggil di
-fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `akuisisi_set_sumber`,
+fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `acquisition_set_source`,
 `daya_set_mode`, `daya_tangga_mulai`, `gate_set_skip`,
 `konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu
 otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,

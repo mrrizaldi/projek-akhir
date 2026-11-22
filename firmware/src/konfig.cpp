@@ -34,7 +34,7 @@ constexpr int N_BROKER = sizeof BROKER / sizeof BROKER[0];
 
 constexpr const char *NS = "konfig";
 constexpr bool BUKAN_READ_ONLY = false;
-static int i_wifi, i_broker, sumber, sumber_rekam;
+static int i_wifi, i_broker, sumber, source_recording;
 static bool wifi_aktif = true;
 
 static int baca(const char *kunci, int n)
@@ -72,7 +72,7 @@ void konfig_mulai(void)
     wifi_aktif = !baca("wifimati", 2);
     Preferences p;
     p.begin(NS, BUKAN_READ_ONLY);
-    sumber_rekam = p.getUShort("rekam", 0);
+    source_recording = p.getUShort("rekam", 0);
     p.end();
     terapkan();
     if (wifi_aktif) ecg_mqtt_mulai();
@@ -128,18 +128,18 @@ bool konfig_pilih_broker(int i)
 }
 
 int konfig_sumber(void) { return sumber; }
-int konfig_sumber_rekam(void) { return sumber_rekam; }
+int konfig_sumber_rekam(void) { return source_recording; }
 
 void konfig_set_sumber(int s, int nomor)
 {
     if (s != sumber) tulis("sumber", s);
-    if (nomor != sumber_rekam) {
+    if (nomor != source_recording) {
         Preferences p;
         p.begin(NS, BUKAN_READ_ONLY);
         p.putUShort("rekam", (uint16_t)nomor);
         p.end();
     }
     sumber = s;
-    sumber_rekam = nomor;
+    source_recording = nomor;
 }
 #endif

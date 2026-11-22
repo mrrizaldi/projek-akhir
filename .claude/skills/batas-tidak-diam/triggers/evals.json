@@ -20,7 +20,7 @@
     "should_trigger": true
   },
   {
-    "query": "add a queue overflow guard in akuisisi.cpp so samples are counted not dropped silently",
+    "query": "add a queue overflow guard in acquisition.cpp so samples are counted not dropped silently",
     "should_trigger": true
   },
   {

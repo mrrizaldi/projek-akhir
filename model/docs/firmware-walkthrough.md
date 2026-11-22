@@ -1,7 +1,7 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
 > **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/akuisisi.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/acquisition.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
 > **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
 
 Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
@@ -454,7 +454,7 @@ memakai satu cabang di ISR yang membaca array apa pun yang ditunjuk `rp_data`:
 
 ```cpp
 if (rp_data) {
-    antre[tulis] = rp_data[replay_i];      // integer saja: golden dikonversi sekali di akuisisi_mulai()
+    antre[tulis] = rp_data[replay_i];      // integer saja: golden dikonversi sekali di acquisition_begin()
     if (++replay_i >= rp_n) replay_i = 0;
 } else {
     antre[tulis] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
@@ -494,7 +494,7 @@ Konsekuensinya: uji resiliensi pipeline tidak perlu menunggu elektroda.
 Mengalikan langsung di `on_timer()` tampak wajar:
 
 ```cpp
-float v = golden_raw[replay_i] * SKALA_REPLAY + OFFSET_REPLAY;   // SALAH
+float v = golden_raw[replay_i] * SCALE_REPLAY + OFFSET_REPLAY;   // SALAH
 ```
 
 Kode itu ter-build bersih dan berjalan sekitar 20 detik, lalu:
@@ -510,7 +510,7 @@ merusak state FPU task yang sedang diinterupsi, dan panic-nya baru muncul saat
 task itu dijadwalkan lagi — jadi **bukan crash seketika**, yang membuatnya lolos
 uji pendek. Terukur: panic di detik 18,49.
 
-Obatnya konversi sekali di `akuisisi_mulai()` (dipanggil `setup()`) ke
+Obatnya konversi sekali di `acquisition_begin()` (dipanggil `setup()`) ke
 `static uint16_t sim_counts[GOLDEN_N]` (4.800 byte), ISR tinggal menyalin
 integer. Ongkosnya RAM 21,2% → 22,7%.
 

@@ -4,14 +4,14 @@
 #include <string.h>
 
 static ecg_mqtt_beat_t antre_cadangan[ECG_MQTT_ANTRE_MIN];
-static ecg_mqtt_beat_t *antre = antre_cadangan;
+static ecg_mqtt_beat_t *queue = antre_cadangan;
 static size_t antre_kap = ECG_MQTT_ANTRE_MIN;
 static size_t antre_kepala, antre_isi;
 static size_t antre_hilang;
 
 void ecg_mqtt_antre_pasang(ecg_mqtt_beat_t *mem, size_t kapasitas)
 {
-    antre = (mem && kapasitas) ? mem : antre_cadangan;
+    queue = (mem && kapasitas) ? mem : antre_cadangan;
     antre_kap = (mem && kapasitas) ? kapasitas : ECG_MQTT_ANTRE_MIN;
     antre_kepala = antre_isi = antre_hilang = 0;
 }
@@ -28,7 +28,7 @@ void ecg_mqtt_antre_isi(const ecg_mqtt_beat_t *b)
         antre_isi--;
         antre_hilang++;
     }
-    antre[(antre_kepala + antre_isi) % antre_kap] = *b;
+    queue[(antre_kepala + antre_isi) % antre_kap] = *b;
     antre_isi++;
 }
 
@@ -36,7 +36,7 @@ size_t ecg_mqtt_antre_intip(ecg_mqtt_beat_t *keluar, size_t maks)
 {
     const size_t n = antre_isi < maks ? antre_isi : maks;
     for (size_t i = 0; i < n; i++)
-        keluar[i] = antre[(antre_kepala + i) % antre_kap];
+        keluar[i] = queue[(antre_kepala + i) % antre_kap];
     return n;
 }
 

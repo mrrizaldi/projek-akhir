@@ -1,7 +1,7 @@
 #ifndef PIO_UNIT_TESTING
 #include <Arduino.h>
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "daya.h"
 #include "ecg_live.h"
 #include "ecg_mqtt.h"
@@ -67,14 +67,14 @@ void setup()
     konfig_mulai();
     setenv("TZ", "WIB-7", 1);
     tzset();
-    akuisisi_mulai();
+    acquisition_begin();
 
     Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
                   "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
                   "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam/jeda/lanjut; tahan B3 = simpan, "
                   "tahan B2 = menu)  |  serial: r/j/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
-                  ECG_FS, (unsigned)ANTRE_N, (unsigned)klasifikasi_arena(),
+                  ECG_FS, (unsigned)QUEUE_N, (unsigned)klasifikasi_arena(),
                   klasifikasi_ambang(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
                   I2C_SDA, I2C_SCL, INA219_ALAMAT, daya_ina_ada() ? "siap" : "TIDAK TERDETEKSI",
                   TFT_W, TFT_H, PIN_BUZZ, (unsigned)TONE_HZ);
@@ -85,7 +85,7 @@ void loop()
     static ecg_beat_t beat;
 
     uint16_t s;
-    if (akuisisi_ambil(&s)) {
+    if (acquisition_fetch(&s)) {
         const float sampel = (float)s;
         rekam_sampel(s);
 

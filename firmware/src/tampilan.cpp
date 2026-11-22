@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <time.h>
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "daya.h"
 #include "gate.h"
 #include "ina219.h"
@@ -235,10 +235,10 @@ static void gambar_kanan()
         w = ST77XX_ORANGE;
         snprintf(t, sizeof t, "%s", pesan_besar);
         snprintf(kecil, sizeof kecil, "%s", pesan_kecil);
-    } else if (rekam_aktif() && !rekam_dijeda() && akuisisi_lewat()) {
+    } else if (rekam_aktif() && !rekam_dijeda() && acquisition_missed()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "HILANG");
-        snprintf(kecil, sizeof kecil, "%u sampel", (unsigned)akuisisi_lewat());
+        snprintf(kecil, sizeof kecil, "%u sampel", (unsigned)acquisition_missed());
     } else if (rekam_aktif() && !rekam_dijeda()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);
@@ -251,9 +251,9 @@ static void gambar_kanan()
         w = ST77XX_GREEN;
         snprintf(t, sizeof t, "SIMPAN");
         snprintf(kecil, sizeof kecil, REKAM_POLA, simpan);
-    } else if (akuisisi_sumber() == SUMBER_REKAM) {
-        snprintf(t, sizeof t, "RP#%03d", akuisisi_sumber_rekam());
-    } else if (akuisisi_sumber() == SUMBER_ACUAN) {
+    } else if (acquisition_source() == SOURCE_RECORDING) {
+        snprintf(t, sizeof t, "RP#%03d", acquisition_source_recording());
+    } else if (acquisition_source() == SOURCE_REFERENCE) {
         snprintf(t, sizeof t, "RP 208");
     }
 

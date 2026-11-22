@@ -5,7 +5,7 @@
 #include <LittleFS.h>
 #include <sys/stat.h>
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "daya.h"
 #include "ecg_pipeline.h"
 #include "menu.h"
@@ -194,7 +194,7 @@ static void simpan_sesi()
 {
     aktif = false;
     buzzer(false);
-    lewat_awal[REKAM_BAGIAN_MAKS] = akuisisi_lewat();
+    lewat_awal[REKAM_BAGIAN_MAKS] = acquisition_missed();
     if (n_batas && batas[n_batas - 1] >= n) n_batas--;
     tulis.n_bagian = (int)((n + REKAM_N - 1) / REKAM_N);
     if (!tulis.n_bagian) { Serial.println("REKAM: sesi kosong, tidak ada yang disimpan"); return; }
@@ -218,14 +218,14 @@ void rekam_layani(void)
         tampilan_pesan(ruang ? "RUANG PENUH" : "BATAS SESI", "menyimpan...");
         simpan_sesi();
     }
-    if (menulis && !akuisisi_isi()) langkah_tulis();
+    if (menulis && !acquisition_fill()) langkah_tulis();
 }
 
 void rekam_sampel(uint16_t s)
 {
     if (!aktif || jeda || !buf) return;
     const size_t k = n / REKAM_N;
-    if (n % REKAM_N == 0) lewat_awal[k] = akuisisi_lewat();
+    if (n % REKAM_N == 0) lewat_awal[k] = acquisition_missed();
     buf[n++] = s;
     if (digitalRead(PIN_LOP) || digitalRead(PIN_LON)) lepas_bagian[k]++;
     if (n >= batas_sesi) { aktif = false; berhenti_penuh = true; }
@@ -238,7 +238,7 @@ void rekam_toggle(void)
     const int nomor_akhir = terakhir();
     bagian_maks = (int)min<size_t>(REKAM_BAGIAN_MAKS, ruang_bebas() / RUANG_BERKAS_PENUH);
     bagian_maks = min(bagian_maks, REKAM_NOMOR_MAKS - nomor_akhir);
-    const char *tolak = akuisisi_sumber() != SUMBER_ADC ? "REKAM hanya dari sensor"
+    const char *tolak = acquisition_source() != SOURCE_ADC ? "REKAM hanya dari sensor"
                       : daya_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
                       : menu_terbuka() ? "REKAM ditolak: tutup menu dulu"
                       : menulis ? "REKAM ditolak: masih menyimpan sesi sebelumnya"
@@ -248,8 +248,8 @@ void rekam_toggle(void)
     if (tolak) {
         Serial.println(tolak);
         const bool tunggu = menulis;
-        tampilan_pesan(tunggu ? "TUNGGU" : akuisisi_sumber() != SUMBER_ADC || daya_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
-                       tunggu ? "masih menyimpan" : akuisisi_replay() ? "hanya sensor ADC" : "rekam ditolak");
+        tampilan_pesan(tunggu ? "TUNGGU" : acquisition_source() != SOURCE_ADC || daya_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
+                       tunggu ? "masih menyimpan" : acquisition_replay() ? "hanya sensor ADC" : "rekam ditolak");
         return;
     }
     batas_sesi = (size_t)bagian_maks * REKAM_N;
@@ -260,7 +260,7 @@ void rekam_toggle(void)
     bagian_lapor = 1;
     memset(lepas_bagian, 0, sizeof lepas_bagian);
     memset(lewat_awal, 0, sizeof lewat_awal);
-    akuisisi_nol_lewat();
+    acquisition_zero_missed();
     aktif = true;
     Serial.printf("REKAM mulai (maks %d bagian = %u detik)\n", bagian_maks, (unsigned)(batas_sesi / ECG_FS));
 }

@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <stdio.h>
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "daya.h"
 #include "ecg_mqtt.h"
 #include "gate.h"
@@ -45,9 +45,9 @@ static void status()
                   "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
                   "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
                   "sumber %s %d | menu %d | jeda %d\n",
-                  (int)rekam_aktif(), (unsigned)rekam_n(), (int)akuisisi_replay(),
+                  (int)rekam_aktif(), (unsigned)rekam_n(), (int)acquisition_replay(),
                   gate_phase_name(), h.total, h.aritmia, h.ditahan,
-                  (unsigned)akuisisi_isi(), (unsigned)akuisisi_lewat(), (unsigned)akuisisi_tick_hilang(),
+                  (unsigned)acquisition_fill(), (unsigned)acquisition_missed(), (unsigned)acquisition_tick_lost(),
                   digitalRead(PIN_LOP), digitalRead(PIN_LON),
                   q.raw_min, q.raw_max, q.swing_clean, (int)q.clipping,
                   ecg_mqtt_status(), (unsigned)ecg_mqtt_terkirim(),
@@ -61,9 +61,9 @@ static void status()
                   ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
                   daya_ina_teks(), (int)tampilan_bisu(), (int)tampilan_beku(),
                   (int)gate_skip(), daya_mode(),
-                  akuisisi_sumber() == SUMBER_ADC ? "adc"
-                  : akuisisi_sumber() == SUMBER_ACUAN ? "acuan" : "rekaman",
-                  akuisisi_sumber_rekam(), (int)menu_terbuka(), (int)rekam_dijeda());
+                  acquisition_source() == SOURCE_ADC ? "adc"
+                  : acquisition_source() == SOURCE_REFERENCE ? "acuan" : "rekaman",
+                  acquisition_source_recording(), (int)menu_terbuka(), (int)rekam_dijeda());
 }
 
 static void daftar_wifi()
@@ -96,7 +96,7 @@ void serial_cmd_layani(void)
         if (n > 0) rekam_hapus(n);
         else Serial.println("h<n>: nomor rekaman, lihat 'l'");
     }
-    else if (c == 'y') akuisisi_ganti_sumber();
+    else if (c == 'y') acquisition_switch_source();
     else if (c == 'p') {
         const uint32_t t0 = millis();
         while (!Serial.available() && millis() - t0 < TUNGGU_DIGIT_MS) {}

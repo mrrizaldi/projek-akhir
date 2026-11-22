@@ -1,0 +1,143 @@
+#if defined(ARDUINO) && !defined(PIO_UNIT_TESTING)
+#include "acquisition.h"
+
+#include <Arduino.h>
+#include "driver/adc.h"
+#include "esp_cpu.h"
+
+#include "gate.h"
+#include "klasifikasi.h"
+#include "konfig.h"
+#include "board.h"
+#include "rekam.h"
+#include "golden_ref.h"
+
+static volatile uint16_t queue[QUEUE_N];
+static volatile size_t tulis, baca;
+static volatile uint32_t n_lewat, n_tick_lost;
+static uint32_t cycles_per_sample, cycles_previous;
+constexpr uint32_t HZ_PER_MHZ = 1000000UL;
+constexpr uint32_t DIVISOR_HALF_PERIOD = 2;
+static hw_timer_t *timer;
+
+static int sumber, source_recording;
+static const uint16_t *volatile rp_data;
+static volatile size_t rp_n, replay_i;
+static uint16_t *recording_buf;
+static bool attach_source(int s, int number);
+
+constexpr float SCALE_REPLAY = 1000.0f;
+constexpr float OFFSET_REPLAY = 2048.0f;
+
+static uint16_t sim_counts[GOLDEN_N];
+
+static void IRAM_ATTR count_lost_ticks()
+{
+    const uint32_t current = esp_cpu_get_ccount();
+    const uint32_t interval = current - cycles_previous;
+    cycles_previous = current;
+    const uint32_t half = cycles_per_sample / DIVISOR_HALF_PERIOD;
+    if (interval > cycles_per_sample + half)
+        n_tick_lost += (interval + half) / cycles_per_sample - 1;
+}
+
+static void IRAM_ATTR on_timer()
+{
+    count_lost_ticks();
+    const size_t next = (tulis + 1) % QUEUE_N;
+    if (next == baca) { n_lewat++; return; }
+    if (rp_data) {
+        queue[tulis] = rp_data[replay_i];
+        if (++replay_i >= rp_n) replay_i = 0;
+    } else {
+        queue[tulis] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
+    }
+    tulis = next;
+}
+
+void acquisition_begin(void)
+{
+    for (size_t i = 0; i < GOLDEN_N; i++) {
+        float v = golden_raw[i] * SCALE_REPLAY + OFFSET_REPLAY;
+        if (v < 0.0f) v = 0.0f;
+        if (v > 4095.0f) v = 4095.0f;
+        sim_counts[i] = (uint16_t)v;
+    }
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &on_timer, true);
+    timerAlarmWrite(timer, 1000000 / ECG_FS, true);
+    if (!attach_source(konfig_sumber(), konfig_sumber_rekam())) attach_source(SOURCE_ADC, 0);
+    cycles_per_sample = getCpuFrequencyMhz() * HZ_PER_MHZ / ECG_FS;
+    cycles_previous = esp_cpu_get_ccount();
+    timerAlarmEnable(timer);
+}
+
+bool acquisition_fetch(uint16_t *sample)
+{
+    if (baca == tulis) return false;
+    *sample = queue[baca];
+    baca = (baca + 1) % QUEUE_N;
+    return true;
+}
+
+size_t acquisition_fill(void) { return (tulis - baca + QUEUE_N) % QUEUE_N; }
+uint32_t acquisition_missed(void) { return n_lewat + n_tick_lost; }
+uint32_t acquisition_tick_lost(void) { return n_tick_lost; }
+void acquisition_zero_missed(void) { n_lewat = n_tick_lost = 0; }
+bool acquisition_replay(void) { return sumber != SOURCE_ADC; }
+int acquisition_source(void) { return sumber; }
+int acquisition_source_recording(void) { return source_recording; }
+
+void acquisition_timer(bool running)
+{
+    if (!running) { timerAlarmDisable(timer); return; }
+    cycles_previous = esp_cpu_get_ccount();
+    timerAlarmEnable(timer);
+}
+
+static bool attach_source(int s, int number)
+{
+    if (s == SOURCE_RECORDING) {
+        if (!recording_buf) recording_buf = (uint16_t *)ps_malloc(REKAM_SAMPEL_MAKS * sizeof(uint16_t));
+        const size_t n = recording_buf ? rekam_muat(number, recording_buf, REKAM_SAMPEL_MAKS) : 0;
+        if (n < ECG_FS) {
+            Serial.printf("replay rekaman %d GAGAL dimuat (%u sampel)\n", number, (unsigned)n);
+            return false;
+        }
+        rp_n = n;
+        rp_data = recording_buf;
+    } else if (s == SOURCE_REFERENCE) {
+        rp_n = GOLDEN_N;
+        rp_data = sim_counts;
+    } else {
+        s = SOURCE_ADC;
+        rp_data = nullptr;
+    }
+    replay_i = 0;
+    sumber = s;
+    source_recording = s == SOURCE_RECORDING ? number : 0;
+    return true;
+}
+
+bool acquisition_set_source(int s, int number, bool save)
+{
+    if (rekam_tolak("ganti sumber")) return false;
+    acquisition_timer(false);
+    const bool ok = attach_source(s, number);
+    acquisition_timer(true);
+    if (!ok) return false;
+    if (save) konfig_set_sumber(sumber, source_recording);
+    gate_begin_session();
+    klasifikasi_reset();
+    if (sumber == SOURCE_RECORDING)
+        Serial.printf("replay ON (rekaman %03d, %u sampel)\n", source_recording, (unsigned)rp_n);
+    else
+        Serial.printf("replay %s\n", sumber == SOURCE_REFERENCE ? "ON (golden_raw)" : "OFF (ADC)");
+    return true;
+}
+
+void acquisition_switch_source(void)
+{
+    acquisition_set_source(sumber == SOURCE_ADC ? SOURCE_REFERENCE : SOURCE_ADC, 0, true);
+}
+#endif

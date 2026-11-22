@@ -2,6 +2,6 @@ schema_version: "1.1"
 name: rencana-simpan-lanjut
 expected_outcome: |
   Rencana memakai buffer kedua (PSRAM) dengan tukar pointer di jalur sampel, menyimpan per
-  potongan dari loop() hanya saat akuisisi_isi() == 0, konstanta waktu dibandingkan dengan
+  potongan dari loop() hanya saat acquisition_fill() == 0, konstanta waktu dibandingkan dengan
   711 ms, blok opsi dengan minimal dua opsi dan rekomendasi (opsi tidak menghapus data), serta
   mencatat jebakan di firmware/README.md §Jebakan.

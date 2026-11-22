@@ -4,4 +4,4 @@ expected_outcome: |
   Jawaban memperbaiki `return` diam di batas: sampel yang lewat batas tidak dibuang diam-diam,
   `aktif = false` ditulis sebelum Serial/tampilan_pesan, jalur sampel hanya menandai kejadian
   dan tidak memanggil Serial, layar, bip, atau tulis berkas, dan baris REC diganti HILANG saat
-  akuisisi_lewat() di atas nol. Teks layar berbahasa Indonesia untuk manusia.
+  acquisition_missed() di atas nol. Teks layar berbahasa Indonesia untuk manusia.

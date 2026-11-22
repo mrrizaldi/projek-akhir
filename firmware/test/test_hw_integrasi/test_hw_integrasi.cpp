@@ -21,19 +21,19 @@ alignas(16) static uint8_t arena[ARENA_N];
 static tflite::MicroInterpreter *interp;
 static TfLiteTensor *in_morph, *in_rr, *keluar;
 
-constexpr size_t ANTRE_N = 256;
-static volatile uint16_t antre[ANTRE_N];
+constexpr size_t QUEUE_N = 256;
+static volatile uint16_t queue[QUEUE_N];
 static volatile size_t tulis, baca, replay_i;
 static volatile uint32_t n_lewat;
 static uint16_t sim_counts[GOLDEN_N];
 
 static void IRAM_ATTR on_timer()
 {
-    const size_t berikut = (tulis + 1) % ANTRE_N;
-    if (berikut == baca) { n_lewat++; return; }
-    antre[tulis] = sim_counts[replay_i];
+    const size_t next = (tulis + 1) % QUEUE_N;
+    if (next == baca) { n_lewat++; return; }
+    queue[tulis] = sim_counts[replay_i];
     replay_i = (replay_i + 1) % GOLDEN_N;
-    tulis = berikut;
+    tulis = next;
 }
 
 static int beat_keluar, cocok, prediksi_benar, hr_meleset;
@@ -117,8 +117,8 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
     while (n_diproses < (uint32_t)PUTARAN * GOLDEN_N) {
         const uint32_t t0 = micros();
         if (baca != tulis) {
-            const float s = antre[baca];
-            baca = (baca + 1) % ANTRE_N;
+            const float s = queue[baca];
+            baca = (baca + 1) % QUEUE_N;
             n_diproses++;
             if (ecg_live_push(s, &beat)) {
                 beat_keluar++;

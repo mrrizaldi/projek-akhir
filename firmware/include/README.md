@@ -9,7 +9,7 @@
 | `ecg_mqtt.h` | Kontrak payload dan antrean MQTT | ditulis tangan |
 | `ina219.h` | Konversi register INA219 | ditulis tangan |
 | `board.h` | Pin map PCB rev1 dan pemasangan perangkat (TFT, buzzer, tombol, ADC) untuk `main.cpp` dan test `test_hw_*` | ditulis tangan |
-| `akuisisi.h` | Timer ISR 360 Hz, antrean sampel, sumber ADC / replay acuan / replay rekaman | ditulis tangan |
+| `acquisition.h` | Timer ISR 360 Hz, antrean sampel, sumber ADC / replay acuan / replay rekaman | ditulis tangan |
 | `gate.h` | Kualitas sinyal dan fase kalibrasi | ditulis tangan |
 | `klasifikasi.h` | Inferensi TFLM per beat dan publikasi ke antrean MQTT | ditulis tangan |
 | `tampilan.h` | TFT (monitor dan layar menu), NeoPixel, buzzer | ditulis tangan |

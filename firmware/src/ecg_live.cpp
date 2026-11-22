@@ -14,7 +14,7 @@ static int n_hist;
 static int r_terakhir;
 static int n_beat;
 
-static int antre[8];
+static int queue[8];
 static int n_antre, i_antre;
 #if ECG_RR_RATIO
 static float qrsw_riwayat[2 * ECG_RR_LOCAL_WINDOW];
@@ -107,7 +107,7 @@ static void jalankan_deteksi(void)
         tambah_hist(r_abs);
         r_terakhir = r_abs;
         if (n_antre < 8) {
-            antre[n_antre++] = r_abs;
+            queue[n_antre++] = r_abs;
         }
     }
 }
@@ -126,7 +126,7 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
     }
 
     while (i_antre < n_antre) {
-        const int r_abs = antre[i_antre++];
+        const int r_abs = queue[i_antre++];
 
         if (n_hist < 3) {
             continue;

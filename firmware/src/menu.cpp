@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
-#include "akuisisi.h"
+#include "acquisition.h"
 #include "ecg_mqtt.h"
 #include "gate.h"
 #include "ina219.h"
@@ -44,26 +44,26 @@ struct halaman_t {
 #define TEKS(j, f) {j, nullptr, 0, nullptr, nullptr, nullptr, f}
 
 static const char *tanda(bool aktif) { return aktif ? "*" : ""; }
-static void ke_adc() { akuisisi_set_sumber(SUMBER_ADC, 0, true); }
-static void ke_acuan() { akuisisi_set_sumber(SUMBER_ACUAN, 0, true); }
-static const char *n_adc() { return tanda(akuisisi_sumber() == SUMBER_ADC); }
-static const char *n_acuan() { return tanda(akuisisi_sumber() == SUMBER_ACUAN); }
+static void ke_adc() { acquisition_set_source(SOURCE_ADC, 0, true); }
+static void ke_acuan() { acquisition_set_source(SOURCE_REFERENCE, 0, true); }
+static const char *n_adc() { return tanda(acquisition_source() == SOURCE_ADC); }
+static const char *n_acuan() { return tanda(acquisition_source() == SOURCE_REFERENCE); }
 
 static int rk_no[64], rk_n;
 static int rekaman_n() { return rk_n = rekam_daftar(rk_no, 64); }
 static void rekaman_teks(int i, char *out, size_t n)
 {
-    const bool aktif = akuisisi_sumber() == SUMBER_REKAM && akuisisi_sumber_rekam() == rk_no[i];
+    const bool aktif = acquisition_source() == SOURCE_RECORDING && acquisition_source_recording() == rk_no[i];
     snprintf(out, n, "%03d  %6.1f s  %s", rk_no[i], (float)rekam_sampel_n(rk_no[i]) / ECG_FS,
              aktif ? "*" : "");
 }
-static void rekaman_pilih(int i) { akuisisi_set_sumber(SUMBER_REKAM, rk_no[i], true); }
+static void rekaman_pilih(int i) { acquisition_set_source(SOURCE_RECORDING, rk_no[i], true); }
 static const halaman_t H_REKAMAN = DINAMIS("Replay rekaman", rekaman_n, rekaman_teks, rekaman_pilih);
 static const char *n_rekaman()
 {
     static char t[8];
-    if (akuisisi_sumber() != SUMBER_REKAM) return ">";
-    snprintf(t, sizeof t, "%03d * >", akuisisi_sumber_rekam());
+    if (acquisition_source() != SOURCE_RECORDING) return ">";
+    snprintf(t, sizeof t, "%03d * >", acquisition_source_recording());
     return t;
 }
 
@@ -99,8 +99,8 @@ static void kalib_status(baris_t *b)
              (unsigned long)min<uint32_t>(gate_quiet_ms() / 1000, 99999),
              (unsigned long)(RR_QUIET_MS / 1000));
     snprintf(b[3], sizeof *b, "Ayun %d/%d 50Hz %d/%d", q.swing_clean, THRESHOLD_SWING, q.hum50, THRESHOLD_HUM);
-    snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gate_skip()), on_off(akuisisi_replay()));
-    snprintf(b[5], sizeof *b, "Sampel hilang %u", (unsigned)akuisisi_lewat());
+    snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gate_skip()), on_off(acquisition_replay()));
+    snprintf(b[5], sizeof *b, "Sampel hilang %u", (unsigned)acquisition_missed());
 }
 static const halaman_t H_KALIB_STATUS = TEKS("Status kalibrasi", kalib_status);
 static const item_t I_KALIB[] = {
@@ -115,9 +115,9 @@ static diag_hasil_t tes_hasil;
 static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
 {
     tes_nama = nama;
-    akuisisi_timer(false);
+    acquisition_timer(false);
     tes_hasil = f();
-    akuisisi_timer(daya_mode() != 0);
+    acquisition_timer(daya_mode() != 0);
     int i;
     while (buttons_event(&i) != BUTTON_NONE) {}
     Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.lulus ? "LULUS" : "GAGAL", tes_hasil.ringkas);
