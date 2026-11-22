@@ -19,40 +19,40 @@ are archived in [`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-co
 ## Data flow, one screen
 
 ```
-data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
+data/raw/mitdb/*.dat  (48 MIT-BIH records, 30 minutes @360 Hz)
         │
-   [0]  │  io_mitdb.py        pilih kanal MLII, saring non-beat
+   [0]  │  io_mitdb.py        select MLII channel, filter out non-beats
         ▼                     → signal, r_locations, symbols
         │
-   [1]  │  preprocessing.py   bandpass 0,5-40 Hz KAUSAL, potong 256 sampel,
+   [1]  │  preprocessing.py   CAUSAL bandpass 0,5-40 Hz, cut 256 samples,
         ▼                       z-score per window   → windows [K,256]
         │
-   [2]  │  features_rr.py     RR_prev / RR_ratio / dRR + label biner
+   [2]  │  features_rr.py     RR_prev / RR_ratio / dRR + binary label
         │  prep_beats.py      valid_beat_indices → 44 × per_record/*.npz  [2b]
-        ▼                     202.560 beat (DS1 ×3 salinan ber-jitter, DS2 bersih)
+        ▼                     202.560 beats (DS1 ×3 jittered copies, DS2 clean)
         │
-   [3]  │  dataset.py         split PER PASIEN (de Chazal 2004)
+   [3]  │  dataset.py         split PER PATIENT (de Chazal 2004)
         ▼                     train.npz DS1 152.904 | test.npz DS2 49.656
         │
-   [4]  │  model.py           CNN morfologi + Dense ritme → 6.417 param
+   [4]  │  model.py           morphology CNN + rhythm Dense → 6.417 params
         ▼
         │
    [5]  │  train.py           class_weight, EarlyStopping(val_auc)
         ▼                     → model_fp32.keras   (VAL @0,80: recall 0,654, F1 0,692)
         │
-        │  calibrate_threshold.py   threshold 0,80 dikunci DI VAL
+        │  calibrate_threshold.py   threshold 0,80 locked ON VAL
         ▼
-   [6]  │  evaluate.py        DS2 dibuka SEKALI → recall 0,700 AUC 0,933
+   [6]  │  evaluate.py        DS2 opened ONCE → recall 0,700 AUC 0,933
         ▼
         │
-   [7]  │  quantize.py        PTQ INT8 → 22,94 KB, delta recall +1,08%
+   [7]  │  quantize.py        PTQ INT8 → 22,94 KB, recall delta +1,08%
         ▼
-   [8]     check_poc.py       8/8 DoD terverifikasi
+   [8]     check_poc.py       8/8 DoD verified
            export_model_h.py  → firmware/include/model_int8.h
         │
-  [HW]  │  ecg_pipeline.cpp   port preprocessing ke C, diadu ke golden Python
-        │  TFLite Micro       inferensi di ESP32-S3: 26,6 ms/detak
-        ▼  akuisisi           AD8232 -> make pull -> make analyze -> grafik
+  [HW]  │  ecg_pipeline.cpp   preprocessing port to C, checked against the Python golden
+        │  TFLite Micro       inference on the ESP32-S3: 26,6 ms/beat
+        ▼  acquisition        AD8232 -> make pull -> make analyze -> plot
 ```
 
 ---
@@ -108,16 +108,16 @@ good numbers from a flawed procedure.
 Installed configuration (window 256 + jitter augmentation, Phase 6c):
 
 ```
-dataset     44 record, 202.560 beat — DS1 ditumpuk 3 salinan (1 bersih + 2 jitter)
-split       DS1 152.904 (10,1%) | DS2 49.656 (11,0%, TIDAK pernah dijitter)
-window      128/128 = 256 sampel, R mendarat di indeks 132 (128 + group delay 4)
-model       6.417 param (Conv1D tidak bergantung pada panjang window)
-threshold   0,80  (F1 maksimum di VAL; VAL ikut ber-jitter)
+dataset     44 records, 202.560 beats — DS1 stacked 3 copies (1 clean + 2 jitter)
+split       DS1 152.904 (10,1%) | DS2 49.656 (11,0%, NEVER jittered)
+window      128/128 = 256 samples, R lands at index 132 (128 + group delay 4)
+model       6.417 params (Conv1D does not depend on window length)
+threshold   0,80  (maximum F1 on VAL; VAL is jittered too)
 DS2 fp32    recall 0,6996  precision 0,6235  F1 0,6594  AUC 0,9334
 DS2 INT8    recall 0,7105  precision 0,6169  F1 0,6604  AUC 0,9344   22,94 KB
-device      26,6 ms/detak, tensor arena 12.948 B
-per kelas   V 0,9248 | S 0,4390 | F 0,0670
-seg. deteksi F1 0,6499 (anotasi 0,6594), recall sistem 0,6035
+device      26,6 ms/beat, tensor arena 12.948 B
+per class   V 0,9248 | S 0,4390 | F 0,0670
+detection seg. F1 0,6499 (annotation 0,6594), system recall 0,6035
 ```
 
 Comparison baseline (window 90/160 = 250, no augmentation, threshold 0.35).
@@ -125,11 +125,11 @@ This configuration is no longer used; its numbers are kept as the reference poin
 for the Phase 6c improvement:
 
 ```
-dataset     100.619 beat | DS1 50.965 | DS2 49.654
+dataset     100.619 beats | DS1 50.965 | DS2 49.654
 DS2 fp32    recall 0,6661  precision 0,4919  F1 0,5659  AUC 0,8866
 DS2 INT8    recall 0,6549  precision 0,5302  F1 0,5859  AUC 0,8862
-device      26,0 ms/detak, tensor arena 12.756 B, cocok PC digit demi digit
-per kelas   V 0,9332 | S 0,3034 | F 0,1675
+device      26,0 ms/beat, tensor arena 12.756 B, matches PC digit for digit
+per class   V 0,9332 | S 0,3034 | F 0,1675
 ```
 
 Phase 6c ablation (3 seeds, same evaluation chain) that underpins the installed
@@ -137,9 +137,9 @@ configuration; details in [jitter](jitter-walkthrough.md) §5:
 
 ```
 baseline 90/160          F1 DS2 0,5660 ± 0,0202   AUC 0,8870
-+ augmentasi jitter      F1 DS2 0,6354 ± 0,0428   AUC 0,9084
++ jitter augmentation    F1 DS2 0,6354 ± 0,0428   AUC 0,9084
 + window 128/127         F1 DS2 0,6775 ± 0,0112   AUC 0,9394
-jitter empiris di DS2    F1      0,6670 ± 0,0194  (model w128, kondisi deploy)
+empirical jitter on DS2  F1      0,6670 ± 0,0194  (model w128, deploy condition)
 ```
 
 Both improvements are locked in `config.py`: `WIN_PRE = WIN_POST = 128`
@@ -203,11 +203,11 @@ Comparison false alarm burden: FPR 5.21% (2,302 FP out of 2,302 + 41,904 normal 
 The 2×2 table of dataset × features (signal threshold: < 0.04 F1 is not a signal):
 
 ```
-F1              fitur LAMA (3)    fitur BARU (6)
-mitdb saja      0,6911 +-0,029    0,6882 +-0,023     <- yang TERPASANG
+F1              OLD features (3)   NEW features (6)
+mitdb only      0,6911 +-0,029    0,6882 +-0,023     <- the one DEPLOYED
 mitdb+svdb      0,6262 +-0,063    0,6960 +-0,049
 
-svdb merugikan -0,065   fitur baru menambalnya +0,070   hasil akhir +0,005
+svdb hurts -0,065   new features recover +0,070   net +0,005
 ```
 
 **A pure interaction, not two stacked improvements.** svdb lowers F1 through a
@@ -248,18 +248,18 @@ only if there is no adaptive step between the knob and the metric.
 ## How to rerun everything
 
 ```
-make data && make check     # Fase 0  (sekali)
-make prep                   # Fase 2  → per_record/*.npz
-make split                  # Fase 3  → train.npz, test.npz
-make train                  # Fase 5  → model_fp32.keras
-python scripts/calibrate_threshold.py   # kunci threshold di VAL
-make eval                   # Fase 6  → metrik DS2 float32
-make quantize               # Fase 7  → model_int8.tflite + tabel delta
-make poc                    # Fase 8  → checklist 8/8
+make data && make check     # Phase 0  (once)
+make prep                   # Phase 2  → per_record/*.npz
+make split                  # Phase 3  → train.npz, test.npz
+make train                  # Phase 5  → model_fp32.keras
+python scripts/calibrate_threshold.py   # lock the threshold on VAL
+make eval                   # Phase 6  → DS2 float32 metrics
+make quantize               # Phase 7  → model_int8.tflite + delta table
+make poc                    # Phase 8  → 8/8 checklist
 make export                 # → firmware/include/model_int8.h
-make test                   # 92 test pytest
-cd ../firmware && pio test -e native      # 23 test di PC (preprocessing, INA219, MQTT)
-                  pio test -e esp32-s3    # preprocessing + inferensi di board
+make test                   # 92 pytest tests
+cd ../firmware && pio test -e native      # 23 tests on the PC (preprocessing, INA219, MQTT)
+                  pio test -e esp32-s3    # preprocessing + inference on the board
 ```
 
 The seed is locked (`config.SEED = 42`), so the numbers above must come out the same.
