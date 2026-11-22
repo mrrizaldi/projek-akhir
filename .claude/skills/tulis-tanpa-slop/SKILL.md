@@ -66,21 +66,21 @@ Satu konsep satu istilah di seluruh buku. Sebelum memperkenalkan istilah, cek `g
 
 ## Prosedur
 
-Jalankan dari folder buku yang disunting. Pembungkus `scripts/check_slop.py` meneruskan ke pemeriksa skill user (`--ringkas` = `--summary`, `--banding` = `--compare`; `--self-test` diteruskan apa adanya) dan memberi pesan jelas bila skill user tidak terpasang.
+Jalankan dari folder buku yang disunting. Pembungkus `scripts/check_slop.py` meneruskan ke pemeriksa skill user (semua opsi diteruskan apa adanya) dan memberi pesan jelas bila skill user tidak terpasang.
 
 ```bash
 cd laporan/progres-pa-1
 cp bab/bab3.tex /tmp/bab3.lama.tex
-python3 ../../scripts/check_slop.py --ringkas bab/bab3.tex
+python3 ../../scripts/check_slop.py --summary bab/bab3.tex
 python3 ../../scripts/check_slop.py bab/bab3.tex
-python3 ../../scripts/check_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
+python3 ../../scripts/check_slop.py --compare /tmp/bab3.lama.tex bab/bab3.tex
 python3 ../../scripts/cek_tabel.py bab/*.tex
-python3 ../../scripts/check_slop.py --ringkas bab/bab3.tex
+python3 ../../scripts/check_slop.py --summary bab/bab3.tex
 make pdf-bersih
 grep -cE "undefined|Overfull" output/main.log
 ```
 
-Hasil yang diharapkan: pemeriksa mencetak `errors` dan `review`; `errors` 0 dan `S-PERSONA` di keluaran 0 walau levelnya `review`, tinjau turun dan sisanya disengaja, `invarian aman`, `cek_tabel` 0 galat, log 0. `make pdf-bersih` dipakai untuk bukti karena `make rebuild` menghapus DOCX di `output/`. Satu bab per commit, dan pesan commit memuat metrik `--ringkas` sebelum dan sesudah. Untuk `laporan/buku-pa`, ganti folder kerja; prosedurnya sama.
+Hasil yang diharapkan: pemeriksa mencetak `errors` dan `review`; `errors` 0 dan `S-PERSONA` di keluaran 0 walau levelnya `review`, tinjau turun dan sisanya disengaja, `invarian aman`, `cek_tabel` 0 galat, log 0. `make pdf-bersih` dipakai untuk bukti karena `make rebuild` menghapus DOCX di `output/`. Satu bab per commit, dan pesan commit memuat metrik `--summary` sebelum dan sesudah. Untuk `laporan/buku-pa`, ganti folder kerja; prosedurnya sama.
 
 ## Daftar periksa tambahan
 

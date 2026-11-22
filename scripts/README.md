@@ -194,8 +194,7 @@ make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build b
 `check_slop.py` adalah pembungkus tipis atas
 `~/.claude/skills/indonesian-antislop-writing/scripts/check_slop.py`. Sumber
 pola, ambang, dan katalog ada di skill user itu (`references/catalog.md`);
-repo ini tidak menyimpan salinannya. Opsi lama dipetakan: `--ringkas` ke
-`--summary`, `--banding` ke `--compare`; `--self-test` dan argumen lain
+repo ini tidak menyimpan salinannya. Semua opsi
 diteruskan apa adanya dan kode keluarnya sama dengan pemeriksa asli. Bila skill
 user tidak terpasang, pembungkus mencetak pesan dan keluar dengan kode 2.
 Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingkat
@@ -204,9 +203,9 @@ Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingka
 
 ```bash
 cd laporan/progres-pa-1
-python3 ../../scripts/check_slop.py --ringkas bab/bab2.tex bab/bab3.tex bab/bab4.tex
+python3 ../../scripts/check_slop.py --summary bab/bab2.tex bab/bab3.tex bab/bab4.tex
 python3 ../../scripts/check_slop.py bab/bab3.tex
-python3 ../../scripts/check_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
+python3 ../../scripts/check_slop.py --compare /tmp/bab3.lama.tex bab/bab3.tex
 python3 ../../scripts/check_slop.py --self-test
 ```
 
