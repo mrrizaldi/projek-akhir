@@ -33,7 +33,7 @@ F1_TIE_MARGIN = 0.005
 SEED_DS2 = (11, 12, 13)
 
 
-def catatan_latih(db_list) -> list:
+def training_pairs(db_list) -> list:
     pasangan = [("mitdb", str(r)) for r in DS1]
     for db in db_list:
         if db == "mitdb":
@@ -52,16 +52,16 @@ def catatan_latih(db_list) -> list:
 def assemble_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
               db_list=("mitdb",)) -> dict:
     W, R, Y, REC = [], [], [], []
-    for db, rec in catatan_latih(db_list):
+    for db, rec in training_pairs(db_list):
         signal, r0, sym, _ = load_record(rec, db=db)
         filtered = apply_bandpass(signal, sos)
         if DATASETS[db]["selaraskan"]:
             r0 = align_r(r0, filtered)
         label = np.array([to_binary_label(to_aami_class(s)) for s in sym], dtype=np.int8)
-        n_salinan = salinan if db == "mitdb" else 0
+        n_copies = salinan if db == "mitdb" else 0
 
-        for salinan_ke in range(n_salinan + 1):
-            r = r0 if salinan_ke == 0 or model_jitter == "none" else \
+        for copy_index in range(n_copies + 1):
+            r = r0 if copy_index == 0 or model_jitter == "none" else \
                 jitter_r(r0, delta, rng, model_jitter)
             idx = valid_beat_indices(len(signal), r)
             w = zscore_per_window(segment_beats(filtered, r[idx]))
@@ -76,7 +76,7 @@ def assemble_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
             "y": np.concatenate(Y), "records": np.concatenate(REC)}
 
 
-def rakit_heldout(sos, db: str) -> dict:
+def assemble_heldout(sos, db: str) -> dict:
     W, R, Y, A = [], [], [], []
     for rec in split_train_test(available_records(db))[1]:
         signal, r0, sym, _ = load_record(rec, db=db)
@@ -95,7 +95,7 @@ def rakit_heldout(sos, db: str) -> dict:
             "y": np.concatenate(Y), "aami": np.concatenate(A)}
 
 
-def ukur_array(model, d: dict, thr: float) -> dict:
+def measure_arrays(model, d: dict, thr: float) -> dict:
     prob = model.predict([d["X_morph"], d["X_rr"]], verbose=0, batch_size=4096).ravel()
     pred = (prob >= thr).astype(int)
     m = binary_metrics(confusion_counts(d["y"], pred))
@@ -188,8 +188,8 @@ def main() -> None:
 
     cache = load_ds2(sos)
     bersih = ukur(model, cache, thr, None, 0)
-    kotor = [ukur(model, cache, thr, "empiris", s) for s in SEED_DS2]
-    rerata = {k: float(np.mean([m[k] for m in kotor])) for k in bersih}
+    jittered = [ukur(model, cache, thr, "empiris", s) for s in SEED_DS2]
+    rerata = {k: float(np.mean([m[k] for m in jittered])) for k in bersih}
 
     if args.seed == SEED:
         model.save(os.path.join(ARTIFACT_DIR, f"model_fp32_{args.tag}.keras"))
@@ -219,14 +219,14 @@ def main() -> None:
     if args.cross_db:
         out2 = os.path.join(OUT_DIR, "lintas_db.csv")
         for db, nama in (("svdb", "TEST-B"), ("incartdb", "TEST-C")):
-            d = rakit_heldout(sos, db)
-            m = ukur_array(model, d, thr)
+            d = assemble_heldout(sos, db)
+            m = measure_arrays(model, d, thr)
             r = {"tag": args.tag, "seed": args.seed, "db": db, "set": nama,
                  "n_beat": len(d["y"]), "n_aritmia": int(d["y"].sum()),
                  "threshold": thr, **m}
-            baru2 = not os.path.exists(out2)
+            is_new_file = not os.path.exists(out2)
             with open(out2, "a") as f:
-                if baru2:
+                if is_new_file:
                     f.write(",".join(r) + "\n")
                 f.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v)
                                  for v in r.values()) + "\n")

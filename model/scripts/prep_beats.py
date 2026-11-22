@@ -93,19 +93,19 @@ def main() -> None:
         if not records:
             print(f"\n[{db}] not downloaded — skipped (make data DB={db})")
             continue
-        peran = "" if db == "mitdb" else (
+        role = "" if db == "mitdb" else (
             f"  train {len(split_train_test(records)[0])} / held-out "
             f"{len(split_train_test(records)[1])}")
-        print(f"\n[{db}] {len(records)} records, {DATASETS[db]['fs']} Hz -> 360 Hz{peran}")
+        print(f"\n[{db}] {len(records)} records, {DATASETS[db]['fs']} Hz -> 360 Hz{role}")
         print(f"{'rec':>5} {'beat':>7} {'normal':>7} {'arrhythmia':>10} {'%arr':>6} {'dropped':>7}")
         for rec in records:
-            n_salinan = (args.copies
+            n_copies = (args.copies
                          if (db == "mitdb" and rec in ds1 and args.jitter != "none")
                          else 0)
             out = combine([process_record(rec, sos, db=db)] + [
                 process_record(rec, sos, db=db,
                                jitter=lambda r: jitter_r(r, args.delta, rng, args.jitter))
-                for _ in range(n_salinan)])
+                for _ in range(n_copies)])
             labels = out["labels"]
             n, n_arr, n_drop = len(labels), int(labels.sum()), int(out["n_dropped"])
             np.savez_compressed(os.path.join(PER_RECORD_DIR, f"{rec}.npz"), **out)

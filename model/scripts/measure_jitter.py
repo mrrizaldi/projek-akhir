@@ -16,33 +16,33 @@ from src.io_mitdb import load_record
 from src.preprocessing import (
     apply_bandpass, design_bandpass_sos, pan_tompkins_detect,
 )
-from scripts.eval_detected_segmentation import haluskan
+from scripts.eval_detected_segmentation import refine_peaks
 
-TOLERANSI_MS = 150
+TOLERANCE_WINDOW_MS = 150
 OUT_DIR = os.path.join(METRICS_DIR, "jitter")
 
 
-def residu_record(rec: str, sos, toleransi: int):
+def record_residual(rec: str, sos, tolerance: int):
     signal, r_anot, simbol, _ = load_record(rec)
     filtered = apply_bandpass(signal, sos)
 
-    r_pakai = haluskan(pan_tompkins_detect(filtered, FS) - PT_DETECTOR_OFFSET, filtered)
-    pasangan = pair_detected(r_pakai, r_anot, toleransi)
+    r_used = refine_peaks(pan_tompkins_detect(filtered, FS) - PT_DETECTOR_OFFSET, filtered)
+    pasangan = pair_detected(r_used, r_anot, tolerance)
 
     cocok = pasangan >= 0
-    residu = r_pakai[cocok] - r_anot[pasangan[cocok]]
+    residu = r_used[cocok] - r_anot[pasangan[cocok]]
     n_palsu = int((~cocok).sum())
     n_lewat = len(r_anot) - int(cocok.sum())
 
-    kelas_lewat = {}
+    class_missed = {}
     terdeteksi = np.zeros(len(r_anot), dtype=bool)
     terdeteksi[pasangan[cocok]] = True
-    for sim, ok in zip(simbol, terdeteksi):
-        k = to_aami_class(sim)
-        a, b = kelas_lewat.get(k, (0, 0))
-        kelas_lewat[k] = (a + 1, b + int(not ok))
+    for symbol_short, ok in zip(simbol, terdeteksi):
+        k = to_aami_class(symbol_short)
+        a, b = class_missed.get(k, (0, 0))
+        class_missed[k] = (a + 1, b + int(not ok))
 
-    return residu, n_palsu, n_lewat, len(r_anot), kelas_lewat
+    return residu, n_palsu, n_lewat, len(r_anot), class_missed
 
 
 def ringkas(residu: np.ndarray) -> dict:
@@ -93,19 +93,19 @@ def plot(residu: np.ndarray, out_path: str, s: dict) -> None:
 def main() -> None:
     os.makedirs(OUT_DIR, exist_ok=True)
     sos = design_bandpass_sos()
-    toleransi = round(TOLERANSI_MS / 1000 * FS)
+    tolerance = round(TOLERANCE_WINDOW_MS / 1000 * FS)
 
     semua, baris = [], []
-    tot_palsu = tot_lewat = tot_beat = 0
+    total_false = total_missed = tot_beat = 0
     kelas = {}
 
     print(f"{'rec':>5} {'beat':>7} {'matched':>7} {'missed':>6} {'false':>6} "
           f"{'med':>5} {'std':>6} {'|p95|':>6}")
     for rec in DS1:
-        residu, n_palsu, n_lewat, n_beat, kl = residu_record(str(rec), sos, toleransi)
+        residu, n_palsu, n_lewat, n_beat, kl = record_residual(str(rec), sos, tolerance)
         semua.append(residu)
-        tot_palsu += n_palsu
-        tot_lewat += n_lewat
+        total_false += n_palsu
+        total_missed += n_lewat
         tot_beat += n_beat
         for k, (a, b) in kl.items():
             x, y = kelas.get(k, (0, 0))
@@ -122,8 +122,8 @@ def main() -> None:
 
     print("-" * 60)
     print(f"DS1: {tot_beat:,} annotated beats, {s['n']:,} paired, "
-          f"{tot_lewat:,} missed ({100 * tot_lewat / tot_beat:.2f}%), "
-          f"{tot_palsu:,} false detections")
+          f"{total_missed:,} missed ({100 * total_missed / tot_beat:.2f}%), "
+          f"{total_false:,} false detections")
     print(f"residual: median {s['median']:.1f}  mean {s['mean']:.2f}  std {s['std']:.2f}  "
           f"p5 {s['p5']:.0f}  p95 {s['p95']:.0f}")
     print(f"|residual|: p95 {s['abs_p95']:.0f}  p99 {s['abs_p99']:.0f}  "
@@ -137,7 +137,7 @@ def main() -> None:
         for r in baris:
             f.write("%s,%d,%d,%d,%d,%.1f,%.3f,%.1f\n" % r)
         f.write("TOTAL,%d,%d,%d,%d,%.1f,%.3f,%.1f\n" % (
-            tot_beat, s["n"], tot_lewat, tot_palsu, s["median"], s["std"], s["abs_p95"]))
+            tot_beat, s["n"], total_missed, total_false, s["median"], s["std"], s["abs_p95"]))
 
     np.save(os.path.join(OUT_DIR, "residu_ds1.npy"), residu.astype(np.int16))
     plot(residu, os.path.join(OUT_DIR, "jitter_residu.png"), s)

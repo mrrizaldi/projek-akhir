@@ -20,10 +20,10 @@ from src.preprocessing import (
     zscore_per_window,
 )
 
-TOLERANSI_MS = 150
+TOLERANCE_WINDOW_MS = 150
 
 
-def haluskan(r_kasar, filtered):
+def refine_peaks(r_kasar, filtered):
     hasil = []
     for lo in r_kasar:
         a = max(0, lo - PT_REFINE_WIN)
@@ -38,14 +38,14 @@ def deteksi(record_id: str, sos):
     return signal, filtered, r_anotasi, simbol, pan_tompkins_detect(filtered, FS)
 
 
-def kalibrasi_offset(sos, toleransi: int) -> int:
+def kalibrasi_offset(sos, tolerance: int) -> int:
     selisih = []
     for rec in DS1:
         try:
             _, _, r_anot, _, r_det = deteksi(str(rec), sos)
         except ValueError:
             continue
-        pasangan = pair_detected(r_det, r_anot, toleransi)
+        pasangan = pair_detected(r_det, r_anot, tolerance)
         cocok = pasangan >= 0
         selisih.extend((r_det[cocok] - r_anot[pasangan[cocok]]).tolist())
     return int(np.median(selisih)), len(selisih)
@@ -53,9 +53,9 @@ def kalibrasi_offset(sos, toleransi: int) -> int:
 
 def main() -> None:
     sos = design_bandpass_sos()
-    toleransi = round(TOLERANSI_MS / 1000 * FS)
+    tolerance = round(TOLERANCE_WINDOW_MS / 1000 * FS)
 
-    offset, n_pasangan = kalibrasi_offset(sos, toleransi)
+    offset, n_pasangan = kalibrasi_offset(sos, tolerance)
     print(f"Detector offset calibrated on DS1: median {offset} samples "
           f"({1000 * offset / FS:.1f} ms) over {n_pasangan:,} pairs\n")
 
@@ -72,27 +72,27 @@ def main() -> None:
         label_anot = np.array([to_binary_label(to_aami_class(s)) for s in simbol])
         n_aritmia_total += int(label_anot.sum())
 
-        r_pakai = haluskan(r_det - offset, filtered)
-        pasangan = pair_detected(r_det, r_anot, toleransi)
+        r_used = refine_peaks(r_det - offset, filtered)
+        pasangan = pair_detected(r_det, r_anot, tolerance)
 
         det_tp += int((pasangan >= 0).sum())
         det_fn += len(r_anot) - int((pasangan >= 0).sum())
 
         terdeteksi = np.zeros(len(r_anot), dtype=bool)
         terdeteksi[pasangan[pasangan >= 0]] = True
-        for sim, ok in zip(simbol, terdeteksi):
-            kelas = to_aami_class(sim)
+        for symbol_short, ok in zip(simbol, terdeteksi):
+            kelas = to_aami_class(symbol_short)
             tot[kelas] = tot.get(kelas, 0) + 1
             kena[kelas] = kena.get(kelas, 0) + int(ok)
 
-        i = np.arange(len(r_pakai))
-        muat = (r_pakai - WIN_PRE >= 0) & (r_pakai + WIN_POST <= len(signal))
+        i = np.arange(len(r_used))
+        muat = (r_used - WIN_PRE >= 0) & (r_used + WIN_POST <= len(signal))
         idx = i[muat & (i >= 2)]
         if len(idx) == 0:
             continue
 
-        windows = zscore_per_window(segment_beats(filtered, r_pakai[idx]))
-        rr = compute_rr_features(r_pakai)[idx]
+        windows = zscore_per_window(segment_beats(filtered, r_used[idx]))
+        rr = compute_rr_features(r_used)[idx]
         pas = pasangan[idx]
 
         cocok = pas >= 0

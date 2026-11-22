@@ -17,7 +17,7 @@ from src.features_rr import _width_at_fraction
 from src.preprocessing import design_bandpass_sos
 
 
-def fitur_aturan(windows: np.ndarray, rr: np.ndarray) -> dict:
+def rule_features(windows: np.ndarray, rr: np.ndarray) -> dict:
     return {
         "qrsw2_ms": _width_at_fraction(windows, 0.5, R_IN_WINDOW) / FS * 1000,
         "qrsw4_ms": _width_at_fraction(windows, 0.25, R_IN_WINDOW) / FS * 1000,
@@ -25,29 +25,29 @@ def fitur_aturan(windows: np.ndarray, rr: np.ndarray) -> dict:
     }
 
 
-def kalibrasi_ambang(f: dict, aami: np.ndarray, ditandai: np.ndarray,
+def calibrate_stage_thresholds(f: dict, aami: np.ndarray, flagged: np.ndarray,
                      min_presisi: float = MIN_NAMED_PRECISION) -> dict:
-    v = (aami == "V") & ditandai
+    v = (aami == "V") & flagged
     kandidat = []
-    for amb in np.arange(10, 121, 2.0):
-        pred = ditandai & (f["qrsw2_ms"] > amb)
+    for chosen_thresholds in np.arange(10, 121, 2.0):
+        pred = flagged & (f["qrsw2_ms"] > chosen_thresholds)
         n = int(pred.sum())
         if n < 20:
             continue
         p = int((pred & v).sum()) / n
         if p >= min_presisi:
-            kandidat.append((float(amb), p, int((pred & v).sum()) / max(int(v.sum()), 1)))
+            kandidat.append((float(chosen_thresholds), p, int((pred & v).sum()) / max(int(v.sum()), 1)))
     if not kandidat:
         return {"qrsw2_ms": None, "presisi_val": float("nan"), "cakupan_val": 0.0}
-    amb, p, c = kandidat[0]
-    return {"qrsw2_ms": amb, "presisi_val": p, "cakupan_val": c}
+    chosen_thresholds, p, c = kandidat[0]
+    return {"qrsw2_ms": chosen_thresholds, "presisi_val": p, "cakupan_val": c}
 
 
-def namai(f: dict, ditandai: np.ndarray, amb: dict) -> np.ndarray:
-    out = np.full(len(ditandai), "Normal", dtype="<U12")
-    out[ditandai] = "tak dinamai"
-    if amb["qrsw2_ms"] is not None:
-        out[ditandai & (f["qrsw2_ms"] > amb["qrsw2_ms"])] = "V"
+def name_label(f: dict, flagged: np.ndarray, chosen_thresholds: dict) -> np.ndarray:
+    out = np.full(len(flagged), "Normal", dtype="<U12")
+    out[flagged] = "tak dinamai"
+    if chosen_thresholds["qrsw2_ms"] is not None:
+        out[flagged & (f["qrsw2_ms"] > chosen_thresholds["qrsw2_ms"])] = "V"
     return out
 
 
@@ -81,20 +81,20 @@ def main() -> None:
     Wv, RRv, Av = np.concatenate(W), np.concatenate(RR), np.concatenate(A)
     prob_v = model.predict([Wv.reshape(-1, Wv.shape[1], 1), RRv],
                            verbose=0, batch_size=8192).ravel()
-    fv = fitur_aturan(Wv, RRv)
-    amb = kalibrasi_ambang(fv, Av, prob_v >= thr)
-    if amb["qrsw2_ms"] is None:
+    fv = rule_features(Wv, RRv)
+    chosen_thresholds = calibrate_stage_thresholds(fv, Av, prob_v >= thr)
+    if chosen_thresholds["qrsw2_ms"] is None:
         print(f"[{args.tag}] NO threshold passes precision {MIN_NAMED_PRECISION:.0%} "
               f"on VAL -> V name is not shown. Silence beats a wrong name.")
     else:
-        print(f"[{args.tag}] QRSw2 threshold from VAL = {amb['qrsw2_ms']:.0f} ms "
-              f"(V precision on VAL {amb['presisi_val']:.1%}, coverage {amb['cakupan_val']:.1%})")
+        print(f"[{args.tag}] QRSw2 threshold from VAL = {chosen_thresholds['qrsw2_ms']:.0f} ms "
+              f"(V precision on VAL {chosen_thresholds['presisi_val']:.1%}, coverage {chosen_thresholds['cakupan_val']:.1%})")
 
     Xm, Xr, y, aami = rakit(load_ds2(sos), None, 0, 0)
     prob = model.predict([Xm, Xr], verbose=0, batch_size=8192).ravel()
-    ditandai = prob >= thr
-    f = fitur_aturan(Xm[:, :, 0], Xr)
-    label = namai(f, ditandai, amb)
+    flagged = prob >= thr
+    f = rule_features(Xm[:, :, 0], Xr)
+    label = name_label(f, flagged, chosen_thresholds)
 
     print(f"\n[{args.tag}] DS2 — what the device SHOWS vs the annotation truth")
     print(f"{'':14}" + "".join(f"{k:>10}" for k in ("N","S","V","F","Q")) + f"{'total':>8}")
@@ -103,19 +103,19 @@ def main() -> None:
         print(f"{set_name:14}" + "".join(f"{int((sel & (aami==k)).sum()):>10}"
                                   for k in ("N","S","V","F","Q"))
               + f"{int(sel.sum()):>8}")
-    ditandai_n = int(ditandai.sum())
+    n_flagged = int(flagged.sum())
     v_lbl = label == "V"
-    print(f"\n  beats flagged arrhythmia: {ditandai_n}")
+    print(f"\n  beats flagged arrhythmia: {n_flagged}")
     print(f"  named V                 : {int(v_lbl.sum())} "
-          f"({100*v_lbl.sum()/ditandai_n:.1f}% of the flagged)")
+          f"({100*v_lbl.sum()/n_flagged:.1f}% of the flagged)")
     tp_v = int((v_lbl & (aami == "V")).sum())
     print(f"    correct V             : {tp_v}  -> V name precision {100*tp_v/max(int(v_lbl.sum()),1):.1f}%")
     print(f"    actually F          : {int((v_lbl & (aami=='F')).sum())}  (F = half of V, "
           f"can be kept)")
     print(f"    actually N (stage 1 FP): {int((v_lbl & (aami=='N')).sum())}")
     print(f"  unnamed                 : {int((label=='tak dinamai').sum())} "
-          f"({100*(label=='tak dinamai').sum()/ditandai_n:.1f}%)")
-    print(f"\n  stage 1 recall V {100*(ditandai & (aami=='V')).sum()/max(int((aami=='V').sum()),1):.1f}% "
+          f"({100*(label=='tak dinamai').sum()/n_flagged:.1f}%)")
+    print(f"\n  stage 1 recall V {100*(flagged & (aami=='V')).sum()/max(int((aami=='V').sum()),1):.1f}% "
           f"-> hard ceiling for the V name")
 
 

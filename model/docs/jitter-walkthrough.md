@@ -70,10 +70,10 @@ Rantai yang diukur persis rantai yang dijalankan firmware:
 
 ```python
 r_kasar  = pan_tompkins_detect(filtered)        # punya delay ~38 sampel
-r_pakai  = haluskan(r_kasar - PT_DETECTOR_OFFSET, filtered)
+r_used  = haluskan(r_kasar - PT_DETECTOR_OFFSET, filtered)
 #          haluskan = cari puncak dalam ±PT_REFINE_WIN, lalu - GROUP_DELAY
-pasangan = pair_detected(r_pakai, r_anotasi, toleransi 150 ms)
-residu   = r_pakai[cocok] - r_anotasi[pasangan[cocok]]
+pasangan = pair_detected(r_used, r_anotasi, toleransi 150 ms)
+residu   = r_used[cocok] - r_anotasi[pasangan[cocok]]
 ```
 
 `haluskan()` dan `pair_detected()` **tidak ditulis ulang** — keduanya sudah ada

@@ -7,11 +7,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import METRICS_DIR
 
-AMBANG = 0.04
-SEED_MINIMAL = 3
-KOLOM_ABLASI = [("anot_f1", "F1"), ("anot_recall_S", "recall S"),
+F1_SIGNAL_THRESHOLD = 0.04
+MIN_SEEDS = 3
+ABLATION_COLUMNS = [("anot_f1", "F1"), ("anot_recall_S", "recall S"),
                 ("anot_auc", "AUC"), ("threshold", "thr")]
-KOLOM_LINTAS = [("f1", "F1"), ("recall_S", "recall S"),
+CROSS_DB_COLUMNS = [("f1", "F1"), ("recall_S", "recall S"),
                 ("auc", "AUC"), ("threshold", "thr")]
 
 
@@ -20,15 +20,15 @@ def rerata_rentang(nilai: list) -> tuple:
 
 
 def baca(path: str) -> tuple:
-    per_kunci = {}
+    per_key = {}
     with open(path, newline="") as f:
         r = csv.DictReader(f)
-        kolom = KOLOM_ABLASI if "anot_f1" in (r.fieldnames or []) else KOLOM_LINTAS
+        kolom = ABLATION_COLUMNS if "anot_f1" in (r.fieldnames or []) else CROSS_DB_COLUMNS
         pakai_db = "db" in (r.fieldnames or [])
         for baris in r:
             kunci = f"{baris['tag']}|{baris['db']}" if pakai_db else baris["tag"]
-            per_kunci.setdefault(kunci, []).append(baris)
-    return per_kunci, kolom
+            per_key.setdefault(kunci, []).append(baris)
+    return per_key, kolom
 
 
 def ringkas(baris: list, COLUMNS) -> dict:
@@ -67,20 +67,20 @@ def main() -> None:
         for kolom, _ in COLUMNS:
             sel.append("        -        " if s[kolom] is None
                        else f"{s[kolom][0]:8.4f} +-{s[kolom][1]:6.4f}")
-        tanda = "" if s["n_seed"] >= SEED_MINIMAL else "  <- seed < 3, NOT YET VALID"
+        tanda = "" if s["n_seed"] >= MIN_SEEDS else "  <- seed < 3, NOT YET VALID"
         print(f"{t:<20}{s['n_seed']:>3}  " + "  ".join(sel) + tanda)
 
     if not args.vs:
         return
     dasar = hasil[args.vs]
-    print(f"\nDelta against `{args.vs}` (F1 signal threshold {AMBANG}):")
+    print(f"\nDelta against `{args.vs}` (F1 signal threshold {F1_SIGNAL_THRESHOLD}):")
     for t in tags:
         if t == args.vs:
             continue
         k_f1 = COLUMNS[0][0]
         d_f1 = hasil[t][k_f1][0] - dasar[k_f1][0]
         d_ren = hasil[t][k_f1][1] - dasar[k_f1][1]
-        vonis = "SIGNAL" if abs(d_f1) >= AMBANG else "not a signal"
+        vonis = "SIGNAL" if abs(d_f1) >= F1_SIGNAL_THRESHOLD else "not a signal"
         arah = "narrows" if d_ren < 0 else "widens"
         print(f"  {t:<20} dF1 {d_f1:+.4f} ({vonis})   "
               f"range F1 {arah} {abs(d_ren):.4f}")
