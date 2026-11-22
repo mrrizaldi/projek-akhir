@@ -4,7 +4,7 @@
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #if __has_include("tensorflow/lite/micro/micro_error_reporter.h")
 #include "tensorflow/lite/micro/micro_error_reporter.h"
-#define TFLM_PUNYA_ERROR_REPORTER 1
+#define TFLM_HAS_ERROR_REPORTER 1
 #endif
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -43,7 +43,7 @@ static void siapkan_model(void)
     resolver.AddReshape();
     resolver.AddExpandDims();
 
-#ifdef TFLM_PUNYA_ERROR_REPORTER
+#ifdef TFLM_HAS_ERROR_REPORTER
     static tflite::MicroErrorReporter lapor;
     static tflite::MicroInterpreter statis(model, resolver, tensor_arena, kArenaSize, &lapor);
 #else
@@ -55,13 +55,13 @@ static void siapkan_model(void)
 
     TfLiteTensor *a = interpreter->input(0);
     TfLiteTensor *b = interpreter->input(1);
-    const bool a_kecil = a->bytes < b->bytes;
-    in_rr = a_kecil ? a : b;
-    in_morph = a_kecil ? b : a;
+    const bool a_small = a->bytes < b->bytes;
+    in_rr = a_small ? a : b;
+    in_morph = a_small ? b : a;
     out = interpreter->output(0);
 }
 
-static int8_t ke_int8(float x, float scale, int zero)
+static int8_t to_int8(float x, float scale, int zero)
 {
     long q = lroundf(x / scale) + zero;
     if (q < -128) q = -128;
@@ -92,10 +92,10 @@ void test_inferensi_cocok_dengan_pc(void)
         TEST_ASSERT_TRUE(ecg_rr_features(golden_r, GOLDEN_N_BEAT, b, ECG_FS, rr));
 
         for (int i = 0; i < GOLDEN_WIN_LEN; i++) {
-            in_morph->data.int8[i] = ke_int8(buf_window[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+            in_morph->data.int8[i] = to_int8(buf_window[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
         }
         for (int i = 0; i < GOLDEN_N_RR; i++) {
-            in_rr->data.int8[i] = ke_int8(rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+            in_rr->data.int8[i] = to_int8(rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
         }
 
         const uint32_t t0 = micros();
@@ -119,9 +119,9 @@ void test_diagnostik_input_golden(void)
         const float *w = golden_window + (size_t)b * GOLDEN_WIN_LEN;
         const float *rr = golden_rr + (size_t)b * GOLDEN_N_RR;
         for (int i = 0; i < GOLDEN_WIN_LEN; i++)
-            in_morph->data.int8[i] = ke_int8(w[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+            in_morph->data.int8[i] = to_int8(w[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
         for (int i = 0; i < GOLDEN_N_RR; i++)
-            in_rr->data.int8[i] = ke_int8(rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+            in_rr->data.int8[i] = to_int8(rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
         interpreter->Invoke();
         const float p = (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
         Serial.printf("DIAG beat %d (%s): golden-in %.4f | PC %.4f\n",
@@ -149,9 +149,9 @@ void test_diagnostik_input_golden(void)
     const float *w2 = golden_window + (size_t)2 * GOLDEN_WIN_LEN;
     const float *r2 = golden_rr + (size_t)2 * GOLDEN_N_RR;
     for (int i = 0; i < GOLDEN_WIN_LEN; i++)
-        in_morph->data.int8[i] = ke_int8(w2[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+        in_morph->data.int8[i] = to_int8(w2[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
     for (int i = 0; i < GOLDEN_N_RR; i++)
-        in_rr->data.int8[i] = ke_int8(r2[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+        in_rr->data.int8[i] = to_int8(r2[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
     interpreter->Invoke();
     Serial.printf("DIAG beat2  : q_out=%d  morph[0..4]=%d,%d,%d,%d,%d  rr=%d,%d,%d\n",
                   (int)out->data.int8[0],
@@ -176,9 +176,9 @@ void test_alur_hidup(void)
         (void)dt;
 
         for (int k = 0; k < GOLDEN_WIN_LEN; k++)
-            in_morph->data.int8[k] = ke_int8(beat.window[k], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+            in_morph->data.int8[k] = to_int8(beat.window[k], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
         for (int k = 0; k < GOLDEN_N_RR; k++)
-            in_rr->data.int8[k] = ke_int8(beat.rr[k], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+            in_rr->data.int8[k] = to_int8(beat.rr[k], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
         TEST_ASSERT_EQUAL(kTfLiteOk, interpreter->Invoke());
         const float p = (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
         const int prediksi = (p >= GOLDEN_THRESHOLD) ? 1 : 0;

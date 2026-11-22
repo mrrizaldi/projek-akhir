@@ -8,7 +8,7 @@
 #include "daya.h"
 #include "ecg_mqtt.h"
 #include "gate.h"
-#include "klasifikasi.h"
+#include "classifier.h"
 #include "konfig.h"
 #include "menu.h"
 #include "board.h"
@@ -36,7 +36,7 @@ static int angka()
 static void status()
 {
     const gate_quality_t &q = gate_quality();
-    const klasifikasi_hitung_t &h = klasifikasi_hitung();
+    const classifier_count_t &h = classifier_count();
     Serial.printf("status: rekam=%d n=%u | replay=%d | kualitas %s | beat %d "
                   "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u (tick %u) | "
                   "LO %d %d | mentah %d..%d ayun %d clipping %d\n"
@@ -46,7 +46,7 @@ static void status()
                   "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
                   "sumber %s %d | menu %d | jeda %d\n",
                   (int)rekam_aktif(), (unsigned)rekam_n(), (int)acquisition_replay(),
-                  gate_phase_name(), h.total, h.aritmia, h.ditahan,
+                  gate_phase_name(), h.total, h.arrhythmia, h.withheld,
                   (unsigned)acquisition_fill(), (unsigned)acquisition_missed(), (unsigned)acquisition_tick_lost(),
                   digitalRead(PIN_LOP), digitalRead(PIN_LON),
                   q.raw_min, q.raw_max, q.swing_clean, (int)q.clipping,
@@ -56,7 +56,7 @@ static void status()
                   (unsigned)ecg_mqtt_paket_ack(), (unsigned)ecg_mqtt_paket_kirim(),
                   ecg_mqtt_paket_kirim()
                       ? 100.0 * ecg_mqtt_paket_ack() / ecg_mqtt_paket_kirim() : 0.0,
-                  (unsigned)(h.tunda_n ? h.tunda_jml / h.tunda_n : 0), (unsigned)h.tunda_maks,
+                  (unsigned)(h.latency_n ? h.latency_sum / h.latency_n : 0), (unsigned)h.latency_max,
                   (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
                   ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
                   daya_ina_teks(), (int)tampilan_bisu(), (int)tampilan_beku(),

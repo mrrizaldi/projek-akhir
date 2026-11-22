@@ -12,7 +12,7 @@ void tampilan_bunyi(uint32_t ms);
 void tampilan_hapus_jadwal(void);
 void tampilan_pesan(const char *besar, const char *kecil);
 
-void tampilan_beat(const ecg_beat_t &beat, bool aritmia);
+void tampilan_beat(const ecg_beat_t &beat, bool arrhythmia);
 void tampilan_sampel(void);
 
 void tampilan_gambar_tombol(int i);

@@ -4,7 +4,7 @@
 #include "tensorflow/lite/micro/micro_interpreter.h"
 #if __has_include("tensorflow/lite/micro/micro_error_reporter.h")
 #include "tensorflow/lite/micro/micro_error_reporter.h"
-#define TFLM_PUNYA_ERROR_REPORTER 1
+#define TFLM_HAS_ERROR_REPORTER 1
 #endif
 #include "tensorflow/lite/micro/micro_mutable_op_resolver.h"
 #include "tensorflow/lite/schema/schema_generated.h"
@@ -46,7 +46,7 @@ void test_model_termuat(void)
     res.AddConv2D(); res.AddDepthwiseConv2D(); res.AddMaxPool2D();
     res.AddConcatenation(); res.AddLogistic(); res.AddAdd();
     res.AddReshape(); res.AddExpandDims();
-#ifdef TFLM_PUNYA_ERROR_REPORTER
+#ifdef TFLM_HAS_ERROR_REPORTER
     static tflite::MicroErrorReporter lapor;
     static tflite::MicroInterpreter it(m, res, arena, ARENA_N, &lapor);
 #else
@@ -60,18 +60,18 @@ void test_model_termuat(void)
     keluar = interp->output(0);
 }
 
-static int8_t ke_int8(float x, float skala, int nol)
+static int8_t to_int8(float x, float skala, int nol)
 {
     long q = lroundf(x / skala) + nol;
     return (int8_t)constrain(q, -128L, 127L);
 }
 
-static float klasifikasi(const ecg_beat_t &beat)
+static float classifier(const ecg_beat_t &beat)
 {
     for (int i = 0; i < ECG_WIN_LEN_; i++)
-        in_morph->data.int8[i] = ke_int8(beat.window[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+        in_morph->data.int8[i] = to_int8(beat.window[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
     for (int i = 0; i < ECG_N_RR; i++)
-        in_rr->data.int8[i] = ke_int8(beat.rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
+        in_rr->data.int8[i] = to_int8(beat.rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
     interp->Invoke();
     return (keluar->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 }
@@ -87,12 +87,12 @@ static void plot(float f)
     x = (x + 1) % TFT_W;
 }
 
-static void layar_hr(int hr, bool aritmia)
+static void layar_hr(int hr, bool arrhythmia)
 {
     float mA, V;
     const bool ina = ina219_baca(R_SHUNT, &mA, &V);
     tft.setTextSize(3);
-    tft.setTextColor(aritmia ? ST77XX_RED : ST77XX_WHITE, ST77XX_BLACK);
+    tft.setTextColor(arrhythmia ? ST77XX_RED : ST77XX_WHITE, ST77XX_BLACK);
     tft.setCursor(4, 3);
     tft.printf("HR %3d", hr);
     tft.setTextSize(2);
@@ -106,7 +106,7 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
 {
     static ecg_beat_t beat;
     int hr = 0;
-    bool aritmia = false;
+    bool arrhythmia = false;
     uint32_t t_layar = 0, buzz_sampai = 0;
 
     hw_timer_t *timer = timerBegin(0, 80, true);
@@ -122,25 +122,25 @@ void test_jalankan_replay_tanpa_sampel_hilang(void)
             n_diproses++;
             if (ecg_live_push(s, &beat)) {
                 beat_keluar++;
-                const float p = klasifikasi(beat);
-                aritmia = p >= ECG_THRESHOLD;
+                const float p = classifier(beat);
+                arrhythmia = p >= ECG_THRESHOLD;
                 hr = (int)lroundf(60.0f / beat.rr[0]);
                 buzzer(true);
-                buzz_sampai = millis() + (aritmia ? 250 : 50);
+                buzz_sampai = millis() + (arrhythmia ? 250 : 50);
                 for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT && beat.r_abs < GOLDEN_N; b++) {
                     if (abs(beat.r_abs - golden_r[b]) > 20) continue;
                     cocok++;
                     const int hr_pc = (int)lroundf(60.0f * ECG_FS / (golden_r[b] - golden_r[b - 1]));
                     if (abs(hr - hr_pc) > 3) hr_meleset++;
-                    if ((aritmia ? 1 : 0) == golden_label[b]) prediksi_benar++;
+                    if ((arrhythmia ? 1 : 0) == golden_label[b]) prediksi_benar++;
                     Serial.printf("  r=%4d (%s) HR %3d (PC %3d) p=%.4f -> %d, PC %d\n",
-                                  beat.r_abs, golden_sym[b], hr, hr_pc, p, (int)aritmia, golden_label[b]);
+                                  beat.r_abs, golden_sym[b], hr, hr_pc, p, (int)arrhythmia, golden_label[b]);
                     break;
                 }
             }
             plot(ecg_live_tersaring_terakhir());
         }
-        if (millis() - t_layar >= 1000) { t_layar = millis(); layar_hr(hr, aritmia); }
+        if (millis() - t_layar >= 1000) { t_layar = millis(); layar_hr(hr, arrhythmia); }
         if (buzz_sampai && (int32_t)(millis() - buzz_sampai) >= 0) { buzzer(false); buzz_sampai = 0; }
         loop_maks_us = max(loop_maks_us, (uint32_t)(micros() - t0));
     }

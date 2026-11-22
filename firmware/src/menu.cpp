@@ -8,7 +8,7 @@
 #include "ecg_mqtt.h"
 #include "gate.h"
 #include "ina219.h"
-#include "klasifikasi.h"
+#include "classifier.h"
 #include "konfig.h"
 #include "board.h"
 #include "rekam.h"
@@ -78,7 +78,7 @@ static const char *on_off(bool on) { return on ? "ON" : "OFF"; }
 static void kalib_ulang()
 {
     gate_begin_session();
-    klasifikasi_reset();
+    classifier_reset();
     Serial.println("kalibrasi: sesi baru");
 }
 static void kalib_lewati()

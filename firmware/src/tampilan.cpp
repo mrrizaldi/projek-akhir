@@ -47,12 +47,12 @@ static int j_kepala, j_isi;
 
 void tampilan_hapus_jadwal(void) { j_isi = 0; }
 
-static void jadwalkan_bip(const ecg_beat_t &b, bool aritmia)
+static void jadwalkan_bip(const ecg_beat_t &b, bool arrhythmia)
 {
     if (bisu || j_isi == JADWAL_N) return;
     auto &j = jadwal[(j_kepala + j_isi++) % JADWAL_N];
     j.sampel = (uint32_t)b.r_abs + TUNDA_BIP;
-    j.ms = aritmia ? BIP_ARITMIA_MS : BIP_MS;
+    j.ms = arrhythmia ? BIP_ARITMIA_MS : BIP_MS;
 }
 
 static void jalankan_jadwal()
@@ -110,13 +110,13 @@ void tampilan_sampel(void)
     plot(tertunda(ecg_live_tersaring_terakhir()));
 }
 
-void tampilan_beat(const ecg_beat_t &beat, bool aritmia)
+void tampilan_beat(const ecg_beat_t &beat, bool arrhythmia)
 {
     if (gate_quality().swing_clean < THRESHOLD_SWING) return;
     hr_tampil = (beat.rr[0] > 0.05f) ? (int)lroundf(60.0f / beat.rr[0]) : 0;
-    hr_aritmia = aritmia;
+    hr_aritmia = arrhythmia;
     t_hr = millis();
-    if (gate_phase() != PHASE_CALIBRATION) jadwalkan_bip(beat, aritmia);
+    if (gate_phase() != PHASE_CALIBRATION) jadwalkan_bip(beat, arrhythmia);
 }
 
 void tampilan_gambar_tombol(int i)

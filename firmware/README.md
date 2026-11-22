@@ -100,7 +100,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | `src/main.cpp` | Firmware utama: hanya merangkai modul di bawah (`setup()`/`loop()`) dan memetakan event tombol mode monitor; selama menu terbuka event diteruskan ke `menu.cpp` |
 | `src/acquisition.cpp` | Timer ISR 360 Hz → antrean → `loop()`; sumber sinyal ADC AD8232, replay acuan `golden_raw`, atau replay rekaman `/rekam/NNN.csv`; pilihan tersimpan di NVS |
 | `src/gate.cpp` | Kualitas sinyal per detik (ayunan, dengung 50 Hz Goertzel, LO±, clipping), penilaian kontak, dan fase kalibrasi (pemanasan 60 s) → pemantauan |
-| `src/klasifikasi.cpp` | Inferensi TFLM INT8 per beat dan publikasi hasilnya ke antrean MQTT |
+| `src/classifier.cpp` | Inferensi TFLM INT8 per beat dan publikasi hasilnya ke antrean MQTT |
 | `src/tampilan.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
 | `src/buttons.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
 | `src/menu.cpp` | Pohon menu (array struct statis + pointer fungsi), navigasi tiga tombol, halaman teks diperbarui 1 Hz |
@@ -228,7 +228,7 @@ pengukuran ada di walkthrough yang dirujuk.
   pemantauan, bukan gerbang per detak; beat ventrikular memang datang dengan
   dRR besar (mqtt-walkthrough §3.1).
 
-**TFLite Micro** (`test_inference`, `klasifikasi.cpp`)
+**TFLite Micro** (`test_inference`, `classifier.cpp`)
 
 - Urutan input di `.tflite` tidak dijamin sama dengan di Keras; tensor RR dan
   morfologi dibedakan lewat ukuran (`bytes`), bukan indeks.

@@ -6,7 +6,7 @@
 #include "esp_cpu.h"
 
 #include "gate.h"
-#include "klasifikasi.h"
+#include "classifier.h"
 #include "konfig.h"
 #include "board.h"
 #include "rekam.h"
@@ -128,7 +128,7 @@ bool acquisition_set_source(int s, int number, bool save)
     if (!ok) return false;
     if (save) konfig_set_sumber(sumber, source_recording);
     gate_begin_session();
-    klasifikasi_reset();
+    classifier_reset();
     if (sumber == SOURCE_RECORDING)
         Serial.printf("replay ON (rekaman %03d, %u sampel)\n", source_recording, (unsigned)rp_n);
     else

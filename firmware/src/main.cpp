@@ -7,7 +7,7 @@
 #include "ecg_mqtt.h"
 #include "gate.h"
 #include "ina219.h"
-#include "klasifikasi.h"
+#include "classifier.h"
 #include "konfig.h"
 #include "menu.h"
 #include "board.h"
@@ -62,7 +62,7 @@ void setup()
     }
     rekam_siapkan();
 
-    klasifikasi_mulai();
+    classifier_begin();
     gate_begin_session();
     konfig_mulai();
     setenv("TZ", "WIB-7", 1);
@@ -74,8 +74,8 @@ void setup()
                   "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam/jeda/lanjut; tahan B3 = simpan, "
                   "tahan B2 = menu)  |  serial: r/j/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
-                  ECG_FS, (unsigned)QUEUE_N, (unsigned)klasifikasi_arena(),
-                  klasifikasi_ambang(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
+                  ECG_FS, (unsigned)QUEUE_N, (unsigned)classifier_arena(),
+                  classifier_threshold(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
                   I2C_SDA, I2C_SCL, INA219_ALAMAT, daya_ina_ada() ? "siap" : "TIDAK TERDETEKSI",
                   TFT_W, TFT_H, PIN_BUZZ, (unsigned)TONE_HZ);
 }
@@ -93,13 +93,13 @@ void loop()
         const int ada_beat = dsp ? ecg_live_push(sampel, &beat) : 0;
         if (dsp) gate_assess_quality(sampel);
 
-        bool aritmia = false;
+        bool arrhythmia = false;
         if (ada_beat) {
             daya_hitung_beat();
             gate_assess_phase(beat);
             if (gate_phase() == PHASE_CALIBRATION) gate_report_calibration(beat);
-            else if (cnn) aritmia = klasifikasi_proses(beat);
-            if (ui) tampilan_beat(beat, aritmia);
+            else if (cnn) arrhythmia = classifier_process(beat);
+            if (ui) tampilan_beat(beat, arrhythmia);
         }
         if (ui) tampilan_sampel();
     }

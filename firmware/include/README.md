@@ -11,7 +11,7 @@
 | `board.h` | Pin map PCB rev1 dan pemasangan perangkat (TFT, buzzer, tombol, ADC) untuk `main.cpp` dan test `test_hw_*` | ditulis tangan |
 | `acquisition.h` | Timer ISR 360 Hz, antrean sampel, sumber ADC / replay acuan / replay rekaman | ditulis tangan |
 | `gate.h` | Kualitas sinyal dan fase kalibrasi | ditulis tangan |
-| `klasifikasi.h` | Inferensi TFLM per beat dan publikasi ke antrean MQTT | ditulis tangan |
+| `classifier.h` | Inferensi TFLM per beat dan publikasi ke antrean MQTT | ditulis tangan |
 | `tampilan.h` | TFT (monitor dan layar menu), NeoPixel, buzzer | ditulis tangan |
 | `buttons.h` | Debounce dan event tombol B1–B3 (tekan lama 800 ms), event suntikan serial | ditulis tangan |
 | `menu.h` | Menu di perangkat: buka, teruskan event tombol, halaman teks 1 Hz | ditulis tangan |
