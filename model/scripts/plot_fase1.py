@@ -29,7 +29,7 @@ def main(record_id: str) -> None:
     filtered = apply_bandpass(signal, sos)
 
     print(f"record {record_id} — bandpass {BANDPASS_LOW}-{BANDPASS_HIGH} Hz, "
-          f"orde {BANDPASS_ORDER}, fs {fs}")
+          f"order {BANDPASS_ORDER}, fs {fs}")
     describe("raw", signal)
     describe("filtered", filtered)
 

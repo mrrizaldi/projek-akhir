@@ -49,7 +49,7 @@ def pilih_jendela(hasil, fs, n, mulai_s):
             if mulai + n <= h["n"]:
                 calon.append((*nilai_jendela(h["x"], r, fs, mulai, n), k, mulai, r))
     if not calon:
-        sys.exit(f"Tidak ada segmen sepanjang {n / fs:.0f} detik.")
+        sys.exit(f"No segment of {n / fs:.0f} seconds.")
     return min(calon, key=lambda c: (c[0], c[1]))
 
 
@@ -83,18 +83,18 @@ def gambar(h, r, fs, mulai, n, judul, tujuan):
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Grafik EKG satu jendela (bawaan: 60 detik terbaik) dari rekaman board.")
-    p.add_argument("berkas", help="data/recordings/<nama>.csv")
-    p.add_argument("--mulai", type=float, help="detik awal jendela; tanpa ini dipilih jendela terbaik")
-    p.add_argument("--durasi", type=int, default=DURASI_S, help="panjang jendela dalam detik")
+    p = argparse.ArgumentParser(description="ECG plot of one window (default: best 60 seconds) from a board recording.")
+    p.add_argument("file", help="data/recordings/<name>.csv")
+    p.add_argument("--start", type=float, help="window start in seconds; without it the best window is chosen")
+    p.add_argument("--duration", type=int, default=DURASI_S, help="window length in seconds")
     arg = p.parse_args()
 
-    segmen, fs, _ = muat(arg.berkas)
+    segmen, fs, _ = muat(arg.file)
     hasil = [analisis_segmen(m, fs) for m in segmen]
-    n = arg.durasi * fs
-    aneh, otot, k, mulai, r = pilih_jendela(hasil, fs, n, arg.mulai)
+    n = arg.duration * fs
+    aneh, otot, k, mulai, r = pilih_jendela(hasil, fs, n, arg.start)
 
-    nama = os.path.splitext(os.path.basename(arg.berkas))[0]
+    nama = os.path.splitext(os.path.basename(arg.file))[0]
     folder = os.path.join(METRICS_DIR, "akuisisi")
     os.makedirs(folder, exist_ok=True)
     tujuan = os.path.join(folder, f"rekaman_{nama}_detik-{mulai // fs:03d}.png")
@@ -102,8 +102,8 @@ def main() -> None:
     judul = (f"{nama}{segmen_teks}: detik {mulai // fs}-{(mulai + n) // fs} "
              f"(bandpass 0,5-40 Hz, ▼ = R terdeteksi)")
     bpm = gambar(hasil[k], r, fs, mulai, n, judul, tujuan)
-    print(f"jendela detik {mulai // fs}-{(mulai + n) // fs}{segmen_teks}: "
-          f"RR tak wajar {aneh}, derau >{PITA_OTOT_MIN_HZ} Hz {100 * otot:.1f}% pita EKG, "
+    print(f"window seconds {mulai // fs}-{(mulai + n) // fs}{segmen_teks}: "
+          f"odd RR {aneh}, noise >{PITA_OTOT_MIN_HZ} Hz {100 * otot:.1f}% of ECG band, "
           f"HR median {np.median(bpm):.0f} bpm ({bpm.min():.0f}-{bpm.max():.0f}), {len(bpm) + 1} R")
     print(tujuan)
 

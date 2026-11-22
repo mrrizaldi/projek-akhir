@@ -20,11 +20,11 @@ def main(record_id: str) -> None:
     signal, r_locations, symbols, fs = load_record(record_id)
 
     print(f"record {record_id}")
-    print(f"  panjang sinyal : {len(signal)} sampel "
-          f"({len(signal) / fs / 60:.1f} menit)")
+    print(f"  signal length  : {len(signal)} samples "
+          f"({len(signal) / fs / 60:.1f} min)")
     print(f"  R-peak (beat)  : {len(r_locations)}")
     print(f"  fs             : {fs} Hz")
-    print(f"  simbol unik    : {sorted(set(symbols))}")
+    print(f"  unique symbols : {sorted(set(symbols))}")
 
     n = PLOT_SECONDS * fs
     time = np.arange(n) / fs
@@ -50,7 +50,7 @@ def main(record_id: str) -> None:
     out_path = os.path.join(OUT_DIR, f"fase0_{record_id}.png")
     plt.savefig(out_path, dpi=120)
     print(f"\nPlot: {os.path.relpath(out_path)}")
-    print("Cek mata: garis vertikal harus mendarat pas di puncak R.")
+    print("Visual check: vertical lines must land exactly on the R peak.")
 
 
 if __name__ == "__main__":
