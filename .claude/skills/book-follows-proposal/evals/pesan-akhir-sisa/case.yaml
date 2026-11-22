@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: pesan-akhir-sisa
+expected_outcome: |
+  Only the cover colour (d) is asked, with options and a recommendation from repo facts; the build result is not written as run.

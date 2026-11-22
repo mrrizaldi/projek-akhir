@@ -1,5 +1,0 @@
-schema_version: "1.1"
-name: tabel-perangkat-uji
-expected_outcome: |
-  Riwayat yang tercatat dipakai tanpa ditanyakan; rakitan final dan jumlah
-  subjek memakai \PlaceholderData dan tidak ditanyakan.

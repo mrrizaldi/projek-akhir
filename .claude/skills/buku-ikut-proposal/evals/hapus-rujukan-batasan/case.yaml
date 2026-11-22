@@ -1,5 +1,0 @@
-schema_version: "1.1"
-name: hapus-rujukan-batasan
-expected_outcome: |
-  Kalimat diganti kalimat utuh tanpa \ref ke subbab dan tanpa "pada subbab
-  ini"; lingkup tetap di Bab 3/4; build diperiksa dengan make pdf-bersih.

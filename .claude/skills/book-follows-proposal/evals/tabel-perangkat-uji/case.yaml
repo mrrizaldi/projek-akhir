@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: tabel-perangkat-uji
+expected_outcome: |
+  Recorded history is used without asking; the final assembly and the number of subjects use \PlaceholderData and are not asked.
