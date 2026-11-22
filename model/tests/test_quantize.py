@@ -68,7 +68,7 @@ def test_artifact_rhythm_scale_sane():
     from config import MAX_RHYTHM_SCALE
     with open(TFLITE, "rb") as f:
         skala = assert_rhythm_scale_sane(f.read())
-    assert skala == pytest.approx(0.0129, abs=5e-3), f"skala bergeser: {skala}"
+    assert skala == pytest.approx(0.0129, abs=5e-3), f"scale drifted: {skala}"
     assert skala < MAX_RHYTHM_SCALE
 
 
