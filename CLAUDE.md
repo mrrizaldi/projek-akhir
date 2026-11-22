@@ -112,6 +112,7 @@ or extracted.
 | writing or editing code (C/C++, Python, shell, `platformio.ini`), prompts to code-writing subagents | `no-code-comments` (loads the user skill of the same name) |
 | "indeks rujukan", "daftar bukti", documents with links to local files | user skill `local-file-links` (PA: reference index in `laporan/pustaka/`, evidence list from `model/artifacts`) |
 | "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `report-antislop` (loads `indonesian-antislop-writing`) |
+| "gambarin", "bikin draf gambar", "revisi gambar proposal", "gambarnya kekecilan", filling a `PLACEHOLDER-GAMBAR` illustration | `report-figures` (loads `antislop`, `antislop-ui`, `antislop-human`) |
 | `git stash`/`reset`/`checkout` path/`clean`, committing while another session or agent is working, `index.lock`, a dirty `git status` blocking | user skill `shared-worktree` |
 
 ## Working rules (non-negotiable)
@@ -123,7 +124,9 @@ or extracted.
    that is listed in a plan the user approved is allowed, except in `laporan/`
    (still a gate point).
 2. **`laporan/` is read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
-   must not be touched without confirmation. Relative paths are fragile. Detailed
+   must not be touched without confirmation. Relative paths are fragile. One
+   exception: figure drafts made through the skill `report-figures` may be
+   written to `laporan/<projek>/gambar/draf/`. Detailed
    rules (writing style, table/figure conventions, chapter structure) are in
    `laporan/CLAUDE.md`; read it first when working in `laporan/`.
 3. **PRD = `model/PRD_Model_Aritmia_TinyML.pdf`** (a PDF, not `.md`; read it with
@@ -300,13 +303,18 @@ tests on the N16R8 board, env `native` = tests on the PC). Run from `firmware/`.
 
 ## Diagrams & laporan figures
 
-- **Claude does NOT make diagrams/illustration figures itself** (for `laporan/`; dev docs in `docs/features/` may contain Claude-made Mermaid with real names): no Mermaid,
-  TikZ, PlantUML, Graphviz, SVG/draw.io, new figure scripts, or AI images.
-  At the figure position, put a
+- **Illustration figures for `laporan/` are draw.io drafts made through the skill
+  `report-figures` and approved by the user** (dev docs in `docs/features/` may contain
+  Claude-made Mermaid with real names). The figure position in the `.tex` still holds a
   **placeholder** + a content spec card (type, message, required elements,
-  reading flow, material in the repo); **the user draws it**. The caption, `\label`, `\ref`, and
-  the intro/explanatory paragraph are still written in final form. Template: skill
-  `report-structure` rule 9.
+  reading flow, material in the repo); template: skill `report-structure` rule 9.
+  Claude may draft the figure from that card in `laporan/<projek>/gambar/draf/`
+  (house style, `python3 scripts/check_figures.py` green, exported and looked at,
+  antislop Delivery Gate); the placeholder is replaced only after the user approves
+  the draft. No Mermaid, TikZ, PlantUML, Graphviz, figure scripts, or AI images in
+  `laporan/`. A proposal revision changes only the card's "Ubah" column and keeps the
+  user's style. Device photos and screen mockups stay with the user. The caption,
+  `\label`, `\ref`, and the intro/explanatory paragraph are still written in final form.
   Remaining placeholders: `grep -rn "PLACEHOLDER-GAMBAR" laporan/`.
 - Experiment data plots (confusion matrix, curves, latency charts) produced by
   the repo pipeline are not illustrations: reference the already-exported file. If

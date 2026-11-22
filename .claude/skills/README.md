@@ -16,6 +16,7 @@ every skill has an eval graded by a different model, at most 3 rounds.
 | `word-ingest` | DOCX edits from a friend brought back into LaTeX | `wordcraft-latex-ingest` |
 | `no-code-comments` | writing or editing code, prompts to code-writing subagents | `no-code-comments` |
 | `report-antislop` | report paragraphs that must not read as AI-written | `indonesian-antislop-writing` |
+| `report-figures` | draw.io drafts of report illustration figures from a placeholder card, proposal figure revisions | `antislop`, `antislop-ui`, `antislop-human` |
 | `report-structure` | chapter skeleton, common thread, figure placeholders, QA before submission | none |
 | `report-tables` | LaTeX tables in the reports | none |
 | `book-follows-proposal` | Bab 1 of the book follows the proposal, questions to the user about book content | none |
@@ -41,6 +42,7 @@ local repos only. Once a remote exists, install on another machine with
 | `wordcraft-latex-ingest` | `~/dev/wordcraft-latex-ingest` | DOCX to LaTeX |
 | `no-code-comments` | `~/dev/no-code-comments` | comment-free code, with `check_comments.py` |
 | `shared-worktree` | `~/dev/shared-worktree` | git safety when several sessions share one clone |
+| `antislop`, `antislop-ui`, `antislop-human` | third party, not in `~/dev`: `npx antislop-ai` (or `npx antislop-ai --update`), source `miqdadbadjuber/anti-slop`, tested v3.2.32 | the visual anti-slop filter and Delivery Gate under `report-figures` |
 
 ## Skill layout
 
@@ -92,4 +94,4 @@ Two separate agents per round, from the Agent tool or separate sessions.
   the self-test). Runs in CI.
 - Triggering: `scripts/trigger_eval.sh <folder skill>` measures whether the
   description triggers on the `triggers/evals.json` queries (`scripts/README.md`).
-- Reports: `python3 scripts/cek_tabel.py`, `python3 scripts/check_slop.py`.
+- Reports: `python3 scripts/cek_tabel.py`, `python3 scripts/check_slop.py`, `python3 scripts/check_figures.py` (figure drafts, runs in CI).

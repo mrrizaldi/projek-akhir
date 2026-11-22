@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: revisi-gambar-proposal
+expected_outcome: |
+  The answer uses antislop After mode, extracts the source from gambar_3_2.png into gambar/draf/ with --extract, makes only the three Ubah changes while keeping the user's style, checks with --revision, exports and looks at the PNG, leaves the .tex and daftar-placeholder.md untouched until the user approves, and does not use the old .mmd draft.

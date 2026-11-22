@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: laporan-akhir-belum-dijalankan
+expected_outcome: |
+  The answer follows the final report format with the correct draft path, writes the checker, export and looking steps as not run with [N], says the placeholder is not replaced and waits for approval, and includes a Delivery Gate in which command-dependent items (R-02, R-25, R-35) are not PASS, interactive items are N/A with a reason, and the draft is not declared ready.

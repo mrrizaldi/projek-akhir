@@ -240,6 +240,43 @@ python3 scripts/check_skills.py
 python3 scripts/check_skills.py --self-test
 ```
 
+## check_figures.py
+
+`check_figures.py` checks draw.io figure drafts for the reports (skill
+`report-figures`) and exits with code 1 when it finds an error. Without file
+arguments it checks every `laporan/*/gambar/draf/*.drawio`. The palette is the
+same as `.claude/skills/report-figures/references/house-style.md`; change both
+together. The contrast formula is the one in antislop-human `contrast-check.py`.
+
+| Check | Error | Warning |
+|---|---|---|
+| Typeface | anything other than Times New Roman | - |
+| Effects | `shadow`, `glass`, `sketch`, `comic`, gradient, curved line | `edgeStyle` other than orthogonal/elbow |
+| Color | fill, border or text color outside the palette; more than 3 core colors plus 1 accent (antislop R-29) | - |
+| Contrast | text under 4.5:1 on its fill (R-25); box border under 3:1 against white (WCAG 1.4.11) | - |
+| Labels | emoji, em dash (R-02), RM1..RM4, HW-n, Fase n, Task n, T-n/K-n, PCB revision, walkthrough, `PA_*`, file name, repo path | text of 18 px or more (title inside the figure?) |
+| Print size | smallest text under 7 pt at `\linewidth` / `0.6\textheight` | 7 to 8 pt |
+| Embedded image | - | embedded photo or icon (real component photos only) |
+
+`--revision` checks only labels and print size, so the style of the user's own
+proposal figures is left alone. `--export` refuses a file that still has errors.
+
+```bash
+python3 scripts/check_figures.py                                    # all drafts
+python3 scripts/check_figures.py laporan/buku-pa/gambar/draf/blok-perangkat-keras.drawio
+python3 scripts/check_figures.py --export laporan/buku-pa/gambar/draf/blok-perangkat-keras.drawio
+python3 scripts/check_figures.py --extract laporan/proposal-pa/gambar/gambar_3_2.png laporan/buku-pa/gambar/draf/alir-preprocessing.drawio
+python3 scripts/check_figures.py --revision laporan/buku-pa/gambar/draf/alir-preprocessing.drawio
+python3 scripts/check_figures.py --self-test
+```
+
+Expected result: a summary line `N files: 0 errors, W warnings` and exit code 0.
+`--export` writes a vector PDF and a PNG of about 300 dpi at print width, both
+with the draw.io source embedded, next to the `.drawio`. It needs draw.io Desktop
+(tested 32.6.1); without a display it runs through `xvfb-run`. CI runs
+`--self-test` and the default check in `.github/workflows/checks.yml` (job
+`figures`).
+
 ## trigger_eval.sh
 
 `trigger_eval.sh` measures whether a skill's description triggers on the right

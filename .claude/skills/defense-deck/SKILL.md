@@ -1,6 +1,6 @@
 ---
 name: defense-deck
-description: Create, rework or review Proyek Akhir (PA) presentation decks in PPTX format, such as the progress seminar slides, the PA defense (sidang) or the supervision-meeting slides. Use when the user types "bikin deck sidang", "buat slide seminar progres", "rombak slide PA", "cek deck presentasi", "make the PA slides", or "review my defense deck". Deck content is derived from laporan/buku-pa, numbers are copied from the book (never invented), internal repo labels do not appear on slides, illustration figures are placeholder boxes for the user to draw, and every slide is rendered and looked at before handing over. PPTX file mechanics follow the skill document-skills:pptx.
+description: Create, rework or review Proyek Akhir (PA) presentation decks in PPTX format, such as the progress seminar slides, the PA defense (sidang) or the supervision-meeting slides. Use when the user types "bikin deck sidang", "buat slide seminar progres", "rombak slide PA", "cek deck presentasi", "make the PA slides", or "review my defense deck". Deck content is derived from laporan/buku-pa, numbers are copied from the book (never invented), internal repo labels do not appear on slides, illustration figures come from the book when final and are placeholder boxes otherwise, and every slide is rendered and looked at before handing over. PPTX file mechanics follow the skill document-skills:pptx.
 ---
 
 # PA presentation deck
@@ -46,7 +46,8 @@ Image file names (e.g. `fase7_confusion_int8.png`) appear only in `deck.js`, not
 ## Figures
 
 - Data plots from the pipeline already exported to `laporan/buku-pa/gambar/` are placed directly from there with `addImage`, keeping the original aspect ratio.
-- Illustration figures (architecture, block diagram, flowchart, state machine, wiring, device photo, mockup) are not drawn by Claude, including with `pptxgenjs` shapes and arrows (several `addShape`, lines, connected boxes), because the user draws them.
+- Illustration figures that are already final in the book (their placeholder was replaced after the user approved the draft) are placed from `laporan/buku-pa/gambar/` with `addImage`, like data plots; drafts in `gambar/draf/` are not used, because they are not approved yet.
+- Illustration figures that are still placeholders in the book (architecture, block diagram, flowchart, state machine, wiring, device photo, mockup) are not drawn by Claude on the slide, including with `pptxgenjs` shapes and arrows (several `addShape`, lines, connected boxes), because a figure is drawn once, through the book, and approved there.
 - At the illustration position put exactly one dashed-outline box (`addText` with `line: { dashType: 'dash' }`, or one rectangle `addShape`) holding `[PLACEHOLDER GAMBAR] <jenis>: <ringkasan satu baris>`.
 - The specification card (type, main message, required elements, reading flow, text in the figure, material in the repo) goes in that slide's speaker notes, under the line `KARTU GAMBAR (tidak dibacakan)`. Only this card may contain repo paths; the read-aloud part of the notes stays free of internal labels.
 - If the book already has a placeholder for the same figure, copy its card from the `PLACEHOLDER-GAMBAR` comment in the `.tex`.

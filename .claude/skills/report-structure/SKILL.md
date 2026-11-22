@@ -42,7 +42,7 @@ All printed report text stays Indonesian. Quoted headings, example sentences and
    - Read a figure along its flow (flowchart per decision branch, architecture per numbered zone, panels (a)/(b) named in the caption and in the paragraph).
    - An explanatory paragraph that only repeats the caption is a violation.
 
-9. **Figure placeholders.** Do not create diagrams or illustrations (no Mermaid, TikZ, PlantUML, Graphviz, SVG, draw.io, new drawing scripts, or AI images): the user draws them. Place a placeholder holding a specification card at the figure position, and write the caption, `\label`, all `\ref`, the intro paragraph and the explanatory paragraph in final form.
+9. **Figure placeholders.** Do not put a diagram or illustration into the `.tex` without the user's approval, and never use Mermaid, TikZ, PlantUML, Graphviz, drawing scripts, or AI images in the report. Place a placeholder holding a specification card at the figure position, and write the caption, `\label`, all `\ref`, the intro paragraph and the explanatory paragraph in final form. A draft of the figure is made from the card with the skill `report-figures` (draw.io, in `gambar/draf/`), and the placeholder is replaced only after the user approves that draft.
    - The figure reading in the explanatory paragraph names only elements, labels and flow that are on the card, in exactly the same words (card "gerbang kalibrasi" means paragraph "gerbang kalibrasi", not "gerbang awal"), so the paragraph stays true once the figure is drawn.
    - After the whole reading, close the paragraph with exactly one meaning sentence that may tie the figure to the goals, with no section pointer (rule 11). Do not insert function or reason sentences ("syarat ini mencegah ...") in the middle of the reading, and do not add a second meaning sentence.
    - Experiment data plots from the repo pipeline (confusion matrix, curve, latency chart) are not illustrations. Refer to the exported file. If it does not exist yet, the placeholder names the producing script, and no new plot script is written unless asked.
@@ -52,7 +52,7 @@ All printed report text stays Indonesian. Quoted headings, example sentences and
    The specification card holds: ID (`fig:{bab}-{slug}`, equal to the `\label`), location, type (arsitektur, flowchart, diagram alir data, state machine, blok diagram, skematik, wiring/pinout, mockup, foto perangkat, tangkapan layar, ilustrasi konsep, plot data), one-sentence main message, required elements, reading flow, text in the figure (exact labels the paragraph uses), repo material (source-of-truth path), size (landscape `width=\linewidth` or vertical `height=0.6\textheight`), and source when borrowed.
 
    ```latex
-   % PLACEHOLDER-GAMBAR fig:3-arsitektur  (digambar user, bukan Claude)
+   % PLACEHOLDER-GAMBAR fig:3-arsitektur  (draf: skill report-figures; dipasang setelah disetujui user)
    % Lokasi     : {subbab tempat gambar}
    % Jenis      : arsitektur sistem, landscape
    % Pesan      : {satu kalimat}
@@ -126,6 +126,6 @@ Then check by hand:
 - Bab 3 is still design, Bab 4-5 are achievements, no progress phrases in the book.
 - Bab 1 and Bab 5 have no figures or tables, Bab 5 has no new numbers.
 - No chapter has an opening paragraph (`cek_tabel.py` N-PEMBUKA-BAB 0), no chapter, section or item pointers in printed text (N-PENUNJUK 0), and the Bab 1 Tujuan ends at the list.
-- Every new figure is a placeholder with a complete card, and its explanation names only card elements.
+- Every new figure is a placeholder with a complete card (or a final figure the user approved), no Claude-made figure is in the `.tex` without that approval, and its explanation names only card elements.
 - The pre-submission checklist commands were run, with numbers from real output.
 - The final message only claims edits to files that were actually changed.

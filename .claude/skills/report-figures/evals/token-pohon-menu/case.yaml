@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: token-pohon-menu
+expected_outcome: |
+  The node uses Times New Roman at fontSize 14 or more with neutral fill and border, no shadow, gradient or rounded corners; the line uses elbowEdgeStyle without an arrowhead; the label is exactly "Sumber sinyal".

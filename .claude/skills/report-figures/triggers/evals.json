@@ -1,0 +1,82 @@
+[
+  {
+    "query": "gambarin diagram blok perangkat keras buat bab 3 buku-pa",
+    "should_trigger": true
+  },
+  {
+    "query": "bikin draf gambar fig:3-pohon-menu dari kartu placeholder",
+    "should_trigger": true
+  },
+  {
+    "query": "revisi gambar_3_2 proposal sesuai kolom Ubah di daftar-placeholder",
+    "should_trigger": true
+  },
+  {
+    "query": "rapikan gambar arsitektur biar tidak AI slop",
+    "should_trigger": true
+  },
+  {
+    "query": "gambar alir firmware kekecilan pas dicetak, hurufnya nggak kebaca",
+    "should_trigger": true
+  },
+  {
+    "query": "draw the state machine for the recording flow in the PA book",
+    "should_trigger": true
+  },
+  {
+    "query": "isi placeholder fig:3-alur-rekam pakai draw.io",
+    "should_trigger": true
+  },
+  {
+    "query": "cek draf .drawio di gambar/draf sebelum aku setujui",
+    "should_trigger": true
+  },
+  {
+    "query": "warna diagram blokku kebanyakan, tolong rapikan",
+    "should_trigger": true
+  },
+  {
+    "query": "export draf gambar blok ke PDF dan PNG 300 dpi",
+    "should_trigger": true
+  },
+  {
+    "query": "buat placeholder gambar baru di Bab 4 untuk foto rakitan",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan paragraf penjelas tabel latensi di Bab 4",
+    "should_trigger": false
+  },
+  {
+    "query": "plot confusion matrix INT8 untuk buku",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah diagram Mermaid di docs/features/recorder.md",
+    "should_trigger": false
+  },
+  {
+    "query": "bikin slide sidang dari buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan tabel hasil pengujian daya",
+    "should_trigger": false
+  },
+  {
+    "query": "ambil foto elektroda untuk Bab 4",
+    "should_trigger": false
+  },
+  {
+    "query": "routing PCB mainboard di KiCad",
+    "should_trigger": false
+  },
+  {
+    "query": "tulis abstrak buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "tambah buffer antrean sampel di firmware",
+    "should_trigger": false
+  }
+]

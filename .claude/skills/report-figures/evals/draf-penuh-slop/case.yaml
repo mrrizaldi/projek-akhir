@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: draf-penuh-slop
+expected_outcome: |
+  All nine findings are fixed with the right reference: title to caption (R-05/C-3), emoji removed (R-04), Fase label removed as an internal label, gradient to flat fill (R-01/R-10), colors to at most 3 core plus 1 accent (R-29), 5 V on one line without whiteSpace=wrap, Times New Roman everywhere (R-06), power border #9C6500 because #D6B656 is under 3:1 (R-25/WCAG 1.4.11), em dash replaced (R-02).
