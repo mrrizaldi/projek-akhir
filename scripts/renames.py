@@ -378,7 +378,8 @@ def listing(obj):
     stripped = obj.with_name(obj.name + ".nodebug")
     run([OBJCOPY, "--strip-debug", "-R", ".comment", str(obj), str(stripped)])
     lines = [line for line in run([OBJDUMP, "-dr", "-s", "-h", "-t", str(stripped)]).splitlines() if "file format" not in line]
-    return run([CPPFILT], stdin="\n".join(lines).replace("._Z", ". _Z"))
+    text = re.sub(r"(_Z\w+)(\.str\d+\.\d+)", r"\1 \2", "\n".join(lines).replace("._Z", ". _Z"))
+    return run([CPPFILT], stdin=text)
 
 
 HEX_ROW = re.compile(r"^ [0-9a-f]{4,} ")
