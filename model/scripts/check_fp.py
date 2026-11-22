@@ -11,7 +11,7 @@ from config import ARTIFACT_DIR, DS2, PER_RECORD_DIR, PROCESSED_DIR, THRESHOLD
 
 
 def run_lengths(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
-    hasil = []
+    fp_run_lengths = []
     for r in np.unique(records):
         s = mask[records == r]
         i = 0
@@ -20,11 +20,11 @@ def run_lengths(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
                 j = i
                 while j + 1 < len(s) and s[j + 1]:
                     j += 1
-                hasil.append(j - i + 1)
+                fp_run_lengths.append(j - i + 1)
                 i = j + 1
             else:
                 i += 1
-    return np.array(hasil, dtype=int)
+    return np.array(fp_run_lengths, dtype=int)
 
 
 def summarize_runs(nama: str, mask: np.ndarray, records: np.ndarray) -> None:

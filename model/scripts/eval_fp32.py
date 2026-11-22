@@ -41,26 +41,26 @@ def main() -> None:
     model = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
     prob = model.predict([ds2["X_morph"], ds2["X_rr"]], verbose=0).ravel()
 
-    hasil = evaluate_probabilities(ds2["y"], prob, THRESHOLD)
+    metrics = evaluate_probabilities(ds2["y"], prob, THRESHOLD)
     auc = roc_auc(ds2["y"], prob)
 
     print(f"DS2  {len(ds2['y'])} beats from {len(np.unique(ds2['records']))} patients  "
           f"({int(ds2['y'].sum())} arrhythmia)   threshold {THRESHOLD} (from DS1/val)")
-    print(f"  TP={hasil['tp']}  FN={hasil['fn']}  FP={hasil['fp']}  TN={hasil['tn']}")
+    print(f"  TP={metrics['tp']}  FN={metrics['fn']}  FP={metrics['fp']}  TN={metrics['tn']}")
     for k in ("recall", "precision", "f1", "specificity", "accuracy"):
-        print(f"  {k:<12} {hasil[k]:.4f}")
+        print(f"  {k:<12} {metrics[k]:.4f}")
     print(f"  {'auc':<12} {auc:.4f}")
 
     os.makedirs(METRICS_DIR, exist_ok=True)
-    plot_confusion(hasil, os.path.join(METRICS_DIR, "fase6_confusion_fp32.png"),
+    plot_confusion(metrics, os.path.join(METRICS_DIR, "fase6_confusion_fp32.png"),
                    f"DS2 float32 @ threshold {THRESHOLD}")
 
     with open(os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv"), "w") as f:
         f.write("model,threshold,tp,fn,fp,tn,accuracy,precision,recall,specificity,f1,auc\n")
         f.write("float32,%.2f,%d,%d,%d,%d,%.6f,%.6f,%.6f,%.6f,%.6f,%.6f\n" % (
-            THRESHOLD, hasil["tp"], hasil["fn"], hasil["fp"], hasil["tn"],
-            hasil["accuracy"], hasil["precision"], hasil["recall"],
-            hasil["specificity"], hasil["f1"], auc))
+            THRESHOLD, metrics["tp"], metrics["fn"], metrics["fp"], metrics["tn"],
+            metrics["accuracy"], metrics["precision"], metrics["recall"],
+            metrics["specificity"], metrics["f1"], auc))
 
     rows = per_record_metrics(ds2["y"], prob, ds2["records"], THRESHOLD)
     with open(os.path.join(METRICS_DIR, "fase6_per_record_fp32.csv"), "w") as f:

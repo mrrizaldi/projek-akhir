@@ -57,7 +57,7 @@ def main() -> None:
             print(f"{db:10} {'-':6} no complete record yet: skipped")
             continue
         asli = DATASETS[db]["leads"]
-        nilai = []
+        mean_pairs = []
         for rec in recs[:N_REC]:
             try:
                 m = ukur(db, rec, sos, lead)
@@ -66,15 +66,15 @@ def main() -> None:
                 continue
             if not m:
                 continue
-            nilai.append((m["mentah"]["mean"], m["selaras"]["mean"]))
+            mean_pairs.append((m["mentah"]["mean"], m["selaras"]["mean"]))
             print(f"{db:10} {lead or asli[0]:6} {rec:6} {m['mentah']['n']:>6} | "
                   f"{m['mentah']['mean']:>12.3f} {m['mentah']['%positif']:>4.0f}% "
                   f"{m['mentah']['puncak_di']:>4} | "
                   f"{m['selaras']['mean']:>13.3f} {m['selaras']['%positif']:>4.0f}% "
                   f"{m['selaras']['puncak_di']:>4}")
         DATASETS[db]["leads"] = asli
-        if nilai:
-            a = np.asarray(nilai)
+        if mean_pairs:
+            a = np.asarray(mean_pairs)
             digest[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
                                                  (a[:, 0] > 0).mean(), len(a))
 

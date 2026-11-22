@@ -64,8 +64,8 @@ def muat(path: str):
             if kata and kata[0] == "jeda":
                 segmen.append([])
                 continue
-            for bagian in kata:
-                k, _, v = bagian.partition("=")
+            for token in kata:
+                k, _, v = token.partition("=")
                 if k == "fs":
                     fs = int(v)
                 elif k == "lewat":
@@ -94,12 +94,12 @@ def analyze_segment(mentah, fs):
     }
 
 
-def combine(hasil, fs):
-    awal = np.cumsum([0] + [h["n"] for h in hasil])
-    r = np.concatenate([h["r"] + a for h, a in zip(hasil, awal)]).astype(int)
-    rr = np.concatenate([h["rr"] for h in hasil])
-    ecg_band, hum, hf, drift = np.sum([h["pita"] for h in hasil], axis=0)
-    ac = [(h["n"], h["ac"]) for h in hasil if h["ac"] is not None]
+def combine(analyses, fs):
+    awal = np.cumsum([0] + [h["n"] for h in analyses])
+    r = np.concatenate([h["r"] + a for h, a in zip(analyses, awal)]).astype(int)
+    rr = np.concatenate([h["rr"] for h in analyses])
+    ecg_band, hum, hf, drift = np.sum([h["pita"] for h in analyses], axis=0)
+    ac = [(h["n"], h["ac"]) for h in analyses if h["ac"] is not None]
     if len(ac) == 1:
         strength, bpm_ac, rival_peaks = ac[0][1]
     elif ac:
@@ -121,10 +121,10 @@ def main() -> None:
     n = len(mentah)
 
     clip, percent_clip, clip_ok = compute_clipping(mentah)
-    hasil = [analyze_segment(m, fs) for m in segmen]
-    x = np.concatenate([h["x"] for h in hasil])
-    filtered = np.concatenate([h["filtered"] for h in hasil])
-    r, rr, (ecg_band, hum, hf, drift), (strength, bpm_ac, rival_peaks), awal = combine(hasil, fs)
+    analyses = [analyze_segment(m, fs) for m in segmen]
+    x = np.concatenate([h["x"] for h in analyses])
+    filtered = np.concatenate([h["filtered"] for h in analyses])
+    r, rr, (ecg_band, hum, hf, drift), (strength, bpm_ac, rival_peaks), awal = combine(analyses, fs)
     bpm = 60 / rr if len(rr) else np.array([])
     plausible_fraction = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 
@@ -132,7 +132,7 @@ def main() -> None:
           + (f", {lewat} samples missed" if lewat is not None else "")
           + (f", {len(segmen)} segments (split by pauses)" if len(segmen) > 1 else ""))
     if len(segmen) > 1:
-        for i, h in enumerate(hasil, 1):
+        for i, h in enumerate(analyses, 1):
             ac = ((f"autocorrelation {h['ac'][0]:.2f} @ {h['ac'][1]:.0f} bpm"
                    f", {h['ac'][2]} equal peaks")
                   if h["ac"] else "autocorrelation - (segment < 1.5 seconds)")
@@ -152,7 +152,7 @@ def main() -> None:
         vonis = f"FALSE: {rival_peaks} equal peaks (periodic interference, not a pulse)"
     else:
         vonis = "pulse PRESENT"
-    windowed = any(h["n"] >= 2 * AUTOCORRELATION_WINDOW_S * fs for h in hasil)
+    windowed = any(h["n"] >= 2 * AUTOCORRELATION_WINDOW_S * fs for h in analyses)
     method_note = f" (median per {AUTOCORRELATION_WINDOW_S} s)" if windowed else ""
     print(f"  pulse        autocorrelation {strength:.2f} @ {bpm_ac:.0f} bpm{method_note}   {vonis}")
     print(f"  R-peak       {len(r)} in {n / fs:.1f} seconds")
@@ -166,7 +166,7 @@ def main() -> None:
     out = os.path.join(acquisition_dir, f"akuisisi_{nama}.png")
     t = np.arange(n) / fs
     shown = slice(0, min(n, int(6 * fs)))
-    batas = awal[1:-1] / fs
+    boundaries = awal[1:-1] / fs
     fig, ax = plt.subplots(3 + (len(segmen) > 1), 1,
                            figsize=(13, 8 + 2.7 * (len(segmen) > 1)))
     ax[0].plot(t[shown], mentah[shown], lw=0.7)
@@ -176,7 +176,7 @@ def main() -> None:
     for pos in r[r < shown.stop]:
         ax[1].axvline(pos / fs, color="red", alpha=0.4, lw=0.8)
     ax[1].set_title("setelah bandpass 0,5-40 Hz kausal + R-peak Pan-Tompkins")
-    for b in batas[batas < shown.stop / fs]:
+    for b in boundaries[boundaries < shown.stop / fs]:
         for a in ax[:2]:
             a.axvline(b, color="black", ls="--", lw=1)
     sp = np.abs(np.fft.rfft(x * np.hanning(n)))
@@ -190,7 +190,7 @@ def main() -> None:
     ax[2].legend()
     if len(segmen) > 1:
         ax[3].plot(t, filtered, lw=0.4, color="tab:green")
-        for b in batas:
+        for b in boundaries:
             ax[3].axvline(b, color="black", ls="--", lw=1)
         ax[3].set_title(f"seluruh rekaman setelah bandpass, {len(segmen)} segmen "
                         "(garis putus-putus = jeda)")

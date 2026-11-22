@@ -187,9 +187,9 @@ def main() -> None:
     print(f"[{args.tag}] threshold from VAL = {thr:.2f}")
 
     cache = load_ds2(sos)
-    bersih = ukur(model, cache, thr, None, 0)
+    clean_metrics = ukur(model, cache, thr, None, 0)
     jittered = [ukur(model, cache, thr, "empiris", s) for s in SEED_DS2]
-    rerata = {k: float(np.mean([m[k] for m in jittered])) for k in bersih}
+    rerata = {k: float(np.mean([m[k] for m in jittered])) for k in clean_metrics}
 
     if args.seed == SEED:
         model.save(os.path.join(ARTIFACT_DIR, f"model_fp32_{args.tag}.keras"))
@@ -199,19 +199,19 @@ def main() -> None:
              "hos": int(USE_HOS), "jitter": args.jitter, "salinan": args.copies,
              "threshold": thr, "n_train": len(tr["y"]),
              "menit": round((time.time() - t0) / 60, 1)}
-    baris.update({f"anot_{k}": v for k, v in bersih.items()})
+    baris.update({f"anot_{k}": v for k, v in clean_metrics.items()})
     baris.update({f"jit_{k}": v for k, v in rerata.items()})
 
     out = os.path.join(OUT_DIR, "ablasi.csv")
-    baru = not os.path.exists(out)
+    fresh_csv = not os.path.exists(out)
     with open(out, "a") as f:
-        if baru:
+        if fresh_csv:
             f.write(",".join(baris) + "\n")
         f.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v)
                          for v in baris.values()) + "\n")
 
-    print(f"[{args.tag}] DS2 annotation: recall {bersih['recall']:.4f}  "
-          f"prec {bersih['precision']:.4f}  F1 {bersih['f1']:.4f}  AUC {bersih['auc']:.4f}")
+    print(f"[{args.tag}] DS2 annotation: recall {clean_metrics['recall']:.4f}  "
+          f"prec {clean_metrics['precision']:.4f}  F1 {clean_metrics['f1']:.4f}  AUC {clean_metrics['auc']:.4f}")
     print(f"[{args.tag}] DS2 jitter     : recall {rerata['recall']:.4f}  "
           f"prec {rerata['precision']:.4f}  F1 {rerata['f1']:.4f}  AUC {rerata['auc']:.4f}")
     print(out)

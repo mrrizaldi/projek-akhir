@@ -7,9 +7,9 @@ IGNORED_INTERFACE_PREFIXES = ("lo", "docker", "br-", "veth", "virbr")
 PORT = {1883: "MQTT ThingsBoard", 8080: "UI/REST ThingsBoard"}
 
 
-def jalankan(cmd, batas=3):
+def jalankan(cmd, timeout_s=3):
     try:
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=batas).stdout
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=timeout_s).stdout
     except (OSError, subprocess.TimeoutExpired):
         return ""
 

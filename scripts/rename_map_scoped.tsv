@@ -208,3 +208,15 @@ model/tests/test_plot_recording.py	hasil	analyses
 model/tests/test_quality_trend.py	dasar	baseline
 model/tests/test_train.py	hasil	averaged_weight
 model/tests/test_window_quality.py	hasil	scores
+model/scripts/ablasi.py	baru	fresh_csv
+model/scripts/ablasi.py	bersih	clean_metrics
+model/scripts/analyze_recording.py	bagian	token
+model/scripts/analyze_recording.py	batas	boundaries
+model/scripts/analyze_recording.py	hasil	analyses
+model/scripts/broker_info.py	batas	timeout_s
+model/scripts/check_fp.py	hasil	fp_run_lengths
+model/scripts/check_lead.py	nilai	mean_pairs
+model/scripts/eval_detected_segmentation.py	hasil	refined
+model/scripts/eval_fp32.py	hasil	metrics
+model/scripts/export_golden.py	isi	cells
+model/scripts/extra_metrics.py	hasil	metrics
