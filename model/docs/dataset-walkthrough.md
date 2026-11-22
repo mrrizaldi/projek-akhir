@@ -1,7 +1,7 @@
 # Walkthrough `src/dataset.py` — Fase 3
 
 > **Ruang lingkup:** perakitan split inter-patient DS1/DS2 (de Chazal 2004) dari `.npz` per record, beserta penjaga kebocoran lintas pasien.
-> **Kode terkait:** `src/dataset.py`, `scripts/build_split.py`, `config.py` (`DS1`, `DS2`, `PACED_EXCLUDED`, `VAL_RECORDS`, `DB_LATIH`), `tests/test_dataset.py`
+> **Kode terkait:** `src/dataset.py`, `scripts/build_split.py`, `config.py` (`DS1`, `DS2`, `PACED_EXCLUDED`, `VAL_RECORDS`, `TRAIN_DATABASES`), `tests/test_dataset.py`
 > **Prasyarat:** [`prep-beats-walkthrough.md`](prep-beats-walkthrough.md)
 
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
@@ -186,10 +186,10 @@ akan meratakan dua kutub ini. Itulah kenapa kolom `records` disimpan.
 `build_split_multi` merakit split untuk ablasi lintas database dan menulis
 `train_multi.npz`, `test_ds2.npz`, serta `test_<db>.npz`:
 
-- **train:** DS1 mitdb + porsi latih database yang ada di `DB_LATIH`.
+- **train:** DS1 mitdb + porsi latih database yang ada di `TRAIN_DATABASES`.
 - **ds2:** DS2 mitdb apa adanya — angka utama yang sebanding literatur.
 - **`<db>_test`:** held-out tiap database tambahan, dipilih dengan aturan
-  `sorted(records)[::4]` (`bagi_train_test`), bukan seed.
+  `sorted(records)[::4]` (`split_train_test`), bukan seed.
 
 Database yang belum di-prep dilewati, tetapi database yang baru sebagian ter-prep
 ditolak `ValueError`, karena aturan `[::4]` atas daftar yang tidak lengkap
@@ -246,7 +246,7 @@ Bias +6 sampel itu di atas ambang bahaya repo ini (meleset 4 sampel menjatuhkan
 precision 0,48 → 0,12) dan sistematis, bukan jitter berpusat nol: tanpa koreksi
 tiap beat svdb tergeser searah dan model membacanya sebagai morfologi lain, alias
 belajar identitas dataset. Maka svdb dan incartdb diselaraskan
-(`selaraskan_r`: geser anotasi ke puncak, lalu kembalikan group delay; sepadan
+(`align_r`: geser anotasi ke puncak, lalu kembalikan group delay; sepadan
 dengan penyelarasan Pan-Tompkins di firmware, jendela lebih sempit). mitdb wajib
 `False`: dia acuan `golden_ref.h` dan semua ablasi terkunci, dan median +3 vs +4
 berarti menyelaraskannya menggeser R ~1 sampel dan membatalkan semuanya.
@@ -259,7 +259,7 @@ diterima, karena melebarkan jendela membuat `argmax` bisa melompat ke gelombang
 T, dan sisa geseran itu masih di dalam sebaran yang dilatih augmentasi jitter.
 `cek_lead.py` membaca polaritas dari kolom "mentah" dan
 alignment dari kolom "selaras"; kolom "selaras" tidak boleh memvonis polaritas
-karena `selaraskan_r` memakai argmax bertanda yang memaksa nilai di R positif.
+karena `align_r` memakai argmax bertanda yang memaksa nilai di R positif.
 
 **Laju cuplik diseragamkan ke 360 Hz.** `WIN_PRE` terdefinisi dalam sampel,
 bukan waktu: 128 sampel @ 360 Hz = 355 ms (yang diablasi dan dikunci), sedangkan
@@ -269,7 +269,7 @@ jadi durasinya yang harus dijaga. Dengan target 360 Hz, `WIN_PRE/WIN_POST`,
 koefisien bandpass, `ECG_FS` firmware, dan `golden_ref.h` tidak berubah.
 `resample_to_fs` memakai `resample_poly` (polyphase, linear-phase), dan posisi R
 cukup dibulatkan selama arahnya upsample (indeks makin menyebar, tak mungkin
-bertabrakan); bila suatu hari `fs_target < fs_asal`, dua R bisa jatuh ke indeks
+bertabrakan); bila suatu hari `fs_target < fs_source`, dua R bisa jatuh ke indeks
 yang sama (RR = 0), dan itu harus berisik. `fs` setiap record dicek terhadap
 janji `DATASETS[db]["fs"]` sebelum resample, supaya tabel config yang salah tidak
 tertutupi resample.
@@ -277,7 +277,7 @@ tertutupi resample.
 **`id_offset`.** Lihat `record_int_id` di §3. Tanpa peta itu `int("I18")`
 melempar `ValueError` di `stack_records`, bukan gagal dengan pesan berguna.
 
-**`SPLIT_SETIAP_KE = 4`.** Held-out tiap database tambahan = setiap record ke-4
+**`SPLIT_EVERY_NTH = 4`.** Held-out tiap database tambahan = setiap record ke-4
 dalam urutan tersortir (~25%). Aturan, bukan seed: tidak ada yang bisa
 dipancing, dan siapa pun dapat memverifikasinya dengan `sorted(records)[::4]`.
 Konsekuensi yang sudah diperiksa: held-out incartdb hanya mendapat ~13-20 beat F
@@ -291,12 +291,12 @@ database yang baru separuh terunduh menghasilkan held-out yang berbeda tanpa
 tanda. Terukur 19 Sep pada 65/75 record incartdb: I68 masuk held-out padahal
 seharusnya tidak, dan I65/I69/I73 hilang (I65 memegang 4 beat F). Karena itu
 `build_split_multi` menolak database yang jumlah recordnya tidak pas; split yang
-salah lebih buruk daripada error. `records_tersedia` juga menuntut `.hea`,
+salah lebih buruk daripada error. `available_records` juga menuntut `.hea`,
 `.dat`, dan `.atr` sekaligus, karena unduhan yang masih berjalan meninggalkan
 `.hea` tanpa `.atr`.
 
-**`DB_LATIH = ("mitdb", "svdb")`, incartdb hanya test.** Held-out selalu menjadi
-test, tetapi porsi train sebuah database hanya ikut bila dia ada di `DB_LATIH`.
+**`TRAIN_DATABASES = ("mitdb", "svdb")`, incartdb hanya test.** Held-out selalu menjadi
+test, tetapi porsi train sebuah database hanya ikut bila dia ada di `TRAIN_DATABASES`.
 Fase B mengukur incartdb merugikan di latih walau menyumbang 256.454 beat latih
 (4 varian × 3 seed):
 
@@ -312,7 +312,7 @@ Penyebabnya bukan lead (II ≈ MLII, gate A2) atau resolusi (257 > 128 Hz),
 melainkan komposisi: 15.592 beat V dari populasi lain menumpulkan pemisahan
 N-vs-S. incartdb tetap dipakai sebagai test antar-database (41.108 beat,
 19 pasien). Model produksi tetap mitdb saja (`model/CLAUDE.md`, baris Database
-LATIH); `DB_LATIH` hanya dipakai jalur ablasi.
+LATIH); `TRAIN_DATABASES` hanya dipakai jalur ablasi.
 
 **Angka beku di `tests/test_multidataset.py`.** Semuanya diukur 19 Sep 2026 dan
 dibekukan supaya perubahan senyap ketahuan. Bila salah satu gagal, urutan

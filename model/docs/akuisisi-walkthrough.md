@@ -373,7 +373,7 @@ sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
    RR tak wajarnya (< 30 atau > 200 bpm) paling sedikit, lalu yang derau
    > 60 Hz-nya paling kecil relatif terhadap pita EKG. Tanda R memakai
    deteksi Pan-Tompkins yang dikoreksi `PT_DETECTOR_OFFSET` lalu diselaraskan
-   ke puncak (`selaraskan_r`), sama dengan rantai firmware. Rekaman berjeda
+   ke puncak (`align_r`), sama dengan rantai firmware. Rekaman berjeda
    dicari per segmen; segmen yang lebih pendek dari jendela dilewati. Contoh
    keluaran:
 

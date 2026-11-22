@@ -37,7 +37,7 @@ Metode verifikasi tiga di atas: skrip memindai semua prototipe di `include/*.h` 
 
 | path:baris | jenis | bukti | usulan | risiko |
 |---|---|---|---|---|
-| model/scripts/prep_beats.py:72 | fungsi tak dipanggil `available_records(raw_dir=RAW_DIR)` | `grep -rn available_records` di model/ dashboard/ scripts/ hanya definisi (satu hit). Hanya membungkus `records_tersedia("mitdb")`, parameter `raw_dir` malah diabaikan. Setelah dihapus, impor `RAW_DIR` di berkas yang sama mungkin ikut tak terpakai (periksa). | hapus | nol |
+| model/scripts/prep_beats.py:72 | fungsi tak dipanggil `available_records(raw_dir=RAW_DIR)` | `grep -rn available_records` di model/ dashboard/ scripts/ hanya definisi (satu hit). Hanya membungkus `available_records("mitdb")`, parameter `raw_dir` malah diabaikan. Setelah dihapus, impor `RAW_DIR` di berkas yang sama mungkin ikut tak terpakai (periksa). | hapus | nol |
 | model/scripts/prep_beats.py:10 | import tidak terpakai `PACED_EXCLUDED` | `grep -nw PACED_EXCLUDED scripts/prep_beats.py` hanya baris import | hapus dari import | nol |
 | model/scripts/bench_pantompkins.py:11 | import `FS` | grep -nw FS: hanya baris 11 | hapus | nol |
 | model/scripts/plot_fase0.py:11 | import `FS` | grep -nw FS: hanya baris 11 | hapus | nol |

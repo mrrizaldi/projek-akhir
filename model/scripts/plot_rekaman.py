@@ -11,7 +11,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
 from config import GROUP_DELAY_SAMPLES, METRICS_DIR, PT_DETECTOR_OFFSET, PT_REFINE_WIN
-from src.preprocessing import selaraskan_r
+from src.preprocessing import align_r
 from scripts.analyze_recording import analisis_segmen, muat, pita_energi
 
 DURASI_S = 60
@@ -26,7 +26,7 @@ TINGGI_BARIS_IN, LEBAR_IN, DPI = 1.6, 16, 110
 def puncak_r(h):
     r = h["r"] - PT_DETECTOR_OFFSET
     r = r[r >= 0]
-    return selaraskan_r(r, h["filtered"], PT_REFINE_WIN) + GROUP_DELAY_SAMPLES
+    return align_r(r, h["filtered"], PT_REFINE_WIN) + GROUP_DELAY_SAMPLES
 
 
 def nilai_jendela(x, r, fs, mulai, n):

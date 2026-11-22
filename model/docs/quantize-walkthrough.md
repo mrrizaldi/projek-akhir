@@ -165,7 +165,7 @@ mengimplementasikan `Conv1D` lewat konvolusi 2-D.
 
 ### Penjaga skala input ritme
 
-`quantize_int8` memanggil `assert_skala_ritme_wajar` sebelum mengembalikan
+`quantize_int8` memanggil `assert_rhythm_scale_sane` sebelum mengembalikan
 blob. Skala INT8 input ritme diturunkan dari min/max sampel kalibrasi; satu
 beat ber-RR ekstrem di kolam kalibrasi (record 207 punya `RR_prev` = 100 s)
 melebarkan skala puluhan kali, RR normal tinggal beberapa level int8, dan

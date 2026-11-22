@@ -1,7 +1,7 @@
 # Walkthrough jitter — ketahanan terhadap error segmentasi
 
 > **Ruang lingkup:** mengukur error posisi R-peak detektor, mengukur dampaknya pada model, lalu melatih model yang tahan terhadapnya (augmentasi jitter) dan memilih ukuran window lewat ablasi.
-> **Kode terkait:** `scripts/ukur_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_SALINAN`, `USE_HOS`)
+> **Kode terkait:** `scripts/ukur_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
 > **Prasyarat:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Fase 6b)
 
 Fase 6c, di luar PRD. Adaptasi Dias et al. 2021 (*Arrhythmia classification from
@@ -141,7 +141,7 @@ apa pun tidak menolong beat yang hilang — itu urusan detektor (refraktori
 ```python
 def jitter_r(r_locations, delta=0, rng=None, model="empiris"):
     if model == "empiris":
-        kolam = np.load(RESIDU_DS1)
+        kolam = np.load(RESIDUAL_DS1)
         geser = rng.choice(kolam, size=len(r))       # ambil ulang residu asli
     elif model == "seragam":
         geser = rng.integers(-delta, delta + 1, size=len(r))   # protokol paper
@@ -388,7 +388,7 @@ ulang di C, diuji, dan dijaga. Ditolak karena ongkos, bukan karena terbukti
 buruk.
 
 **4. Konfigurasi yang dikunci di `config.py`.** `WIN_PRE/WIN_POST = 128/128`,
-`JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`. Bentuk 128/128 (`w128b`)
+`JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`. Bentuk 128/128 (`w128b`)
 dipilih atas 128/127 karena hasilnya setara (0,6911 vs 0,6775, selisih di bawah
 ambang 0,04) dan panjang 256 habis dibagi stride 8 sehingga rantai pooling
 256 → 128 → 64 → 32 berjalan tanpa pemotongan. Tiga salinan ber-jitter

@@ -7,17 +7,17 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import (
-    DATASETS, DS1, JITTER_MODEL, JITTER_SALINAN, PER_RECORD_DIR,
+    DATASETS, DS1, JITTER_MODEL, JITTER_COPIES, PER_RECORD_DIR,
     SEED, USE_RR_RATIO, WIN_PRE, WIN_POST,
 )
-from src.dataset import bagi_train_test, records_tersedia
+from src.dataset import split_train_test, available_records
 from src.io_mitdb import load_record
 from src.preprocessing import (
-    design_bandpass_sos, apply_bandpass, jitter_r, segment_beats, selaraskan_r,
+    design_bandpass_sos, apply_bandpass, jitter_r, segment_beats, align_r,
     zscore_per_window,
 )
 from src.features_rr import (
-    to_aami_class, to_binary_label, rakit_fitur_ritme,
+    to_aami_class, to_binary_label, assemble_rhythm_features,
 )
 
 
@@ -35,13 +35,13 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
     signal, r, sym, _ = load_record(record_id, db=db)
     filtered = apply_bandpass(signal, sos)
     if DATASETS[db]["selaraskan"]:
-        r = selaraskan_r(r, filtered)
+        r = align_r(r, filtered)
     if jitter is not None:
         r = jitter(r)
 
     idx = valid_beat_indices(len(signal), r)
     windows = zscore_per_window(segment_beats(filtered, r[idx]))
-    rr = rakit_fitur_ritme(r, windows, idx)
+    rr = assemble_rhythm_features(r, windows, idx)
     labels = np.array([to_binary_label(to_aami_class(sym[i])) for i in idx], dtype=np.int8)
     symbols = np.array([sym[i] for i in idx], dtype="<U2")
 
@@ -73,7 +73,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--jitter", default=JITTER_MODEL,
                     choices=["none", "empiris", "seragam", "normal"])
-    ap.add_argument("--salinan", type=int, default=JITTER_SALINAN,
+    ap.add_argument("--salinan", type=int, default=JITTER_COPIES,
                     help="tiruan ber-jitter per record DS1, DI ATAS salinan bersih")
     ap.add_argument("--delta", type=int, default=0, help="untuk seragam/normal")
     ap.add_argument("--db", nargs="+", default=list(DATASETS),
@@ -89,13 +89,13 @@ def main() -> None:
     print(f"augmentasi: {args.jitter} x{args.salinan} — DS1 mitdb saja")
     total_n = total_arr = total_drop = total_rec = 0
     for db in args.db:
-        records = records_tersedia(db)
+        records = available_records(db)
         if not records:
             print(f"\n[{db}] belum di-download — lewati (make data DB={db})")
             continue
         peran = "" if db == "mitdb" else (
-            f"  train {len(bagi_train_test(records)[0])} / held-out "
-            f"{len(bagi_train_test(records)[1])}")
+            f"  train {len(split_train_test(records)[0])} / held-out "
+            f"{len(split_train_test(records)[1])}")
         print(f"\n[{db}] {len(records)} record, {DATASETS[db]['fs']} Hz -> 360 Hz{peran}")
         print(f"{'rec':>5} {'beat':>7} {'normal':>7} {'aritmia':>8} {'%arit':>6} {'buang':>6}")
         for rec in records:

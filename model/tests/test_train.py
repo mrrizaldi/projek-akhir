@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 from tensorflow import keras
 
-from src.train import RataBobotTerbaik, make_class_weights
+from src.train import BestWeightAverage, make_class_weights
 
 
 def _model_satu_bobot():
@@ -45,18 +45,18 @@ def test_kelas_kosong_error_bukan_pembagian_nol():
 
 
 def test_rata_bobot_merata_ratakan_n_terbaik_bukan_memungut_argmax():
-    hasil = _jalankan(RataBobotTerbaik("val_auc", 3),
+    hasil = _jalankan(BestWeightAverage("val_auc", 3),
                       [(0.90, 4.0), (0.80, 50.0), (0.92, 3.0),
                        (0.50, 99.0), (0.91, 5.0)])
     assert np.isclose(hasil, 4.0)
 
 
 def test_epoch_buruk_tidak_ikut_rata_rata():
-    hasil = _jalankan(RataBobotTerbaik("val_auc", 2),
+    hasil = _jalankan(BestWeightAverage("val_auc", 2),
                       [(0.9, 1.0), (0.1, 1000.0), (0.8, 3.0)])
     assert np.isclose(hasil, 2.0)
 
 
 def test_n_lebih_besar_dari_jumlah_epoch_pakai_semua():
-    hasil = _jalankan(RataBobotTerbaik("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
+    hasil = _jalankan(BestWeightAverage("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
     assert np.isclose(hasil, 3.0)

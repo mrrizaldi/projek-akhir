@@ -282,7 +282,7 @@ tepat waktu       N / tak dinamai       V atau F
 - **Lebar QRS mentah, bukan ternormalisasi.** Fitur model ternormalisasi relatif
   baseline pasien (bagus untuk N vs abnormal), tetapi "V = QRS lebar" adalah
   ambang fisiologis absolut. Keduanya dari window yang sama, nol buffer tambahan.
-- **Kriteria ambang = presisi minimum (`MIN_PRESISI_NAMA = 0,90`), bukan F1.**
+- **Kriteria ambang = presisi minimum (`MIN_NAMED_PRECISION = 0,90`), bukan F1.**
   Memaksimalkan F1 kelas V di antara beat yang ditandai memberi hadiah untuk
   "namai semuanya V" (V ~50% dari yang ditandai): percobaan pertama mendarat di
   dasar grid, 4.387 dinamai V, hanya 1.664 benar (presisi 37,9%). Ambang terkecil

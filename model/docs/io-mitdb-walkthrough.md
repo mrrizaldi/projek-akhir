@@ -68,7 +68,7 @@ if record.fs != spec["fs"]:
     raise ValueError(
         f"record {record_id} ({db}): fs={record.fs}, DATASETS menjanjikan {spec['fs']}"
     )
-channel = pilih_lead(record_id, record.sig_name, spec["leads"])   # raise kalau nihil
+channel = select_lead(record_id, record.sig_name, spec["leads"])   # raise kalau nihil
 ```
 
 Untuk mitdb (`db="mitdb"`, bawaan), `DATASETS["mitdb"]` menjanjikan `fs = 360`
@@ -98,13 +98,13 @@ Dua record itu memang tidak punya MLII. Mereka juga ada di
 ## 3. Jebakan urutan kanal — record 114
 
 ```python
-def pilih_lead(record_id, sig_name, leads):
+def select_lead(record_id, sig_name, leads):
     for lead in leads:
         if lead in sig_name:
             return sig_name.index(lead)
     raise ValueError(...)
 
-channel = pilih_lead(record_id, record.sig_name, spec["leads"])
+channel = select_lead(record_id, record.sig_name, spec["leads"])
 signal = record.p_signal[:, channel].astype(np.float32)
 ```
 
@@ -121,7 +121,7 @@ kanal yang salah** untuk 114. Sinyal V5 tetap terlihat seperti EKG normal di
 plot; yang berubah cuma morfologi QRS — persis hal yang dipelajari model.
 
 Karena itu kanal dicari **lewat nama**, tidak pernah lewat indeks tetap, dan
-`pilih_lead` menolak (bukan jatuh ke kanal 0) kalau nama yang diminta tidak ada.
+`select_lead` menolak (bukan jatuh ke kanal 0) kalau nama yang diminta tidak ada.
 Verifikasinya: `make plot0 REC=114` — garis R-peak anotasi harus mendarat tepat
 di puncak R, plus assert mekanis membandingkan hasil `load_record` dengan
 `p_signal[:, 1]`.

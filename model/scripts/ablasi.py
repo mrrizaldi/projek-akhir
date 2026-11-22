@@ -13,15 +13,15 @@ from config import (
     ARTIFACT_DIR, DATASETS, DS1, METRICS_DIR, SEED, USE_HOS, VAL_RECORDS,
     N_RR_FEATURES, WIN_LEN, WIN_PRE, WIN_POST,
 )
-from src.dataset import bagi_train_test, record_int_id, records_tersedia
+from src.dataset import split_train_test, record_int_id, available_records
 from src.evaluate import binary_metrics, confusion_counts, roc_auc, sweep_thresholds
 from src.features_rr import (
-    rakit_fitur_ritme, to_aami_class, to_binary_label,
+    assemble_rhythm_features, to_aami_class, to_binary_label,
 )
 from src.io_mitdb import load_record
 from src.model import build_hybrid_model
 from src.preprocessing import (
-    apply_bandpass, design_bandpass_sos, jitter_r, segment_beats, selaraskan_r,
+    apply_bandpass, design_bandpass_sos, jitter_r, segment_beats, align_r,
     zscore_per_window,
 )
 from src.train import train
@@ -38,14 +38,14 @@ def catatan_latih(db_list) -> list:
     for db in db_list:
         if db == "mitdb":
             continue
-        tersedia = records_tersedia(db)
-        n_harap = DATASETS[db]["n_record"]
-        if len(tersedia) != n_harap:
+        tersedia = available_records(db)
+        n_expected = DATASETS[db]["n_record"]
+        if len(tersedia) != n_expected:
             raise ValueError(
-                f"{db}: {len(tersedia)}/{n_harap} record — held-out `[::4]` akan "
+                f"{db}: {len(tersedia)}/{n_expected} record — held-out `[::4]` akan "
                 f"BEDA. Selesaikan download dulu (lihat n_record di config.py)."
             )
-        pasangan += [(db, r) for r in bagi_train_test(tersedia)[0]]
+        pasangan += [(db, r) for r in split_train_test(tersedia)[0]]
     return pasangan
 
 
@@ -56,7 +56,7 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
         signal, r0, sym, _ = load_record(rec, db=db)
         filtered = apply_bandpass(signal, sos)
         if DATASETS[db]["selaraskan"]:
-            r0 = selaraskan_r(r0, filtered)
+            r0 = align_r(r0, filtered)
         label = np.array([to_binary_label(to_aami_class(s)) for s in sym], dtype=np.int8)
         n_salinan = salinan if db == "mitdb" else 0
 
@@ -66,7 +66,7 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
             idx = valid_beat_indices(len(signal), r)
             w = zscore_per_window(segment_beats(filtered, r[idx]))
             W.append(w)
-            R.append(rakit_fitur_ritme(r, w, idx))
+            R.append(assemble_rhythm_features(r, w, idx))
             Y.append(label[idx])
             REC.append(np.full(len(idx), record_int_id(rec, db), dtype=np.int32))
             if model_jitter == "none":
@@ -78,16 +78,16 @@ def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
 
 def rakit_heldout(sos, db: str) -> dict:
     W, R, Y, A = [], [], [], []
-    for rec in bagi_train_test(records_tersedia(db))[1]:
+    for rec in split_train_test(available_records(db))[1]:
         signal, r0, sym, _ = load_record(rec, db=db)
         filtered = apply_bandpass(signal, sos)
         if DATASETS[db]["selaraskan"]:
-            r0 = selaraskan_r(r0, filtered)
+            r0 = align_r(r0, filtered)
         idx = valid_beat_indices(len(signal), r0)
         w = zscore_per_window(segment_beats(filtered, r0[idx]))
         aami = np.array([to_aami_class(s) for s in sym])[idx]
         W.append(w)
-        R.append(rakit_fitur_ritme(r0, w, idx))
+        R.append(assemble_rhythm_features(r0, w, idx))
         A.append(aami)
         Y.append(np.array([to_binary_label(a) for a in aami], dtype=np.int8))
     return {"X_morph": np.concatenate(W).reshape(-1, WIN_LEN, 1).astype(np.float32),
@@ -180,7 +180,7 @@ def main() -> None:
 
     model = build_hybrid_model()
     kw = {"epochs": args.epochs} if args.epochs else {}
-    train(model, tr, va, pakai_class_weight=not args.tanpa_class_weight,
+    train(model, tr, va, use_class_weight=not args.tanpa_class_weight,
           swa_n=args.swa, lr=args.lr, **kw)
 
     thr = kalibrasi(model, va)

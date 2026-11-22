@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from config import ARTIFACT_DIR, MAX_MODEL_KB, WIN_LEN, N_RR_FEATURES
-from src.quantize import (assert_skala_ritme_wajar, representative_dataset_gen,
+from src.quantize import (assert_rhythm_scale_sane, representative_dataset_gen,
                           stratified_indices)
 
 TFLITE = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
@@ -67,7 +67,7 @@ def test_benar_benar_full_int8():
 def test_skala_ritme_artefak_wajar():
     from config import MAX_RHYTHM_SCALE
     with open(TFLITE, "rb") as f:
-        skala = assert_skala_ritme_wajar(f.read())
+        skala = assert_rhythm_scale_sane(f.read())
     assert skala == pytest.approx(0.0129, abs=5e-3), f"skala bergeser: {skala}"
     assert skala < MAX_RHYTHM_SCALE
 
@@ -77,4 +77,4 @@ def test_assert_skala_ritme_benar_benar_menyalak():
     with open(TFLITE, "rb") as f:
         blob = f.read()
     with pytest.raises(ValueError, match="rhythm input quantization scale"):
-        assert_skala_ritme_wajar(blob, ambang=0.001)
+        assert_rhythm_scale_sane(blob, ambang=0.001)

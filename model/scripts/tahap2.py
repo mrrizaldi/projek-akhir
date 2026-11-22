@@ -9,24 +9,24 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf
 
 from config import (
-    ARTIFACT_DIR, FS, MIN_PRESISI_NAMA, R_IN_WINDOW, SEED,
+    ARTIFACT_DIR, FS, MIN_NAMED_PRECISION, R_IN_WINDOW, SEED,
 )
 from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1
 from scripts.sweep_jitter import muat_ds2, rakit
-from src.features_rr import _lebar_pada_fraksi
+from src.features_rr import _width_at_fraction
 from src.preprocessing import design_bandpass_sos
 
 
 def fitur_aturan(windows: np.ndarray, rr: np.ndarray) -> dict:
     return {
-        "qrsw2_ms": _lebar_pada_fraksi(windows, 0.5, R_IN_WINDOW) / FS * 1000,
-        "qrsw4_ms": _lebar_pada_fraksi(windows, 0.25, R_IN_WINDOW) / FS * 1000,
+        "qrsw2_ms": _width_at_fraction(windows, 0.5, R_IN_WINDOW) / FS * 1000,
+        "qrsw4_ms": _width_at_fraction(windows, 0.25, R_IN_WINDOW) / FS * 1000,
         "rr_ratio": rr[:, 1] if rr.shape[1] == 3 else rr[:, 0],
     }
 
 
 def kalibrasi_ambang(f: dict, aami: np.ndarray, ditandai: np.ndarray,
-                     min_presisi: float = MIN_PRESISI_NAMA) -> dict:
+                     min_presisi: float = MIN_NAMED_PRECISION) -> dict:
     v = (aami == "V") & ditandai
     kandidat = []
     for amb in np.arange(10, 121, 2.0):
@@ -67,7 +67,7 @@ def main() -> None:
 
     from src.io_mitdb import load_record
     from src.preprocessing import apply_bandpass, segment_beats, zscore_per_window
-    from src.features_rr import rakit_fitur_ritme, to_aami_class
+    from src.features_rr import assemble_rhythm_features, to_aami_class
     from scripts.prep_beats import valid_beat_indices
     from config import VAL_RECORDS
     W, RR, A = [], [], []
@@ -76,7 +76,7 @@ def main() -> None:
         filt = apply_bandpass(sig, sos)
         idx = valid_beat_indices(len(sig), r)
         w = zscore_per_window(segment_beats(filt, r[idx]))
-        W.append(w); RR.append(rakit_fitur_ritme(r, w, idx))
+        W.append(w); RR.append(assemble_rhythm_features(r, w, idx))
         A.append(np.array([to_aami_class(sym[i]) for i in idx]))
     Wv, RRv, Av = np.concatenate(W), np.concatenate(RR), np.concatenate(A)
     prob_v = model.predict([Wv.reshape(-1, Wv.shape[1], 1), RRv],
@@ -84,7 +84,7 @@ def main() -> None:
     fv = fitur_aturan(Wv, RRv)
     amb = kalibrasi_ambang(fv, Av, prob_v >= thr)
     if amb["qrsw2_ms"] is None:
-        print(f"[{args.tag}] TIDAK ADA ambang yang lolos presisi {MIN_PRESISI_NAMA:.0%} "
+        print(f"[{args.tag}] TIDAK ADA ambang yang lolos presisi {MIN_NAMED_PRECISION:.0%} "
               f"di VAL -> nama V tidak ditampilkan. Diam lebih baik dari salah.")
     else:
         print(f"[{args.tag}] ambang QRSw2 dari VAL = {amb['qrsw2_ms']:.0f} ms "

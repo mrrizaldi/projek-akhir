@@ -3,8 +3,8 @@ import os
 import numpy as np
 
 from config import (
-    DATASETS, DB_LATIH, DS1, DS2, PACED_EXCLUDED, PER_RECORD_DIR,
-    SPLIT_SETIAP_KE, VAL_RECORDS, WIN_LEN, raw_dir,
+    DATASETS, TRAIN_DATABASES, DS1, DS2, PACED_EXCLUDED, PER_RECORD_DIR,
+    SPLIT_EVERY_NTH, VAL_RECORDS, WIN_LEN, raw_dir,
 )
 
 
@@ -27,13 +27,13 @@ def record_int_id(record_id, db: str = "mitdb") -> int:
     return DATASETS[db]["id_offset"] + int(angka)
 
 
-def bagi_train_test(records) -> tuple:
+def split_train_test(records) -> tuple:
     r = sorted(str(x) for x in records)
-    test = r[::SPLIT_SETIAP_KE]
+    test = r[::SPLIT_EVERY_NTH]
     return [x for x in r if x not in set(test)], test
 
 
-def records_tersedia(db: str) -> list:
+def available_records(db: str) -> list:
     d = raw_dir(db)
     if not os.path.isdir(d):
         return []
@@ -92,20 +92,20 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
     for db in DATASETS:
         if db == "mitdb":
             continue
-        tersedia = [r for r in records_tersedia(db)
+        tersedia = [r for r in available_records(db)
                     if os.path.exists(os.path.join(per_record_dir, f"{r}.npz"))]
         if not tersedia:
             continue
-        n_harap = DATASETS[db]["n_record"]
-        if len(tersedia) != n_harap:
+        n_expected = DATASETS[db]["n_record"]
+        if len(tersedia) != n_expected:
             raise ValueError(
-                f"{db}: only {len(tersedia)}/{n_harap} records prepared. Held-out "
+                f"{db}: only {len(tersedia)}/{n_expected} records prepared. Held-out "
                 f"`sorted()[::4]` would DIFFER from the intended one — finish "
                 f"the download and `make prep --db {db}` first, or delete the {db} folder "
                 f"if it is meant to be skipped."
             )
-        latih, uji = bagi_train_test(tersedia)
-        if db in DB_LATIH:
+        latih, uji = split_train_test(tersedia)
+        if db in TRAIN_DATABASES:
             bagian.append(stack_records(latih, per_record_dir, db))
         hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)
 

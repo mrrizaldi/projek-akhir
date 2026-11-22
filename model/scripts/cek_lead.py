@@ -6,10 +6,10 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import AAMI_MAP, DATASETS, WIN_PRE
-from src.dataset import records_tersedia
+from src.dataset import available_records
 from src.io_mitdb import load_record
 from src.preprocessing import (
-    apply_bandpass, design_bandpass_sos, segment_beats, selaraskan_r,
+    apply_bandpass, design_bandpass_sos, segment_beats, align_r,
     zscore_per_window,
 )
 
@@ -25,7 +25,7 @@ def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
     normal = np.array([AAMI_MAP[s] == "N" for s in sym])
 
     out = {}
-    for nama, r in (("mentah", r0), ("selaras", selaraskan_r(r0, filt))):
+    for nama, r in (("mentah", r0), ("selaras", align_r(r0, filt))):
         ok = (r - WIN_PRE >= 0) & (r + WIN_PRE <= len(signal)) & normal
         if ok.sum() < 20:
             return {}
@@ -52,7 +52,7 @@ def main() -> None:
                ("incartdb", None)]
     ringkas = {}
     for db, lead in rencana:
-        recs = records_tersedia(db)
+        recs = available_records(db)
         if not recs:
             print(f"{db:10} {'-':6} belum ada record lengkap — lewati")
             continue

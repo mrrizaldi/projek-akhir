@@ -78,10 +78,10 @@ def average_precision(y_true, y_prob) -> float:
     if n_pos == 0:
         raise ValueError("average precision needs a positive class")
     order = np.argsort(-y_prob, kind="mergesort")
-    p_urut, y_urut = y_prob[order], y_true[order]
-    ujung_grup = np.r_[np.flatnonzero(np.diff(p_urut)), len(p_urut) - 1]
-    tp = np.cumsum(y_urut)[ujung_grup]
-    fp = np.cumsum(1 - y_urut)[ujung_grup]
+    p_sorted, y_sorted = y_prob[order], y_true[order]
+    group_end = np.r_[np.flatnonzero(np.diff(p_sorted)), len(p_sorted) - 1]
+    tp = np.cumsum(y_sorted)[group_end]
+    fp = np.cumsum(1 - y_sorted)[group_end]
     precision = tp / (tp + fp)
     recall = tp / n_pos
     return float(np.sum(np.diff(np.r_[0.0, recall]) * precision))

@@ -102,7 +102,7 @@ def zscore_per_window(windows: np.ndarray, eps: float = 1e-8) -> np.ndarray:
     return ((windows - mean) / (std + eps)).astype(np.float32)
 
 
-RESIDU_DS1 = os.path.join(METRICS_DIR, "jitter", "residu_ds1.npy")
+RESIDUAL_DS1 = os.path.join(METRICS_DIR, "jitter", "residu_ds1.npy")
 
 
 def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
@@ -113,8 +113,8 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
     rng = np.random.default_rng() if rng is None else rng
 
     if model == "empiris":
-        kolam = np.load(RESIDU_DS1)
-        geser = rng.choice(kolam, size=len(r)).astype(np.int64)
+        jitter_pool = np.load(RESIDUAL_DS1)
+        geser = rng.choice(jitter_pool, size=len(r)).astype(np.int64)
     elif model == "seragam":
         geser = rng.integers(-delta, delta + 1, size=len(r))
     elif model == "normal":
@@ -126,27 +126,27 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
 
 
 def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
-                   fs_asal: int, fs_target: int = FS):
+                   fs_source: int, fs_target: int = FS):
     r = np.asarray(r_locations, dtype=np.int64)
-    if fs_asal == fs_target:
+    if fs_source == fs_target:
         return np.asarray(signal, dtype=np.float32), r
 
-    faktor = gcd(int(fs_asal), int(fs_target))
-    up, down = int(fs_target) // faktor, int(fs_asal) // faktor
+    factor = gcd(int(fs_source), int(fs_target))
+    up, down = int(fs_target) // factor, int(fs_source) // factor
 
     baru = resample_poly(np.asarray(signal, dtype=np.float64), up, down)
-    r_baru = np.rint(r * (up / down)).astype(np.int64)
+    r_fresh = np.rint(r * (up / down)).astype(np.int64)
 
-    if len(r_baru) > 1 and np.any(np.diff(r_baru) <= 0):
+    if len(r_fresh) > 1 and np.any(np.diff(r_fresh) <= 0):
         raise ValueError(
-            f"resample {fs_asal}->{fs_target} Hz makes R-peaks collide "
+            f"resample {fs_source}->{fs_target} Hz makes R-peaks collide "
             f"(RR <= 0). Peaks need to be re-searched, not rounded."
         )
 
-    return baru.astype(np.float32), r_baru
+    return baru.astype(np.float32), r_fresh
 
 
-def selaraskan_r(r_locations: np.ndarray, filtered: np.ndarray,
+def align_r(r_locations: np.ndarray, filtered: np.ndarray,
                  win: int = ALIGN_WIN) -> np.ndarray:
     r = np.asarray(r_locations, dtype=np.int64)
     n = len(filtered)

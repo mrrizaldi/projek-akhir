@@ -14,7 +14,7 @@ import tensorflow as tf
 from config import ARTIFACT_DIR, DS2, METRICS_DIR, THRESHOLD, WIN_LEN
 from src.evaluate import binary_metrics, confusion_counts, roc_auc
 from src.features_rr import (
-    rakit_fitur_ritme, to_aami_class, to_binary_label,
+    assemble_rhythm_features, to_aami_class, to_binary_label,
 )
 from src.io_mitdb import load_record
 from src.preprocessing import (
@@ -50,7 +50,7 @@ def rakit(cache: list, model_jitter: str, delta: int, seed: int):
         idx = valid_beat_indices(d["n"], r)
         w = zscore_per_window(segment_beats(d["filtered"], r[idx]))
         W.append(w)
-        R.append(rakit_fitur_ritme(r, w, idx))
+        R.append(assemble_rhythm_features(r, w, idx))
         Y.append(d["y"][idx])
         A.append(d["aami"][idx])
     return (np.concatenate(W).reshape(-1, WIN_LEN, 1), np.concatenate(R),

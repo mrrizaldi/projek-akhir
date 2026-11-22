@@ -7,7 +7,7 @@ from config import DATASETS, FS, BEAT_SYMBOLS, raw_dir as _raw_dir
 from src.preprocessing import resample_to_fs
 
 
-def pilih_lead(record_id: str, sig_name: list, leads) -> int:
+def select_lead(record_id: str, sig_name: list, leads) -> int:
     for lead in leads:
         if lead in sig_name:
             return sig_name.index(lead)
@@ -27,7 +27,7 @@ def load_record(record_id: str, raw_dir: str = None, db: str = "mitdb"):
             f"record {record_id} ({db}): fs={record.fs}, DATASETS promises {spec['fs']}"
         )
 
-    channel = pilih_lead(record_id, record.sig_name, spec["leads"])
+    channel = select_lead(record_id, record.sig_name, spec["leads"])
     signal = record.p_signal[:, channel].astype(np.float32)
 
     symbols = np.asarray(annotation.symbol)

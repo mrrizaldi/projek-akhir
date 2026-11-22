@@ -20,14 +20,14 @@ def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
 def representative_dataset_gen(X_morph, X_rr, y, n: int = REP_SAMPLES,
                                seed: int = SEED, rr_shape=None):
     idx = stratified_indices(y, n, seed)
-    bentuk = (1,) + tuple(rr_shape) if rr_shape else None
+    target_shape = (1,) + tuple(rr_shape) if rr_shape else None
 
     def gen():
         for i in idx:
             rr = X_rr[i:i + 1].astype(np.float32)
             yield {
                 "morphology": X_morph[i:i + 1].astype(np.float32),
-                "rhythm": rr.reshape(bentuk) if bentuk else rr,
+                "rhythm": rr.reshape(target_shape) if target_shape else rr,
             }
 
     return gen
@@ -42,11 +42,11 @@ def quantize_int8(model, rep_gen, int8_io: bool = INT8_IO) -> bytes:
         converter.inference_input_type = tf.int8
         converter.inference_output_type = tf.int8
     blob = converter.convert()
-    assert_skala_ritme_wajar(blob)
+    assert_rhythm_scale_sane(blob)
     return blob
 
 
-def assert_skala_ritme_wajar(blob: bytes, ambang: float = MAX_RHYTHM_SCALE) -> float:
+def assert_rhythm_scale_sane(blob: bytes, ambang: float = MAX_RHYTHM_SCALE) -> float:
     it = tf.lite.Interpreter(model_content=blob)
     for d in it.get_input_details():
         if "rhythm" not in d["name"]:

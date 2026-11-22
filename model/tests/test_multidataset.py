@@ -5,7 +5,7 @@ import numpy as np
 import pytest
 
 import config
-from src.dataset import bagi_train_test, record_int_id, records_tersedia
+from src.dataset import split_train_test, record_int_id, available_records
 
 SEBARAN = {
     "svdb":     {"N": 162339, "S": 12198, "V":  9943, "F":  23, "Q": 79},
@@ -31,14 +31,14 @@ HELDOUT_INCART = ["I01", "I05", "I09", "I13", "I17", "I21", "I25", "I29", "I33",
 
 
 def _ada(db: str) -> bool:
-    return len(records_tersedia(db)) > 0
+    return len(available_records(db)) > 0
 
 
 def _lewati_kalau_separuh_jadi():
     if not os.path.exists(os.path.join(config.PER_RECORD_DIR, "100.npz")):
         pytest.skip("per_record belum dibangun (make prep)")
     for db, spec in config.DATASETS.items():
-        ter_prep = [r for r in records_tersedia(db)
+        ter_prep = [r for r in available_records(db)
                     if os.path.exists(os.path.join(config.PER_RECORD_DIR, f"{r}.npz"))]
         if ter_prep and len(ter_prep) != spec["n_record"]:
             pytest.skip(f"{db} baru {len(ter_prep)}/{spec['n_record']} ter-prep")
@@ -77,7 +77,7 @@ def test_record_int_id_memetakan_nama_alfanumerik():
 
 def test_split_setiap_ke_4_deterministik():
     for semua, heldout in [(SVDB_SEMUA, HELDOUT_SVDB), (INCART_SEMUA, HELDOUT_INCART)]:
-        train, test = bagi_train_test(semua)
+        train, test = split_train_test(semua)
         assert test == heldout, "aturan sorted()[::4] berubah — split tidak lagi sama"
         assert set(train) & set(test) == set(), "pasien bocor lintas split"
         assert sorted(train + test) == sorted(semua), "ada record hilang/dobel"
@@ -85,7 +85,7 @@ def test_split_setiap_ke_4_deterministik():
 
 
 def test_split_dua_kali_hasil_sama():
-    assert bagi_train_test(INCART_SEMUA) == bagi_train_test(INCART_SEMUA)
+    assert split_train_test(INCART_SEMUA) == split_train_test(INCART_SEMUA)
 
 
 def test_ds2_mitdb_tidak_tersentuh_fase_a():
@@ -98,7 +98,7 @@ def test_ds2_mitdb_tidak_tersentuh_fase_a():
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_sebaran_kelas_sesuai_yang_diukur(db):
-    n_ada = len(records_tersedia(db))
+    n_ada = len(available_records(db))
     if n_ada == 0:
         pytest.skip(f"{db} belum di-download (python scripts/download_data.py {db})")
     if n_ada < JUMLAH_RECORD[db]:
@@ -107,7 +107,7 @@ def test_sebaran_kelas_sesuai_yang_diukur(db):
 
     per_kelas = collections.Counter()
     per_kelas_record = collections.defaultdict(set)
-    for rec in records_tersedia(db):
+    for rec in available_records(db):
         ann = wfdb.rdann(os.path.join(config.raw_dir(db), rec), "atr")
         for sym in ann.symbol:
             if sym in config.BEAT_SYMBOLS:
@@ -115,7 +115,7 @@ def test_sebaran_kelas_sesuai_yang_diukur(db):
                 per_kelas[kelas] += 1
                 per_kelas_record[kelas].add(rec)
 
-    assert len(records_tersedia(db)) == JUMLAH_RECORD[db]
+    assert len(available_records(db)) == JUMLAH_RECORD[db]
     for kelas, n in SEBARAN[db].items():
         assert per_kelas[kelas] == n, f"{db} kelas {kelas}: {per_kelas[kelas]} != {n}"
         assert len(per_kelas_record[kelas]) == N_RECORD_BERKELAS[db][kelas], \
@@ -127,39 +127,39 @@ def test_resample_kontrak(db):
     if not _ada(db):
         pytest.skip(f"{db} belum di-download")
     from src.io_mitdb import load_record
-    rec = records_tersedia(db)[0]
-    fs_asal = config.DATASETS[db]["fs"]
+    rec = available_records(db)[0]
+    fs_source = config.DATASETS[db]["fs"]
     signal, r, sym, fs = load_record(rec, db=db)
 
     assert fs == config.FS, "load_record wajib mengembalikan FS, bukan fs asal"
     assert len(r) == len(sym), "R-peak & simbol harus tetap sejajar"
     assert np.all(np.diff(r) > 0), "R-peak harus urut menaik (RR > 0)"
     assert r.max() < len(signal), "indeks R keluar dari sinyal hasil resample"
-    durasi_asal = wfdb_sig_len(db, rec) / fs_asal
+    durasi_asal = wfdb_sig_len(db, rec) / fs_source
     assert abs(len(signal) / config.FS - durasi_asal) / durasi_asal < 0.01, \
         f"durasi berubah: {len(signal)/config.FS:.1f}s vs {durasi_asal:.1f}s"
 
 
 def test_selaraskan_menaruh_puncak_di_win_pre():
-    from src.preprocessing import selaraskan_r
+    from src.preprocessing import align_r
     n = 4000
     x = np.zeros(n, dtype=np.float32)
     anot = np.arange(400, n - 400, 400)
     puncak = anot + 9
     x[puncak] = 1.0
-    r = selaraskan_r(anot, x)
+    r = align_r(anot, x)
     assert np.all(r == puncak - config.GROUP_DELAY_SAMPLES)
     assert np.all(puncak - (r - config.WIN_PRE)
                   == config.WIN_PRE + config.GROUP_DELAY_SAMPLES)
 
 
 def test_selaraskan_tidak_melompat_ke_gelombang_t():
-    from src.preprocessing import selaraskan_r
+    from src.preprocessing import align_r
     x = np.zeros(2000, dtype=np.float32)
     anot = np.array([500])
     x[504] = 1.0
     x[504 + 90] = 3.0
-    assert selaraskan_r(anot, x)[0] == 504 - config.GROUP_DELAY_SAMPLES
+    assert align_r(anot, x)[0] == 504 - config.GROUP_DELAY_SAMPLES
 
 
 def test_mitdb_tidak_pernah_diselaraskan():
@@ -204,15 +204,15 @@ def test_val_tetap_cermin_ds2_bukan_cermin_train():
 
 
 def test_incartdb_hanya_test_bukan_latih():
-    assert config.DB_LATIH == ("mitdb", "svdb")
+    assert config.TRAIN_DATABASES == ("mitdb", "svdb")
     assert "incartdb" in config.DATASETS, "tetap terdaftar — dia masih jadi TEST-C"
     _lewati_kalau_separuh_jadi()
-    from src.dataset import build_split_multi, bagi_train_test
+    from src.dataset import build_split_multi, split_train_test
 
     h = build_split_multi()
     assert "incartdb_test" in h, "TEST-C hilang — itu pemakaian terbaik incartdb"
     latih_incart = {record_int_id(r, "incartdb")
-                    for r in bagi_train_test(records_tersedia("incartdb"))[0]}
+                    for r in split_train_test(available_records("incartdb"))[0]}
     assert not (latih_incart & set(np.unique(h["train"]["records"]).tolist())), \
         "porsi train incartdb bocor ke train"
 
@@ -223,7 +223,7 @@ def test_split_multi_menolak_database_separuh_jadi(monkeypatch):
 
     db = next((d for d in ("svdb", "incartdb")
                if _ada(d) and os.path.exists(
-                   os.path.join(config.PER_RECORD_DIR, f"{records_tersedia(d)[0]}.npz"))), None)
+                   os.path.join(config.PER_RECORD_DIR, f"{available_records(d)[0]}.npz"))), None)
     if db is None:
         pytest.skip("belum ada database tambahan yang ter-prep")
 

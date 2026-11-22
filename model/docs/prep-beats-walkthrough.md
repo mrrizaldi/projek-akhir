@@ -1,7 +1,7 @@
 # Walkthrough `scripts/prep_beats.py` — Fase 2 (eksekusi)
 
 > **Ruang lingkup:** eksekusi Fase 0–2 ke seluruh record: pemilihan beat yang valid, augmentasi jitter DS1, dan penulisan `.npz` per record.
-> **Kode terkait:** `scripts/prep_beats.py`, `src/dataset.py` (`records_tersedia`), `src/features_rr.py` (`rakit_fitur_ritme`), `config.py` (`PACED_EXCLUDED`, `JITTER_MODEL`, `JITTER_SALINAN`, `DATASETS`), `tests/test_prep_beats.py`
+> **Kode terkait:** `scripts/prep_beats.py`, `src/dataset.py` (`available_records`), `src/features_rr.py` (`assemble_rhythm_features`), `config.py` (`PACED_EXCLUDED`, `JITTER_MODEL`, `JITTER_COPIES`, `DATASETS`), `tests/test_prep_beats.py`
 > **Prasyarat:** [`features-rr-walkthrough.md`](features-rr-walkthrough.md)
 
 Dokumen belajar, bukan spesifikasi. Pasangan dari
@@ -32,7 +32,7 @@ kebijakan tinggal di sini.
    │ apply_bandpass()               │◄───┤   prep_beats.py          │
    │ segment_beats()                │    │   - record mana dipakai  │
    │ zscore_per_window()            │    │   - beat mana dibuang    │
-   │ rakit_fitur_ritme()            │    │   - tulis .npz, cetak    │
+   │ assemble_rhythm_features()            │    │   - tulis .npz, cetak    │
    │ to_aami_class/to_binary_label()│    │                          │
    └────────────────────────────────┘    └──────────────────────────┘
 ```
@@ -102,27 +102,27 @@ Sejajarkan lewat **indeks**, jangan pernah lewat panjang.
 signal, r, sym, _ = load_record(record_id, db=db)
 filtered = apply_bandpass(signal, sos)
 if DATASETS[db]["selaraskan"]:
-    r = selaraskan_r(r, filtered)
+    r = align_r(r, filtered)
 if jitter is not None:
     r = jitter(r)
 
 idx = valid_beat_indices(len(signal), r)
 windows = zscore_per_window(segment_beats(filtered, r[idx]))
-rr = rakit_fitur_ritme(r, windows, idx)
+rr = assemble_rhythm_features(r, windows, idx)
 labels = np.array([to_binary_label(to_aami_class(sym[i])) for i in idx], dtype=np.int8)
 symbols = np.array([sym[i] for i in idx], dtype="<U2")
 ```
 
 Dua langkah sebelum `idx` mengubah posisi R, bukan labelnya:
 
-- **`selaraskan_r`** menggeser anotasi ke puncak sebenarnya, hanya untuk database
+- **`align_r`** menggeser anotasi ke puncak sebenarnya, hanya untuk database
   yang konvensi anotasinya berbeda dari mitdb (`DATASETS[db]["selaraskan"]`:
   svdb dan incartdb `True`, mitdb `False` karena mitdb acuan golden reference).
 - **`jitter`** menggeser posisi R untuk salinan augmentasi (§4). Posisi tergeser
   dipakai untuk window **dan** fitur RR, karena detektor yang meleset merusak
   keduanya sekaligus. Label tetap diambil dari simbol anotasi asli lewat `idx`.
 
-`rakit_fitur_ritme` memanggil `compute_rr_features(r)[idx]` pada konfigurasi
+`assemble_rhythm_features` memanggil `compute_rr_features(r)[idx]` pada konfigurasi
 terkunci (fitur opsional hanya ditambahkan bila knob ablasinya aktif). Perhatikan
 urutan argumennya. Dua bentuk yang terlihat setara:
 
@@ -179,9 +179,9 @@ hilang saat terminal ditutup.
 
 ---
 
-## 4. `records_tersedia()` dan `main()` — lapisan kebijakan
+## 4. `available_records()` dan `main()` — lapisan kebijakan
 
-`main()` memanggil `records_tersedia(db)` di `src/dataset.py`:
+`main()` memanggil `available_records(db)` di `src/dataset.py`:
 
 ```python
 ids = sorted(f[:-4] for f in ada if f.endswith(".hea")
@@ -202,7 +202,7 @@ jangan digandakan.
 dilewati dengan pesan `make data DB=<db>`), lalu untuk tiap record:
 
 1. Satu salinan bersih selalu diproses.
-2. Khusus record **DS1 mitdb**, ditambah `JITTER_SALINAN` (2) salinan ber-jitter
+2. Khusus record **DS1 mitdb**, ditambah `JITTER_COPIES` (2) salinan ber-jitter
    model `JITTER_MODEL` (`"empiris"`). Semua salinan ditumpuk ke `.npz` record
    yang sama oleh `gabung()`.
 3. DS2 dan database tambahan tidak pernah dijitter: DS2 adalah tolok ukur, dan

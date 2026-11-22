@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from config import JITTER_SALINAN, N_RR_FEATURES, DS1, DS2, PACED_EXCLUDED, VAL_RECORDS, WIN_LEN
+from config import JITTER_COPIES, N_RR_FEATURES, DS1, DS2, PACED_EXCLUDED, VAL_RECORDS, WIN_LEN
 from src.dataset import assert_split_valid, stack_records, build_split, split_train_val
 
 
@@ -33,7 +33,7 @@ def test_bentuk_dan_kekekalan_jumlah():
         assert not np.isnan(d["X_rr"]).any()
         assert set(np.unique(d["y"])) <= {0, 1}
     assert len(test["y"]) == 49656
-    lipat = JITTER_SALINAN + 1
+    lipat = JITTER_COPIES + 1
     assert abs(len(train["y"]) - lipat * 50968) < 0.01 * lipat * 50968
 
 

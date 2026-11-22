@@ -53,9 +53,9 @@ DATASETS = {
 
 ALIGN_WIN = 16
 
-SPLIT_SETIAP_KE = 4
+SPLIT_EVERY_NTH = 4
 
-DB_LATIH = ("mitdb", "svdb")
+TRAIN_DATABASES = ("mitdb", "svdb")
 
 def raw_dir(db: str) -> str:
     if db not in DATASETS:
@@ -81,7 +81,7 @@ N_RR_FEATURES = N_RR_BASE + (2 if USE_HOS else 0) + (2 if USE_QRSW else 0)
 R_IN_WINDOW = WIN_PRE + 4
 
 JITTER_MODEL = "empiris"
-JITTER_SALINAN = 2
+JITTER_COPIES = 2
 
 VAL_RECORDS = [101, 114, 201, 220, 223]
 
@@ -99,7 +99,7 @@ INT8_IO = True
 MAX_MODEL_KB = 25
 MAX_RHYTHM_SCALE = 0.05
 
-MIN_PRESISI_NAMA = 0.90
+MIN_NAMED_PRECISION = 0.90
 
 PT_DETECTOR_OFFSET = 38
 PT_REFINE_WIN = 25

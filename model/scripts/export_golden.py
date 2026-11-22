@@ -24,7 +24,7 @@ from src.preprocessing import (
     zscore_per_window,
 )
 from src.features_rr import (
-    rakit_fitur_ritme, to_aami_class, to_binary_label,
+    assemble_rhythm_features, to_aami_class, to_binary_label,
 )
 from src.quantize import predict_tflite
 from scripts.prep_beats import valid_beat_indices
@@ -64,7 +64,7 @@ def main() -> None:
     label = [to_binary_label(to_aami_class(sym[i])) for i in dipakai]
 
     r_potong = np.asarray(r)[dipakai]
-    rr = rakit_fitur_ritme(r_potong, windows, np.arange(len(dipakai)))
+    rr = assemble_rhythm_features(r_potong, windows, np.arange(len(dipakai)))
     rr_bersih = np.nan_to_num(rr, nan=0.0)
 
     keras = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))

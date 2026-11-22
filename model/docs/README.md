@@ -144,7 +144,7 @@ jitter empiris di DS2    F1      0,6670 ± 0,0194  (model w128, kondisi deploy)
 
 Kedua perbaikan dikunci di `config.py`: `WIN_PRE = WIN_POST = 128`
 (window 256, varian 128/128 dari ablasi Fase B: F1 DS2 0,6911 ± 0,029),
-`JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`, `THRESHOLD = 0.80`.
+`JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`, `THRESHOLD = 0.80`.
 
 Dua angka yang paling perlu dapat dijelaskan di sidang:
 
