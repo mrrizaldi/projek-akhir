@@ -49,18 +49,18 @@ def main() -> None:
     s.write(f"d{file_number}\n".encode() if file_number else b"d")
     s.flush()
 
-    lines, started = [], False
+    lines, mulai = [], False
     deadline = time.time() + 60
     while time.time() < deadline:
         baris = s.readline().decode(errors="replace").rstrip()
         if not baris:
             continue
         if "---MULAI---" in baris:
-            started = True
+            mulai = True
             continue
         if "---SELESAI---" in baris:
             break
-        if started:
+        if mulai:
             lines.append(baris)
     s.close()
 

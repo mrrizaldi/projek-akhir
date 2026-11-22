@@ -270,9 +270,6 @@ scripts/serve.py	hasil	paths
 scripts/serve.py	isi	page_html
 dashboard/ukur_pipeline.py	isi	expected_text
 dashboard/ukur_pipeline.py	mulai	start_index
-model/scripts/pull_recording.py	mulai	started
-model/scripts/window_quality.py	mulai	start
-model/tests/test_plot_recording.py	mulai	window_start
 hardware/mainboard/check_board.py	gagal	failures
 hardware/mainboard/check_board.py	hasil	pin_nets
 hardware/mainboard/check_layout.py	batas	min_width
