@@ -16,26 +16,26 @@
 #include "diagnosa.h"
 #include "daya.h"
 #include "tampilan.h"
-#include "tombol.h"
+#include "buttons.h"
 
 constexpr uint32_t KLIK_MS = 20, BIP_LAMA_MS = 60;
 
 static void layani_tombol()
 {
     int i, e;
-    while ((e = tombol_event(&i)) != TOMBOL_TIDAK) {
-        if (e == TOMBOL_TEKAN) tampilan_bunyi(KLIK_MS);
-        if (e == TOMBOL_LAMA) tampilan_bunyi(BIP_LAMA_MS);
-        if (e == TOMBOL_PENDEK || e == TOMBOL_LAMA)
-            Serial.printf("tombol B%d %s\n", i + 1, e == TOMBOL_LAMA ? "tahan" : "pendek");
+    while ((e = buttons_event(&i)) != BUTTON_NONE) {
+        if (e == BUTTON_PRESS) tampilan_bunyi(KLIK_MS);
+        if (e == BUTTON_LONG) tampilan_bunyi(BIP_LAMA_MS);
+        if (e == BUTTON_SHORT || e == BUTTON_LONG)
+            Serial.printf("tombol B%d %s\n", i + 1, e == BUTTON_LONG ? "tahan" : "pendek");
         if (menu_terbuka()) { menu_tombol(i, e); continue; }
-        if (e == TOMBOL_PENDEK) {
+        if (e == BUTTON_SHORT) {
             if (i == 0) tampilan_set_bisu(!tampilan_bisu());
             if (i == 1) tampilan_set_beku(!tampilan_beku());
             if (i == 2) { if (rekam_aktif()) rekam_jeda(); else rekam_toggle(); }
         }
-        if (e == TOMBOL_LAMA && i == 1) { menu_buka(); continue; }
-        if (e == TOMBOL_LAMA && i == 2 && rekam_aktif()) rekam_toggle();
+        if (e == BUTTON_LONG && i == 1) { menu_buka(); continue; }
+        if (e == BUTTON_LONG && i == 2 && rekam_aktif()) rekam_toggle();
         tampilan_gambar_tombol(i);
     }
 }

@@ -13,7 +13,7 @@
 | `gerbang.h` | Kualitas sinyal dan fase kalibrasi | ditulis tangan |
 | `klasifikasi.h` | Inferensi TFLM per beat dan publikasi ke antrean MQTT | ditulis tangan |
 | `tampilan.h` | TFT (monitor dan layar menu), NeoPixel, buzzer | ditulis tangan |
-| `tombol.h` | Debounce dan event tombol B1–B3 (tekan lama 800 ms), event suntikan serial | ditulis tangan |
+| `buttons.h` | Debounce dan event tombol B1–B3 (tekan lama 800 ms), event suntikan serial | ditulis tangan |
 | `menu.h` | Menu di perangkat: buka, teruskan event tombol, halaman teks 1 Hz | ditulis tangan |
 | `diagnosa.h` | Tes perangkat `diag_*` untuk menu Tes perangkat dan `test_hw_*` | ditulis tangan |
 | `rekam.h` | Rekaman bernomor `/rekam/NNN.csv` di LittleFS | ditulis tangan |

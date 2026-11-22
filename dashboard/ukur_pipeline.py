@@ -88,10 +88,10 @@ terlihat, lat_bawah, lat_atas, rest_ms = set(), [], [], []
 t0 = time.time()
 while time.time() - t0 < DURASI:
     sebelum = int(time.time() * 1000)
-    kini = sebelum
+    current = sebelum
     try:
         rows = rest(f"/api/plugins/telemetry/DEVICE/{dev_id}/values/timeseries"
-                    f"?keys=bpm&startTs={kini-20000}&endTs={kini+5000}&limit=500"
+                    f"?keys=bpm&startTs={current-20000}&endTs={current+5000}&limit=500"
                     "&useStrictDataTypes=true", token=jwt).get("bpm", [])
     except Exception as e:
         print("  REST gagal:", e); time.sleep(0.5); continue

@@ -33,9 +33,9 @@ static uint16_t sim_counts[GOLDEN_N];
 
 static void IRAM_ATTR hitung_tick_hilang()
 {
-    const uint32_t kini = esp_cpu_get_ccount();
-    const uint32_t selang = kini - siklus_lalu;
-    siklus_lalu = kini;
+    const uint32_t current = esp_cpu_get_ccount();
+    const uint32_t selang = current - siklus_lalu;
+    siklus_lalu = current;
     const uint32_t setengah = siklus_per_sampel / PEMBAGI_SETENGAH_PERIODE;
     if (selang > siklus_per_sampel + setengah)
         n_tick_hilang += (selang + setengah) / siklus_per_sampel - 1;

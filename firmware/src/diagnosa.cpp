@@ -148,20 +148,20 @@ diag_hasil_t diag_ina219(void)
 diag_hasil_t diag_tombol(uint32_t batas_ms)
 {
     constexpr uint32_t DEBOUNCE_MS = 50;
-    bool tekan[3], sudah[3] = {};
-    uint32_t t_ubah[3] = {};
-    for (int k = 0; k < 3; k++) tekan[k] = digitalRead(PIN_BTN[k]) == LOW;
+    bool pressed[3], sudah[3] = {};
+    uint32_t t_change[3] = {};
+    for (int k = 0; k < 3; k++) pressed[k] = digitalRead(PIN_BTN[k]) == LOW;
     Serial.printf("TEKAN B1, B2, B3 masing-masing sekali (batas %u ms).\n", (unsigned)batas_ms);
 
     int n = 0;
     const uint32_t t0 = millis();
     while (n < 3 && millis() - t0 < batas_ms) {
         for (int k = 0; k < 3; k++) {
-            const bool kini = digitalRead(PIN_BTN[k]) == LOW;
-            if (kini == tekan[k] || millis() - t_ubah[k] < DEBOUNCE_MS) continue;
-            tekan[k] = kini;
-            t_ubah[k] = millis();
-            if (kini && !sudah[k]) {
+            const bool current = digitalRead(PIN_BTN[k]) == LOW;
+            if (current == pressed[k] || millis() - t_change[k] < DEBOUNCE_MS) continue;
+            pressed[k] = current;
+            t_change[k] = millis();
+            if (current && !sudah[k]) {
                 sudah[k] = true;
                 n++;
                 Serial.printf("  B%d (GPIO%d) ok\n", k + 1, PIN_BTN[k]);

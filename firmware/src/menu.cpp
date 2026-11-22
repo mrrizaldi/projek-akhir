@@ -15,7 +15,7 @@
 #include "diagnosa.h"
 #include "daya.h"
 #include "tampilan.h"
-#include "tombol.h"
+#include "buttons.h"
 
 #ifndef VERSI_GIT
 #define VERSI_GIT "?"
@@ -119,7 +119,7 @@ static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
     tes_hasil = f();
     akuisisi_timer(daya_mode() != 0);
     int i;
-    while (tombol_event(&i) != TOMBOL_TIDAK) {}
+    while (buttons_event(&i) != BUTTON_NONE) {}
     Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.lulus ? "LULUS" : "GAGAL", tes_hasil.ringkas);
 }
 static diag_hasil_t tombol_10s()
@@ -368,10 +368,10 @@ static void pilih()
 void menu_tombol(int i, int e)
 {
     if (dalam < 0) return;
-    if (e == TOMBOL_LAMA) {
+    if (e == BUTTON_LONG) {
         if (i == 1) pilih();
         else tutup();
-    } else if (e == TOMBOL_PENDEK) {
+    } else if (e == BUTTON_SHORT) {
         auto &t = tumpuk[dalam];
         const int n = t.h->isi ? 0 : jumlah(t.h);
         if (i == 1) kembali();

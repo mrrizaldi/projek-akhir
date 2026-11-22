@@ -15,7 +15,7 @@
 #include "rekam.h"
 #include "daya.h"
 #include "tampilan.h"
-#include "tombol.h"
+#include "buttons.h"
 
 constexpr uint32_t TUNGGU_DIGIT_MS = 500;
 
@@ -131,7 +131,7 @@ void serial_cmd_layani(void)
         while (!Serial.available() && millis() - t0 < TUNGGU_DIGIT_MS) {}
         const int n = Serial.peek() - '0';
         if (n < 1 || n > 3) Serial.println("t<1-3> / T<1-3>: B1-B3 pendek / tahan");
-        else { Serial.read(); tombol_suntik(n - 1, c == 'T' ? TOMBOL_LAMA : TOMBOL_PENDEK); }
+        else { Serial.read(); buttons_inject(n - 1, c == 'T' ? BUTTON_LONG : BUTTON_SHORT); }
     }
     else if (c == 'b') {
         const int n = angka();

@@ -186,7 +186,7 @@ membawa transistor sendiri.
   bagian bawah buzzer aktif tertutup rapat, buzzer pasif memperlihatkan PCB
   hijau.
 - **Tombol.** Tanpa resistor: tombol ke GND dan firmware memakai
-  `INPUT_PULLUP` (±45 kΩ ke 3V3) dengan debounce 50 ms (`tombol.cpp`). Karena jalur
+  `INPUT_PULLUP` (±45 kΩ ke 3V3) dengan debounce 50 ms (`buttons.cpp`). Karena jalur
   tombol pendek, pull-up lemah ini tidak mudah kemasukan derau. Bila
   pull-up eksternal tetap diinginkan, ujung atas resistor 10 kΩ ke 3V3,
   bukan ke +5V.

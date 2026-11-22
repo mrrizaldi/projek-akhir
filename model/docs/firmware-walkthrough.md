@@ -1,7 +1,7 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
 > **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/akuisisi.cpp`, `firmware/src/tombol.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/akuisisi.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
 > **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
 
 Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
@@ -385,7 +385,7 @@ tetap 0**, dan ikut disimpan ke berkas rekaman.
 
 ### Tombol dan menu: layar berganti, pemrosesan tidak
 
-`tombol.cpp` hanya menghasilkan event per tombol: `TEKAN`, `PENDEK` (dilepas
+`buttons.cpp` hanya menghasilkan event per tombol: `TEKAN`, `PENDEK` (dilepas
 sebelum 800 ms), `LAMA` (masih ditahan saat 800 ms tercapai, tanpa menunggu
 dilepas), dan `LEPAS`. Arti event dirangkai pemanggil: `main.cpp` untuk mode
 monitor (B1 pendek bisu, B2 pendek beku, B3 pendek rekam, B2 lama buka menu),
@@ -792,7 +792,7 @@ pembahasan yang baik di laporan.
 | Perintah | Melihat apa |
 |---|---|
 | `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
-| `pio test -e esp32-s3` | 29 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_tombol` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
+| `pio test -e esp32-s3` | 29 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_buttons` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
 | `pio test -e esp32-s3 -f test_hw_buzzer` | satu suite saja |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG, bacaan perangkat) |
 | `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |

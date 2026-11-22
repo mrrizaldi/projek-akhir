@@ -10,7 +10,7 @@
 #include "ina219.h"
 #include "board.h"
 #include "rekam.h"
-#include "tombol.h"
+#include "buttons.h"
 
 constexpr int GY = 30, GH = 112;
 constexpr int DESIMASI = 3;
@@ -57,8 +57,8 @@ static void jadwalkan_bip(const ecg_beat_t &b, bool aritmia)
 
 static void jalankan_jadwal()
 {
-    const uint32_t kini = (uint32_t)ecg_live_total_sampel();
-    while (j_isi && (int32_t)(kini - jadwal[j_kepala].sampel) >= 0) {
+    const uint32_t current = (uint32_t)ecg_live_total_sampel();
+    while (j_isi && (int32_t)(current - jadwal[j_kepala].sampel) >= 0) {
         const uint16_t ms = jadwal[j_kepala].ms;
         j_kepala = (j_kepala + 1) % JADWAL_N;
         j_isi--;
@@ -123,7 +123,7 @@ void tampilan_gambar_tombol(int i)
 {
     if (!monitor) return;
     static const char *const label[2][2] = {{"B1 BUNYI", "B1 BISU"}, {"B2 JALAN", "B2 BEKU"}};
-    const bool ditekan = tombol_ditekan(i);
+    const bool ditekan = buttons_pressed(i);
     const int x = i * 107;
     const uint16_t bg = ditekan ? ST77XX_YELLOW : ABU;
     tft.fillRect(x, 148, 105, 24, bg);
@@ -186,9 +186,9 @@ static void gambar_tengah()
     char besar[16], kecil[24];
     uint16_t w = ST77XX_WHITE;
 
-    const time_t kini = time(nullptr);
+    const time_t current = time(nullptr);
     struct tm t;
-    localtime_r(&kini, &t);
+    localtime_r(&current, &t);
     const bool sinkron = t.tm_year + 1900 > 2020;
     if (sinkron && !jam_dilog) {
         jam_dilog = true;
