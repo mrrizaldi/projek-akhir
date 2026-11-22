@@ -14,9 +14,9 @@
 
 | # | Question | Decision |
 |---|---|---|
-| D1 | What becomes English | Like finance: `CLAUDE.md` ×3 and `laporan/CLAUDE.md`, READMEs, `docs/`, `model/docs/` walkthroughs, identifiers, file names, script output, commit messages, all repo skills. Laporan-writing skills get English instructions and keep their Indonesian examples word for word. `laporan/**/*.tex` body text and `presentasi/` stay Indonesian. |
+| D1 | What becomes English | Like finance, minus `laporan/`: root and `model/` `CLAUDE.md`, READMEs, `docs/`, `model/docs/` walkthroughs, identifiers, file names, script output, commit messages, all repo skills. Laporan-writing skills get English instructions and keep their Indonesian examples word for word. Nothing under `laporan/` changes (user, 22 Nov 2026: "only codebase"), and `presentasi/` stays Indonesian. |
 | D2 | Device text | TFT menu and labels stay Indonesian (Bab 3 and Bab 4 of `buku-pa` quote them). Free-form serial log lines become English. |
-| D3 | Contracts | Data contracts are frozen (list below). The `% sumber:` comments in `laporan/buku-pa` and `laporan/progres-pa-1` are updated to the new paths in one laporan-only commit. `laporan/proposal-pa` is frozen and not touched. |
+| D3 | Contracts | Data contracts are frozen (list below). `laporan/` is not touched at all: its `% sumber:` comments keep the old paths (not printed; `git log --follow` resolves them; `renames.py apply` lists them as `stale`). Scripts that `laporan/` runs or names keep their file names and CLI flags. |
 | D4 | Areas without tests | A rename-only commit counts as covered when the equivalence proof passes. If the proof cannot be made for an area, stop and ask about that area. |
 | D5 | Mermaid | Allowed in dev docs under `docs/features/`. The no-diagram rule stays for `laporan/` figures. |
 | D6 | Docs site | Plain Markdown read on GitHub or in an editor, no VitePress. The build check becomes `pointers.sh` plus a stdlib link checker in CI. |
@@ -53,7 +53,8 @@ In this plan: a commit that changes any string literal, CLI flag, make target or
 | Env knobs `PA_WIN_PRE`, `PA_WIN_POST`, `PA_HOS`, `PA_QRSW`, `PA_RR_RATIO` | `model/config.py` | already English |
 | Indonesian pattern lists in `scripts/cek_slop.py` | | they are the data it checks |
 | Git tags `rilis/*`, `pra-bersih` | | history |
-| `laporan/**/*.tex` body, `laporan/proposal-pa/**`, `presentasi/**`, KiCad files, `model/PRD_Model_Aritmia_TinyML.pdf` | | D1, D3 |
+| Everything under `laporan/` (tex, bib, `Makefile.inc`, `laporan/CLAUDE.md`), `presentasi/**`, KiCad files, `model/PRD_Model_Aritmia_TinyML.pdf` | | D1, D3 |
+| File names and CLI flags of `scripts/cek_docx.py`, `scripts/rilis.py` (incl. `--catatan`), `scripts/cek_tabel.py`, `dashboard/ukur_pipeline.py` | `laporan/shared/Makefile.inc` runs the first two; `laporan/CLAUDE.md` names the last two | `laporan/` is untouched, so renaming them breaks the laporan build or its instructions; their internals may still be renamed with proof |
 
 ## Proof per area (D4)
 
@@ -82,7 +83,6 @@ In this plan: a commit that changes any string literal, CLI flag, make target or
 | `docs/features/*.md` (new), `docs/README.md`, `firmware/README.md` | 5 | per-feature pages |
 | all other `*.md` outside `laporan/` and `presentasi/` | 5 | translation |
 | `.claude/skills/*` | 5 | English, renamed folders |
-| `laporan/buku-pa/**/*.tex`, `laporan/progres-pa-1/**/*.tex` (comment lines only), `laporan/shared/Makefile.inc` | 3, 6 | script names, `% sumber:` pointers |
 
 ## Order and parallelism
 
@@ -93,7 +93,6 @@ In this plan: a commit that changes any string literal, CLI flag, make target or
 | 3 Python renames | up to 3 agents, one per area (`model/src`+tests, `model/scripts`, `scripts/`+`dashboard/`), never the same file | shell scripts: ask |
 | 4 output translation | no | board connected for 4.1 |
 | 5 docs and skills | 4 agents for translation, one page per agent for features | skill evals at most 3 rounds |
-| 6 laporan pointers | no | `make pdf` text identical |
 | 7 closeout | no | user approves deleting the one-off tools |
 
 ---
@@ -412,15 +411,11 @@ Run Task 4.2 (English output text) for an area before its Phase 3 rename. Indone
 | `scripts/cek_komentar.py` | `scripts/check_comments.py` |
 | `scripts/cek_skill.py` | `scripts/check_skills.py` |
 | `scripts/cek_slop.py` | `scripts/check_slop.py` |
-| `scripts/cek_tabel.py` | `scripts/check_tables.py` |
-| `scripts/cek_docx.py` | `scripts/check_docx.py` |
-| `scripts/rilis.py` | `scripts/release.py` |
 | `scripts/sajikan.py` | `scripts/serve.py` |
 | `scripts/unduh_pustaka.py` | `scripts/fetch_references.py` |
 | `scripts/uji_pemicu.sh` | `scripts/trigger_eval.sh` |
-| `dashboard/ukur_pipeline.py` | `dashboard/measure_pipeline.py` |
 
-- [ ] Callers: `.github/workflows/cek.yml`, `.githooks/pre-commit`, `laporan/shared/Makefile.inc`, `laporan/CLAUDE.md`, `CLAUDE.md`, skills. `apply` skips `laporan/`, so edit `laporan/shared/Makefile.inc` and `laporan/CLAUDE.md` by hand for the script names only. Evidence for the laporan build: `cd laporan/buku-pa && make pdf` succeeds and `pdftotext output/main.pdf -` is identical before and after.
+- [ ] Callers: `.github/workflows/cek.yml`, `.githooks/pre-commit`, `CLAUDE.md`, skills. `laporan/` is not edited; `cek_docx.py`, `rilis.py`, `cek_tabel.py` and `dashboard/ukur_pipeline.py` keep their names and flags (Frozen). Evidence that the laporan build still works: `cd laporan/buku-pa && make pdf` succeeds.
 - [ ] Shell files: only the file name changes here. Their internal variable names (`berkas`) are an area without a proof tool: **ask the user** whether to rename them and accept `bash -n` plus one real run as evidence, or leave them.
 - [ ] Proof: `renames.py python`, `python3 scripts/check_slop.py --uji`, `python3 scripts/check_skills.py --uji`, `python3 scripts/check_tables.py --uji`, the pre-commit hook run on one staged file, each CI job command run locally.
 
@@ -439,13 +434,13 @@ Each task is its own commit, typed `feat` or `chore`, never mixed with a rename.
 
 ### Task 4.2: Python output, errors, argparse help and flags
 
-- [ ] One commit per area (`model/src`, `model/scripts`, `scripts/`, `dashboard/`): `print`, `sys.exit` and exception texts, argparse `help=` and `description=`, Indonesian flags (`--mulai` → `--start`, `--kertas` → `--paper`, `--uji` → `--self-test`) together with their `args.*` names (moved here by `REFUSED` in Phase 3). `check_slop.py` pattern lists stay Indonesian.
+- [ ] One commit per area (`model/src`, `model/scripts`, `scripts/`, `dashboard/`): `print`, `sys.exit` and exception texts, argparse `help=` and `description=`, Indonesian flags (`--mulai` → `--start`, `--uji` → `--self-test`; the flags of the four laporan-coupled scripts in Frozen stay) together with their `args.*` names (moved here by `REFUSED` in Phase 3). `check_slop.py` pattern lists stay Indonesian.
 - [ ] Tests asserting messages are updated in the same commit. Proof: pytest, self-tests, `--help` output pasted for each script whose flags changed.
 - [ ] `PA_CEK_REC` → `PA_CHECK_REC` (reader and docs, one commit).
 
 ### Task 4.3: make targets and Makefile help
 
-- [ ] `model/Makefile`: `data-semua` → `data-all`, `analisis` → `analyze`, `grafik` → `plot`, `pull-daya` → `pull-power`; every `##` description in English. Add map phrase lines `make analisis	make analyze` (and the others) so Phase 6 can update laporan comments.
+- [ ] `model/Makefile`: `data-semua` → `data-all`, `analisis` → `analyze`, `grafik` → `plot`, `pull-daya` → `pull-power`; every `##` description in English.
 - [ ] Proof: `git show HEAD:model/Makefile > /tmp/Makefile.old`, then for each target `diff <(make -n -f /tmp/Makefile.old <old> FILE=x.csv) <(make -n <new> FILE=x.csv)` is empty; `make help` output pasted.
 - [ ] CI workflow and job names in `.github/workflows/cek.yml` (`cek` → `checks`, `komentar` → `comments`) in the same chore commit as Task 4.2 for `scripts/`.
 
@@ -534,13 +529,13 @@ Four parallel agents, one file group each, finance `d50820a` rules: inline code,
 
 | Group | Files |
 |---|---|
-| A | `CLAUDE.md`, `model/CLAUDE.md`, `laporan/CLAUDE.md` (English instructions, Indonesian examples and quoted rules verbatim), `README.md` |
+| A | `CLAUDE.md`, `model/CLAUDE.md`, `README.md` (`laporan/CLAUDE.md` stays as it is) |
 | B | `model/docs/README.md` + 7 walkthroughs (`akuisisi` → rename file `acquisition-walkthrough.md`, `dataset`, `evaluate`, `features-rr`, `firmware`, `io-mitdb`, `jitter`) |
 | C | 7 walkthroughs (`model`, `mqtt`, `prep-beats`, `preprocessing`, `quantize`, `segmentasi-deteksi` → `detection-segmentation-walkthrough.md`, `train`), `model/README.md` |
 | D | `firmware/README.md` (what is left), `firmware/include/README.md`, `hardware/mainboard/README.md`, `dashboard/README.md`, `scripts/README.md`, READMEs under `model/data/` and `model/artifacts/`, `docs/*.md` working docs (file names to English: `pekerjaan-ditunda` → `deferred-work`, `celah-target` → `target-gaps`, `crosscheck-metrik-bab4` → `bab4-metrics-crosscheck`) |
 
 - [ ] Fidelity check per file, pasted in the commit body: inline-code spans counted old vs new (a `grep -o` over backtick pairs piped to `sort | uniq -c`, diff empty except the reported ones); every `file:line` pointer still resolves (`pointers.sh`); `check_docs.py` green; `grep -c '—'` 0.
-- [ ] Group A changes section headings that skills cite (`laporan/CLAUDE.md §DOCX Notes`): Task 5.4 runs after group A.
+- [ ] Group A changes section headings that skills cite in the root and `model/` `CLAUDE.md`: Task 5.4 runs after group A. Skills keep citing `laporan/CLAUDE.md` sections by their current Indonesian headings.
 - [ ] Ask the user before deleting finished working docs (`docs/2026-11-21-rencana-rework-skill-codebase*`): repo rule, deletion needs approval.
 
 ### Task 5.4: skills in English, renamed folders
@@ -563,34 +558,9 @@ Four parallel agents, one file group each, finance `d50820a` rules: inline code,
 
 ---
 
-## Phase 6: laporan pointers
+## Phase 6: dropped
 
-### Task 6.1: `% sumber:` comments
-
-**Files:** `laporan/buku-pa/**/*.tex`, `laporan/progres-pa-1/**/*.tex` (comment lines only). Not `laporan/proposal-pa`.
-
-- [ ] **Step 1:** Build both books and keep the text: `make pdf && pdftotext output/main.pdf /tmp/<book>-before.txt` in each.
-- [ ] **Step 2:** Rewrite only lines whose first non-space character is `%`:
-
-```bash
-python3 - <<'EOF'
-import sys
-from pathlib import Path
-sys.path.insert(0, "scripts")
-import renames
-pairs = renames.load_pairs(renames.MAP)
-for book in ("laporan/buku-pa", "laporan/progres-pa-1"):
-    for tex in Path(book).rglob("*.tex"):
-        lines = tex.read_text().splitlines(keepends=True)
-        new = [renames.apply_text(l, pairs) if l.lstrip().startswith("%") else l for l in lines]
-        if new != lines:
-            tex.write_text("".join(new))
-            print(tex)
-EOF
-```
-
-- [ ] **Step 3:** Rebuild; `diff /tmp/<book>-before.txt <(pdftotext output/main.pdf -)` must be empty for both books. `git diff -U0 -- laporan | grep '^[-+][^-+]' | grep -v '^[-+]\s*%'` must print nothing (only comment lines changed).
-- [ ] **Step 4:** Commit `docs(laporan): source comments point at the renamed code` with both empty diffs in the body.
+`laporan/` is out of scope (D1, D3). Its `% sumber:` comments keep the old paths.
 
 ---
 
