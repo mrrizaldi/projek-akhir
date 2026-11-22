@@ -61,7 +61,7 @@ C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
    komentar). Pengecualian fungsional saja: deskripsi target `##` di Makefile
    (dipakai `make help`) dan teks bantuan CLI yang dicetak program.
 6. **Aturan hidup di CI.** Pemeriksa: `python3 scripts/check_comments.py` dan
-   `.github/workflows/cek.yml`. Aturan yang tidak bisa diperiksa mesin diubah
+   `.github/workflows/checks.yml`. Aturan yang tidak bisa diperiksa mesin diubah
    jadi pemeriksaan, atau dihapus dari berkas ini.
 
 ### Tutup lingkarannya

@@ -188,3 +188,4 @@ lat_bawah	latency_lower
 terlihat	seen_ts
 ukur_offset	measure_offset
 tunggu_baris	wait_for_line
+.github/workflows/cek.yml	.github/workflows/checks.yml

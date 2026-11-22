@@ -48,7 +48,7 @@ paralel hanya untuk pekerjaan yang tidak berbagi berkas.
 | Berkas | Gelombang | Isi |
 |---|---|---|
 | `CLAUDE.md`, `laporan/CLAUDE.md`, `model/CLAUDE.md` | 0 | Aturan keras 8 (format eval), Dokumentasi (pangkas riwayat), tabel "Skill, muat sebelum mulai" |
-| `scripts/check_skills.py` (baru), `.github/workflows/cek.yml`, `.gitignore` | 0 | validator struktur skill, pengecualian `triggers/evals.json` |
+| `scripts/check_skills.py` (baru), `.github/workflows/checks.yml`, `.gitignore` | 0 | validator struktur skill, pengecualian `triggers/evals.json` |
 | `scripts/trigger_eval.sh` (baru) | 0 | runner uji pemicu terisolasi |
 | `~/dev/{local-file-links,firmware-bounded-limits,indonesian-antislop-writing,kicad-mcp-pcb,wordcraft-latex-ingest}` (baru) | 1 | repo skill user |
 | `~/dev/no-code-comments` | 1 | aturan generik dari `tanpa-komentar-kode` yang belum ada |
@@ -101,7 +101,7 @@ paralel hanya untuk pekerjaan yang tidak berbagi berkas.
   berbentuk daftar `{query, should_trigger}` dengan dua kelas). Tambahan
   khusus PA: `.claude/skills/*/eval.md` tidak boleh ada lagi. Opsi
   `--uji` untuk swauji seperti `check_slop.py --uji`.
-- [ ] `.github/workflows/cek.yml`: langkah `python3 scripts/check_skills.py`.
+- [ ] `.github/workflows/checks.yml`: langkah `python3 scripts/check_skills.py`.
   Selama gelombang 2 belum selesai, validator dijalankan dengan
   `--lewati-eval-lama` supaya CI tetap hijau; opsi itu dihapus di akhir
   gelombang 2.

@@ -15,7 +15,7 @@ Jalankan dari root repo pada berkas yang disentuh, dan serahkan hanya bila kelua
 cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py <berkas>...
 ```
 
-CI menjalankannya untuk seluruh repo lewat `.github/workflows/cek.yml`. Pelanggaran di berkas yang tidak kamu sentuh cukup dilaporkan; menyunting berkas di luar lingkup tugas bukan solusinya.
+CI menjalankannya untuk seluruh repo lewat `.github/workflows/checks.yml`. Pelanggaran di berkas yang tidak kamu sentuh cukup dilaporkan; menyunting berkas di luar lingkup tugas bukan solusinya.
 
 ## Bentuk komentar di repo ini
 
