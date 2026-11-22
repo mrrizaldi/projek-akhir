@@ -7,7 +7,7 @@ def confusion_counts(y_true, y_pred) -> dict:
     y_true = np.asarray(y_true).astype(int)
     y_pred = np.asarray(y_pred).astype(int)
     if y_true.shape != y_pred.shape:
-        raise ValueError(f"bentuk beda: {y_true.shape} vs {y_pred.shape}")
+        raise ValueError(f"shape mismatch: {y_true.shape} vs {y_pred.shape}")
     return {
         "tp": int(((y_pred == 1) & (y_true == 1)).sum()),
         "fn": int(((y_pred == 0) & (y_true == 1)).sum()),
@@ -55,7 +55,7 @@ def roc_auc(y_true, y_prob) -> float:
     y_prob = np.asarray(y_prob, dtype=np.float64)
     n_pos, n_neg = int((y_true == 1).sum()), int((y_true == 0).sum())
     if n_pos == 0 or n_neg == 0:
-        raise ValueError("AUC butuh kedua kelas ada")
+        raise ValueError("AUC needs both classes present")
     order = np.argsort(y_prob, kind="mergesort")
     ranks = np.empty(len(y_prob), dtype=np.float64)
     ranks[order] = np.arange(1, len(y_prob) + 1)
@@ -76,7 +76,7 @@ def average_precision(y_true, y_prob) -> float:
     y_prob = np.asarray(y_prob, dtype=np.float64)
     n_pos = int((y_true == 1).sum())
     if n_pos == 0:
-        raise ValueError("average precision butuh kelas positif")
+        raise ValueError("average precision needs a positive class")
     order = np.argsort(-y_prob, kind="mergesort")
     p_urut, y_urut = y_prob[order], y_true[order]
     ujung_grup = np.r_[np.flatnonzero(np.diff(p_urut)), len(p_urut) - 1]

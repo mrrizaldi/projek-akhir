@@ -76,5 +76,5 @@ def test_skala_ritme_artefak_wajar():
 def test_assert_skala_ritme_benar_benar_menyalak():
     with open(TFLITE, "rb") as f:
         blob = f.read()
-    with pytest.raises(ValueError, match="skala kuantisasi input ritme"):
+    with pytest.raises(ValueError, match="rhythm input quantization scale"):
         assert_skala_ritme_wajar(blob, ambang=0.001)

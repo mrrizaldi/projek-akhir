@@ -8,7 +8,7 @@ def make_class_weights(y) -> dict:
     y = np.asarray(y).astype(int)
     counts = np.bincount(y, minlength=2)
     if (counts == 0).any():
-        raise ValueError(f"satu kelas kosong: Normal={counts[0]}, Aritmia={counts[1]}")
+        raise ValueError(f"one class is empty: Normal={counts[0]}, Arrhythmia={counts[1]}")
     return {c: len(y) / (2.0 * counts[c]) for c in (0, 1)}
 
 
@@ -38,8 +38,8 @@ class RataBobotTerbaik(callbacks.Callback):
     def on_train_end(self, logs=None):
         teratas = sorted(self.riwayat, key=lambda t: -t[0])[:self.n]
         self.epoch_terpakai = sorted(e for _, e, _ in teratas)
-        print(f"[swa] epoch dirata-rata: {self.epoch_terpakai} "
-              f"dari {len(self.riwayat)} epoch")
+        print(f"[swa] averaged epochs: {self.epoch_terpakai} "
+              f"of {len(self.riwayat)} epochs")
         self.model.set_weights([np.mean(w, axis=0)
                                 for w in zip(*[b for _, _, b in teratas])])
 

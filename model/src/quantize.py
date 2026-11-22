@@ -11,7 +11,7 @@ def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
     for kelas in (0, 1):
         pool = np.flatnonzero(y == kelas)
         if len(pool) == 0:
-            raise ValueError(f"kelas {kelas} tidak ada di data kalibrasi (JEBAKAN #4)")
+            raise ValueError(f"class {kelas} is missing from the calibration data (PITFALL #4)")
         ambil = max(1, round(n * len(pool) / len(y)))
         idx.append(rng.choice(pool, size=min(ambil, len(pool)), replace=False))
     return np.sort(np.concatenate(idx))
@@ -54,11 +54,11 @@ def assert_skala_ritme_wajar(blob: bytes, ambang: float = MAX_RHYTHM_SCALE) -> f
         skala = float(d["quantization_parameters"]["scales"][0])
         if skala > ambang:
             raise ValueError(
-                f"skala kuantisasi input ritme {skala:.4f} > ambang {ambang} — "
-                f"hampir pasti satu beat ber-RR ekstrem masuk kolam kalibrasi "
-                f"(cek |X_rr|.max(); record 207 punya RR_prev = 100 s). Cabang "
-                f"ritme akan mati tanpa error: ganti SEED kalibrasi atau saring "
-                f"outlier RR sebelum representative_dataset_gen."
+                f"rhythm input quantization scale {skala:.4f} > threshold {ambang} — "
+                f"almost certainly a beat with an extreme RR entered the calibration pool "
+                f"(check |X_rr|.max(); record 207 has RR_prev = 100 s). The rhythm "
+                f"branch would die without an error: change the calibration SEED or filter "
+                f"RR outliers before representative_dataset_gen."
             )
         return skala
     return float("nan")

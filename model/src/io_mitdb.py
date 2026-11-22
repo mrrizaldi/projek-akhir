@@ -12,7 +12,7 @@ def pilih_lead(record_id: str, sig_name: list, leads) -> int:
         if lead in sig_name:
             return sig_name.index(lead)
     raise ValueError(
-        f"record {record_id}: tidak ada kanal {list(leads)}, hanya {sig_name}"
+        f"record {record_id}: none of the channels {list(leads)} found, only {sig_name}"
     )
 
 
@@ -24,7 +24,7 @@ def load_record(record_id: str, raw_dir: str = None, db: str = "mitdb"):
 
     if record.fs != spec["fs"]:
         raise ValueError(
-            f"record {record_id} ({db}): fs={record.fs}, DATASETS menjanjikan {spec['fs']}"
+            f"record {record_id} ({db}): fs={record.fs}, DATASETS promises {spec['fs']}"
         )
 
     channel = pilih_lead(record_id, record.sig_name, spec["leads"])

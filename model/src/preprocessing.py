@@ -120,7 +120,7 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
     elif model == "normal":
         geser = np.rint(rng.normal(0.0, float(delta), size=len(r))).astype(np.int64)
     else:
-        raise ValueError(f"model jitter tak dikenal: {model}")
+        raise ValueError(f"unknown jitter model: {model}")
 
     return np.maximum.accumulate(r + geser)
 
@@ -139,8 +139,8 @@ def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,
 
     if len(r_baru) > 1 and np.any(np.diff(r_baru) <= 0):
         raise ValueError(
-            f"resample {fs_asal}->{fs_target} Hz membuat R-peak bertabrakan "
-            f"(RR <= 0). Perlu cari-ulang puncak, bukan pembulatan."
+            f"resample {fs_asal}->{fs_target} Hz makes R-peaks collide "
+            f"(RR <= 0). Peaks need to be re-searched, not rounded."
         )
 
     return baru.astype(np.float32), r_baru

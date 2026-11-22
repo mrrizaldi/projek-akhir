@@ -59,7 +59,7 @@ DB_LATIH = ("mitdb", "svdb")
 
 def raw_dir(db: str) -> str:
     if db not in DATASETS:
-        raise KeyError(f"database tak dikenal: {db} (pilihan: {sorted(DATASETS)})")
+        raise KeyError(f"unknown database: {db} (choices: {sorted(DATASETS)})")
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "raw", db)
 
 
