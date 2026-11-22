@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: done-board-check
+expected_outcome: |
+  The pin map in cek_board.py (PIN_U1) and the pin map table in the README are updated together with the pin change; run `python3 hardware/mainboard/cek_board.py` until the last line is LULUS; its output goes into the commit message.

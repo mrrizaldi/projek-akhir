@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: profil-power-3v3
-expected_outcome: |
-  `+3V3` netclass Default 0,3 mm clearance 0,35 mm; Cabang gate Q1 membawa net `/VCHG` sehingga netclass Power 1,0 mm clearance 0,35 mm, walau gate tidak membawa arus. Celah butuh 1,0 mm; pad bulat menyisakan 0,84 mm sehingga tidak muat; pad oval 2,0 x 1,5 mm menyisakan 1,04 mm dan dicatat di README bagian footprint.

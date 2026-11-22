@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: tanya-pin-baru
-expected_outcome: |
-  Membaca hardware/mainboard/README.md dan firmware/include/board.h dulu, lalu bertanya ke user dengan minimal dua opsi (pin GPIO bebas dari board.h, atau tanpa GPIO), akibat tiap opsi, dan satu rekomendasi; tidak memilih sendiri.
