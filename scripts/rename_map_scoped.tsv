@@ -1,0 +1,9 @@
+acquisition.cpp	sumber	source
+acquisition.cpp	tulis	write_index
+acquisition.cpp	baca	read_index
+acquisition.cpp	n_lewat	n_missed
+classifier.cpp	keluar	output
+recorder.cpp	batas	breaks
+recorder.cpp	jeda	paused
+recorder.cpp	tulis	writer
+buttons.cpp	lama	long_held

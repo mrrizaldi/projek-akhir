@@ -27,11 +27,11 @@ constexpr size_t SESSION_N = RECORDER_N * RECORDER_PART_MAX;
 
 static uint16_t *buf;
 static size_t n, session_limit;
-static bool active, jeda, stopped_full, held_back;
+static bool active, paused, stopped_full, held_back;
 static int part_max, part_reported;
 static size_t leadoff_part[RECORDER_PART_MAX];
 static uint32_t missed_start[RECORDER_PART_MAX + 1];
-static size_t batas[BREAKS_MAX];
+static size_t breaks[BREAKS_MAX];
 static int n_breaks;
 static int saved_number;
 static uint32_t t_saved;
@@ -40,17 +40,17 @@ struct writer_t {
     File f;
     const uint16_t *data;
     size_t n, i, leadoff, byte;
-    size_t batas[BREAKS_MAX];
+    size_t breaks[BREAKS_MAX];
     int n_breaks, k, part, n_parts, first_number;
     unsigned missed;
     char path[24];
 };
-static writer_t tulis;
+static writer_t writer;
 static bool writing;
 static char write_block[WRITE_BLOCK_BYTES];
 
 bool recorder_active(void) { return active; }
-bool recorder_paused(void) { return active && jeda; }
+bool recorder_paused(void) { return active && paused; }
 bool recorder_writing(void) { return writing; }
 bool recorder_reject(const char *what)
 {
@@ -114,33 +114,33 @@ static unsigned missed_part(int k)
 
 static bool open_part(int k)
 {
-    const int number = tulis.first_number + k;
-    tulis.part = k;
-    file_name(number, tulis.path, sizeof tulis.path);
-    tulis.f = LittleFS.open(tulis.path, "w");
-    if (!tulis.f) {
+    const int number = writer.first_number + k;
+    writer.part = k;
+    file_name(number, writer.path, sizeof writer.path);
+    writer.f = LittleFS.open(writer.path, "w");
+    if (!writer.f) {
         writing = false;
         held_back = true;
         Serial.printf("GAGAL membuka %s: bagian %d-%d tetap di PSRAM, ulangi simpan dengan r / tahan B3\n",
-                      tulis.path, k + 1, tulis.n_parts);
+                      writer.path, k + 1, writer.n_parts);
         tampilan_pesan("GAGAL SIMPAN", "tekan r ulangi");
         return false;
     }
     const size_t start = (size_t)k * RECORDER_N;
-    tulis.data = buf + start;
-    tulis.n = min(n - start, RECORDER_N);
-    tulis.i = 0;
-    tulis.k = 0;
-    tulis.leadoff = leadoff_part[k];
-    tulis.missed = missed_part(k);
-    tulis.n_breaks = 0;
+    writer.data = buf + start;
+    writer.n = min(n - start, RECORDER_N);
+    writer.i = 0;
+    writer.k = 0;
+    writer.leadoff = leadoff_part[k];
+    writer.missed = missed_part(k);
+    writer.n_breaks = 0;
     for (int j = 0; j < n_breaks; j++)
-        if (batas[j] > start && batas[j] < start + tulis.n) tulis.batas[tulis.n_breaks++] = batas[j] - start;
-    const float percent = tulis.n ? 100.0f * tulis.leadoff / tulis.n : 0.0f;
-    tulis.byte = tulis.f.printf("# fs=%u n=%u lewat=%u lepas=%u (%.0f%%)", ECG_FS, (unsigned)tulis.n,
-                                tulis.missed, (unsigned)tulis.leadoff, percent);
-    if (k) tulis.byte += tulis.f.printf(" lanjutan=%03d celah=0", number - 1);
-    tulis.byte += tulis.f.print("\n");
+        if (breaks[j] > start && breaks[j] < start + writer.n) writer.breaks[writer.n_breaks++] = breaks[j] - start;
+    const float percent = writer.n ? 100.0f * writer.leadoff / writer.n : 0.0f;
+    writer.byte = writer.f.printf("# fs=%u n=%u lewat=%u lepas=%u (%.0f%%)", ECG_FS, (unsigned)writer.n,
+                                writer.missed, (unsigned)writer.leadoff, percent);
+    if (k) writer.byte += writer.f.printf(" lanjutan=%03d celah=0", number - 1);
+    writer.byte += writer.f.print("\n");
     writing = true;
     held_back = false;
     return true;
@@ -148,41 +148,41 @@ static bool open_part(int k)
 
 static void close_write(bool failed)
 {
-    tulis.f.close();
-    const size_t size = LittleFS.open(tulis.path, "r").size();
-    const float percent = tulis.n ? 100.0f * tulis.leadoff / tulis.n : 0.0f;
+    writer.f.close();
+    const size_t size = LittleFS.open(writer.path, "r").size();
+    const float percent = writer.n ? 100.0f * writer.leadoff / writer.n : 0.0f;
     if (failed) Serial.printf("GAGAL: LittleFS penuh setelah %u sampel, %s terpotong\n",
-                             (unsigned)tulis.i, tulis.path);
-    if (size != tulis.byte)
-        Serial.printf("PERINGATAN: %s berukuran %u B, tertulis %u B\n", tulis.path, (unsigned)size,
-                      (unsigned)tulis.byte);
+                             (unsigned)writer.i, writer.path);
+    if (size != writer.byte)
+        Serial.printf("PERINGATAN: %s berukuran %u B, tertulis %u B\n", writer.path, (unsigned)size,
+                      (unsigned)writer.byte);
     Serial.printf("SIMPAN %u sampel (%.1f detik, %d segmen), %u terlewat, elektroda lepas %.0f%% -> %s\n",
-                  (unsigned)tulis.n, (float)tulis.n / ECG_FS, tulis.n_breaks + 1, tulis.missed, percent,
-                  tulis.path);
-    if (tulis.leadoff > tulis.n / 10)
+                  (unsigned)writer.n, (float)writer.n / ECG_FS, writer.n_breaks + 1, writer.missed, percent,
+                  writer.path);
+    if (writer.leadoff > writer.n / 10)
         Serial.println("PERINGATAN: elektroda lepas >10% — rekaman ini kemungkinan besar kosong.");
-    saved_number = tulis.first_number + tulis.part;
+    saved_number = writer.first_number + writer.part;
     t_saved = millis();
     writing = false;
-    if (!failed && tulis.part + 1 < tulis.n_parts) { open_part(tulis.part + 1); return; }
+    if (!failed && writer.part + 1 < writer.n_parts) { open_part(writer.part + 1); return; }
     tampilan_bunyi(BEEP_SAVE_MS);
 }
 
 static void write_step()
 {
     size_t len = 0;
-    const size_t end = min(tulis.n, tulis.i + SAMPLES_PER_WRITE);
-    for (; tulis.i < end; tulis.i++) {
-        if (tulis.k < tulis.n_breaks && tulis.batas[tulis.k] == tulis.i) {
+    const size_t end = min(writer.n, writer.i + SAMPLES_PER_WRITE);
+    for (; writer.i < end; writer.i++) {
+        if (writer.k < writer.n_breaks && writer.breaks[writer.k] == writer.i) {
             len += snprintf(write_block + len, sizeof write_block - len, "%s", PAUSE_LINE);
-            tulis.k++;
+            writer.k++;
         }
-        len += snprintf(write_block + len, sizeof write_block - len, "%u\n", tulis.data[tulis.i]);
+        len += snprintf(write_block + len, sizeof write_block - len, "%u\n", writer.data[writer.i]);
     }
-    const size_t written = tulis.f.write((const uint8_t *)write_block, len);
-    tulis.byte += written;
+    const size_t written = writer.f.write((const uint8_t *)write_block, len);
+    writer.byte += written;
     const bool failed = written != len;
-    if (failed || tulis.i >= tulis.n) close_write(failed);
+    if (failed || writer.i >= writer.n) close_write(failed);
 }
 
 static void finish_write()
@@ -195,12 +195,12 @@ static void save_session()
     active = false;
     buzzer(false);
     missed_start[RECORDER_PART_MAX] = acquisition_missed();
-    if (n_breaks && batas[n_breaks - 1] >= n) n_breaks--;
-    tulis.n_parts = (int)((n + RECORDER_N - 1) / RECORDER_N);
-    if (!tulis.n_parts) { Serial.println("REKAM: sesi kosong, tidak ada yang disimpan"); return; }
-    tulis.first_number = last() + 1;
+    if (n_breaks && breaks[n_breaks - 1] >= n) n_breaks--;
+    writer.n_parts = (int)((n + RECORDER_N - 1) / RECORDER_N);
+    if (!writer.n_parts) { Serial.println("REKAM: sesi kosong, tidak ada yang disimpan"); return; }
+    writer.first_number = last() + 1;
     Serial.printf("REKAM berhenti: %u sampel (%.1f detik), menulis %d berkas dari PSRAM\n", (unsigned)n,
-                  (float)n / ECG_FS, tulis.n_parts);
+                  (float)n / ECG_FS, writer.n_parts);
     open_part(0);
 }
 
@@ -223,7 +223,7 @@ void recorder_service(void)
 
 void recorder_sample(uint16_t s)
 {
-    if (!active || jeda || !buf) return;
+    if (!active || paused || !buf) return;
     const size_t k = n / RECORDER_N;
     if (n % RECORDER_N == 0) missed_start[k] = acquisition_missed();
     buf[n++] = s;
@@ -234,7 +234,7 @@ void recorder_sample(uint16_t s)
 void recorder_toggle(void)
 {
     if (active) { save_session(); return; }
-    if (held_back) { open_part(tulis.part); return; }
+    if (held_back) { open_part(writer.part); return; }
     const int last_number = last();
     part_max = (int)min<size_t>(RECORDER_PART_MAX, free_space() / FULL_FILE_SPACE);
     part_max = min(part_max, RECORDER_NUMBER_MAX - last_number);
@@ -255,7 +255,7 @@ void recorder_toggle(void)
     session_limit = (size_t)part_max * RECORDER_N;
     n = 0;
     n_breaks = 0;
-    jeda = false;
+    paused = false;
     stopped_full = false;
     part_reported = 1;
     memset(leadoff_part, 0, sizeof leadoff_part);
@@ -268,12 +268,12 @@ void recorder_toggle(void)
 void recorder_pause(void)
 {
     if (!active) { Serial.println("REKAM: tidak sedang merekam"); return; }
-    jeda = !jeda;
-    if (jeda && n && (!n_breaks || batas[n_breaks - 1] < n)) {
-        if (n_breaks < BREAKS_MAX) batas[n_breaks++] = n;
+    paused = !paused;
+    if (paused && n && (!n_breaks || breaks[n_breaks - 1] < n)) {
+        if (n_breaks < BREAKS_MAX) breaks[n_breaks++] = n;
         else Serial.println("PERINGATAN: batas jeda penuh, segmen ini lebur dengan berikutnya");
     }
-    Serial.printf("REKAM %s n=%u (%.1f detik)\n", jeda ? "jeda" : "lanjut", (unsigned)n,
+    Serial.printf("REKAM %s n=%u (%.1f detik)\n", paused ? "jeda" : "lanjut", (unsigned)n,
                   (float)n / ECG_FS);
 }
 

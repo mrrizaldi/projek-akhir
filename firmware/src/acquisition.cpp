@@ -13,14 +13,14 @@
 #include "golden_ref.h"
 
 static volatile uint16_t queue[QUEUE_N];
-static volatile size_t tulis, baca;
-static volatile uint32_t n_lewat, n_tick_lost;
+static volatile size_t write_index, read_index;
+static volatile uint32_t n_missed, n_tick_lost;
 static uint32_t cycles_per_sample, cycles_previous;
 constexpr uint32_t HZ_PER_MHZ = 1000000UL;
 constexpr uint32_t DIVISOR_HALF_PERIOD = 2;
 static hw_timer_t *timer;
 
-static int sumber, source_recording;
+static int source, source_recording;
 static const uint16_t *volatile rp_data;
 static volatile size_t rp_n, replay_i;
 static uint16_t *recording_buf;
@@ -44,15 +44,15 @@ static void IRAM_ATTR count_lost_ticks()
 static void IRAM_ATTR on_timer()
 {
     count_lost_ticks();
-    const size_t next = (tulis + 1) % QUEUE_N;
-    if (next == baca) { n_lewat++; return; }
+    const size_t next = (write_index + 1) % QUEUE_N;
+    if (next == read_index) { n_missed++; return; }
     if (rp_data) {
-        queue[tulis] = rp_data[replay_i];
+        queue[write_index] = rp_data[replay_i];
         if (++replay_i >= rp_n) replay_i = 0;
     } else {
-        queue[tulis] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
+        queue[write_index] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
     }
-    tulis = next;
+    write_index = next;
 }
 
 void acquisition_begin(void)
@@ -74,18 +74,18 @@ void acquisition_begin(void)
 
 bool acquisition_fetch(uint16_t *sample)
 {
-    if (baca == tulis) return false;
-    *sample = queue[baca];
-    baca = (baca + 1) % QUEUE_N;
+    if (read_index == write_index) return false;
+    *sample = queue[read_index];
+    read_index = (read_index + 1) % QUEUE_N;
     return true;
 }
 
-size_t acquisition_fill(void) { return (tulis - baca + QUEUE_N) % QUEUE_N; }
-uint32_t acquisition_missed(void) { return n_lewat + n_tick_lost; }
+size_t acquisition_fill(void) { return (write_index - read_index + QUEUE_N) % QUEUE_N; }
+uint32_t acquisition_missed(void) { return n_missed + n_tick_lost; }
 uint32_t acquisition_tick_lost(void) { return n_tick_lost; }
-void acquisition_zero_missed(void) { n_lewat = n_tick_lost = 0; }
-bool acquisition_replay(void) { return sumber != SOURCE_ADC; }
-int acquisition_source(void) { return sumber; }
+void acquisition_zero_missed(void) { n_missed = n_tick_lost = 0; }
+bool acquisition_replay(void) { return source != SOURCE_ADC; }
+int acquisition_source(void) { return source; }
 int acquisition_source_recording(void) { return source_recording; }
 
 void acquisition_timer(bool running)
@@ -114,7 +114,7 @@ static bool attach_source(int s, int number)
         rp_data = nullptr;
     }
     replay_i = 0;
-    sumber = s;
+    source = s;
     source_recording = s == SOURCE_RECORDING ? number : 0;
     return true;
 }
@@ -126,18 +126,18 @@ bool acquisition_set_source(int s, int number, bool save)
     const bool ok = attach_source(s, number);
     acquisition_timer(true);
     if (!ok) return false;
-    if (save) konfig_set_sumber(sumber, source_recording);
+    if (save) konfig_set_sumber(source, source_recording);
     gate_begin_session();
     classifier_reset();
-    if (sumber == SOURCE_RECORDING)
+    if (source == SOURCE_RECORDING)
         Serial.printf("replay ON (rekaman %03d, %u sampel)\n", source_recording, (unsigned)rp_n);
     else
-        Serial.printf("replay %s\n", sumber == SOURCE_REFERENCE ? "ON (golden_raw)" : "OFF (ADC)");
+        Serial.printf("replay %s\n", source == SOURCE_REFERENCE ? "ON (golden_raw)" : "OFF (ADC)");
     return true;
 }
 
 void acquisition_switch_source(void)
 {
-    acquisition_set_source(sumber == SOURCE_ADC ? SOURCE_REFERENCE : SOURCE_ADC, 0, true);
+    acquisition_set_source(source == SOURCE_ADC ? SOURCE_REFERENCE : SOURCE_ADC, 0, true);
 }
 #endif

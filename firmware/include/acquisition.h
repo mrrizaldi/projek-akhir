@@ -18,7 +18,7 @@ enum { SOURCE_ADC, SOURCE_REFERENCE, SOURCE_RECORDING };
 int acquisition_source(void);
 int acquisition_source_recording(void);
 bool acquisition_replay(void);
-bool acquisition_set_source(int sumber, int number, bool save);
+bool acquisition_set_source(int source, int number, bool save);
 void acquisition_switch_source(void);
 
 #endif

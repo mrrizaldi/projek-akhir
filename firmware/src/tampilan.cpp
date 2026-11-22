@@ -71,10 +71,10 @@ static size_t i_plot;
 
 static float tertunda(float f)
 {
-    const float lama = tunda_plot[i_plot];
+    const float previous = tunda_plot[i_plot];
     tunda_plot[i_plot] = f;
     i_plot = (i_plot + 1) % TUNDA_BIP;
-    return lama;
+    return previous;
 }
 
 static void plot(float f)

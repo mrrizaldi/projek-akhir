@@ -19,7 +19,7 @@
 constexpr int ARENA_N = 24 * 1024;
 alignas(16) static uint8_t arena[ARENA_N];
 static tflite::MicroInterpreter *interp;
-static TfLiteTensor *in_morph, *in_rr, *keluar;
+static TfLiteTensor *in_morph, *in_rr, *output;
 
 static classifier_count_t h;
 
@@ -50,7 +50,7 @@ void classifier_begin(void)
     const bool a_small = a->bytes < b->bytes;
     in_rr = a_small ? a : b;
     in_morph = a_small ? b : a;
-    keluar = interp->output(0);
+    output = interp->output(0);
 }
 
 static int8_t to_int8(float x, float scale, int zero)
@@ -68,7 +68,7 @@ static float classifier(const ecg_beat_t &beat)
     for (int i = 0; i < ECG_N_RR; i++)
         in_rr->data.int8[i] = to_int8(beat.rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
     interp->Invoke();
-    return (keluar->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
+    return (output->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 }
 
 static void publish(const ecg_beat_t &beat, float p, bool arrhythmia)
