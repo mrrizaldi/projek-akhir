@@ -113,9 +113,9 @@ def main(record_id: str) -> None:
     p2 = os.path.join(OUT_DIR, f"walkthrough_pt_{record_id}.png")
     fig2.savefig(p2, dpi=120)
 
-    print(f"anotasi={len(r_locations)} beat, window valid={len(windows)}, "
-          f"dibuang={len(r_locations) - len(windows)}")
-    print(f"5 detik pertama: anotasi={len(r_in)}, PT deteksi={len(peaks_in)}")
+    print(f"annotations={len(r_locations)} beats, valid windows={len(windows)}, "
+          f"dropped={len(r_locations) - len(windows)}")
+    print(f"first 5 seconds: annotations={len(r_in)}, PT detections={len(peaks_in)}")
     print(f"raw     mean={signal.mean():+.4f} std={signal.std():.4f}")
     print(f"filter  mean={filtered.mean():+.4f} std={filtered.std():.4f}")
     print(f"zscore  mean={z.mean():+.4f} std={z.std():.4f}")

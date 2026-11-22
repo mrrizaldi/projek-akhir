@@ -77,7 +77,7 @@ $$n_0 w_0 = 109542 \times 0{,}556 \approx 60929 \approx 12315 \times 4{,}948 = n
 
 Kedua kelas menyumbang total loss yang sama besar. Satu beat Aritmia yang salah
 "berteriak" 8,9× lebih keras daripada satu beat Normal yang salah. Ini
-di-assert di `tests/test_train.py::test_kontribusi_dua_kelas_jadi_setara`.
+di-assert di `tests/test_train.py::test_two_class_contributions_equal`.
 
 ### Kenapa bukan oversampling
 
@@ -294,7 +294,7 @@ DS2 (rerata 3 seed), termasuk LR tengah 3e-4:
 3e-4 justru paling buruk di S, jadi tidak ada titik tengah yang memuaskan
 keduanya: menurunkan LR menurunkan S dan menaikkan yang lain. Defisit S
 terbukti nyata di titik operasi yang setara (6 dari 6 titik,
-`scripts/cek_titik_operasi.py`), bukan artefak threshold. **LR tetap 1e-3.**
+`scripts/check_operating_point.py`), bukan artefak threshold. **LR tetap 1e-3.**
 
 Recall per kelas pada recall total yang disamakan (seed 42):
 
@@ -337,7 +337,7 @@ selisih   0,0376
 **Rerata 3 seed pun bergoyang ~0,04 antar batch.** Konsekuensinya: selisih di
 bawah 0,04 tidak berubah jadi sinyal hanya karena diulang 3 seed. Yang benar-benar
 menaikkan daya pisah adalah **set uji yang lebih besar** — itulah gunanya
-TEST-B/TEST-C (39 pasien held-out, `ablasi.py --lintas-db`).
+TEST-B/TEST-C (39 pasien held-out, `ablasi.py --cross-db`).
 
 ---
 

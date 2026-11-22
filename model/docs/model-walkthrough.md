@@ -199,9 +199,9 @@ Empat test mengunci kontraknya (`tests/test_model.py`):
 | Test | Menangkap kalau... |
 |---|---|
 | `test_param_budget` | `Flatten` menyelinap, atau Dense kegedean |
-| `test_dua_input_satu_output` | bentuk input/output menyimpang dari `.npz` Fase 3 |
-| `test_predict_dummy_di_rentang_probabilitas` | aktivasi output bukan sigmoid |
-| `test_cabang_ritme_benar_benar_terpakai` | `Concatenate` salah sambung |
+| `test_two_inputs_one_output` | bentuk input/output menyimpang dari `.npz` Fase 3 |
+| `test_predict_dummy_in_probability_range` | aktivasi output bukan sigmoid |
+| `test_rhythm_branch_really_used` | `Concatenate` salah sambung |
 
 Yang terakhir paling berharga dan paling mudah dilupakan: ubah **hanya**
 `X_rr`, morfologi dibiarkan nol, output harus berubah. Kalau cabang RR

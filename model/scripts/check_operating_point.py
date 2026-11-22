@@ -14,7 +14,7 @@ for tag in ("t8_lr1e3", "t8_lr3e4", "t8_lr1e4"):
     m = keras.models.load_model(os.path.join(ARTIFACT_DIR, f"model_fp32_{tag}.keras"))
     prob[tag] = m.predict([d["X_morph"], d["X_rr"]], batch_size=4096, verbose=0).ravel()
 
-def pada_recall(p, target):
+def at_recall(p, target):
     for t in np.arange(0.999, 0.0, -0.001):
         pred = (p >= t).astype(int)
         rec = pred[y == 1].mean()
@@ -23,12 +23,12 @@ def pada_recall(p, target):
                    (y[pred == 1].mean() if pred.sum() else 0.0)
     return None
 
-print("Recall S pada RECALL TOTAL yang disamakan (DS2, seed 42)\n")
-print(f"{'recall total':>13} | " + " | ".join(f"{t:>21}" for t in prob))
+print("Recall S at EQUALIZED TOTAL RECALL (DS2, seed 42)\n")
+print(f"{'total recall':>13} | " + " | ".join(f"{t:>21}" for t in prob))
 print("-" * 80)
 for target in (0.55, 0.60, 0.65, 0.70, 0.75, 0.80):
     sel = []
     for t in prob:
-        r = pada_recall(prob[t], target)
+        r = at_recall(prob[t], target)
         sel.append(f"recS {r[1]:.3f} recV {r[2]:.3f}" if r else "         -           ")
     print(f"{target:>13.2f} | " + " | ".join(f"{s:>21}" for s in sel))

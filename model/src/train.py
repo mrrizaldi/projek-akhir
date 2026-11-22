@@ -8,7 +8,7 @@ def make_class_weights(y) -> dict:
     y = np.asarray(y).astype(int)
     counts = np.bincount(y, minlength=2)
     if (counts == 0).any():
-        raise ValueError(f"satu kelas kosong: Normal={counts[0]}, Aritmia={counts[1]}")
+        raise ValueError(f"one class is empty: Normal={counts[0]}, Arrhythmia={counts[1]}")
     return {c: len(y) / (2.0 * counts[c]) for c in (0, 1)}
 
 
@@ -25,7 +25,7 @@ def compile_model(model, lr: float = 0.0):
     return model
 
 
-class RataBobotTerbaik(callbacks.Callback):
+class BestWeightAverage(callbacks.Callback):
     def __init__(self, monitor: str, n: int):
         super().__init__()
         self.monitor, self.n = monitor, n
@@ -36,27 +36,27 @@ class RataBobotTerbaik(callbacks.Callback):
                              [w.copy() for w in self.model.get_weights()]))
 
     def on_train_end(self, logs=None):
-        teratas = sorted(self.riwayat, key=lambda t: -t[0])[:self.n]
-        self.epoch_terpakai = sorted(e for _, e, _ in teratas)
-        print(f"[swa] epoch dirata-rata: {self.epoch_terpakai} "
-              f"dari {len(self.riwayat)} epoch")
+        top = sorted(self.riwayat, key=lambda t: -t[0])[:self.n]
+        self.epochs_used = sorted(e for _, e, _ in top)
+        print(f"[swa] averaged epochs: {self.epochs_used} "
+              f"of {len(self.riwayat)} epochs")
         self.model.set_weights([np.mean(w, axis=0)
-                                for w in zip(*[b for _, _, b in teratas])])
+                                for w in zip(*[b for _, _, b in top])])
 
 
 def train(model, train_data: dict, val_data: dict,
           epochs: int = EPOCHS, batch_size: int = BATCH_SIZE,
-          pakai_class_weight: bool = True, swa_n: int = 0, lr: float = 0.0):
+          use_class_weight: bool = True, swa_n: int = 0, lr: float = 0.0):
     compile_model(model, lr)
     cb = [callbacks.EarlyStopping(
         monitor=EARLY_STOP_MONITOR, mode="max",
         patience=EARLY_STOP_PATIENCE, restore_best_weights=True,
     )]
     if swa_n > 0:
-        cb.append(RataBobotTerbaik(EARLY_STOP_MONITOR, swa_n))
+        cb.append(BestWeightAverage(EARLY_STOP_MONITOR, swa_n))
     return model.fit(
         [train_data["X_morph"], train_data["X_rr"]], train_data["y"],
         validation_data=([val_data["X_morph"], val_data["X_rr"]], val_data["y"]),
-        class_weight=make_class_weights(train_data["y"]) if pakai_class_weight else None,
+        class_weight=make_class_weights(train_data["y"]) if use_class_weight else None,
         epochs=epochs, batch_size=batch_size, callbacks=cb, verbose=2,
     )

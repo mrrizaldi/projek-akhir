@@ -59,7 +59,7 @@ sekitarnya.
 
 Ini yang paling halus, dan paling merusak kalau terlewat.
 
-Window training dipotong di `r_anotasi - WIN_PRE`, sedangkan sinyal yang
+Window training dipotong di `r_annotated - WIN_PRE`, sedangkan sinyal yang
 difilter menggeser puncak R **+4 sampel** (JEBAKAN Fase 1). Jadi saat training,
 R selalu mendarat di **`WIN_PRE + 4`** — indeks **132** pada window 128/128
 yang berlaku (94 pada window baseline 90/160).
@@ -186,8 +186,8 @@ lebih banyak deteksi palsu. Trade-off itu bisa diukur dengan skrip yang sama.
 r_kasar   = pan_tompkins(filtered)      // punya delay ~38 sampel
 r_kompen  = r_kasar - 38                // kompensasi median (kalibrasi DS1)
 r_halus   = argmax(filtered, r_kompen +- 25)   // puncak sebenarnya
-r_pakai   = r_halus - 4                 // kembalikan group delay -> R di indeks 132
-window    = filtered[r_pakai - 128 : r_pakai + 128]   // WIN_PRE / WIN_POST
+r_used   = r_halus - 4                 // kembalikan group delay -> R di indeks 132
+window    = filtered[r_used - 128 : r_used + 128]   // WIN_PRE / WIN_POST
 ```
 
 Konstanta yang sama di firmware: `ECG_PT_OFFSET` 38, `ECG_GROUP_DELAY` 4,

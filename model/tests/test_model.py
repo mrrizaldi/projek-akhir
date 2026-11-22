@@ -9,7 +9,7 @@ def test_param_budget():
     assert 5000 <= n <= 7000, f"count_params()={n}, cek Flatten/Dense kegedean"
 
 
-def test_dua_input_satu_output():
+def test_two_inputs_one_output():
     m = build_hybrid_model()
     assert len(m.inputs) == 2
     assert tuple(m.inputs[0].shape) == (None, WIN_LEN, 1)
@@ -17,14 +17,14 @@ def test_dua_input_satu_output():
     assert tuple(m.output.shape) == (None, 1)
 
 
-def test_predict_dummy_di_rentang_probabilitas():
+def test_predict_dummy_in_probability_range():
     m = build_hybrid_model()
     y = m.predict([np.zeros((4, WIN_LEN, 1)), np.zeros((4, N_RR_FEATURES))], verbose=0)
     assert y.shape == (4, 1)
     assert np.all((y >= 0) & (y <= 1))
 
 
-def test_cabang_ritme_benar_benar_terpakai():
+def test_rhythm_branch_really_used():
     m = build_hybrid_model()
     morph = np.zeros((1, WIN_LEN, 1))
     a = m.predict([morph, np.zeros((1, N_RR_FEATURES))], verbose=0)

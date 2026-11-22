@@ -6,15 +6,15 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import AAMI_MAP, DATASETS, WIN_PRE
-from src.dataset import records_tersedia
+from src.dataset import available_records
 from src.io_mitdb import load_record
 from src.preprocessing import (
-    apply_bandpass, design_bandpass_sos, segment_beats, selaraskan_r,
+    apply_bandpass, design_bandpass_sos, segment_beats, align_r,
     zscore_per_window,
 )
 
 R_IDX = WIN_PRE + 4
-N_REC = int(os.environ.get("PA_CEK_REC", 8))
+N_REC = int(os.environ.get("PA_CHECK_REC", 8))
 
 
 def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
@@ -25,16 +25,16 @@ def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
     normal = np.array([AAMI_MAP[s] == "N" for s in sym])
 
     out = {}
-    for nama, r in (("mentah", r0), ("selaras", selaraskan_r(r0, filt))):
+    for nama, r in (("mentah", r0), ("selaras", align_r(r0, filt))):
         ok = (r - WIN_PRE >= 0) & (r + WIN_PRE <= len(signal)) & normal
         if ok.sum() < 20:
             return {}
         w = zscore_per_window(segment_beats(filt, r[ok]))
-        di_r = w[:, R_IDX]
+        at_r = w[:, R_IDX]
         out[nama] = {
             "n": len(w),
-            "mean": float(di_r.mean()),
-            "%positif": float((di_r > 0).mean() * 100),
+            "mean": float(at_r.mean()),
+            "%positif": float((at_r > 0).mean() * 100),
             "puncak_di": int(np.argmax(np.abs(w).mean(axis=0))),
         }
     return out
@@ -42,19 +42,19 @@ def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
 
 def main() -> None:
     sos = design_bandpass_sos()
-    print(f"nilai window ter-z-score di indeks R={R_IDX}, beat NORMAL saja\n")
+    print(f"z-scored window value at index R={R_IDX}, NORMAL beats only\n")
     print(f"{'db':10} {'lead':6} {'rec':6} {'n':>6} | "
-          f"{'MENTAH: mean':>12} {'%pos':>5} {'pk':>4} | "
-          f"{'SELARAS: mean':>13} {'%pos':>5} {'pk':>4}")
+          f"{'RAW: mean':>12} {'%pos':>5} {'pk':>4} | "
+          f"{'ALIGNED: mean':>13} {'%pos':>5} {'pk':>4}")
     print("-" * 82)
 
-    rencana = [("mitdb", None), ("svdb", "ECG1"), ("svdb", "ECG2"),
+    plan = [("mitdb", None), ("svdb", "ECG1"), ("svdb", "ECG2"),
                ("incartdb", None)]
     ringkas = {}
-    for db, lead in rencana:
-        recs = records_tersedia(db)
+    for db, lead in plan:
+        recs = available_records(db)
         if not recs:
-            print(f"{db:10} {'-':6} belum ada record lengkap — lewati")
+            print(f"{db:10} {'-':6} no complete record yet — skipped")
             continue
         asli = DATASETS[db]["leads"]
         nilai = []
@@ -78,18 +78,18 @@ def main() -> None:
             ringkas[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
                                                  (a[:, 0] > 0).mean(), len(a))
 
-    print("\n── vonis POLARITAS (dari kolom MENTAH — jangan dari SELARAS) ──")
+    print("\n── POLARITY verdict (from the RAW column — not from ALIGNED) ──")
     acuan = ringkas.get("mitdb/MLII", (None,))[0]
     for k, (mentah, selaras, konsisten, n) in ringkas.items():
         vonis = ""
         if acuan is not None and k != "mitdb/MLII":
-            vonis = ("  <- SEBANDING" if np.sign(mentah) == np.sign(acuan) and konsisten > 0.8
-                     else "  <- CURIGA / TERBALIK")
-        print(f"  {k:18} mentah {mentah:+7.3f}  ({100*konsisten:.0f}% record positif, "
+            vonis = ("  <- COMPARABLE" if np.sign(mentah) == np.sign(acuan) and konsisten > 0.8
+                     else "  <- SUSPICIOUS / INVERTED")
+        print(f"  {k:18} raw {mentah:+7.3f}  ({100*konsisten:.0f}% records positive, "
               f"n={n}){vonis}")
-    print("\n── vonis ALIGNMENT (dari kolom SELARAS; puncak harus 132) ──")
+    print("\n── ALIGNMENT verdict (from the ALIGNED column; peak must be 132) ──")
     for k, (mentah, selaras, konsisten, n) in ringkas.items():
-        print(f"  {k:18} selaras {selaras:+7.3f}")
+        print(f"  {k:18} aligned {selaras:+7.3f}")
 
 
 if __name__ == "__main__":

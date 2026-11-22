@@ -32,7 +32,7 @@ def build_deploy_model(trained: Model) -> Model:
     for layer in trained.layers:
         if isinstance(layer, (layers.Conv1D, layers.MaxPooling1D)):
             x = layer.__class__.from_config(layer.get_config())(x)
-    langkah, kanal = int(x.shape[1]), int(x.shape[2])
+    langkah, channels = int(x.shape[1]), int(x.shape[2])
     x = layers.DepthwiseConv1D(kernel_size=langkah, use_bias=False, name="gap_dw")(x)
 
     rr_in = Input(shape=(1, N_RR_FEATURES), name="rhythm")
@@ -41,13 +41,13 @@ def build_deploy_model(trained: Model) -> Model:
     y = layers.Conv1D(1, 1, activation="sigmoid", name="arrhythmia")(y)
     deploy = Model([morph_in, rr_in], y, name="hybrid_ecg_deploy")
 
-    conv_lama = [l for l in trained.layers if isinstance(l, layers.Conv1D)]
-    conv_baru = [l for l in deploy.layers
+    conv_old = [l for l in trained.layers if isinstance(l, layers.Conv1D)]
+    conv_new = [l for l in deploy.layers
                  if isinstance(l, layers.Conv1D) and l.name.startswith("conv")]
-    for lama, baru in zip(conv_lama, conv_baru):
+    for lama, baru in zip(conv_old, conv_new):
         baru.set_weights(lama.get_weights())
     deploy.get_layer("gap_dw").set_weights(
-        [np.full((langkah, kanal, 1), 1.0 / langkah, dtype=np.float32)])
+        [np.full((langkah, channels, 1), 1.0 / langkah, dtype=np.float32)])
 
     dense = [l for l in trained.layers if isinstance(l, layers.Dense)]
     for l, nama in zip(dense, ("dense_1x1", "arrhythmia")):

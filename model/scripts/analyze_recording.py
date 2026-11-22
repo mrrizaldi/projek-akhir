@@ -17,7 +17,7 @@ from src.preprocessing import (
 )
 
 
-def denyut_autokorelasi(x, fs):
+def autocorrelation_pulse(x, fs):
     q = sosfilt(butter(2, [5, 15], btype="bandpass", fs=fs, output="sos"), x - x.mean())
     e = q ** 2
     e = e - e.mean()
@@ -28,28 +28,28 @@ def denyut_autokorelasi(x, fs):
 
     puncak = [ac[i] for i in range(lo + 1, hi - 1)
               if ac[i] > ac[i - 1] and ac[i] >= ac[i + 1]]
-    saingan = sum(1 for v in puncak if v >= 0.8 * ac[lag])
-    return float(ac[lag]), 60.0 * fs / lag, saingan
+    rival_peaks = sum(1 for v in puncak if v >= 0.8 * ac[lag])
+    return float(ac[lag]), 60.0 * fs / lag, rival_peaks
 
 
-JENDELA_AUTOKORELASI_S = 30
+AUTOCORRELATION_WINDOW_S = 30
 ADC_UPPER, ADC_LOWER = 4090, 5
-AMBANG_CLIPPING_PERSEN = 0.1
+CLIPPING_PERCENT_THRESHOLD = 0.1
 
 
-def hitung_clipping(mentah):
+def compute_clipping(mentah):
     n_clip = int((mentah >= ADC_UPPER).sum() + (mentah <= ADC_LOWER).sum())
     persen = 100.0 * n_clip / len(mentah)
-    return n_clip, persen, persen <= AMBANG_CLIPPING_PERSEN
+    return n_clip, persen, persen <= CLIPPING_PERCENT_THRESHOLD
 
 
-def denyut_per_jendela(x, fs):
-    n = int(JENDELA_AUTOKORELASI_S * fs)
+def pulse_per_window(x, fs):
+    n = int(AUTOCORRELATION_WINDOW_S * fs)
     if len(x) < 2 * n:
-        return denyut_autokorelasi(x, fs)
-    kuat, bpm, saingan = zip(*(denyut_autokorelasi(x[i:i + n], fs)
+        return autocorrelation_pulse(x, fs)
+    strength, bpm, rival_peaks = zip(*(autocorrelation_pulse(x[i:i + n], fs)
                                for i in range(0, len(x) - n + 1, n)))
-    return float(np.median(kuat)), float(np.median(bpm)), int(round(np.median(saingan)))
+    return float(np.median(strength)), float(np.median(bpm)), int(round(np.median(rival_peaks)))
 
 
 def muat(path: str):
@@ -75,41 +75,41 @@ def muat(path: str):
     return [np.asarray(v, dtype=np.float32) for v in segmen if v], fs, lewat
 
 
-def pita_energi(x, fs, a, b):
+def band_energy(x, fs, a, b):
     sp = np.abs(np.fft.rfft(x * np.hanning(len(x))))
     fr = np.fft.rfftfreq(len(x), 1 / fs)
     return float(sp[(fr >= a) & (fr < b)].sum())
 
 
-def analisis_segmen(mentah, fs):
+def analyze_segment(mentah, fs):
     x = (mentah - mentah.mean()) / 1000.0
     filtered = apply_bandpass(x, design_bandpass_sos())
     r = pan_tompkins_detect(filtered, fs)
     return {
         "n": len(mentah), "x": x, "filtered": filtered, "r": r,
         "rr": np.diff(r) / fs if len(r) > 2 else np.array([]),
-        "pita": [pita_energi(x, fs, a, b) for a, b in
+        "pita": [band_energy(x, fs, a, b) for a, b in
                  ((0.5, 40), (49, 51), (60, fs / 2), (0.01, 0.5))],
-        "ac": denyut_per_jendela(x, fs) if len(x) > int(1.5 * fs) + 1 else None,
+        "ac": pulse_per_window(x, fs) if len(x) > int(1.5 * fs) + 1 else None,
     }
 
 
-def gabung(hasil, fs):
+def combine(hasil, fs):
     awal = np.cumsum([0] + [h["n"] for h in hasil])
     r = np.concatenate([h["r"] + a for h, a in zip(hasil, awal)]).astype(int)
     rr = np.concatenate([h["rr"] for h in hasil])
     ekg, hum, hf, drift = np.sum([h["pita"] for h in hasil], axis=0)
     ac = [(h["n"], h["ac"]) for h in hasil if h["ac"] is not None]
     if len(ac) == 1:
-        kuat, bpm_ac, saingan = ac[0][1]
+        strength, bpm_ac, rival_peaks = ac[0][1]
     elif ac:
-        bobot = np.array([n for n, _ in ac], dtype=float)
-        kuat, bpm_ac, saingan = (np.average([a[i] for _, a in ac], weights=bobot)
+        class_weights = np.array([n for n, _ in ac], dtype=float)
+        strength, bpm_ac, rival_peaks = (np.average([a[i] for _, a in ac], weights=class_weights)
                                  for i in range(3))
-        saingan = int(round(saingan))
+        rival_peaks = int(round(rival_peaks))
     else:
-        kuat, bpm_ac, saingan = 0.0, 0.0, 0
-    return r, rr, (ekg, hum, hf, drift), (float(kuat), float(bpm_ac), saingan), awal
+        strength, bpm_ac, rival_peaks = 0.0, 0.0, 0
+    return r, rr, (ekg, hum, hf, drift), (float(strength), float(bpm_ac), rival_peaks), awal
 
 
 def main() -> None:
@@ -120,63 +120,63 @@ def main() -> None:
     mentah = np.concatenate(segmen)
     n = len(mentah)
 
-    clip, persen_clip, clip_ok = hitung_clipping(mentah)
-    hasil = [analisis_segmen(m, fs) for m in segmen]
+    clip, percent_clip, clip_ok = compute_clipping(mentah)
+    hasil = [analyze_segment(m, fs) for m in segmen]
     x = np.concatenate([h["x"] for h in hasil])
     filtered = np.concatenate([h["filtered"] for h in hasil])
-    r, rr, (ekg, hum, hf, drift), (kuat, bpm_ac, saingan), awal = gabung(hasil, fs)
+    r, rr, (ekg, hum, hf, drift), (strength, bpm_ac, rival_peaks), awal = combine(hasil, fs)
     bpm = 60 / rr if len(rr) else np.array([])
-    masuk_akal = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
+    plausible_fraction = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 
-    print(f"{nama}: {n} sampel = {n / fs:.1f} detik @ {fs} Hz"
-          + (f", {lewat} sampel terlewat" if lewat is not None else "")
-          + (f", {len(segmen)} segmen (dipisah jeda)" if len(segmen) > 1 else ""))
+    print(f"{nama}: {n} samples = {n / fs:.1f} seconds @ {fs} Hz"
+          + (f", {lewat} samples missed" if lewat is not None else "")
+          + (f", {len(segmen)} segments (split by pauses)" if len(segmen) > 1 else ""))
     if len(segmen) > 1:
         for i, h in enumerate(hasil, 1):
-            ac = ((f"autokorelasi {h['ac'][0]:.2f} @ {h['ac'][1]:.0f} bpm"
-                   f", {h['ac'][2]} puncak setara")
-                  if h["ac"] else "autokorelasi - (segmen < 1,5 detik)")
-            print(f"  segmen {i:<3}  {h['n'] / fs:6.1f} detik   R-peak {len(h['r']):4d}"
+            ac = ((f"autocorrelation {h['ac'][0]:.2f} @ {h['ac'][1]:.0f} bpm"
+                   f", {h['ac'][2]} equal peaks")
+                  if h["ac"] else "autocorrelation - (segment < 1.5 seconds)")
+            print(f"  segment {i:<3} {h['n'] / fs:6.1f} seconds  R-peak {len(h['r']):4d}"
                   f"   RR {len(h['rr']):4d}   {ac}")
     print(f"  ADC          {int(mentah.min())}..{int(mentah.max())}   "
-          f"clipping {clip} sampel ({persen_clip:.3f}%, ambang {AMBANG_CLIPPING_PERSEN}%) "
-          f"{'OK' if clip_ok else '← RUSAK'}")
-    print(f"  dengung 50Hz {100 * hum / ekg:6.1f}% dari pita EKG   "
-          f"{'OK' if hum / ekg < 0.15 else 'TERLALU BESAR'}")
-    print(f"  derau >60Hz  {100 * hf / ekg:6.1f}% dari pita EKG   "
-          f"{'OK' if hf / ekg < 0.5 else 'TERLALU BESAR'}")
-    print(f"  drift <0.5Hz {100 * drift / ekg:6.1f}% dari pita EKG")
-    if kuat <= 0.25:
-        vonis = "TIDAK ADA denyut jelas"
-    elif saingan > 2:
-        vonis = f"PALSU — {saingan} puncak setara (gangguan periodik, bukan denyut)"
+          f"clipping {clip} samples ({percent_clip:.3f}%, threshold {CLIPPING_PERCENT_THRESHOLD}%) "
+          f"{'OK' if clip_ok else '← BROKEN'}")
+    print(f"  50Hz hum     {100 * hum / ekg:6.1f}% of ECG band   "
+          f"{'OK' if hum / ekg < 0.15 else 'TOO LARGE'}")
+    print(f"  noise >60Hz  {100 * hf / ekg:6.1f}% of ECG band   "
+          f"{'OK' if hf / ekg < 0.5 else 'TOO LARGE'}")
+    print(f"  drift <0.5Hz {100 * drift / ekg:6.1f}% of ECG band")
+    if strength <= 0.25:
+        vonis = "NO clear pulse"
+    elif rival_peaks > 2:
+        vonis = f"FALSE — {rival_peaks} equal peaks (periodic interference, not a pulse)"
     else:
-        vonis = "ADA denyut"
-    berjendela = any(h["n"] >= 2 * JENDELA_AUTOKORELASI_S * fs for h in hasil)
-    cara = f" (median per {JENDELA_AUTOKORELASI_S} s)" if berjendela else ""
-    print(f"  denyut       autokorelasi {kuat:.2f} @ {bpm_ac:.0f} bpm{cara}   {vonis}")
-    print(f"  R-peak       {len(r)} dalam {n / fs:.1f} detik")
+        vonis = "pulse PRESENT"
+    windowed = any(h["n"] >= 2 * AUTOCORRELATION_WINDOW_S * fs for h in hasil)
+    method_note = f" (median per {AUTOCORRELATION_WINDOW_S} s)" if windowed else ""
+    print(f"  pulse        autocorrelation {strength:.2f} @ {bpm_ac:.0f} bpm{method_note}   {vonis}")
+    print(f"  R-peak       {len(r)} in {n / fs:.1f} seconds")
     if len(bpm):
         print(f"  BPM          mean {bpm.mean():.0f}  min {bpm.min():.0f}  max {bpm.max():.0f}"
-              f"   masuk akal {100 * masuk_akal:.0f}%"
-              f"   {'OK' if masuk_akal > 0.9 else 'TIDAK KONSISTEN'}")
+              f"   plausible {100 * plausible_fraction:.0f}%"
+              f"   {'OK' if plausible_fraction > 0.9 else 'INCONSISTENT'}")
 
     akuisisi_dir = os.path.join(METRICS_DIR, "akuisisi")
     os.makedirs(akuisisi_dir, exist_ok=True)
     out = os.path.join(akuisisi_dir, f"akuisisi_{nama}.png")
     t = np.arange(n) / fs
-    tampil = slice(0, min(n, int(6 * fs)))
+    shown = slice(0, min(n, int(6 * fs)))
     batas = awal[1:-1] / fs
     fig, ax = plt.subplots(3 + (len(segmen) > 1), 1,
                            figsize=(13, 8 + 2.7 * (len(segmen) > 1)))
-    ax[0].plot(t[tampil], mentah[tampil], lw=0.7)
+    ax[0].plot(t[shown], mentah[shown], lw=0.7)
     ax[0].set_title(f"{judul} — ADC mentah (6 detik pertama)")
     ax[0].set_ylabel("counts")
-    ax[1].plot(t[tampil], filtered[tampil], lw=0.7, color="tab:green")
-    for pos in r[r < tampil.stop]:
+    ax[1].plot(t[shown], filtered[shown], lw=0.7, color="tab:green")
+    for pos in r[r < shown.stop]:
         ax[1].axvline(pos / fs, color="red", alpha=0.4, lw=0.8)
     ax[1].set_title("setelah bandpass 0,5-40 Hz kausal + R-peak Pan-Tompkins")
-    for b in batas[batas < tampil.stop / fs]:
+    for b in batas[batas < shown.stop / fs]:
         for a in ax[:2]:
             a.axvline(b, color="black", ls="--", lw=1)
     sp = np.abs(np.fft.rfft(x * np.hanning(n)))

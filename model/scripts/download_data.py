@@ -12,14 +12,14 @@ from config import DATASETS, raw_dir
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("db", nargs="*", metavar="DB",
-                    help=f"pilihan: {', '.join(DATASETS)} (default: mitdb)")
-    ap.add_argument("--semua", action="store_true", help="download semua di DATASETS")
+                    help=f"choices: {', '.join(DATASETS)} (default: mitdb)")
+    ap.add_argument("--all", action="store_true", help="download everything in DATASETS")
     args = ap.parse_args()
 
-    targets = list(DATASETS) if args.semua else (args.db or ["mitdb"])
-    tak_dikenal = [d for d in targets if d not in DATASETS]
-    if tak_dikenal:
-        ap.error(f"database tak dikenal: {tak_dikenal} (pilihan: {sorted(DATASETS)})")
+    targets = list(DATASETS) if args.all else (args.db or ["mitdb"])
+    unknown_databases = [d for d in targets if d not in DATASETS]
+    if unknown_databases:
+        ap.error(f"unknown database: {unknown_databases} (choices: {sorted(DATASETS)})")
 
     for db in targets:
         d = raw_dir(db)
@@ -27,8 +27,8 @@ def main() -> None:
         print(f"[{db}] -> {d}  ({DATASETS[db]['fs']} Hz, lead {DATASETS[db]['leads']})")
         wfdb.dl_database(db, dl_dir=d)
 
-    print("\nSelesai. Cek kelengkapan: python scripts/check_dataset.py")
-    print("Verifikasi sebaran kelas: make test  (tests/test_multidataset.py)")
+    print("\nDone. Check completeness: python scripts/check_dataset.py")
+    print("Verify the class distribution: make test  (tests/test_multidataset.py)")
 
 
 if __name__ == "__main__":

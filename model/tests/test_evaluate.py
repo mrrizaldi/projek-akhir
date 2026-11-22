@@ -7,18 +7,18 @@ from src.evaluate import (
 )
 
 
-def test_confusion_counts_semua_kuadran():
+def test_confusion_counts_all_quadrants():
     y = np.array([1, 1, 0, 0, 1])
     p = np.array([1, 0, 1, 0, 1])
     assert confusion_counts(y, p) == {"tp": 2, "fn": 1, "fp": 1, "tn": 1}
 
 
-def test_bentuk_beda_error_bukan_broadcast():
+def test_shape_mismatch_errors_not_broadcast():
     with pytest.raises(ValueError):
         confusion_counts(np.zeros(5), np.zeros(4))
 
 
-def test_metrik_dari_hitungan_tangan():
+def test_metrics_from_hand_counts():
     m = binary_metrics({"tp": 2, "fn": 1, "fp": 1, "tn": 1})
     assert np.isclose(m["recall"], 2 / 3)
     assert np.isclose(m["precision"], 2 / 3)
@@ -27,12 +27,12 @@ def test_metrik_dari_hitungan_tangan():
     assert np.isclose(m["accuracy"], 0.6)
 
 
-def test_pembagian_nol_jadi_nol_bukan_nan():
+def test_division_by_zero_gives_zero_not_nan():
     m = binary_metrics({"tp": 0, "fn": 5, "fp": 0, "tn": 5})
     assert m["precision"] == 0.0 and m["recall"] == 0.0 and m["f1"] == 0.0
 
 
-def test_threshold_menggeser_recall_dan_precision():
+def test_threshold_shifts_recall_and_precision():
     y = np.array([0, 0, 1, 1])
     p = np.array([0.1, 0.4, 0.45, 0.9])
     ketat = evaluate_probabilities(y, p, 0.5)
@@ -41,7 +41,7 @@ def test_threshold_menggeser_recall_dan_precision():
     assert longgar["recall"] == 1.0 and longgar["precision"] < 1.0
 
 
-def test_auc_sempurna_acak_dan_seri():
+def test_auc_perfect_random_and_ties():
     assert roc_auc([0, 0, 1, 1], [0.1, 0.2, 0.8, 0.9]) == 1.0
     assert roc_auc([0, 0, 1, 1], [0.9, 0.8, 0.2, 0.1]) == 0.0
     assert roc_auc([0, 1], [0.5, 0.5]) == 0.5
@@ -49,13 +49,13 @@ def test_auc_sempurna_acak_dan_seri():
         roc_auc([0, 0, 0], [0.1, 0.2, 0.3])
 
 
-def test_auc_bebas_threshold():
+def test_auc_threshold_free():
     y = np.array([0, 0, 1, 1])
     p = np.array([0.1, 0.3, 0.6, 0.7])
     assert np.isclose(roc_auc(y, p), roc_auc(y, p / 10))
 
 
-def test_per_record_memisah_pasien():
+def test_per_record_separates_patients():
     y = np.array([1, 0, 1, 0])
     p = np.array([0.9, 0.1, 0.1, 0.1])
     rows = per_record_metrics(y, p, np.array([100, 100, 200, 200]), 0.5)
@@ -63,16 +63,16 @@ def test_per_record_memisah_pasien():
     assert rows[0]["recall"] == 1.0 and rows[1]["recall"] == 0.0
 
 
-def test_average_precision_sempurna_dan_hitungan_tangan():
+def test_average_precision_perfect_and_hand_count():
     assert average_precision([0, 1, 0, 1], [0.1, 0.9, 0.2, 0.8]) == pytest.approx(1.0)
     assert average_precision([1, 0, 1, 0], [0.9, 0.8, 0.7, 0.1]) == pytest.approx(0.5 + 0.5 * 2 / 3)
 
 
-def test_average_precision_seri_jadi_satu_titik():
+def test_average_precision_ties_form_one_point():
     assert average_precision([1, 0], [0.5, 0.5]) == pytest.approx(0.5)
 
 
-def test_mcc_sempurna_acak_dan_pembagian_nol():
+def test_mcc_perfect_random_and_division_by_zero():
     assert mcc({"tp": 5, "fn": 0, "fp": 0, "tn": 5}) == pytest.approx(1.0)
     assert mcc({"tp": 1, "fn": 1, "fp": 1, "tn": 1}) == pytest.approx(0.0)
     assert mcc({"tp": 0, "fn": 0, "fp": 0, "tn": 9}) == 0.0

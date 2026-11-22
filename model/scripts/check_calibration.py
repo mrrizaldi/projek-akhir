@@ -9,28 +9,28 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import tensorflow as tf
 
 from config import ARTIFACT_DIR, PROCESSED_DIR, SEED
-from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1
-from scripts.sweep_jitter import muat_ds2, rakit
+from scripts.ablasi import kalibrasi, split_val, assemble_ds1
+from scripts.sweep_jitter import load_ds2, rakit
 from src.preprocessing import design_bandpass_sos
 
 
-def gabung(*ds) -> dict:
+def combine(*ds) -> dict:
     return {k: np.concatenate([d[k] for d in ds])
             for k in ("X_morph", "X_rr", "y", "records")}
 
 
-def muat_npz(nama: str) -> dict:
+def load_npz(nama: str) -> dict:
     with np.load(os.path.join(PROCESSED_DIR, nama)) as z:
         return {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 
 
-def set_kalibrasi(sos) -> dict:
-    val = pisah_val(rakit_ds1(sos, "empiris", 0, 2,
+def calibration_sets(sos) -> dict:
+    val = split_val(assemble_ds1(sos, "empiris", 0, 2,
                               np.random.default_rng(SEED), ["mitdb", "svdb"]))[1]
-    sv, ic = muat_npz("test_svdb.npz"), muat_npz("test_incartdb.npz")
-    return {"VAL (5 pasien)": val,
-            "+svdb held-out": gabung(val, sv),
-            "+svdb+incart": gabung(val, sv, ic)}
+    sv, ic = load_npz("test_svdb.npz"), load_npz("test_incartdb.npz")
+    return {"VAL (5 patients)": val,
+            "+svdb held-out": combine(val, sv),
+            "+svdb+incart": combine(val, sv, ic)}
 
 
 def main() -> None:
@@ -40,11 +40,11 @@ def main() -> None:
     args = ap.parse_args()
 
     sos = design_bandpass_sos()
-    SET = set_kalibrasi(sos)
-    for nm, d in SET.items():
-        print(f"  {nm:18} {len(np.unique(d['records'])):>3} pasien, {len(d['y']):>7,} baris")
+    SET = calibration_sets(sos)
+    for set_name, d in SET.items():
+        print(f"  {set_name:18} {len(np.unique(d['records'])):>3} patients, {len(d['y']):>7,} rows")
 
-    Xm, Xr, y, _ = rakit(muat_ds2(sos), None, 0, 0)
+    Xm, Xr, y, _ = rakit(load_ds2(sos), None, 0, 0)
     pos = int(y.sum())
     grid = np.arange(0.05, 0.996, 0.01)
 
@@ -53,7 +53,7 @@ def main() -> None:
     for tag in args.tag:
         path = os.path.join(ARTIFACT_DIR, f"model_fp32_{tag}.keras")
         if not os.path.exists(path):
-            print(f"{tag:16} (model belum tersimpan)")
+            print(f"{tag:16} (model not saved yet)")
             continue
         prob = tf.keras.models.load_model(path).predict(
             [Xm, Xr], verbose=0, batch_size=8192).ravel()

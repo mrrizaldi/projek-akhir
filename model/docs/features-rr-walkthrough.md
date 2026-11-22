@@ -267,12 +267,12 @@ statistiknya dari **dalam window itu sendiri**, tidak butuh apa pun dari dataset
 
 `src/features_rr.py` juga memuat `compute_rr_ratio_features` (bentuk rasio
 4 kolom, butuh RR beat berikutnya), `qrs_width_features` (QRSw2 & QRSw4), dan
-`hos_features` (kurtosis & skewness). Ketiganya dirakit oleh `rakit_fitur_ritme`
+`hos_features` (kurtosis & skewness). Ketiganya dirakit oleh `assemble_rhythm_features`
 hanya bila knob `PA_RR_RATIO`, `PA_QRSW`, atau `PA_HOS` dinyalakan, dan dipakai
 untuk ablasi. Konfigurasi terkunci memakai tiga kolom di atas saja: di mitdb,
 fitur tambahan tidak memberi selisih F1 yang melampaui variasi antar-run.
 
-`rakit_fitur_ritme` adalah satu-satunya tempat yang menyusun `X_rr` untuk tiga
+`assemble_rhythm_features` adalah satu-satunya tempat yang menyusun `X_rr` untuk tiga
 pemanggil (`prep_beats`, `ablasi`, `sweep_jitter`), ditambah `export_golden`
 supaya golden menguji fitur yang benar-benar dipakai. Bila logika knob
 diduplikasi, ketiganya akan menyimpang diam-diam dan ablasi membandingkan hal

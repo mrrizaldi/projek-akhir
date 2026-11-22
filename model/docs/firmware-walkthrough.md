@@ -663,7 +663,7 @@ Tegangan bus (VIN− terhadap GND) 0–4 mV, sedangkan tegangan shunt melompat
 beban; kedua pin VIN mengambang. INA219 belum berada di jalur arus alat, dan
 board menerima daya langsung dari konektor USB. Angka arus di layar dan di baris
 status pada kondisi ini bukan konsumsi alat. Jalur ukur (firmware + skrip) sudah diuji
-ujung ke ujung dengan `--paksa`: keenam mode terkonfirmasi, `lewat = 0` di semua
+ujung ke ujung dengan `--force`: keenam mode terkonfirmasi, `lewat = 0` di semua
 mode, dan radio kembali tersambung di `p5`.
 
 ### Prosedur ukur daya
@@ -710,7 +710,7 @@ tetap tersambung.
    arus di sisi baterai naik saat tegangan sel turun, karena konverter
    menjaga daya keluaran.
 
-### Tangga mandiri dan `make pull-daya`
+### Tangga mandiri dan `make pull-power`
 
 Tangga mandiri menghilangkan kebutuhan kabel data tanpa VBUS: board
 menjalankan `p0`–`p5` sendiri dari baterai, menyimpan hasilnya, lalu laptop
@@ -737,7 +737,7 @@ Isinya sama dengan `measure_power.py`, dipindah ke `power.cpp`:
 - Hasil ke `/daya/NNN.csv`, kolom `waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah`;
   `waktu` UTC ISO bila jam NTP sudah tersinkron, selain itu `+<detik uptime>s`.
 
-`make pull-daya` (`scripts/pull_daya.py`) mengirim `v` untuk daftar berkas,
+`make pull-power` (`scripts/pull_power.py`) mengirim `v` untuk daftar berkas,
 lalu `v<n>` (bawaan: berkas terakhir; `N=<n>` untuk yang lain), menyimpan ke
 `model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv`, dan mengulang
 validasi dengan kriteria `measure_power.py` sehingga penilaian board dan laptop
@@ -799,7 +799,7 @@ pembahasan yang baik di laporan.
 | `pio run -t upload` | flash firmware utama |
 | `cd model && make export` | regenerasi `model_int8.h` setelah model berubah |
 | `cd model && .venv/bin/python scripts/measure_power.py` | tangga ukur daya `p0`–`p5` dari laptop → `artifacts/metrics/daya/<ts>.csv` (§5d) |
-| `cd model && make pull-daya [N=<n>]` | tarik hasil tangga mandiri `/daya/NNN.csv` → `artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv` (§5d) |
+| `cd model && make pull-power [N=<n>]` | tarik hasil tangga mandiri `/daya/NNN.csv` → `artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv` (§5d) |
 
 ---
 

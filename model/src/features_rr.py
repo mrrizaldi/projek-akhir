@@ -39,7 +39,7 @@ def hos_features(windows: np.ndarray) -> np.ndarray:
     return np.stack([kurt, skew], axis=1).astype(np.float32)
 
 
-def _lebar_pada_fraksi(windows: np.ndarray, frac: float, r_idx: int,
+def _width_at_fraction(windows: np.ndarray, frac: float, r_idx: int,
                        cari: int = 4) -> np.ndarray:
     w = np.asarray(windows, dtype=np.float64)
     k, n = w.shape
@@ -47,14 +47,14 @@ def _lebar_pada_fraksi(windows: np.ndarray, frac: float, r_idx: int,
         return np.zeros(0)
 
     lo, hi = max(0, r_idx - cari), min(n, r_idx + cari + 1)
-    puncak_idx = lo + np.argmax(w[:, lo:hi], axis=1)
-    puncak = w[np.arange(k), puncak_idx]
+    peak_idx = lo + np.argmax(w[:, lo:hi], axis=1)
+    puncak = w[np.arange(k), peak_idx]
     ambang = (frac * puncak)[:, None]
 
     idx = np.arange(n)[None, :]
     bawah = w < ambang
-    kiri_ok = bawah & (idx < puncak_idx[:, None])
-    kanan_ok = bawah & (idx > puncak_idx[:, None])
+    kiri_ok = bawah & (idx < peak_idx[:, None])
+    kanan_ok = bawah & (idx > peak_idx[:, None])
     kiri = np.where(kiri_ok.any(1), (idx * kiri_ok).max(1), 0)
     kanan = np.where(kanan_ok.any(1), np.where(kanan_ok, idx, n).min(1), n - 1)
     return (kanan - kiri).astype(np.float64)
@@ -66,7 +66,7 @@ def qrs_width_features(windows: np.ndarray, r_idx: int = None,
     r_idx = R_IN_WINDOW if r_idx is None else r_idx
     kolom = []
     for frac in (0.5, 0.25):
-        lebar = _lebar_pada_fraksi(windows, frac, r_idx)
+        lebar = _width_at_fraction(windows, frac, r_idx)
         j = np.arange(len(lebar))
         start = np.maximum(0, j - w + 1)
         csum = np.concatenate(([0.0], np.cumsum(lebar)))
@@ -87,10 +87,10 @@ def compute_rr_ratio_features(r_locations: np.ndarray, fs: int = FS) -> np.ndarr
     j = np.arange(m - 1)
     start = np.maximum(0, j - w + 1)
     csum = np.concatenate(([0.0], np.cumsum(d)))
-    n_pakai = j + 1 - start
-    avg = (csum[j + 1] - csum[start]) / n_pakai
+    n_used = j + 1 - start
+    avg = (csum[j + 1] - csum[start]) / n_used
     csum2 = np.concatenate(([0.0], np.cumsum(d ** 2)))
-    var = np.maximum((csum2[j + 1] - csum2[start]) / n_pakai - avg ** 2, 0.0)
+    var = np.maximum((csum2[j + 1] - csum2[start]) / n_used - avg ** 2, 0.0)
     std = np.sqrt(var)
 
     rr0 = d
@@ -101,7 +101,7 @@ def compute_rr_ratio_features(r_locations: np.ndarray, fs: int = FS) -> np.ndarr
     return out.astype(np.float32)
 
 
-def rakit_fitur_ritme(r_locations: np.ndarray, windows: np.ndarray,
+def assemble_rhythm_features(r_locations: np.ndarray, windows: np.ndarray,
                       idx: np.ndarray) -> np.ndarray:
     from config import USE_HOS, USE_QRSW, USE_RR_RATIO
     dasar = (compute_rr_ratio_features(r_locations) if USE_RR_RATIO

@@ -20,7 +20,7 @@ def quant_params() -> dict:
     keluar = interp.get_output_details()[0]
     for nama, d in (("input", morph), ("rr", rr), ("output", keluar)):
         if d["dtype"].__name__ != "int8":
-            raise ValueError(f"{nama} bukan int8 ({d['dtype'].__name__}) — cek INT8_IO")
+            raise ValueError(f"{nama} is not int8 ({d['dtype'].__name__}) — check INT8_IO")
     return {
         "morph": morph["quantization"], "rr": rr["quantization"],
         "out": keluar["quantization"],
@@ -29,14 +29,14 @@ def quant_params() -> dict:
 
 def main() -> None:
     if not os.path.exists(TFLITE):
-        raise FileNotFoundError(f"{TFLITE} — jalankan `make quantize` dulu")
+        raise FileNotFoundError(f"{TFLITE} — run `make quantize` first")
     blob = open(TFLITE, "rb").read()
     q = quant_params()
     os.makedirs(os.path.dirname(HEADER), exist_ok=True)
 
     baris = [", ".join(f"0x{b:02x}" for b in blob[i:i + 12])
              for i in range(0, len(blob), 12)]
-    isi_array = ",\n  ".join(baris)
+    content_array = ",\n  ".join(baris)
     with open(HEADER, "w") as f:
         f.write(f"""#ifndef MODEL_INT8_H
 #define MODEL_INT8_H
@@ -56,7 +56,7 @@ def main() -> None:
 
 const unsigned int model_int8_tflite_len = {len(blob)};
 alignas(16) const unsigned char model_int8_tflite[] = {{
-  {isi_array}
+  {content_array}
 }};
 
 #endif

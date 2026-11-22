@@ -11,7 +11,7 @@ def test_label_mapping():
     assert to_binary_label(to_aami_class("/")) == 1
 
 
-def test_rr_ritme_konstan():
+def test_rr_constant_rhythm():
     r = np.arange(20) * FS
     f = compute_rr_features(r)
     assert f.shape == (20, 3)
@@ -19,7 +19,7 @@ def test_rr_ritme_konstan():
     assert np.allclose(f[2:], [1.0, 1.0, 0.0], atol=1e-5)
 
 
-def test_rr_panjang_dan_kausalitas():
+def test_rr_length_and_causality():
     rng = np.random.default_rng(0)
     r = np.cumsum(rng.integers(250, 450, size=60)).astype(np.int64)
     f = compute_rr_features(r)
@@ -28,7 +28,7 @@ def test_rr_panjang_dan_kausalitas():
     assert np.allclose(compute_rr_features(r[:k])[2:k], f[2:k], equal_nan=True)
 
 
-def test_rr_local_avg_menyusut_di_tepi():
+def test_rr_local_avg_shrinks_at_edge():
     r = np.array([0, 360, 1080])
     f = compute_rr_features(r)
     assert np.isclose(f[1, 1], 1.0)
@@ -36,6 +36,6 @@ def test_rr_local_avg_menyusut_di_tepi():
     assert np.isclose(f[2, 2], 1.0)
 
 
-def test_rr_record_pendek_tidak_crash():
+def test_rr_short_record_does_not_crash():
     assert np.isnan(compute_rr_features(np.array([5]))).all()
     assert compute_rr_features(np.array([], dtype=int)).shape == (0, 3)

@@ -1,7 +1,7 @@
 # Walkthrough jitter — ketahanan terhadap error segmentasi
 
 > **Ruang lingkup:** mengukur error posisi R-peak detektor, mengukur dampaknya pada model, lalu melatih model yang tahan terhadapnya (augmentasi jitter) dan memilih ukuran window lewat ablasi.
-> **Kode terkait:** `scripts/ukur_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_SALINAN`, `USE_HOS`)
+> **Kode terkait:** `scripts/measure_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
 > **Prasyarat:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Fase 6b)
 
 Fase 6c, di luar PRD. Adaptasi Dias et al. 2021 (*Arrhythmia classification from
@@ -19,7 +19,7 @@ dan memperbaikinya.
                            │                          │
                            └──── selisihnya? ─────────┘
                                       │
-                         scripts/ukur_jitter.py        ← Task 1: UKUR
+                         scripts/measure_jitter.py        ← Task 1: UKUR
                                       │
                        residu_ds1.npy (kolam 50.601 selisih)
                                       │
@@ -58,7 +58,7 @@ lalu ukur.** Mereka menyebutnya *jitter*.
 
 ---
 
-## 2. `scripts/ukur_jitter.py` — jangan pinjam angka orang
+## 2. `scripts/measure_jitter.py` — jangan pinjam angka orang
 
 Paper memakai jitter seragam ±δ dengan δ ≤ 18 sampel (50 ms), diambil dari
 literatur QRS detection. Mereka **tidak punya detektor**, jadi angka pinjaman
@@ -70,10 +70,10 @@ Rantai yang diukur persis rantai yang dijalankan firmware:
 
 ```python
 r_kasar  = pan_tompkins_detect(filtered)        # punya delay ~38 sampel
-r_pakai  = haluskan(r_kasar - PT_DETECTOR_OFFSET, filtered)
+r_used  = haluskan(r_kasar - PT_DETECTOR_OFFSET, filtered)
 #          haluskan = cari puncak dalam ±PT_REFINE_WIN, lalu - GROUP_DELAY
-pasangan = pair_detected(r_pakai, r_anotasi, toleransi 150 ms)
-residu   = r_pakai[cocok] - r_anotasi[pasangan[cocok]]
+pasangan = pair_detected(r_used, r_annotated, toleransi 150 ms)
+residu   = r_used[cocok] - r_annotated[pasangan[cocok]]
 ```
 
 `haluskan()` dan `pair_detected()` **tidak ditulis ulang** — keduanya sudah ada
@@ -141,7 +141,7 @@ apa pun tidak menolong beat yang hilang — itu urusan detektor (refraktori
 ```python
 def jitter_r(r_locations, delta=0, rng=None, model="empiris"):
     if model == "empiris":
-        kolam = np.load(RESIDU_DS1)
+        kolam = np.load(RESIDUAL_DS1)
         geser = rng.choice(kolam, size=len(r))       # ambil ulang residu asli
     elif model == "seragam":
         geser = rng.integers(-delta, delta + 1, size=len(r))   # protokol paper
@@ -155,7 +155,7 @@ Tiga keputusan di sembilan baris itu:
 **(a) Default `empiris`, bukan `seragam`.** Sebaran aslinya inti-tajam-ekor-berat;
 seragam ±18 akan menggeser 80% beat yang sebetulnya terkunci. Mengambil ulang
 dari kolam residu asli tidak memakai asumsi bentuk sama sekali — dan uji
-`test_empiris_meniru_sebaran_terukur` menjaga ragamnya tetap ~6 sampel.
+`test_empirical_mimics_measured_distribution` menjaga ragamnya tetap ~6 sampel.
 `seragam` tetap disediakan supaya sweep δ=0..18 bisa dibandingkan lurus dengan
 Tabel 3 paper.
 
@@ -261,12 +261,12 @@ berwindow 90/160 wajib menyebut window-nya secara eksplisit:
 
 ```bash
 PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag bersih
-PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2
-PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128   --jitter empiris --salinan 2
-PA_WIN_PRE=112 PA_WIN_POST=144          python scripts/ablasi.py --tag w112   --jitter empiris --salinan 2
-PA_WIN_PRE=90  PA_WIN_POST=160 PA_HOS=1 python scripts/ablasi.py --tag hos    --jitter empiris --salinan 2
-                                        python scripts/ablasi.py --tag w128b  --jitter empiris --salinan 2
-PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128s3 --jitter empiris --salinan 3
+PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag jitter --jitter empiris --copies 2
+PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128   --jitter empiris --copies 2
+PA_WIN_PRE=112 PA_WIN_POST=144          python scripts/ablasi.py --tag w112   --jitter empiris --copies 2
+PA_WIN_PRE=90  PA_WIN_POST=160 PA_HOS=1 python scripts/ablasi.py --tag hos    --jitter empiris --copies 2
+                                        python scripts/ablasi.py --tag w128b  --jitter empiris --copies 2
+PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128s3 --jitter empiris --copies 3
 ```
 
 Tiap baris diulang dengan `--seed 42`, `--seed 7`, dan `--seed 13`.
@@ -275,7 +275,7 @@ Tanpa env, `config.py` memakai nilai bawaannya, jadi ablasi tidak mengubah
 nilai final dan tidak menyentuh gate point. Varian yang menang dikunci dengan
 mengubah bawaan di `config.py`, dan itu keputusan user.
 
-**Salinan bersih selalu ikut** (`--salinan N` = N tiruan ber-jitter DI ATAS satu
+**Salinan bersih selalu ikut** (`--copies N` = N tiruan ber-jitter DI ATAS satu
 salinan bersih). Alasannya ada di angka §2: 80% beat di alat meleset ≤1 sampel,
 jadi kasus "tepat" bukan kasus langka yang boleh dikorbankan.
 
@@ -301,11 +301,11 @@ Kolom run-1 berasal dari `artifacts/metrics/ablasi/ablasi_seed42.csv`: batch
 pertama lima varian (`bersih`, `jitter`, `w128`, `w112`, `hos`), semuanya seed
 42, ditulis sebelum `ablasi.py` punya kolom `seed`. Header-nya berbeda dari
 `ablasi.csv`, jadi berkas itu sengaja tidak digabung dan tidak dibaca
-`ringkas_ablasi.py`; ia disimpan sebagai bukti nondeterminisme di atas.
+`summarize_ablation.py`; ia disimpan sebagai bukti nondeterminisme di atas.
 `ablasi.csv` menampung semua run bertanda seed; hapus berkas itu untuk mulai
 bersih. Kolom `menit` mencatat durasi satu proses dari rakit sampai ukur:
 0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit untuk varian mitdb dengan
-`--salinan 2` atau 3, 1,5–10,1 menit untuk varian multi-database (`fb_*` dan
+`--copies 2` atau 3, 1,5–10,1 menit untuk varian multi-database (`fb_*` dan
 `fd_*`), dan 1,5–4,2 menit untuk run mitdb lanjutan (`t8_*` dan `g_*`), semuanya
 CPU tanpa GPU.
 
@@ -388,7 +388,7 @@ ulang di C, diuji, dan dijaga. Ditolak karena ongkos, bukan karena terbukti
 buruk.
 
 **4. Konfigurasi yang dikunci di `config.py`.** `WIN_PRE/WIN_POST = 128/128`,
-`JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`. Bentuk 128/128 (`w128b`)
+`JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`. Bentuk 128/128 (`w128b`)
 dipilih atas 128/127 karena hasilnya setara (0,6911 vs 0,6775, selisih di bawah
 ambang 0,04) dan panjang 256 habis dibagi stride 8 sehingga rantai pooling
 256 → 128 → 64 → 32 berjalan tanpa pemotongan. Tiga salinan ber-jitter
@@ -512,7 +512,7 @@ menemukan kembali cara mengujinya.
 
 | Skrip | Isi |
 |---|---|
-| `scripts/ukur_jitter.py` | ukur residu penyelarasan di DS1 → CSV, PNG, `residu_ds1.npy` |
+| `scripts/measure_jitter.py` | ukur residu penyelarasan di DS1 → CSV, PNG, `residu_ds1.npy` |
 | `scripts/sweep_jitter.py` | metrik DS2 sebagai fungsi δ (protokol Tabel 3 paper) |
 | `scripts/ablasi.py` | satu varian ujung-ke-ujung → baris di `ablasi.csv` |
 | `tests/test_jitter.py` | sifat `jitter_r` yang kalau rusak bikin hasil bohong |

@@ -27,10 +27,10 @@ def main(record_id: str) -> None:
     n_dropped = len(r_locations) - len(windows)
     z_windows = zscore_per_window(windows)
 
-    print(f"record {record_id} — anotasi={len(r_locations)}, window valid={len(windows)}, "
-          f"dibuang={n_dropped}")
-    print(f"  shape windows={windows.shape}, shape z-score={z_windows.shape}")
-    print(f"  cek panjang: semua == WIN_LEN({WIN_LEN})? "
+    print(f"record {record_id} — annotations={len(r_locations)}, valid windows={len(windows)}, "
+          f"dropped={n_dropped}")
+    print(f"  windows shape={windows.shape}, z-score shape={z_windows.shape}")
+    print(f"  length check: all == WIN_LEN({WIN_LEN})? "
           f"{bool(np.all(np.array([len(w) for w in windows]) == WIN_LEN))}")
 
     time = (np.arange(WIN_LEN) - WIN_PRE) / fs

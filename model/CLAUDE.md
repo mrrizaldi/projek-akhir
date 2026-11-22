@@ -33,12 +33,12 @@ make plot1seg  # verifikasi Fase 1b (segmentasi)
 make prep      # Fase 2 → per_record/*.npz      make test      # pytest
 make split     # Fase 3 → train/test.npz         make poc       # Fase 8 checklist
 make pull      # tarik rekaman dari board
-make analisis FILE=data/recordings/<nama>.csv   # analisis + grafik rekaman
-make pull-daya [N=<n>]   # tarik hasil tangga daya mandiri /daya/NNN.csv dari board
+make analyze FILE=data/recordings/<nama>.csv   # analisis + grafik rekaman
+make pull-power [N=<n>]   # tarik hasil tangga daya mandiri /daya/NNN.csv dari board
 make broker-info         # SSID, IP LAN, port 1883/8080, saran entri wifi_secrets.h
 ```
 
-`make help` menampilkan semua target (termasuk `data-semua`, `split-multi`, `clean`).
+`make help` menampilkan semua target (termasuk `data-all`, `split-multi`, `clean`).
 
 ## Status fase
 
@@ -55,7 +55,7 @@ Uraian panjang masuk walkthrough atau Bab 4 laporan, bukan ke sini.
 | 5 Latih | selesai | `artifacts/model_fp32.keras`, `class_weight` balanced, EarlyStopping(`val_auc`), Adam 1e-3 |
 | 6 Evaluasi | selesai | threshold **0,80** dari VAL. DS2: **recall 0,6996, precision 0,6235, F1 0,6594, specificity 0,9479, AUC 0,9334**. Median recall per pasien 0,9167; terburuk rec 232 (0,3541) dan 213 (0,2246) |
 | 6b Segmentasi on-device | selesai (di luar PRD) | offset detektor 38 sampel (DS1). Segmentasi tidak merusak klasifikasi: F1 beat terdeteksi 0,6499 vs anotasi 0,6594. Recall sistem 0,6035 (anotasi 0,6996) karena beat tak terdeteksi (sensitivity detektor kelas S 0,6494). `fase6b_segmentasi_deteksi.csv` |
-| 6c Ketahanan jitter | selesai (di luar PRD) | dikunci: `WIN_PRE/WIN_POST = 128/128`, `JITTER_MODEL = "empiris"`, `JITTER_SALINAN = 2`, `THRESHOLD = 0,80`. HOS ditolak |
+| 6c Ketahanan jitter | selesai (di luar PRD) | dikunci: `WIN_PRE/WIN_POST = 128/128`, `JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`, `THRESHOLD = 0,80`. HOS ditolak |
 | 7 Kuantisasi | selesai | PTQ INT8 penuh (varian deploy): **22,94 KB**, recall 0,7105, F1 0,6604, AUC 0,9344, delta recall **+0,0108** |
 | 8 PoC & ekspor | selesai | `make poc` 8/8 item DoD terverifikasi mekanis; `make export` → `firmware/include/model_int8.h`. Salin figure ke `laporan/` hanya dengan `--laporan` |
 | HW-1 Inferensi di board | selesai | probabilitas device cocok PC (selisih maks 1 kuantum INT8), **26,6 ms per detak**, tensor arena 12.948 B |
@@ -96,7 +96,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   [`docs/firmware-walkthrough.md` §5d](docs/firmware-walkthrough.md#5d-tangga-ukur-daya) (rasional di bagian Rasional rancangan).
   Jalur ukur sudah jadi: dari laptop (serial `p0`-`p5`, `scripts/measure_power.py`
   -> `artifacts/metrics/daya/<ts>.csv`) atau mandiri dari baterai (menu Ukur daya
-  / serial `V`, lalu `make pull-daya`; prosedur di `firmware/README.md` bagian
+  / serial `V`, lalu `make pull-power`; prosedur di `firmware/README.md` bagian
   Ukur daya tanpa laptop). INA219 sudah di jalur baterai (tangga 14 Okt 2026
   terbaca 3,69 V, ±137–154 mA tanpa WiFi; baterai bertahan hampir 1 jam).
   **Terhalang catu:** `p5` butuh WiFi ON, yang menunggu konverter 5 V (butir
@@ -114,7 +114,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   2. Nyalakan dari baterai tanpa USB: layar menyala, bip kalibrasi utuh sekali,
      tidak ada reset berulang. Lalu colok USB dan cek `s`: RSSI ≠ 0.
   3. Ulangi tangga daya **tanpa charger TP4056**, laptop di SSID yang sama
-     dengan board dan ThingsBoard menyala, lalu `make pull-daya`. Tangga
+     dengan board dan ThingsBoard menyala, lalu `make pull-power`. Tangga
      `/daya/003.csv` (14 Okt, tanpa WiFi, dugaan charger tercolok mulai
      +326 s) tidak dipakai untuk laporan.
   4. Hapus butir ini dan kalimat "Selama keluaran konverter belum disetel"
@@ -127,7 +127,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   untuk hasil klasifikasi per detak) tetap berjalan; aliran mentah adalah
   tambahan. Hal yang perlu dirancang bersama user sebelum mulai: protokol
   (topik MQTT terpisah atau HTTP), penerima di laptop yang menulis CSV dengan
-  format `/rekam/NNN.csv` agar `make analisis` tetap dipakai, perilaku saat
+  format `/rekam/NNN.csv` agar `make analyze` tetap dipakai, perilaku saat
   koneksi putus (fallback ke LittleFS), dan beban WiFi terhadap catu baterai
   (bergantung pada butir WiFi OFF di atas).
 
@@ -161,7 +161,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Normalisasi | z-score per window | kebal beda amplitudo, nol kebocoran statistik |
 | Pooling | GlobalAveragePooling1D | param jauh lebih kecil dari Flatten |
 | Ukuran window | **128/128 = 256 sampel** | ablasi 3 seed (Fase 6c) terhadap baseline 90/160 = 250 sampel: F1 DS2 0,5660 → 0,6911. Mekanismenya terlihat per simbol: **recall S naik monoton dengan `WIN_PRE`** (90→0,268, 112→0,369, 128→0,42-0,49) karena beat supraventrikular dibedakan gelombang P & interval PR di sisi kiri window; recall V tak bergerak; **recall F turun** 0,308→0,15-0,20 (cakupan T dipangkas 160→128) — pertukaran yang disengaja, S 10× lebih banyak dari F di DS2. Varian PENENTU justru yang kalah: 112/144 juga 256 sampel, juga kelipatan 8, cakupan T lebih panjang → setara baseline. Jadi yang membayar **konteks 128 sampel sebelum R**, bukan panjang window. R di indeks **132** (128+4) |
-| Augmentasi jitter | **`empiris` × 2 salinan di DS1**, DS2 tidak pernah dijitter | F1 DS2 0,5660 → 0,6354 bahkan pada data BERSIH — jitter bekerja sebagai regularisasi, bukan cuma latihan kondisi deploy. `--salinan 3` lebih buruk (0,6099), jadi 2 |
+| Augmentasi jitter | **`empiris` × 2 salinan di DS1**, DS2 tidak pernah dijitter | F1 DS2 0,5660 → 0,6354 bahkan pada data BERSIH — jitter bekerja sebagai regularisasi, bukan cuma latihan kondisi deploy. `--copies 3` lebih buruk (0,6099), jadi 2 |
 | Threshold | **0,80** | kriteria: F1 maksimum di VAL, tie-break recall bila ΔF1 < 0,005. VAL ikut ber-jitter, jadi sebaran probabilitas dan titik operasinya berbeda dari model tanpa augmentasi. Kandidat {0,80; 0,85} → recall menang → 0,80. Threshold 0,35 (titik operasi model tanpa augmentasi) memberi precision 0,19 di model ini. Reproduksi: `scripts/calibrate_threshold.py` |
 | Agregasi metrik Fase 6 | **level beat** (per-record disimpan terpisah) | standar & sebanding literatur (PRD); `fase6_per_record_fp32.csv` untuk cerita sebarannya |
 | `sklearn.metrics` | **tidak dipakai** — numpy | rumus TP/FN/FP/TN + AUC Mann-Whitney beberapa baris; sekalian memaksa memutuskan pembagian-nol → 0,0 bukan NaN (NaN akan merusak tabel delta Fase 7) |
@@ -177,7 +177,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | `sklearn` untuk class weight | **tidak dipakai** — 3 baris numpy | rumus `balanced` cuma `N/(2·n_c)`; gate point CLAUDE.md: jangan tambah dependency (apalagi sebesar sklearn) untuk yang beberapa baris sudah selesai |
 | Monitor EarlyStopping | **`val_auc`** (mode max, patience 8, `restore_best_weights`) | `val_recall` bisa dicurangi (tebak Aritmia semua → recall 1,0); `val_loss` sudah terdistorsi `class_weight` jadi tak lagi bisa ditafsir; AUC bebas threshold & tak bisa dipalsukan satu kelas |
 | Metrik yang dipantau | **recall, precision, AUC** — accuracy TIDAK | accuracy 89,9% bisa dicapai dengan menebak Normal terus; menampilkannya cuma mengundang salah baca |
-| Learning rate | **default adam (1e-3)** — diablasi, tetap | Dengan 1e-3 `val_auc` memuncak di epoch 0 lalu turun monoton — model produksi adalah hasil SATU epoch, 8 epoch sisanya terbuang. Diablasi 3 LR × 3 seed + 39 pasien held-out: 1e-4 menaikkan AUC di 4/4 set evaluasi, TEST-C F1 +0,124, recall F dua kali lipat (0,180→0,359), recall V naik — **tapi recall S turun 0,4473→0,3126**. 3e-4 lebih buruk lagi di S (0,2024), jadi tidak ada titik manis di tengah. Defisit S diverifikasi NYATA di titik operasi setara (6/6 titik, `scripts/cek_titik_operasi.py`) — bukan artefak threshold. Dipertahankan karena **S adalah fokus penelitian ini** dan ongkos pindah (regen `model_int8.h`+`golden_ref.h`, validasi ulang board) besar. Pertukaran ini DILAPORKAN, bukan disembunyikan. Knob `ablasi.py --lr` ditinggal. Detail: `docs/train-walkthrough.md` §6b |
+| Learning rate | **default adam (1e-3)** — diablasi, tetap | Dengan 1e-3 `val_auc` memuncak di epoch 0 lalu turun monoton — model produksi adalah hasil SATU epoch, 8 epoch sisanya terbuang. Diablasi 3 LR × 3 seed + 39 pasien held-out: 1e-4 menaikkan AUC di 4/4 set evaluasi, TEST-C F1 +0,124, recall F dua kali lipat (0,180→0,359), recall V naik — **tapi recall S turun 0,4473→0,3126**. 3e-4 lebih buruk lagi di S (0,2024), jadi tidak ada titik manis di tengah. Defisit S diverifikasi NYATA di titik operasi setara (6/6 titik, `scripts/check_operating_point.py`) — bukan artefak threshold. Dipertahankan karena **S adalah fokus penelitian ini** dan ongkos pindah (regen `model_int8.h`+`golden_ref.h`, validasi ulang board) besar. Pertukaran ini DILAPORKAN, bukan disembunyikan. Knob `ablasi.py --lr` ditinggal. Detail: `docs/train-walkthrough.md` §6b |
 | Dropout Dense 16 | **0.0 (tanpa dropout)** — diablasi | val recall: 0.0→**0,700**, 0.2→0,274, 0.3→0,359, 0.5→0,651 (AUC nyaris sama semua). Dropout cuma bikin model makin konservatif — precision naik, recall turun, padahal recall yang kurang. Overfit di sini akar masalahnya variasi antar-pasien, bukan model kegedean |
 | Tipe I/O INT8 | **int8 in / int8 out** (`INT8_IO=True`) | full-INT8 end-to-end: nol kernel float, tensor arena terkecil. Firmware yang mengubah float↔int8 pakai scale/zero_point dari `model_int8.h` (jangan hardcode) |
 | Sampel kalibrasi PTQ | **300, stratified dari DS1**, seed dikunci | PRD 100-500; 300 → 30 beat Aritmia, cukup mencakup ekor distribusi, konversi tetap detikan. Stratified supaya JEBAKAN #4 (kelas minoritas tak terkalibrasi) mustahil terjadi |
@@ -188,25 +188,25 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Pengganti GlobalAveragePooling | **`DepthwiseConv1D(31)` bobot 1/31**, bukan `AveragePooling1D` | op pooling MEWARISI skala kuantisasi input (0,332); rata-rata 31 nilai jauh lebih kecil → ~3 bit resolusi hilang, recall DS2 0,655→0,528. Op konvolusi dapat skala output sendiri (0,0429, sama dgn `MEAN`) |
 | `Flatten`/`Reshape` di model deploy | **dihindari** — kepala klasifikasi tetap 3-D, `Dense`→`Conv1D` kernel 1 | keduanya memunculkan `SHAPE`/`PACK`/`STRIDED_SLICE` (shape dinamis); TFLM tak punya alokasi dinamis → device memberi 0,418 vs 0,945 |
 | Batas ukuran model | **25 KB** (PRD: 20 KB) | varian deploy yang benar memakan 22,94 KB; flash ESP32-S3 16 MB, batas ini soal disiplin bukan kapasitas. Disetujui eksplisit |
-| Database LATIH | **mitdb saja** (`DB_LATIH` = mitdb+svdb dipakai HANYA di ablasi) | Fase D, tabel 2×2 3-6 seed: svdb menurunkan F1 -0,065 (pergeseran domain), fitur baru menambalnya +0,070, gabungannya +0,005 = bukan sinyal. incartdb lebih buruk lagi (AUC 0,8881 vs 0,9373; recall S 0,331 vs 0,498 untuk svdb, rentang TERPISAH). svdb & incartdb held-out TETAP dipakai sebagai TEST-B/TEST-C antar-database — 85.812 beat, 39 pasien. Detail: `docs/dataset-walkthrough.md` §4, `docs/README.md` §Eksperimen yang tidak diadopsi |
+| Database LATIH | **mitdb saja** (`TRAIN_DATABASES` = mitdb+svdb dipakai HANYA di ablasi) | Fase D, tabel 2×2 3-6 seed: svdb menurunkan F1 -0,065 (pergeseran domain), fitur baru menambalnya +0,070, gabungannya +0,005 = bukan sinyal. incartdb lebih buruk lagi (AUC 0,8881 vs 0,9373; recall S 0,331 vs 0,498 untuk svdb, rentang TERPISAH). svdb & incartdb held-out TETAP dipakai sebagai TEST-B/TEST-C antar-database — 85.812 beat, 39 pasien. Detail: `docs/dataset-walkthrough.md` §4, `docs/README.md` §Eksperimen yang tidak diadopsi |
 | Syarat database tambahan | **anotasi beat-level, alfabet WFDB** (svdb, incartdb) | `AAMI_MAP` menanganinya apa adanya. PTB-XL/CPSC/Chapman ditolak: diagnosis per-rekaman, label per-beat tak bisa diturunkan. DS2 mitdb tidak berubah satu byte. Detail: `docs/dataset-walkthrough.md` §4 |
 | Laju cuplik database tambahan | **resample ke 360 Hz** (`resample_poly`), bukan mitdb diturunkan | `WIN_PRE` dalam sampel; 128 sampel @128 Hz = 1.000 ms, bukan 355 ms yang diablasi. Arah ke 360 menjaga bandpass, `ECG_FS`, dan golden tetap |
 | `selaraskan` per database | **svdb & incartdb `True`, mitdb `False`** | anotasi svdb ~6 sampel lebih awal (median +10 vs +3), sistematis, di atas ambang bahaya 4 sampel. mitdb acuan golden & ablasi terkunci: menyelaraskannya menggeser R ~1 sampel |
 | `ALIGN_WIN` | **16** (±44 ms) | menutup p1..p99 svdb (−9..+15) tanpa menjangkau gelombang T (72-108 sampel); `PT_REFINE_WIN` 25 untuk sebaran detektor, terlalu lebar di sini |
-| Held-out database tambahan | **`sorted(records)[::4]`** (`SPLIT_SETIAP_KE = 4`), bukan seed | aturan tak bisa dipancing & bisa diverifikasi siapa pun. F held-out incartdb cuma ~13-20 beat (disengaja) → dilaporkan sebagai hitungan TP/FN mentah |
+| Held-out database tambahan | **`sorted(records)[::4]`** (`SPLIT_EVERY_NTH = 4`), bukan seed | aturan tak bisa dipancing & bisa diverifikasi siapa pun. F held-out incartdb cuma ~13-20 beat (disengaja) → dilaporkan sebagai hitungan TP/FN mentah |
 | `n_record` per database | **wajib cocok**, `build_split_multi` menolak bila tidak | aturan `[::4]` atas daftar tak lengkap memberi split berbeda tanpa suara (65/75 incartdb: I68 salah masuk, I65/I69/I73 hilang) |
-| Presisi minimum nama (tahap 2) | **`MIN_PRESISI_NAMA = 0,90`**, bukan F1 | F1 memberi hadiah "namai semuanya V" (presisi 37,9%). Alat boleh diam, tidak boleh salah 6 dari 10. Detail: `docs/evaluate-walkthrough.md` §5 Tahap 2 |
+| Presisi minimum nama (tahap 2) | **`MIN_NAMED_PRECISION = 0,90`**, bukan F1 | F1 memberi hadiah "namai semuanya V" (presisi 37,9%). Alat boleh diam, tidak boleh salah 6 dari 10. Detail: `docs/evaluate-walkthrough.md` §5 Tahap 2 |
 | Bentuk fitur ritme | **3 kolom** (RR_prev, RR_ratio, dRR) — QRSw & rasio RR ada tapi OFF | `PA_QRSW=1` / `PA_RR_RATIO=1` menyalakannya. Di mitdb saja: F1 0,6911 → 0,6882 (bukan sinyal) dan harganya recall V 0,944 → 0,898, recall F 0,152 → 0,029. Hanya menang saat menambal kerusakan svdb. Kode C-nya sudah ada di balik `#if ECG_RR_RATIO`/`ECG_QRSW`, terkompilasi & terbukti tidak mengganggu (17/17) |
 | `RR+1` / tunda 1 beat (G2) | **TIDAK dipakai** — tapi sudah diimplementasikan | Karena `PA_RR_RATIO` tidak dikunci, firmware tidak menunda beat. Kalau nanti diaktifkan: `ecg_live.cpp` menilai `idx_hist-1`, buffer TIDAK berubah (r_hist[16] sudah memuat RR+1, ring 4 detik cukup), plus `ECG_LIVE_TIMEOUT` 3 detik untuk asistol dengan sentinel rasio 1,0 |
 | `MAX_RHYTHM_SCALE` | **0,05** — assert di `quantize_int8` | Skala INT8 tensor ritme diturunkan dari min/max 300 sampel kalibrasi. Satu beat ber-RR ekstrem di sana (record 207: RR_prev = 100 s) melebarkan skala ~30x dan RR normal tinggal beberapa level → cabang ritme MATI, dan gejalanya "recall S buruk", bukan error. Peluang 1,8%/seed. Nilai sehat 0,0129. Diuji dua arah |
 | Strategi imbalance (K1 diuji) | **`class_weight` balanced TETAP** | P1 Tabel 4 memprediksi precision +31 poin kalau dimatikan; terukur **+0,3 poin**. Sebabnya kalibrasi threshold di HILIR menyerap efeknya (threshold 0,40 → 0,15). Pelajaran: ablasi paper yang sah pun tak transfer kalau ada langkah adaptif yang mereka tidak punya. G1 DITUTUP atas dasar ablasi sendiri |
-| Tahap 2 (penamaan V/S) | **TIDAK dikirim** | Aturan lebar QRS mencapai presisi nama V 91,7% di DS2, tapi VAL maksimum cuma 43,9% — 5 pasien tidak mewakili keragaman morfologi V. §7 no.4 melarang DS2 mensertifikasi. `scripts/tahap2.py` menegakkannya sendiri: tanpa ambang yang lolos, tidak ada nama ditampilkan |
+| Tahap 2 (penamaan V/S) | **TIDAK dikirim** | Aturan lebar QRS mencapai presisi nama V 91,7% di DS2, tapi VAL maksimum cuma 43,9% — 5 pasien tidak mewakili keragaman morfologi V. §7 no.4 melarang DS2 mensertifikasi. `scripts/second_stage_rules.py` menegakkannya sendiri: tanpa ambang yang lolos, tidak ada nama ditampilkan |
 | Library TFLM | **`spaziochirale/Chirale_TensorFLowLite`** 2.0.0 | rilis terbaru di registry PlatformIO, jalan dgn framework Arduino. Kernel referensi (belum ESP-NN) → 26 ms/detak jadi baseline; pindah `esp-tflite-micro` kalau daya jadi kendala |
 | Board PlatformIO | **`4d_systems_esp32s3_gen4_r8n16`** | bukan tebakan — id dari projek uji yang sudah pernah ter-flash & jalan di hardware ini |
 | Segmentasi on-device | **kompensasi 38 + penyelarasan puncak ±25 + kurangi group delay 4** | tanpa salah satunya R tidak mendarat di `WIN_PRE+4` (= **132**) dan precision jatuh 4× (0,479→0,124); offset dikalibrasi di DS1 |
 | Model jitter | **empiris** (ambil ulang dari `residu_ds1.npy`), bukan seragam ±18 paper | residu terukur inti-tajam-ekor-berat; seragam ±18 menggeser 80% beat yang sebetulnya terkunci. `seragam` tetap ada supaya sweep δ=0..18 sebanding Tabel 3 Dias 2021 |
 | Jitter per beat | **independen**, walau kenyataannya berkorelasi per record | korelasi sebagian saling meniadakan di RR (RR = selisih dua posisi); independen melebihkan ragam RR = arah pesimistis, aman |
-| Salinan bersih saat augmentasi | **selalu ikut** (`--salinan N` = N tiruan DI ATAS 1 salinan bersih) | 80% beat di alat meleset ≤1 sampel; kasus "tepat" itu mayoritas, bukan kasus pinggir |
+| Salinan bersih saat augmentasi | **selalu ikut** (`--copies N` = N tiruan DI ATAS 1 salinan bersih) | 80% beat di alat meleset ≤1 sampel; kasus "tepat" itu mayoritas, bukan kasus pinggir |
 | Knob ablasi | **environment** (`PA_WIN_PRE`, `PA_WIN_POST`, `PA_HOS`), bukan edit nilai final | tanpa env, `config.py` memberi nilai yang persis sama → ablasi tidak menyentuh gate point. Yang menang baru dikunci lewat bawaannya (tetap gate point) |
 | Fitur HOS (kurtosis+skewness) | **ditolak** | 3 seed: 0,6150±0,0509 vs 0,6354±0,0428 tanpa HOS — tumpang tindih penuh. Bukan "merusak", tapi "tidak ada bukti menolong"; fitur tanpa bukti tetap harus diport ke C & dijaga. Kode + knob `PA_HOS` ditinggal untuk ablasi ulang |
 | Record kanal anomali | 114 (MLII idx 1); 102 & 104 tanpa MLII → `raise` | 102/104 paced, dibuang di Fase 3 juga |
@@ -331,8 +331,8 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   menyentuh DTR/RTS tidak me-reset 3 dari 3 kali dan sesi rekam bertahan
   (n 1.450 → 3.461 antar dua pembukaan). `make pull` memakai pola bawaan, jadi
   aman. Pola DTR/RTS False dipakai hanya bila boot bersih memang diinginkan
-  (`measure_power.py` menunggu `MONITOR ARITMIA SIAP`; `pull_daya.py` dan
-  `uji_alur_rekam.py` menunggu board menjawab). Setelah membuka port,
+  (`measure_power.py` menunggu `MONITOR ARITMIA SIAP`; `pull_power.py` dan
+  `record_flow_check.py` menunggu board menjawab). Setelah membuka port,
   **verifikasi state** dari balasan board (`replay ON`, `rekam=1`, ayunan di
   `s`), jangan diasumsikan.
 - **Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% "ARITMIA".**
@@ -357,7 +357,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   F1 DS2 0,6911 vs 0,6535 (selisih 0,0376). Sebab: sama dengan jebakan oneDNN
   di atas, tapi tidak hilang hanya karena dirata-rata 3 seed. Konsekuensi:
   mengulang 3 seed **tidak** mengangkat selisih kecil jadi sinyal; yang
-  menaikkan daya pisah adalah set uji lebih besar (`ablasi.py --lintas-db`,
+  menaikkan daya pisah adalah set uji lebih besar (`ablasi.py --cross-db`,
   39 pasien held-out). Sebagian vonis "bukan sinyal" Fase A–F jadi lebih lemah,
   bukan lebih kuat.
 - **Menunggu jaringan di dalam loop yang menguras antrean ADC = sampel hilang.**
@@ -427,7 +427,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat
-  `scripts/plot_fase0.py`); `conftest.py` sudah menangani sisi pytest.
+  `scripts/plot_phase0.py`); `conftest.py` sudah menangani sisi pytest.
 
 ## Kanal knowledge
 

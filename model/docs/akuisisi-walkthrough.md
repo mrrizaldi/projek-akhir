@@ -29,7 +29,7 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           ▼
               model/data/recordings/<tanggal-jam>.csv
                           │
-                     make analisis FILE=...
+                     make analyze FILE=...
                           ▼
      angka kualitas per segmen di terminal + grafik di artifacts/metrics/akuisisi/akuisisi_*.png
 ```
@@ -308,20 +308,20 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
 1. Jalankan dari `model/`:
 
    ```
-   make analisis FILE=data/recordings/<nama>.csv
+   make analyze FILE=data/recordings/<nama>.csv
    ```
 
 2. Hasil yang diharapkan berupa angka, bukan kesan. Contoh dari rekaman uji
-   coba (arsip) yang gagal, `make analisis FILE=data/arsip/rekaman-uji-coba/20260910-2019.csv`:
+   coba (arsip) yang gagal, `make analyze FILE=data/arsip/rekaman-uji-coba/20260910-2019.csv`:
 
    ```
-   20260910-2019: 15877 sampel = 44.1 detik @ 360 Hz, 0 sampel terlewat
-     ADC          3363..3558   clipping 0 sampel (0.000%, ambang 0.1%) OK
-     dengung 50Hz   39.1% dari pita EKG   TERLALU BESAR
-     derau >60Hz   191.3% dari pita EKG   TERLALU BESAR
-     drift <0.5Hz    2.1% dari pita EKG
-     denyut       autokorelasi 0.14 @ 88 bpm   TIDAK ADA denyut jelas
-     R-peak       169 dalam 44.1 detik
+   20260910-2019: 15877 samples = 44.1 seconds @ 360 Hz, 0 samples missed
+     ADC          3363..3558   clipping 0 samples (0.000%, threshold 0.1%) OK
+     50Hz hum       39.1% of ECG band   TOO LARGE
+     noise >60Hz   191.3% of ECG band   TOO LARGE
+     drift <0.5Hz    2.1% of ECG band
+     pulse        autocorrelation 0.14 @ 88 bpm   NO clear pulse
+     R-peak       169 in 44.1 seconds
    ```
 
    Baris `BPM` (rerata, min, maks, persen masuk akal) ikut tercetak bila
@@ -362,18 +362,18 @@ sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
 4. Grafik satu menit untuk dilihat detak per detak:
 
    ```
-   make grafik FILE=data/recordings/<nama>.csv            # 60 detik terbaik
-   make grafik FILE=data/recordings/<nama>.csv MULAI=120  # mulai detik 120
+   make plot FILE=data/recordings/<nama>.csv            # 60 detik terbaik
+   make plot FILE=data/recordings/<nama>.csv MULAI=120  # mulai detik 120
    ```
 
    Hasil: `artifacts/metrics/akuisisi/rekaman_<nama>_detik-<awal>.png`, enam
    baris 10 detik sinyal bandpass 0,5–40 Hz dengan tanda ▼ di setiap R
    terdeteksi, ditambah panel HR per detak. Tanpa `MULAI`,
-   `plot_rekaman.py` menggeser jendela 60 detik tiap 5 detik dan memilih yang
+   `plot_recording.py` menggeser jendela 60 detik tiap 5 detik dan memilih yang
    RR tak wajarnya (< 30 atau > 200 bpm) paling sedikit, lalu yang derau
    > 60 Hz-nya paling kecil relatif terhadap pita EKG. Tanda R memakai
    deteksi Pan-Tompkins yang dikoreksi `PT_DETECTOR_OFFSET` lalu diselaraskan
-   ke puncak (`selaraskan_r`), sama dengan rantai firmware. Rekaman berjeda
+   ke puncak (`align_r`), sama dengan rantai firmware. Rekaman berjeda
    dicari per segmen; segmen yang lebih pendek dari jendela dilewati. Contoh
    keluaran:
 
@@ -392,7 +392,7 @@ segmen secara terpisah, lalu menggabungkan hasilnya:
 | R-peak Pan-Tompkins | dideteksi per segmen | indeks digeser ke sumbu waktu gabungan |
 | RR dan BPM | `diff` R-peak di dalam segmen | disambung; **tidak ada RR yang melintasi jeda** |
 | Energi pita (dengung, derau, drift, pita EKG) | per segmen | dijumlahkan, lalu dirasiokan |
-| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati; segmen ≥ 60 detik dihitung per jendela 30 detik lalu diambil median (`JENDELA_AUTOKORELASI_S`) | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
+| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati; segmen ≥ 60 detik dihitung per jendela 30 detik lalu diambil median (`AUTOCORRELATION_WINDOW_S`) | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
 | ADC min/maks, clipping | seluruh sampel | — |
 
 Alasannya: sinyal sebelum dan sesudah jeda tidak bersambung dalam waktu.
@@ -451,7 +451,7 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 ### SQI per jendela 10 detik (Orphanidou 2015)
 
 Vonis `analyze_recording.py` berlaku per rekaman sehingga satu menit buruk di
-rekaman 300 detik bisa tersembunyi. `scripts/kualitas_jendela.py` menilai tiap
+rekaman 300 detik bisa tersembunyi. `scripts/window_quality.py` menilai tiap
 jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
 (`laporan/pustaka/orphanidou_2015.pdf`, hlm. 834–836):
 
@@ -463,13 +463,13 @@ jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
    Rerata korelasi ≥ 0,66 (ambang paper: *sensitivity* 94%, *specificity* 97%
    terhadap anotasi manual).
 
-R-peak memakai rantai yang sama dengan grafik (`plot_rekaman.puncak_r`:
+R-peak memakai rantai yang sama dengan grafik (`plot_recording.r_peaks`:
 kompensasi `PT_DETECTOR_OFFSET`, penyelarasan `PT_REFINE_WIN`) pada sinyal
 *bandpass*. Potongan yang terpotong tepi jendela dibuang.
 
 ```bash
 cd model
-.venv/bin/python scripts/kualitas_jendela.py data/recordings/20261022-1256-rekam-001.csv \
+.venv/bin/python scripts/window_quality.py data/recordings/20261022-1256-rekam-001.csv \
   data/recordings/20261022-1256-rekam-002.csv data/recordings/20261022-1257-rekam-003.csv \
   data/recordings/20261022-1257-rekam-004.csv
 ```
@@ -563,7 +563,7 @@ elektroda sekaligus sehingga hasilnya tidak dapat diatribusikan ke salah satu.
 `data/arsip/rekaman-uji-coba/20260915-1130.csv` — ayunan 3.128 counts,
 dengung 3,3%, autokorelasi 0,27 @ 87 bpm, 64 R-peak dalam 47,2 detik, BPM masuk
 akal 100% (20 sampel clipping di rail atas). Berguna sebagai pembanding bentuk
-grafik saat menguji `make analisis`.
+grafik saat menguji `make analyze`.
 
 ---
 

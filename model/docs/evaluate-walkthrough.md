@@ -127,7 +127,7 @@ $$\text{AUC} = \frac{\sum_{i \in \text{pos}} r_i - \frac{n_{+}(n_{+}+1)}{2}}{n_{
 dengan $r_i$ = peringkat probabilitas. Penanganan **nilai seri** (`ties`) diberi
 peringkat rata-rata — kalau tidak, model yang mengeluarkan probabilitas identik
 untuk semua sampel akan terlihat AUC 1,0 padahal seharusnya 0,5. Itu di-assert
-di `test_auc_sempurna_acak_dan_seri`.
+di `test_auc_perfect_random_and_ties`.
 
 Kenapa AUC dilaporkan bersama recall: **AUC tidak tergantung threshold**. Kalau
 threshold berubah, recall dan precision ikut berubah tapi AUC tidak —
@@ -148,7 +148,7 @@ berjumlah 89%. Dua metrik pelengkap, dihitung dengan numpy di `src/evaluate.py`:
   sel *confusion matrix*. Penyebut nol → 0,0 (sama dengan kebijakan
   pembagian-nol `binary_metrics`).
 
-Hasil DS2 (`scripts/metrik_tambahan.py`, 1 Nov 2026):
+Hasil DS2 (`scripts/extra_metrics.py`, 1 Nov 2026):
 
 | | Float32 | INT8 |
 |---|---|---|
@@ -258,7 +258,7 @@ diceritakan.
 
 ### Tahap 2: menamai aritmia (dieksperimenkan, tidak dikirim)
 
-`scripts/tahap2.py` menguji aturan penamaan di atas keputusan biner. Tahap 2
+`scripts/second_stage_rules.py` menguji aturan penamaan di atas keputusan biner. Tahap 2
 tidak dilatih dan tidak masuk `model_int8.h`; dia aturan skalar atas beat yang
 sudah ditandai tahap 1, jadi tidak bisa mengubah F1, hanya mengganti nama TP/FP
 yang sudah ada. Plafonnya recall tahap 1. Dua sumbu saja:
@@ -282,7 +282,7 @@ tepat waktu       N / tak dinamai       V atau F
 - **Lebar QRS mentah, bukan ternormalisasi.** Fitur model ternormalisasi relatif
   baseline pasien (bagus untuk N vs abnormal), tetapi "V = QRS lebar" adalah
   ambang fisiologis absolut. Keduanya dari window yang sama, nol buffer tambahan.
-- **Kriteria ambang = presisi minimum (`MIN_PRESISI_NAMA = 0,90`), bukan F1.**
+- **Kriteria ambang = presisi minimum (`MIN_NAMED_PRECISION = 0,90`), bukan F1.**
   Memaksimalkan F1 kelas V di antara beat yang ditandai memberi hadiah untuk
   "namai semuanya V" (V ~50% dari yang ditandai): percobaan pertama mendarat di
   dasar grid, 4.387 dinamai V, hanya 1.664 benar (presisi 37,9%). Ambang terkecil
