@@ -13,7 +13,7 @@ Reproduction:
 
 ```
 cd model
-make prep       # 44 record mitdb (+ svdb/incartdb bila sudah diunduh) → data/processed/per_record/*.npz
+make prep       # 44 mitdb records (+ svdb/incartdb if already downloaded) → data/processed/per_record/*.npz
 ```
 
 ---
@@ -26,13 +26,13 @@ or that the result is stored as `.npz`. All of that is **policy**, and
 policy lives here.
 
 ```
-        src/ (murni, padanannya di C)          scripts/ (eksekusi)
+        src/ (pure, counterpart in C)          scripts/ (execution)
    ┌────────────────────────────────┐    ┌──────────────────────────┐
    │ load_record()                  │    │                          │
    │ apply_bandpass()               │◄───┤   prep_beats.py          │
-   │ segment_beats()                │    │   - record mana dipakai  │
-   │ zscore_per_window()            │    │   - beat mana dibuang    │
-   │ assemble_rhythm_features()            │    │   - tulis .npz, cetak    │
+   │ segment_beats()                │    │   - which records are used │
+   │ zscore_per_window()            │    │   - which beats are dropped│
+   │ assemble_rhythm_features()     │    │   - write .npz, print    │
    │ to_aami_class/to_binary_label()│    │                          │
    └────────────────────────────────┘    └──────────────────────────┘
 ```
@@ -82,7 +82,7 @@ so the four can never drift apart from each other.
 This is the most expensive pitfall in the whole project, and its symptom is **nothing**:
 
 ```python
-labels = labels[:len(windows)]     # ← assert panjang LOLOS, data rusak
+labels = labels[:len(windows)]     # ← length assert PASSES, data corrupted
 ```
 
 `segment_beats` drops edge beats; `compute_rr_features` cannot fill
@@ -127,8 +127,8 @@ configuration (optional features are only added when their ablation knob is acti
 order of its arguments. Two forms that look equivalent:
 
 ```python
-rr = compute_rr_features(r)[idx]     # ✓ BENAR — hitung dari r UTUH, baru potong
-rr = compute_rr_features(r[idx])     # ✗ SALAH — potong dulu, baru hitung
+rr = compute_rr_features(r)[idx]     # ✓ CORRECT — compute from the WHOLE r, then slice
+rr = compute_rr_features(r[idx])     # ✗ WRONG — slice first, then compute
 ```
 
 The difference: the `RR_prev` of beat `idx[0]` needs the position of the **previous** beat, which has
@@ -145,7 +145,7 @@ the whole data; filtering happens afterwards.**
 
 ```python
 assert len(windows) == len(rr) == len(labels) == len(symbols) == len(idx)
-assert not np.isnan(rr).any(), f"record {record_id}: NaN lolos ke rr"
+assert not np.isnan(rr).any(), f"record {record_id}: NaN leaked into rr"
 ```
 
 The second is the second safety net. The NaN from beats 0 & 1 should already have been
@@ -158,11 +158,11 @@ filtered out by `idx`; if it gets through, it means `valid_beat_indices` and
 ## 3. Anatomy of the output
 
 ```python
-{"windows": [K,256] float32,   # morfologi ter-z-score
- "rr":      [K,3]   float32,   # RR_prev, RR_ratio, dRR (N_RR_FEATURES kolom)
- "labels":  [K]     int8,      # 0 Normal / 1 Aritmia
- "symbols": [K]     <U2,       # simbol MIT-BIH asli
- "n_dropped":       int32}     # berapa beat dibuang
+{"windows": [K,256] float32,   # z-scored morphology
+ "rr":      [K,3]   float32,   # RR_prev, RR_ratio, dRR (N_RR_FEATURES columns)
+ "labels":  [K]     int8,      # 0 Normal / 1 Arrhythmia
+ "symbols": [K]     <U2,       # original MIT-BIH symbol
+ "n_dropped":       int32}     # how many beats were dropped
 ```
 
 The last two fields are not used by the model, and that is exactly their purpose.
@@ -210,7 +210,7 @@ skipped with the message `make data DB=<db>`), then for each record:
    to resampled signals.
 
 Command-line options: `--jitter {none,empiris,seragam,normal}`, `--copies N`,
-`--delta` (for `seragam`/`normal`), and `--db <nama...>`.
+`--delta` (for `seragam`/`normal`), and `--db <name...>`.
 
 `main()` prints a per-record table and then the total. The printout is not decoration: the PRD
 requires the label distribution to be printed per record as a DoD, and the imbalance
