@@ -364,7 +364,7 @@ dan pohon menu ada di [`firmware/README.md`](../../firmware/README.md) bagian
 Pemakaian di perangkat.
 
 Arti LED dan prosedur rekam ada di
-[`akuisisi-walkthrough.md`](akuisisi-walkthrough.md) §2–3; gerbang kalibrasi dan
+[`acquisition-walkthrough.md`](acquisition-walkthrough.md) §2–3; gerbang kalibrasi dan
 publikasi ada di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.
 
 **ADC dibaca DI DALAM ISR, bukan di loop.** Ini konsekuensi langsung dari
@@ -626,7 +626,7 @@ sebagai tahap yang belum terukur, bukan sebagai angka.
   beban), jadi arus diamnya (±1 mA) ada di semua mode: hilang pada selisih
   antar-mode, dan disebut terang-terangan bila angka absolut dilaporkan.
 - **I2C di GPIO 17/18.** Keduanya pin ADC2, yang mati total begitu WiFi menyala
-  (akuisisi-walkthrough §1). Memakainya untuk I2C tidak mengorbankan apa pun,
+  (acquisition-walkthrough §1). Memakainya untuk I2C tidak mengorbankan apa pun,
   sedangkan GPIO 1–10 adalah ADC1 yang masih dibutuhkan.
 - **Shunt di sisi positif (high-side).** Shunt di jalur GND mengangkat
   referensi ground board terhadap ground laptop; jalur data USB dan pembacaan
@@ -803,4 +803,4 @@ pembahasan yang baik di laporan.
 
 ---
 
-**[← Fase 7 — quantize](quantize-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[akuisisi sinyal →](akuisisi-walkthrough.md)**
+**[← Fase 7 — quantize](quantize-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[akuisisi sinyal →](acquisition-walkthrough.md)**

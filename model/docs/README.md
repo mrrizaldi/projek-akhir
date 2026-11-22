@@ -75,7 +75,7 @@ In order 0 → 7. Each document assumes the previous ones have been read.
 | 6c | [jitter](jitter-walkthrough.md) | How far the R-peak on the device really misses, why the paper's ±18 samples must not be copied, and why training with error actually raises the numbers on clean data |
 | 7 | [quantize](quantize-walkthrough.md) | What changes under INT8, why a metric can "rise" while the model does not improve |
 | HW | [firmware](firmware-walkthrough.md) | The port to C, the Python↔C golden harness, and why the `MEAN` op must be replaced for TFLM |
-| HW | [akuisisi](akuisisi-walkthrough.md) | **Working guide**: recording from the body, pulling data, assessing quality, making plots |
+| HW | [acquisition](acquisition-walkthrough.md) | **Working guide**: recording from the body, pulling data, assessing quality, making plots |
 | HW-6 | [mqtt](mqtt-walkthrough.md) | **Working guide**: two toggles (`y` signal source, `m` publishing), why the dummy is placed at the ADC rather than in the publisher, and why publishing is gated by contact quality (LO±, swing, hum) rather than by whether a beat exists |
 
 Phase 8 has no walkthrough: its content is verification, not a new concept.

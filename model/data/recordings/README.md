@@ -10,7 +10,7 @@ kejadian kontak) dan **tidak dipakai sebagai data hasil**. Rekaman uji coba
 10 Sep – 21 Okt 2026 yang lain diarsipkan di
 [`../arsip/rekaman-uji-coba/`](../arsip/rekaman-uji-coba/README.md).
 
-Prosedur merekam, menarik, dan menganalisis: [`../../docs/akuisisi-walkthrough.md`](../../docs/akuisisi-walkthrough.md).
+Prosedur merekam, menarik, dan menganalisis: [`../../docs/acquisition-walkthrough.md`](../../docs/acquisition-walkthrough.md).
 Hasil analisis (`make analyze FILE=data/recordings/<nama>.csv`) mengisi
 penanda `PLACEHOLDER-DATA` di `laporan/buku-pa/` (`grep -rn PLACEHOLDER-DATA laporan/buku-pa`).
 
