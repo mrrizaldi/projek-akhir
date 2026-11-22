@@ -12,6 +12,7 @@ boleh diperbarui.
 | 2026-11-21 | [skill-anti-slop](2026-11-21-skill-anti-slop.md) | Kandidat skill luar untuk penulisan laporan tanpa pola tulisan AI, benturannya dengan aturan repo, rencana distilasi ke `narasi-pa` | Uji coba progres-pa-1 Bab 2–4 selesai, eval skill 10/10; menunggu tinjauan user, sisa di §Sisa pekerjaan |
 | 2026-11-21 | [pekerjaan-ditunda](2026-11-21-pekerjaan-ditunda.md) | Daftar tunggal pekerjaan yang belum dieksekusi dari sesi pipeline Word, anti-slop, rilis, dan skill | Berjalan |
 | 2026-11-21 | [rencana-rework-skill-codebase](2026-11-21-rencana-rework-skill-codebase.md) | Rework skill (ekstraksi ke repo skill user, format eval skill-creator, validator CI) dan pembersihan docs serta kode | Gelombang 0–4 selesai; sisa di pekerjaan-ditunda |
+| 2026-11-22 | [english-codebase](2026-11-22-english-codebase.md) | Codebase, docs, and skills to English with equivalence-proven renames; per-feature docs via `feature-docs` | Plan ready; Phase 0 not started |
 
 ## Kapan dokumen selesai
 
