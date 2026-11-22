@@ -39,6 +39,48 @@ loads, with no build step. Links open in a new tab.
    viewer; `.docx`/`.pptx` are downloaded.
 3. Stop with `Ctrl+C`.
 
+### Run as a systemd user service
+
+The same server can stay up in the background, starting at login and
+restarting if it crashes. The unit lives outside the repo, in
+`~/.config/systemd/user/pa-serve.service`:
+
+```ini
+[Unit]
+Description=PA file index (scripts/serve.py) on 127.0.0.1:8700
+
+[Service]
+WorkingDirectory=%h/dev/projek-akhir
+ExecStart=/usr/bin/python3 %h/dev/projek-akhir/scripts/serve.py 8700
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+```
+
+`/usr/bin/python3` is named explicitly because `python3` on `PATH` may resolve
+to the PlatformIO venv; `serve.py` needs only the standard library.
+
+1. Write the unit above to `~/.config/systemd/user/pa-serve.service`.
+2. Enable and start it:
+
+   ```bash
+   systemctl --user daemon-reload
+   systemctl --user enable --now pa-serve.service
+   ```
+
+3. Check it: `systemctl --user is-active pa-serve` prints `active`, and
+   `curl -s -o /dev/null -w '%{http_code}\n' http://127.0.0.1:8700/` prints
+   `200`.
+4. Logs: `journalctl --user -u pa-serve -f`. Stop: `systemctl --user stop
+   pa-serve`. Remove: `systemctl --user disable --now pa-serve` and delete the
+   unit file.
+
+A user service runs only while the user is logged in. To keep it running
+without a login session (e.g. on a server), run `loginctl enable-linger $USER`
+once.
+
 Folders `laporan/rilis/<proyek>/vN` with N > 0 have a link "banding vN-1 dan
 vN" (compare vN-1 and vN) in their group title. The link opens the `/banding`
 page with two PDFs side by side. The per-word text changes are in
