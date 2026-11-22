@@ -23,7 +23,7 @@ Nama berkas = waktu **tarik**, bukan waktu rekam.
 
 Grafik analisisnya ada di `model/artifacts/arsip/akuisisi-uji-coba/`.
 Diagnosis rangkaian (lantai derau, jalur putus, lead-off): tabel §7 "Kalau bermasalah"
-di [`model/docs/akuisisi-walkthrough.md`](../../../docs/akuisisi-walkthrough.md).
+di [`model/docs/acquisition-walkthrough.md`](../../../docs/acquisition-walkthrough.md).
 Menganalisis ulang (hasil grafik masuk `artifacts/metrics/akuisisi/`):
 
 ```

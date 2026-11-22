@@ -2,7 +2,7 @@
 
 > **Ruang lingkup:** publikasi hasil klasifikasi per beat dari ESP32-S3 ke ThingsBoard CE lewat MQTT QoS 1, beserta gerbang kualitas, backlog, dan prosedur uji tanpa elektroda.
 > **Kode terkait:** `firmware/src/ecg_mqtt.cpp`, `firmware/include/ecg_mqtt.h`, `firmware/src/main.cpp` (`nilai_fase()`, `publikasi()`), `firmware/test/test_mqtt/`, `dashboard/`
-> **Prasyarat:** [`firmware-walkthrough.md`](firmware-walkthrough.md) §5b–5c, [`akuisisi-walkthrough.md`](akuisisi-walkthrough.md) §2
+> **Prasyarat:** [`firmware-walkthrough.md`](firmware-walkthrough.md) §5b–5c, [`acquisition-walkthrough.md`](acquisition-walkthrough.md) §2
 
 Kondisi: terverifikasi di board (N16R8, 19 Sep 2026). Seluruh mekanisme
 `bab3.tex` §Pipeline Edge-to-Cloud yang Resilien terpasang, dan **6 dari 6 target

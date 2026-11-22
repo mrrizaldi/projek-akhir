@@ -1,18 +1,18 @@
-# Walkthrough jitter — ketahanan terhadap error segmentasi
+# Jitter walkthrough: robustness to segmentation error
 
-> **Ruang lingkup:** mengukur error posisi R-peak detektor, mengukur dampaknya pada model, lalu melatih model yang tahan terhadapnya (augmentasi jitter) dan memilih ukuran window lewat ablasi.
-> **Kode terkait:** `scripts/measure_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
-> **Prasyarat:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Fase 6b)
+> **Scope:** measuring the detector's R-peak position error, measuring its impact on the model, then training a model that is robust to it (jitter augmentation) and choosing the window size through ablation.
+> **Related code:** `scripts/measure_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
+> **Prerequisite:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Phase 6b)
 
-Fase 6c, di luar PRD. Adaptasi Dias et al. 2021 (*Arrhythmia classification from
+Phase 6c, outside the PRD. An adaptation of Dias et al. 2021 (*Arrhythmia classification from
 single-lead ECG signals using the inter-patient paradigm*, CMPB 202:105948,
-doi:10.1016/j.cmpb.2021.105948), bagian yang dia ablasi sendiri.
-`segmentasi-deteksi-walkthrough.md` menemukan masalahnya; dokumen ini mengukur
-dan memperbaikinya.
+doi:10.1016/j.cmpb.2021.105948), the part that they ablated themselves.
+`segmentasi-deteksi-walkthrough.md` found the problem; this document measures
+and fixes it.
 
 ---
 
-## 0. Peta satu layar
+## 0. One-screen map
 
 ```
                     anotasi kardiolog          Pan-Tompkins di alat
@@ -33,40 +33,40 @@ dan memperbaikinya.
         (latih varian, bandingkan)
 ```
 
-Satu kalimat: **semua angka Fase 6 dipotong dari R-peak anotasi yang sempurna,
-sedangkan alat memotong dari deteksi yang meleset — dokumen ini mengukur harga
-selisih itu, lalu melatih model supaya tahan.**
+In one sentence: **all Phase 6 numbers are cut from perfect annotated R-peaks,
+whereas the device cuts from detections that miss; this document measures the price of
+that difference, then trains the model to be robust.**
 
 ---
 
-## 1. Masalahnya, dinyatakan pelan-pelan
+## 1. The problem, stated slowly
 
-Fase 2 memotong window dari `r` **anotasi kardiolog**. Itu keputusan yang benar
-dan tetap benar: jalur training harus bersih dari error detektor, kalau tidak
-kita tidak pernah tahu yang rusak itu modelnya atau detektornya.
+Phase 2 cuts windows from the `r` of the **cardiologist annotation**. That is the right decision
+and remains right: the training path must be clean of detector error, otherwise
+we never know whether the model or the detector is what is broken.
 
-Tapi keputusan itu punya konsekuensi. Di alat, tidak ada kardiolog. Yang ada `ecg_detect_r` → `ecg_align_r`, dan hasilnya meleset.
-`segmentasi-deteksi-walkthrough.md` §2 sudah mencatat betapa pekanya model ini:
-**geser 4 sampel (11 ms) saja, precision jatuh 0,479 → 0,124.**
+But that decision has a consequence. On the device, there is no cardiologist. What exists is `ecg_detect_r` → `ecg_align_r`, and its result misses.
+`segmentasi-deteksi-walkthrough.md` §2 already recorded how sensitive this model is:
+**a shift of just 4 samples (11 ms) drops precision 0.479 → 0.124.**
 
-Jadi metrik yang diukur dengan anotasi adalah batas atas, bukan ramalan.
-Pertanyaannya: berapa jauh kenyataan dari batas atas itu.
+So a metric measured with annotations is an upper bound, not a forecast.
+The question: how far reality is from that upper bound.
 
-Dias 2021 mengalami persoalan yang sama dan menyelesaikannya dengan satu ide
-sederhana: **kalau posisi R di alat meleset, rusak saja posisi R di data latih,
-lalu ukur.** Mereka menyebutnya *jitter*.
+Dias 2021 faced the same problem and solved it with one simple idea:
+**if the R position on the device misses, just corrupt the R position in the training data,
+then measure.** They called it *jitter*.
 
 ---
 
-## 2. `scripts/measure_jitter.py` — jangan pinjam angka orang
+## 2. `scripts/measure_jitter.py`: do not borrow other people's numbers
 
-Paper memakai jitter seragam ±δ dengan δ ≤ 18 sampel (50 ms), diambil dari
-literatur QRS detection. Mereka **tidak punya detektor**, jadi angka pinjaman
-itu satu-satunya pilihan.
+The paper uses uniform jitter ±δ with δ ≤ 18 samples (50 ms), taken from the
+QRS detection literature. They **do not have a detector**, so a borrowed number
+was the only choice.
 
-Kita punya detektornya. Maka langkah pertama bukan meniru δ=18, tapi mengukur.
+We have the detector. So the first step is not to imitate δ=18, but to measure.
 
-Rantai yang diukur persis rantai yang dijalankan firmware:
+The chain measured is exactly the chain the firmware runs:
 
 ```python
 r_kasar  = pan_tompkins_detect(filtered)        # punya delay ~38 sampel
@@ -76,14 +76,14 @@ pasangan = pair_detected(r_used, r_annotated, toleransi 150 ms)
 residu   = r_used[cocok] - r_annotated[pasangan[cocok]]
 ```
 
-`haluskan()` dan `pair_detected()` **tidak ditulis ulang** — keduanya sudah ada
-dari Fase 6b (`scripts/eval_detected_segmentation.py`, `src/evaluate.py`). Yang
-baru cuma pengumpulan statistiknya.
+`haluskan()` and `pair_detected()` are **not rewritten**: both already exist
+from Phase 6b (`scripts/eval_detected_segmentation.py`, `src/evaluate.py`). What
+is new is only the collection of statistics.
 
-DS1 saja. δ hasil skrip ini dipakai melatih, dan apa pun yang dipakai melatih
-tidak boleh menengok DS2.
+DS1 only. The δ resulting from this script is used for training, and anything used for training
+must not look at DS2.
 
-### Hasilnya — sebarannya tidak seperti dugaan siapa pun
+### The result: the distribution is unlike anyone's guess
 
 ```
 DS1: 51.021 beat anotasi, 50.601 terpasangkan, 420 terlewat (0,82%),
@@ -92,51 +92,51 @@ residu : median 0,0   mean 0,14   std 6,07   p5 −3   p95 +2
 |residu|: p95 18   p99 26   maks 54 sampel  (50 / 72 ms)
 ```
 
-Perhatikan dua baris terakhir bertengkar: p95 residu bertanda cuma +2, tapi p95
-dari **nilai mutlaknya** 18. Itu bukan salah hitung — itu tanda sebaran berekor.
-ECDF-nya menjelaskan:
+Notice that the last two lines quarrel: the signed residual p95 is only +2, but the p95
+of its **absolute value** is 18. That is not a miscalculation, it is the sign of a heavy-tailed distribution.
+The ECDF explains it:
 
-| |residu| ≤ | proporsi beat |
+| |residu| ≤ | proportion of beats |
 |---|---|
-| 1 sampel | 79,85% |
-| 2 sampel | 90,22% |
-| 3 sampel | 92,27% |
-| 5 sampel | 93,15% |
-| 10 sampel | 93,57% |
-| 18 sampel | 95,00% |
-| 26 sampel | 99,00% |
+| 1 sample | 79.85% |
+| 2 samples | 90.22% |
+| 3 samples | 92.27% |
+| 5 samples | 93.15% |
+| 10 samples | 93.57% |
+| 18 samples | 95.00% |
+| 26 samples | 99.00% |
 
-Bacanya: **93% beat praktis terkunci tepat** (≤5 sampel), lalu ada ~7% yang
-meleset jauh, sampai 54 sampel. Bukan seragam, bukan normal — campuran
-"terkunci" dan "kehilangan jejak".
+Read it as: **93% of beats are practically locked on exactly** (≤5 samples), then ~7% miss
+far, up to 54 samples. Not uniform, not normal: a mixture of
+"locked on" and "lost track".
 
-Ekornya punya alamat. Per record, `|p95|`:
+The tail has an address. Per record, `|p95|`:
 
-| record | std | \|p95\| | catatan |
+| record | std | \|p95\| | note |
 |---|---|---|---|
-| 112, 115, 220, 230 | 0,4–0,7 | 1 | detektor nyaris sempurna |
-| 108 | 14,8 | 26 | 829 deteksi palsu |
-| 203 | 10,8 | 30 | 126 beat terlewat |
-| 207 | 17,4 | 28 | ventricular flutter |
+| 112, 115, 220, 230 | 0.4–0.7 | 1 | detector nearly perfect |
+| 108 | 14.8 | 26 | 829 false detections |
+| 203 | 10.8 | 30 | 126 missed beats |
+| 207 | 17.4 | 28 | ventricular flutter |
 
-Jadi ekor itu bukan sifat merata detektor, melainkan **beberapa record berisik**.
-Itu penting untuk menafsirkan hasil: model yang tahan jitter sebenarnya sedang
-dilatih tahan terhadap *record buruk*, bukan tahan terhadap ketidaktelitian
-sehari-hari.
+So the tail is not a uniform property of the detector, but **a few noisy records**.
+That matters for interpreting the results: a jitter-robust model is actually being
+trained to be robust against *bad records*, not against everyday
+imprecision.
 
-Satu lagi yang ikut terukur, dan ini tidak bisa diobati jitter sama sekali:
+One more thing was measured, and jitter cannot cure it at all:
 
 ```
 beat terlewat per kelas AAMI: N 0,4%   F 1,7%   V 3,7%   S 6,8%
 ```
 
-Beat yang tidak pernah terdeteksi tidak pernah sampai ke model. Augmentasi
-apa pun tidak menolong beat yang hilang — itu urusan detektor (refraktori
-200 ms memblokir beat prematur, lihat jebakan di `../CLAUDE.md`).
+A beat that is never detected never reaches the model. No augmentation
+helps a lost beat: that is the detector's business (the 200 ms refractory
+period blocks premature beats, see the trap in `../CLAUDE.md`).
 
 ---
 
-## 3. `src/preprocessing.jitter_r()` — tiga model, satu default
+## 3. `src/preprocessing.jitter_r()`: three models, one default
 
 ```python
 def jitter_r(r_locations, delta=0, rng=None, model="empiris"):
@@ -150,31 +150,31 @@ def jitter_r(r_locations, delta=0, rng=None, model="empiris"):
     return np.maximum.accumulate(r + geser)
 ```
 
-Tiga keputusan di sembilan baris itu:
+Three decisions in those nine lines:
 
-**(a) Default `empiris`, bukan `seragam`.** Sebaran aslinya inti-tajam-ekor-berat;
-seragam ±18 akan menggeser 80% beat yang sebetulnya terkunci. Mengambil ulang
-dari kolam residu asli tidak memakai asumsi bentuk sama sekali — dan uji
-`test_empirical_mimics_measured_distribution` menjaga ragamnya tetap ~6 sampel.
-`seragam` tetap disediakan supaya sweep δ=0..18 bisa dibandingkan lurus dengan
-Tabel 3 paper.
+**(a) Default `empiris`, not `seragam`.** The real distribution is sharp-core-heavy-tail;
+uniform ±18 would shift the 80% of beats that are actually locked on. Resampling
+from the real residual pool assumes no shape at all, and the test
+`test_empirical_mimics_measured_distribution` keeps its variance at ~6 samples.
+`seragam` is still provided so the δ=0..18 sweep can be compared directly with
+Table 3 of the paper.
 
-**(b) Jitter per beat INDEPENDEN, walau kenyataannya berkorelasi.** Record 108
-berisik sepanjang record — errornya menggerombol, bukan acak per beat. Korelasi
-itu sebagian **saling meniadakan** di fitur RR, karena RR itu selisih dua posisi:
-kalau dua beat bertetangga sama-sama bergeser +20, RR-nya tidak berubah sama
-sekali. Independen berarti ragam RR **dilebihkan**. Itu arah yang pesimistis,
-jadi aman: model dilatih menghadapi kerusakan RR yang lebih parah dari kenyataan.
+**(b) Per-beat jitter is INDEPENDENT, even though reality is correlated.** Record 108
+is noisy throughout the record: its errors cluster, they are not random per beat. That correlation
+partly **cancels itself out** in the RR feature, because RR is the difference of two positions:
+if two neighboring beats both shift +20, the RR does not change at
+all. Independent means the RR variance is **overstated**. That is the pessimistic direction,
+so it is safe: the model is trained to face RR damage that is worse than reality.
 
-**(c) `np.maximum.accumulate` menjaga urutan.** Ekor 54 sampel bisa membuat dua
-beat bertukar tempat kalau RR-nya pendek, dan itu menghasilkan RR negatif —
-mode kegagalan yang **tidak mungkin** dihasilkan detektor sungguhan (refraktori
-200 ms = 72 sampel mencegahnya). Menjaga urutan lebih jujur daripada
-membiarkannya.
+**(c) `np.maximum.accumulate` preserves order.** A 54-sample tail could make two
+beats swap places if the RR is short, and that produces a negative RR, a
+failure mode that a real detector **cannot** produce (the 200 ms
+refractory period = 72 samples prevents it). Preserving order is more honest than
+allowing it.
 
-### Yang bergeser cuma pisau, bukan diagnosis
+### Only the knife shifts, not the diagnosis
 
-Di `prep_beats.process_record`, posisi ber-jitter dipakai **seluruhnya**:
+In `prep_beats.process_record`, the jittered positions are used **entirely**:
 
 ```python
 if jitter is not None:
@@ -185,79 +185,79 @@ rr      = compute_rr_features(r)[idx]       # ikut rusak — memang harus
 labels  = [to_binary_label(to_aami_class(sym[i])) for i in idx]   # TIDAK ikut
 ```
 
-Kalau hanya window yang dijitter sementara RR tetap dihitung dari anotasi,
-fitur RR jadi bocoran informasi sempurna dan ketahanan yang terukur palsu.
-Detektor yang meleset merusak dua-duanya sekaligus.
+If only the window is jittered while RR is still computed from the annotation,
+the RR feature becomes a perfect information leak and the measured robustness is false.
+A detector that misses damages both at once.
 
-Label tetap dari anotasi asli: yang berubah adalah **tempat kita memotong**,
-bukan penyakit pasiennya.
+The label stays from the original annotation: what changes is **where we cut**,
+not the patient's disease.
 
 ---
 
-## 4. `scripts/sweep_jitter.py` — metrik sebagai kurva, bukan satu angka
+## 4. `scripts/sweep_jitter.py`: the metric as a curve, not a single number
 
-Protokol Tabel 3 paper, dijalankan atas model yang **tidak** dilatih ulang:
-δ = 0, 2, …, 18, lima seed per δ, plus satu baris `empiris`.
+The paper's Table 3 protocol, run on a model that is **not** retrained:
+δ = 0, 2, …, 18, five seeds per δ, plus one `empiris` row.
 
-Yang mahal (baca record + bandpass 650.000 sampel × 22 record) dilakukan
-**sekali** dan di-cache; yang diulang per δ cuma pemotongan window. Tanpa itu
-satu sweep memakan puluhan menit.
+The expensive part (reading the record + bandpass of 650,000 samples × 22 records) is done
+**once** and cached; what is repeated per δ is only the window cutting. Without that
+one sweep takes tens of minutes.
 
-### Hasil: model kita jauh lebih rapuh dari model paper
+### Result: our model is far more fragile than the paper's model
 
-Model baseline (window 90/160, tanpa augmentasi), threshold 0,35 yang
-dikalibrasi di VAL bersih, DS2:
+The baseline model (window 90/160, no augmentation), threshold 0.35 calibrated on
+clean VAL, DS2:
 
 | jitter | recall | precision | F1 | AUC | recall S | recall V |
 |---|---|---|---|---|---|---|
-| anotasi (δ=0) | 0,6661 | 0,4919 | **0,5659** | 0,8866 | 0,303 | 0,933 |
-| seragam δ=2 | 0,7371 | 0,2813 | 0,4072 | 0,8520 | 0,471 | 0,942 |
-| seragam δ=4 | 0,8288 | 0,1960 | 0,3170 | 0,8165 | 0,686 | 0,951 |
-| seragam δ=18 | 0,7920 | 0,2113 | 0,3336 | 0,8191 | 0,624 | 0,935 |
-| **empiris** | 0,7080 | 0,3335 | **0,4534** | 0,8586 | 0,410 | 0,935 |
+| annotation (δ=0) | 0.6661 | 0.4919 | **0.5659** | 0.8866 | 0.303 | 0.933 |
+| uniform δ=2 | 0.7371 | 0.2813 | 0.4072 | 0.8520 | 0.471 | 0.942 |
+| uniform δ=4 | 0.8288 | 0.1960 | 0.3170 | 0.8165 | 0.686 | 0.951 |
+| uniform δ=18 | 0.7920 | 0.2113 | 0.3336 | 0.8191 | 0.624 | 0.935 |
+| **empirical** | 0.7080 | 0.3335 | **0.4534** | 0.8586 | 0.410 | 0.935 |
 
-Bandingkan dengan paper (Tabel 3): sensitivitas N mereka 94,5 → 93,7 dari δ=0
-ke δ=18. **Nyaris tidak bergerak.** Kita: F1 0,566 → 0,317 hanya di δ=4.
+Compare with the paper (Table 3): their N sensitivity goes 94.5 → 93.7 from δ=0
+to δ=18. **Barely moves.** Ours: F1 0.566 → 0.317 at δ=4 alone.
 
-Bedanya sejauh itu karena yang dibandingkan bukan hal yang sama.
-Klasifikasi mereka bersandar pada **statistik ringkasan** window (maks, min,
-varians, RMS, kurtosis, skewness) — semua itu **kebal geseran**: menggeser
-jendela sedikit tidak mengubah varians isinya. Kita memakai **Conv1D** yang
-membaca bentuk gelombang pada posisi tertentu, dan tiga `MaxPooling1D(2)`
-membuat geseran 4 sampel = setengah bin pooling.
+The difference is that big because what is compared is not the same thing.
+Their classification relies on **summary statistics** of the window (max, min,
+variance, RMS, kurtosis, skewness), all of which are **shift-immune**: shifting the
+window a little does not change the variance of its content. We use **Conv1D**, which
+reads the waveform shape at specific positions, and three `MaxPooling1D(2)`
+make a 4-sample shift = half a pooling bin.
 
-Itu juga menjelaskan Tabel 6-8 paper: kelompok RR dan HOS mereka datar terhadap
-jitter, kelompok morfologi yang rontok (SeS 79,1 → 68,0, Tabel 7). Cabang morfologi kita
-adalah keseluruhan modelnya.
+That also explains Tables 6-8 of the paper: their RR and HOS groups are flat with respect to
+jitter, while the morphology group collapses (SeS 79.1 → 68.0, Table 7). Our morphology branch
+is the entire model.
 
-### Satu jebakan penafsiran: sebagian besar kerusakan itu soal threshold
+### An interpretation trap: most of that damage is about the threshold
 
-Perhatikan kolom AUC: 0,8866 → 0,8586 di jitter empiris. Turun 3%. Sementara
-F1 turun 20%. **Urutan probabilitas nyaris utuh; yang rusak titik operasinya.**
-Jitter menggeser seluruh distribusi probabilitas ke atas (window yang bergeser
-terlihat "tidak normal"), jadi threshold 0,35 yang dikalibrasi pada data bersih
-tiba-tiba terlalu longgar dan FP meledak.
+Notice the AUC column: 0.8866 → 0.8586 under empirical jitter. Down 3%. Meanwhile
+F1 is down 20%. **The probability ordering is nearly intact; what broke is the operating point.**
+Jitter shifts the whole probability distribution upward (a shifted window
+looks "abnormal"), so the threshold of 0.35 calibrated on clean data
+is suddenly too loose and FP explodes.
 
-Konsekuensinya penting untuk membaca semua tabel pada bagian ini: **model yang
-dilatih ulang WAJIB dikalibrasi ulang threshold-nya**, dan perbandingan pada
-threshold tetap 0,35 akan menyesatkan.
+The consequence is important for reading every table in this section: **a retrained
+model MUST have its threshold recalibrated**, and comparisons at a
+fixed threshold of 0.35 would mislead.
 
 ---
 
-## 5. `scripts/ablasi.py` — satu varian, satu proses, rantai yang sama
+## 5. `scripts/ablasi.py`: one variant, one process, the same chain
 
 ```
 rakit DS1 (+salinan ber-jitter) → pisah val per pasien → latih →
 kalibrasi threshold di VAL → ukur DS2 (anotasi DAN jitter empiris)
 ```
 
-Semua varian melewati rantai identik; yang berbeda cuma satu knob. Hasil
-menumpuk sebagai baris di `artifacts/metrics/ablasi/ablasi.csv`.
+All variants pass through an identical chain; only one knob differs. Results
+accumulate as rows in `artifacts/metrics/ablasi/ablasi.csv`.
 
-Knob ukuran window dan HOS dibaca `config.py` **saat import**, jadi tidak bisa
-diganti di tengah proses. Karena itu lewat environment, dan tiap varian jalan
-di proses sendiri. Bawaan `config.py` adalah 128/128 tanpa HOS, jadi varian
-berwindow 90/160 wajib menyebut window-nya secara eksplisit:
+The window size and HOS knobs are read by `config.py` **at import**, so they cannot be
+changed in the middle of a process. That is why they go through the environment, and each variant runs
+in its own process. The `config.py` default is 128/128 without HOS, so a variant
+with window 90/160 must state its window explicitly:
 
 ```bash
 PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag bersih
@@ -269,250 +269,250 @@ PA_WIN_PRE=90  PA_WIN_POST=160 PA_HOS=1 python scripts/ablasi.py --tag hos    --
 PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128s3 --jitter empiris --copies 3
 ```
 
-Tiap baris diulang dengan `--seed 42`, `--seed 7`, dan `--seed 13`.
+Each line is repeated with `--seed 42`, `--seed 7`, and `--seed 13`.
 
-Tanpa env, `config.py` memakai nilai bawaannya, jadi ablasi tidak mengubah
-nilai final dan tidak menyentuh gate point. Varian yang menang dikunci dengan
-mengubah bawaan di `config.py`, dan itu keputusan user.
+Without env, `config.py` uses its default values, so the ablation does not change
+the final values and does not touch a gate point. The winning variant is locked by
+changing the default in `config.py`, and that is a user decision.
 
-**Salinan bersih selalu ikut** (`--copies N` = N tiruan ber-jitter DI ATAS satu
-salinan bersih). Alasannya ada di angka §2: 80% beat di alat meleset ≤1 sampel,
-jadi kasus "tepat" bukan kasus langka yang boleh dikorbankan.
+**The clean copy is always included** (`--copies N` = N jittered copies ON TOP of one
+clean copy). The reason is in the §2 numbers: 80% of beats on the device miss by ≤1 sample,
+so the "exact" case is not a rare case that may be sacrificed.
 
-### Sebelum membaca hasil: satu seed tidak cukup, dan ini bukan basa-basi
+### Before reading the results: one seed is not enough, and this is not a platitude
 
-Satu run per varian tidak bisa dipercaya. Dua run dengan **seed yang sama dan
-kode yang sama** memberi angka berbeda (F1 DS2 anotasi):
+A single run per variant cannot be trusted. Two runs with the **same seed and the
+same code** give different numbers (DS2 F1 annotation):
 
-| varian | run-1 (seed 42) | run-2 (seed 42) |
+| variant | run-1 (seed 42) | run-2 (seed 42) |
 |---|---|---|
-| bersih | 0,5669 | 0,5642 |
-| jitter | 0,6209 | **0,5882** |
-| w128 | 0,6676 | 0,6657 |
+| clean | 0.5669 | 0.5642 |
+| jitter | 0.6209 | **0.5882** |
+| w128 | 0.6676 | 0.6657 |
 
-`np.random.seed` + `tf.random.set_seed` **tidak** mengunci hasil di CPU:
-penjadwalan thread oneDNN mengubah urutan penjumlahan float, dan di model yang
-berhenti lewat EarlyStopping selisih kecil itu memilih epoch yang berbeda.
+`np.random.seed` + `tf.random.set_seed` do **not** lock the result on CPU:
+oneDNN thread scheduling changes the order of float summation, and in a model that
+stops through EarlyStopping that small difference picks a different epoch.
 
-Karena itu tiap varian dijalankan **3 kali** dan yang dilaporkan rerata ±
-setengah-rentang. Selisih di bawah ~0,04 F1 di sini **bukan sinyal**.
+That is why each variant is run **3 times** and what is reported is the mean ±
+half-range. A difference below ~0.04 F1 here is **not a signal**.
 
-Kolom run-1 berasal dari `artifacts/metrics/ablasi/ablasi_seed42.csv`: batch
-pertama lima varian (`bersih`, `jitter`, `w128`, `w112`, `hos`), semuanya seed
-42, ditulis sebelum `ablasi.py` punya kolom `seed`. Header-nya berbeda dari
-`ablasi.csv`, jadi berkas itu sengaja tidak digabung dan tidak dibaca
-`summarize_ablation.py`; ia disimpan sebagai bukti nondeterminisme di atas.
-`ablasi.csv` menampung semua run bertanda seed; hapus berkas itu untuk mulai
-bersih. Kolom `menit` mencatat durasi satu proses dari rakit sampai ukur:
-0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit untuk varian mitdb dengan
-`--copies 2` atau 3, 1,5–10,1 menit untuk varian multi-database (`fb_*` dan
-`fd_*`), dan 1,5–4,2 menit untuk run mitdb lanjutan (`t8_*` dan `g_*`), semuanya
-CPU tanpa GPU.
+The run-1 column comes from `artifacts/metrics/ablasi/ablasi_seed42.csv`: the first
+batch of five variants (`bersih`, `jitter`, `w128`, `w112`, `hos`), all seed
+42, written before `ablasi.py` had a `seed` column. Its header differs from
+`ablasi.csv`, so that file is deliberately not merged and is not read by
+`summarize_ablation.py`; it is kept as evidence of the nondeterminism above.
+`ablasi.csv` holds all runs tagged with a seed; delete that file to start
+clean. The `menit` column records the duration of one process from assembly to measurement:
+0.6–0.8 minutes without augmentation, 1.1–2.0 minutes for mitdb variants with
+`--copies 2` or 3, 1.5–10.1 minutes for multi-database variants (`fb_*` and
+`fd_*`), and 1.5–4.2 minutes for follow-up mitdb runs (`t8_*` and `g_*`), all
+CPU without GPU.
 
-Tiap varian mendapat threshold sendiri dari kalibrasi VAL (0,40–0,90 pada lima
-varian pertama), jadi varian dinilai dari F1 dan AUC, bukan recall saja:
-recall di dua titik operasi yang berbeda tidak sebanding.
+Each variant gets its own threshold from the VAL calibration (0.40–0.90 across the first five
+variants), so variants are judged by F1 and AUC, not recall alone:
+recall at two different operating points is not comparable.
 
-### Hasil: tiga seed per varian, DS2
+### Result: three seeds per variant, DS2
 
-| varian | window | F1 anotasi | AUC anotasi | F1 jitter | threshold |
+| variant | window | F1 annotation | AUC annotation | F1 jitter | threshold |
 |---|---|---|---|---|---|
-| `bersih` (baseline) | 90/160 | 0,5660 ± 0,0202 | 0,8870 ± 0,0191 | 0,5423 ± 0,0359 | 0,40–0,50 |
-| `jitter` | 90/160 | **0,6354** ± 0,0428 | 0,9084 ± 0,0163 | 0,6154 ± 0,0353 | 0,60–0,80 |
-| `w128` | 128/127 | **0,6775** ± 0,0112 | **0,9394** ± 0,0047 | **0,6670** ± 0,0194 | 0,55–0,85 |
-| `w112` | 112/144 | 0,5786 ± 0,0311 | 0,9069 ± 0,0113 | 0,5607 ± 0,0337 | 0,55–0,85 |
-| `hos` | 90/160 + HOS | 0,6150 ± 0,0509 | 0,8882 ± 0,0363 | 0,6099 ± 0,0501 | 0,55–0,70 |
-| `w128b` | 128/128 | **0,6911** ± 0,0290 | 0,9373 ± 0,0087 | **0,6750** ± 0,0208 | 0,50–0,75 |
-| `w128s3` | 128/127, 3 salinan | 0,6099 ± 0,0254 | 0,9146 ± 0,0163 | 0,5964 ± 0,0242 | 0,45–0,90 |
+| `bersih` (baseline) | 90/160 | 0.5660 ± 0.0202 | 0.8870 ± 0.0191 | 0.5423 ± 0.0359 | 0.40–0.50 |
+| `jitter` | 90/160 | **0.6354** ± 0.0428 | 0.9084 ± 0.0163 | 0.6154 ± 0.0353 | 0.60–0.80 |
+| `w128` | 128/127 | **0.6775** ± 0.0112 | **0.9394** ± 0.0047 | **0.6670** ± 0.0194 | 0.55–0.85 |
+| `w112` | 112/144 | 0.5786 ± 0.0311 | 0.9069 ± 0.0113 | 0.5607 ± 0.0337 | 0.55–0.85 |
+| `hos` | 90/160 + HOS | 0.6150 ± 0.0509 | 0.8882 ± 0.0363 | 0.6099 ± 0.0501 | 0.55–0.70 |
+| `w128b` | 128/128 | **0.6911** ± 0.0290 | 0.9373 ± 0.0087 | **0.6750** ± 0.0208 | 0.50–0.75 |
+| `w128s3` | 128/127, 3 copies | 0.6099 ± 0.0254 | 0.9146 ± 0.0163 | 0.5964 ± 0.0242 | 0.45–0.90 |
 
-Varian selain `bersih` memakai jitter `empiris`; jumlah salinan ber-jitter 2,
-kecuali `w128s3` (3).
+Variants other than `bersih` use `empiris` jitter; the number of jittered copies is 2,
+except `w128s3` (3).
 
-**1. Augmentasi jitter menang, dan menang DUA KALI.** Rentang `jitter`
-[0,593–0,678] tidak bertumpang tindih dengan `bersih` [0,546–0,587]. Yang tidak
-diduga: perbaikannya juga muncul di **DS2 anotasi** — data yang bersih, tanpa
-jitter sama sekali. Jadi jitter di sini bukan cuma "melatih kondisi deploy",
-tapi bekerja sebagai **regularisasi**: model dipaksa berhenti bergantung pada
-fase yang persis dan belajar bentuk yang lebih umum. Efek yang sama persis
-dengan random crop di penglihatan komputer.
+**1. Jitter augmentation wins, and wins TWICE.** The `jitter` range
+[0.593–0.678] does not overlap with `bersih` [0.546–0.587]. The unexpected part: the
+improvement also appears on **annotated DS2**, which is clean data with no
+jitter at all. So jitter here is not just "training the deploy condition",
+it works as **regularization**: the model is forced to stop depending on
+exact phase and learn a more general shape. The very same effect as
+random crop in computer vision.
 
-**2. Window paper menang, dan alasannya bukan argumen fisiologis.** `w128`
-unggul atas semua varian berwindow 90/160 di semua kolom, dengan rentang paling
-sempit (±0,0112 F1, ±0,0047 AUC). Argumen tandingannya — "250 sudah cukup, yang
-dibeli paper cuma garis dasar" (§6) — tidak bertahan.
+**2. The paper's window wins, and the reason is not a physiological argument.** `w128`
+beats all variants with window 90/160 in every column, with the narrowest range
+(±0.0112 F1, ±0.0047 AUC). The counter-argument, "250 is enough, all the paper
+buys is a baseline" (§6), does not hold.
 
-Tapi perhatikan `w112`: panjangnya **sama** 256 sampel, habis dibagi 8, dan
-cakupan T-nya lebih panjang dari `w128`. Hasilnya setara baseline, jauh di bawah
-`w128`. Jadi yang membayar **bukan** panjang window dan **bukan** kelipatan 8 —
-melainkan **konteks 128 sampel sebelum R**. Segmen PR dan garis dasar sebelum P
-memuat informasi, bukan ruang kosong.
+But notice `w112`: its length is the **same** 256 samples, divisible by 8, and
+its T coverage is longer than `w128`. The result is equal to the baseline, far below
+`w128`. So what pays is **not** the window length and **not** the multiple of 8,
+but **the 128 samples of context before R**. The PR segment and the baseline before P
+carry information, not empty space.
 
-### Per simbol: di mana window itu sebenarnya membayar
+### Per symbol: where that window actually pays
 
-Agregat menyembunyikan mekanismenya. Recall per superclass AAMI (3 seed):
+The aggregate hides the mechanism. Recall per AAMI superclass (3 seeds):
 
-| varian | `WIN_PRE` | recall S | recall V | recall F |
+| variant | `WIN_PRE` | recall S | recall V | recall F |
 |---|---|---|---|---|
-| `bersih` | 90 | 0,268 ± 0,044 | 0,933 | 0,308 |
-| `jitter` | 90 | 0,271 ± 0,025 | 0,922 | 0,169 |
-| `w112` | 112 | 0,369 ± 0,061 | 0,933 | 0,138 |
-| `w128b` | 128 | 0,422 ± 0,156 | 0,944 | 0,152 |
-| `w128` | 128 | 0,487 ± 0,172 | 0,942 | 0,196 |
+| `bersih` | 90 | 0.268 ± 0.044 | 0.933 | 0.308 |
+| `jitter` | 90 | 0.271 ± 0.025 | 0.922 | 0.169 |
+| `w112` | 112 | 0.369 ± 0.061 | 0.933 | 0.138 |
+| `w128b` | 128 | 0.422 ± 0.156 | 0.944 | 0.152 |
+| `w128` | 128 | 0.487 ± 0.172 | 0.942 | 0.196 |
 
-**Recall V praktis tidak bergerak** (0,91–0,94 di semua varian). Beat ventrikular
-punya QRS lebar yang aneh — window seberapa pun menangkapnya.
+**Recall V barely moves** (0.91–0.94 across all variants). Ventricular beats
+have an oddly wide QRS: a window of any size captures it.
 
-**Recall S naik monoton dengan `WIN_PRE`**: 90 → 0,268, 112 → 0,369, 128 → 0,42–0,49.
-Inilah mekanismenya, dan ia masuk akal secara fisiologis: beat supraventrikular
-dibedakan oleh **gelombang P dan interval PR** — persis yang tinggal di sisi kiri
-window. Menambah konteks sebelum R memberi model lebih banyak bukti P.
+**Recall S rises monotonically with `WIN_PRE`**: 90 → 0.268, 112 → 0.369, 128 → 0.42–0.49.
+This is the mechanism, and it makes physiological sense: supraventricular beats
+are distinguished by the **P wave and PR interval**, exactly what sits on the left side of the
+window. Adding context before R gives the model more P evidence.
 
-Ini **membantah** argumen fisiologis di §6: "PR 43–72 sampel, jadi
-`WIN_PRE = 90` sudah memuat P dengan sisa". Gelombang P memang muat — tapi muat
-saja tidak cukup. Model butuh P **beserta garis dasar sebelumnya** untuk tahu bahwa
-yang dilihatnya P, bukan riak. Yang dibeli 38 sampel tambahan itu konteks, bukan
-cakupan.
+This **refutes** the physiological argument in §6: "PR is 43–72 samples, so
+`WIN_PRE = 90` already contains P with room to spare". The P wave does fit, but fitting
+alone is not enough. The model needs P **along with the baseline before it** to know that
+what it sees is a P, not a ripple. What the extra 38 samples buy is context, not
+coverage.
 
-Harganya ada, dan jujur saja: **recall F turun** (0,308 → 0,15–0,20). Beat fusi
-itu campuran morfologi normal dan ventrikular, dan cakupan T yang lebih pendek
-(160 → 128 sampel) memangkas separuh buktinya. Kelas F cuma ~390 beat di DS2 dan
-rentangnya lebar, jadi jangan ditafsir berlebihan — tapi jangan disembunyikan
-juga. Pertukarannya: **+0,15 sampai +0,22 recall S ditukar −0,11 sampai −0,16
-recall F**, dan S sepuluh kali lebih banyak di DS2.
+There is a price, stated honestly: **recall F drops** (0.308 → 0.15–0.20). Fusion beats
+are a mixture of normal and ventricular morphology, and the shorter T coverage
+(160 → 128 samples) cuts half of their evidence. Class F is only ~390 beats in DS2 and
+its range is wide, so do not over-interpret it, but do not hide it
+either. The exchange: **+0.15 to +0.22 recall S traded for −0.11 to −0.16
+recall F**, and S is ten times more numerous in DS2.
 
-**3. HOS tidak terbukti membayar.** Reratanya di bawah `jitter` (0,6150 vs
-0,6354) tapi rentangnya paling lebar dari semua varian (±0,0509) dan bertumpang
-tindih penuh. Kesimpulan jujurnya bukan "HOS merusak", melainkan **"tidak ada
-bukti HOS menolong"** — dan fitur tanpa bukti tetap harus diimplementasikan
-ulang di C, diuji, dan dijaga. Ditolak karena ongkos, bukan karena terbukti
-buruk.
+**3. HOS is not proven to pay.** Its mean is below `jitter` (0.6150 vs
+0.6354) but its range is the widest of all variants (±0.0509) and overlaps
+fully. The honest conclusion is not "HOS damages", but **"there is no
+evidence HOS helps"**, and a feature without evidence still has to be reimplemented
+in C, tested, and maintained. Rejected because of cost, not because it was proven
+bad.
 
-**4. Konfigurasi yang dikunci di `config.py`.** `WIN_PRE/WIN_POST = 128/128`,
-`JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`. Bentuk 128/128 (`w128b`)
-dipilih atas 128/127 karena hasilnya setara (0,6911 vs 0,6775, selisih di bawah
-ambang 0,04) dan panjang 256 habis dibagi stride 8 sehingga rantai pooling
-256 → 128 → 64 → 32 berjalan tanpa pemotongan. Tiga salinan ber-jitter
-(`w128s3`, 0,6099) lebih buruk dari dua (`w128`, 0,6775), jadi dua. Threshold
-model produksi dikalibrasi ulang di VAL dan menjadi 0,80; hasil DS2-nya ada di
-[`evaluate-walkthrough.md`](evaluate-walkthrough.md) §4 (F1 0,6594 — satu run
-latih, masih di dalam sebaran run `w128b`).
+**4. The configuration locked in `config.py`.** `WIN_PRE/WIN_POST = 128/128`,
+`JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`. The 128/128 form (`w128b`) was
+chosen over 128/127 because the result is equivalent (0.6911 vs 0.6775, a difference below the
+0.04 threshold) and the length of 256 is divisible by stride 8 so that the pooling chain
+256 → 128 → 64 → 32 runs without truncation. Three jittered copies
+(`w128s3`, 0.6099) are worse than two (`w128`, 0.6775), so two. The production model's
+threshold was recalibrated on VAL and became 0.80; its DS2 result is in
+[`evaluate-walkthrough.md`](evaluate-walkthrough.md) §4 (F1 0.6594, one training
+run, still within the spread of the `w128b` runs).
 
 ---
 
-## 6. Ukuran window — dua argumen yang bersaing
+## 6. Window size: two competing arguments
 
-Paper memakai 256 sampel: 128 sebelum R, 127 sesudah. Baseline repo ini 250:
-90 sebelum, 160 sesudah. Panjang totalnya nyaris sama (711 vs 694 ms); yang beda **letak R**.
+The paper uses 256 samples: 128 before R, 127 after. This repo's baseline is 250:
+90 before, 160 after. The total length is nearly the same (711 vs 694 ms); what differs is the **position of R**.
 
 | | pre-R | post-R |
 |---|---|---|
-| baseline | 90 sampel = 250 ms | 160 sampel = 444 ms |
-| paper | 128 sampel = 355 ms | 127 sampel = 353 ms |
+| baseline | 90 samples = 250 ms | 160 samples = 444 ms |
+| paper | 128 samples = 355 ms | 127 samples = 353 ms |
 
-Argumen fisiologis untuk 90/160: interval PR normal 120–200 ms = 43–72 sampel,
-jadi `WIN_PRE = 90` sudah memuat gelombang P dengan sisa, dan tambahan 38 sampel
-milik paper hanya membeli garis dasar sebelum P. Sebaliknya di kanan: pada
-denyut lambat, gelombang T bisa melewati 353 ms — window paper memotongnya,
-window baseline tidak, dan T yang lebar itu justru penanda beat ventrikular.
+The physiological argument for 90/160: the normal PR interval is 120–200 ms = 43–72 samples,
+so `WIN_PRE = 90` already contains the P wave with room to spare, and the paper's extra 38 samples
+only buy a baseline before P. Conversely on the right: at
+slow heart rates, the T wave can exceed 353 ms; the paper's window cuts it off,
+the baseline window does not, and a wide T is precisely a marker of ventricular beats.
 
-Argumen aritmetika untuk 256: stride total CNN = 8 (tiga pooling), dan
-256 habis dibagi 8 sedangkan 250 tidak (250 → 125 → 62 → 31, ada pembulatan).
+The arithmetic argument for 256: the total CNN stride = 8 (three poolings), and
+256 is divisible by 8 whereas 250 is not (250 → 125 → 62 → 31, with rounding).
 
-Karena ada argumen fisiologis untuk 90/160 dan argumen aritmetika untuk 128/127,
-diputuskan eksperimen. Kandidat ketiga **112/144 = 256** mengambil kelipatan 8
-tanpa memotong T.
+Because there is a physiological argument for 90/160 and an arithmetic argument for 128/127,
+an experiment was decided on. A third candidate, **112/144 = 256**, takes the multiple of 8
+without cutting T.
 
-**Hasilnya (§5) mematahkan argumen fisiologis di atas.** `w128` menang,
-`w112` tidak — padahal `w112` punya panjang yang sama dan cakupan T yang lebih
-panjang. Satu-satunya yang membedakan `w128` adalah 128 sampel sebelum R.
+**The result (§5) breaks the physiological argument above.** `w128` wins,
+`w112` does not, even though `w112` has the same length and a longer T coverage.
+The only thing that distinguishes `w128` is the 128 samples before R.
 
-Pelajaran metodologisnya lebih besar dari angkanya: penalaran "gelombang P
-sudah muat di 90 sampel, jadi 128 cuma membeli garis dasar" itu **masuk akal
-tetapi tidak benar**. Yang memutuskan eksperimen, bukan argumen yang enak dibaca.
+The methodological lesson is bigger than the numbers: the reasoning "the P wave
+already fits in 90 samples, so 128 just buys a baseline" is **plausible
+but not true**. What decides is the experiment, not the argument that reads well.
 
 ---
 
-## 7. HOS — dua skalar yang nyaris gratis
+## 7. HOS: two scalars that are nearly free
 
-Paper memakai kurtosis dan skewness (Pers. 12-13). Sendirian fitur ini **payah**:
-sensitivitas kelas S cuma 2,2% (Tabel 8). Yang menarik bukan kekuatannya,
-melainkan bahwa ia **datar terhadap jitter** — 2,2 → 17,0 dari δ=0 ke δ=18, naik,
-bukan turun. Momen statistik tidak peduli jendela bergeser sedikit.
+The paper uses kurtosis and skewness (Eq. 12-13). Alone, these features are **poor**:
+class S sensitivity is only 2.2% (Table 8). What is interesting is not their strength,
+but that they are **flat with respect to jitter**: 2.2 → 17.0 from δ=0 to δ=18, rising,
+not falling. Statistical moments do not care if the window shifts a little.
 
-Di repo ini ongkosnya hampir nol, karena window yang masuk **sudah ter-z-score**:
+In this repo the cost is almost zero, because the incoming window is **already z-scored**:
 
 ```
 mean = 0, std = 1  →  penyebut Pers. 12-13 tinggal 1
 kurtosis = mean(s⁴)      skewness = mean(s³)
 ```
 
-Dua pass atas 256 float yang sudah ada di RAM. Di MCU itu tidak terasa.
+Two passes over 256 floats already in RAM. On the MCU that is not noticeable.
 
-Ditempelkan ke **cabang ritme**, bukan cabang morfologi: dua skalar bukan deret
-waktu, dan cabang RR memang tempat fitur ringkasan berkumpul. `N_RR_FEATURES`
-jadi 5 dan model menyesuaikan sendiri — satu sumber kebenaran, tidak ada angka
-kembar di dua tempat.
+Attached to the **rhythm branch**, not the morphology branch: two scalars are not a time
+series, and the RR branch is where summary features gather. `N_RR_FEATURES`
+becomes 5 and the model adjusts by itself: one source of truth, no twin numbers
+in two places.
 
-**Hasilnya: tidak terbukti membayar** (§5, poin 3). Reratanya di bawah varian
-tanpa HOS dan rentangnya paling lebar dari semua varian. Kemungkinan besar
-karena Conv1D sudah membaca seluruh bentuk window — momen ke-3 dan ke-4 tidak
-menambah apa-apa yang belum ia lihat, beda dengan classifier linier paper yang
-memang cuma punya ringkasan.
+**The result: not proven to pay** (§5, point 3). Its mean is below the variant
+without HOS and its range is the widest of all variants. Most likely
+because Conv1D already reads the whole window shape: the 3rd and 4th moments do not
+add anything it has not already seen, unlike the paper's linear classifier, which
+only has summaries.
 
-Tidak diadopsi. Kode `hos_features` tetap ditinggal di `src/features_rr.py`
-beserta knob `PA_HOS`: mengulang ablasinya (misalnya untuk konfigurasi window
-lain) cukup satu perintah, dan yang mahal bukan 5 baris itu melainkan
-menemukan kembali cara mengujinya.
-
----
-
-## 8. Yang sengaja TIDAK dilakukan
-
-- **Filter dua moving-average paper (200 ms & 600 ms) tidak diadopsi.** Lebih
-  murah di MCU (tanpa IIR rekursif, tanpa group delay), tapi paper **tidak
-  pernah mengablasinya** — tidak ada satu tabel pun yang membandingkan filternya
-  dengan alternatif. Preseden, bukan bukti. Kandidat perbaikan preprocessing
-  yang berbukti ada di paper denoising multi-tahap + deteksi artefak gerak, dan
-  itu menjawab masalah nyata kita (rekaman tubuh berisik), bukan masalah MIT-BIH.
-- **Kelas F & Q tidak dibuang** walau paper membuangnya. Definisi masalah kita
-  biner (Normal vs Aritmia) dan F/Q masuk Aritmia. Ini beda metodologis yang
-  **dicatat sebagai batas pembandingan**, bukan diubah: SeS 92,5 milik paper
-  tidak sebanding lurus dengan recall kita.
-- **Fitur RR versi paper (`ln`, median ±15 beat, rerata seluruh record) tidak
-  diuji.** `ln` menolong classifier linier (LDA) karena membuat sebaran lebih
-  simetris; untuk NN dengan input yang sudah dinormalisasi manfaatnya belum
-  jelas. Rerata seluruh record juga tidak kausal — di alat, "seluruh record"
-  belum ada saat beat pertama datang.
-- **Augmentasi tidak dijalankan per epoch.** Window dipotong di muka, jadi
-  jitter bersifat statis: N salinan tetap, bukan undian baru tiap epoch.
-  Per-epoch butuh generator yang memotong ulang dari sinyal mentah — itu
-  perombakan jalur data untuk keuntungan yang belum terbukti perlu.
-- **Beat yang tidak terdeteksi tidak disimulasikan.** Jitter memindahkan
-  jendela; ia tidak bisa meniru beat yang hilang sama sekali (0,82% di DS1,
-  6,8% untuk kelas S). Itu masalah detektor dan diukur terpisah di Fase 6b.
+Not adopted. The `hos_features` code is left in `src/features_rr.py`
+along with the knob `PA_HOS`: repeating its ablation (for example for another
+window configuration) takes a single command, and what is expensive is not those 5 lines but
+rediscovering how to test them.
 
 ---
 
-## 9. Cek pemahaman
+## 8. What is deliberately NOT done
 
-1. Kenapa `jitter_r` mengembalikan `np.maximum.accumulate(r + geser)` dan bukan
-   `r + geser` saja? Mode kegagalan apa yang dicegah, dan kenapa mode itu tidak
-   mungkin ada pada detektor sungguhan?
-2. Residu terukur punya p95 bertanda +2 tapi p95 mutlak 18. Bagaimana dua angka
-   itu bisa hidup berdampingan, dan apa artinya untuk memilih model jitter?
-3. Di sweep, AUC cuma turun 3% sementara F1 turun 20%. Apa yang rusak, dan
-   perbaikan apa yang paling murah?
-4. Kenapa fitur RR **harus** ikut dihitung dari posisi yang sudah dijitter?
-   Apa yang akan terjadi pada angka ketahanan kalau ia dihitung dari anotasi?
-5. Paper melaporkan jitter nyaris tidak menurunkan performanya, kita anjlok.
-   Sebutkan satu perbedaan arsitektur yang menjelaskannya.
-6. Kenapa salinan bersih tetap diikutkan saat melatih dengan augmentasi jitter?
+- **The paper's two-moving-average filter (200 ms & 600 ms) was not adopted.** Cheaper
+  on the MCU (no recursive IIR, no group delay), but the paper **never
+  ablated it**: not a single table compares its filter
+  with an alternative. A precedent, not evidence. A preprocessing improvement candidate
+  with evidence is the multi-stage denoising + motion artifact detection paper, and
+  that answers our real problem (noisy body recordings), not the MIT-BIH problem.
+- **Classes F & Q were not dropped** even though the paper drops them. Our problem definition is
+  binary (Normal vs Arrhythmia) and F/Q go into Arrhythmia. This is a methodological difference
+  that is **recorded as a comparison limit**, not changed: the paper's SeS 92.5 is
+  not directly comparable with our recall.
+- **The paper's RR features (`ln`, median ±15 beats, whole-record mean) were not
+  tested.** `ln` helps a linear classifier (LDA) because it makes the distribution more
+  symmetric; for an NN with already-normalized inputs the benefit is unclear.
+  The whole-record mean is also not causal: on the device, the "whole record"
+  does not exist yet when the first beat arrives.
+- **Augmentation is not run per epoch.** Windows are cut up front, so
+  jitter is static: N fixed copies, not a new draw each epoch.
+  Per-epoch needs a generator that re-cuts from the raw signal: that is a
+  rework of the data path for a benefit not yet proven necessary.
+- **Undetected beats are not simulated.** Jitter moves the
+  window; it cannot imitate a beat that is missing entirely (0.82% in DS1,
+  6.8% for class S). That is a detector problem and is measured separately in Phase 6b.
 
-## 10. Skrip pendukung
+---
 
-| Skrip | Isi |
+## 9. Comprehension check
+
+1. Why does `jitter_r` return `np.maximum.accumulate(r + geser)` and not
+   just `r + geser`? What failure mode is prevented, and why is that mode
+   impossible on a real detector?
+2. The measured residual has a signed p95 of +2 but an absolute p95 of 18. How can those two numbers
+   coexist, and what does it mean for choosing the jitter model?
+3. In the sweep, AUC only drops 3% while F1 drops 20%. What is broken, and
+   what is the cheapest fix?
+4. Why **must** the RR feature also be computed from the jittered positions?
+   What would happen to the robustness figure if it were computed from the annotation?
+5. The paper reports that jitter barely lowers its performance, ours collapses.
+   Name one architectural difference that explains it.
+6. Why is the clean copy still included when training with jitter augmentation?
+
+## 10. Supporting scripts
+
+| Script | Content |
 |---|---|
-| `scripts/measure_jitter.py` | ukur residu penyelarasan di DS1 → CSV, PNG, `residu_ds1.npy` |
-| `scripts/sweep_jitter.py` | metrik DS2 sebagai fungsi δ (protokol Tabel 3 paper) |
-| `scripts/ablasi.py` | satu varian ujung-ke-ujung → baris di `ablasi.csv` |
-| `tests/test_jitter.py` | sifat `jitter_r` yang kalau rusak bikin hasil bohong |
+| `scripts/measure_jitter.py` | measure the alignment residual in DS1 → CSV, PNG, `residu_ds1.npy` |
+| `scripts/sweep_jitter.py` | DS2 metrics as a function of δ (the paper's Table 3 protocol) |
+| `scripts/ablasi.py` | one variant end-to-end → a row in `ablasi.csv` |
+| `tests/test_jitter.py` | the properties of `jitter_r` that, if broken, make the results lie |

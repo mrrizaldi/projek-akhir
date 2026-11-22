@@ -1,14 +1,14 @@
-# Walkthrough `src/dataset.py` — Fase 3
+# Walkthrough `src/dataset.py`: Phase 3
 
-> **Ruang lingkup:** perakitan split inter-patient DS1/DS2 (de Chazal 2004) dari `.npz` per record, beserta penjaga kebocoran lintas pasien.
-> **Kode terkait:** `src/dataset.py`, `scripts/build_split.py`, `config.py` (`DS1`, `DS2`, `PACED_EXCLUDED`, `VAL_RECORDS`, `TRAIN_DATABASES`), `tests/test_dataset.py`
-> **Prasyarat:** [`prep-beats-walkthrough.md`](prep-beats-walkthrough.md)
+> **Scope:** assembling the inter-patient DS1/DS2 split (de Chazal 2004) from the per-record `.npz` files, along with the cross-patient leakage guard.
+> **Related code:** `src/dataset.py`, `scripts/build_split.py`, `config.py` (`DS1`, `DS2`, `PACED_EXCLUDED`, `VAL_RECORDS`, `TRAIN_DATABASES`), `tests/test_dataset.py`
+> **Prerequisite:** [`prep-beats-walkthrough.md`](prep-beats-walkthrough.md)
 
-Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 11. Lanjutan dari
-[`features-rr-walkthrough.md`](features-rr-walkthrough.md) (Fase 2).
+A study document, not a specification. The official specification remains
+`PRD_Model_Aritmia_TinyML.pdf` p. 11. A continuation of
+[`features-rr-walkthrough.md`](features-rr-walkthrough.md) (Phase 2).
 
-Angka di sini hasil `make split` atas 44 record. Reproduksi:
+The numbers here are the result of `make split` over 44 records. Reproduction:
 
 ```
 cd model
@@ -17,7 +17,7 @@ make prep && make split
 
 ---
 
-## 0. Peta besar — di sini data berhenti jadi "per pasien"
+## 0. The big picture: this is where data stops being "per patient"
 
 ```
 per_record/100.npz  101.npz  ...  (44 file, satu per pasien)
@@ -30,50 +30,50 @@ train.npz (DS1, 22 pasien)        test.npz (DS2, 22 pasien)
    Fase 4-5 latih                    Fase 6 evaluasi (baru boleh disentuh)
 ```
 
-Fase 3 **tidak menghitung apa pun**. Tidak ada filter, tidak ada fitur baru,
-tidak ada normalisasi. Dia cuma menumpuk array dan menjaga satu janji: **tidak
-ada satu pun detak dari pasien yang sama muncul di kedua sisi.**
+Phase 3 **computes nothing**. No filter, no new feature,
+no normalization. It only stacks arrays and keeps one promise: **not
+a single beat from the same patient appears on both sides.**
 
 ---
 
-## 1. Kenapa split per pasien, bukan acak per beat
+## 1. Why a per-patient split, not a random per-beat one
 
-Ini keputusan tunggal yang paling menentukan apakah angka akhirmu bermakna
-atau bohong.
+This is the single decision that most determines whether your final numbers are meaningful
+or a lie.
 
-### Yang terjadi kalau beat diacak (*intra-patient*)
+### What happens if beats are shuffled (*intra-patient*)
 
-MIT-BIH itu 30 menit per pasien. Detak seorang pasien saling mirip — morfologi
-QRS-nya khas orang itu (bentuk elektroda, anatomi, posisi lead). Kalau 100.624
-beat diacak lalu dibelah 80:20, maka untuk hampir tiap beat di test set, ada
-beat **dari pasien yang sama, menit yang sama** di training set.
+MIT-BIH is 30 minutes per patient. A patient's beats resemble each other: the QRS
+morphology is characteristic of that person (electrode shape, anatomy, lead position). If 100,624
+beats are shuffled and then split 80:20, then for almost every beat in the test set there is
+a beat **from the same patient, the same minute** in the training set.
 
-Model tidak perlu belajar "seperti apa PVC itu". Cukup belajar "seperti apa PVC
-milik pasien 208". Akurasinya bisa 99% — dan **nol gunanya di klinik**, karena
-pasien yang datang besok tidak ada di training set.
+The model does not need to learn "what a PVC looks like". It only needs to learn "what the PVC
+of patient 208 looks like". Accuracy can be 99%, and **it is useless in the clinic**, because
+the patient who comes tomorrow is not in the training set.
 
-Ini bentuk *data leakage*: bukan bocor lewat label, tapi lewat **identitas**.
+This is a form of *data leakage*: not leaking through labels, but through **identity**.
 
-### Yang kita pakai (*inter-patient*, de Chazal 2004)
+### What we use (*inter-patient*, de Chazal 2004)
 
-22 pasien untuk latih, 22 pasien lain untuk uji. Model harus menggeneralisasi
-ke jantung yang belum pernah dilihatnya — sama seperti kondisi deploy di ESP32.
+22 patients for training, 22 other patients for testing. The model must generalize
+to hearts it has never seen, just like the deploy condition on the ESP32.
 
-Harganya: **akurasi turun drastis**, dan itu wajar. Literatur intra-patient
-melaporkan 99%; inter-patient yang jujur biasanya jauh di bawah itu. Kalau
-angkamu terlihat terlalu bagus, kecurigaan pertama adalah split-nya bocor.
+The price: **accuracy drops drastically**, and that is expected. The intra-patient literature
+reports 99%; an honest inter-patient figure is usually far below that. If
+your number looks too good, the first suspicion is that the split leaks.
 
 ```python
 if set(np.unique(train["records"])) & set(np.unique(test["records"])):
     raise ValueError("record bocor lintas split")
 ```
 
-Cek itu jalan tiap `make split`. Murah, dan menutup satu-satunya cara kebocoran
-ini bisa masuk diam-diam.
+That check runs on every `make split`. It is cheap, and it closes the only way this
+leakage could get in silently.
 
 ---
 
-## 2. `assert_split_valid()` — tiga syarat sebelum apa pun dibaca
+## 2. `assert_split_valid()`: three conditions before anything is read
 
 ```python
 ds1, ds2, paced = set(DS1), set(DS2), set(PACED_EXCLUDED)
@@ -82,28 +82,28 @@ if (ds1 | ds2) & paced:          raise ...   # 2. paced tidak ikut
 if len(ds1)+len(ds2)+len(paced) != 48: raise ...   # 3. 22+22+4 = 48
 ```
 
-Dijalankan **sebelum** file apa pun dibuka — kalau daftarnya salah, gagal dalam
-milidetik, bukan setelah membaca 44 file.
+It runs **before** any file is opened: if the list is wrong, it fails within
+milliseconds, not after reading 44 files.
 
-Syarat 3 (`= 48`) itu penjaga salah-ketik. MIT-BIH punya persis 48 record; kalau
-satu nomor terhapus atau terduplikasi saat mengedit `config.py`,
-jumlahnya meleset dan test menangkapnya.
+Condition 3 (`= 48`) is a typo guard. MIT-BIH has exactly 48 records; if
+one number is deleted or duplicated while editing `config.py`,
+the count is off and the test catches it.
 
-### Kenapa 4 record dibuang, dua alasan berbeda
+### Why 4 records are dropped, two different reasons
 
-| Record | Alasan | Jenis |
+| Record | Reason | Kind |
 |---|---|---|
-| 102, 104 | tidak punya kanal MLII → `load_record` melempar `ValueError` | **teknis** |
-| 107, 217 | pasien ber-*pacemaker* | **metodologis** |
+| 102, 104 | no MLII channel → `load_record` raises `ValueError` | **technical** |
+| 107, 217 | *pacemaker* patients | **methodological** |
 
-107 itu 97% simbol `/` (paced). Kalau ikut, satu record menyumbang 2.078 beat
-"Aritmia" — model akan belajar mengenali *pacemaker*, bukan aritmia. Keempatnya
-tinggal di satu daftar `PACED_EXCLUDED` di `config.py`, dipakai Fase 2 **dan**
-Fase 3. Satu sumber kebenaran, jangan digandakan.
+107 is 97% `/` symbols (paced). If it were included, one record would contribute 2,078 beats
+of "Arrhythmia", and the model would learn to recognize the *pacemaker*, not arrhythmia. All four
+live in a single list `PACED_EXCLUDED` in `config.py`, used by Phase 2 **and**
+Phase 3. One source of truth, do not duplicate it.
 
 ---
 
-## 3. `stack_records()` — menumpuk, plus satu kolom yang mudah dilupakan
+## 3. `stack_records()`: stacking, plus one column that is easy to forget
 
 ```python
 with np.load(path) as z:
@@ -113,30 +113,30 @@ with np.load(path) as z:
     origin.append(np.full(len(z["labels"]), record_int_id(rec, db), dtype=np.int32))
 ```
 
-`record_int_id` memetakan nama record ke `int32`: mitdb dan svdb sudah numerik
-(offset 0), incartdb `"I01".."I75"` menjadi 1001..1075. Tiga rentang itu tidak
-bertumpuk, jadi `records` tetap unik lintas database.
+`record_int_id` maps a record name to `int32`: mitdb and svdb are already numeric
+(offset 0), incartdb `"I01".."I75"` becomes 1001..1075. Those three ranges do not
+overlap, so `records` stays unique across databases.
 
-Tiga array pertama jelas. Yang keempat — `records` — adalah **jejak asal tiap
-beat**, dan dia satu-satunya alasan Fase 6 bisa menjawab pertanyaan yang benar.
+The first three arrays are obvious. The fourth, `records`, is the **trace of each
+beat's origin**, and it is the only reason Phase 6 can answer the right question.
 
-Metrik global ("recall 0,78") menyembunyikan hal penting: 0,78 bisa berarti rata, bisa pula 0,95 di
-20 pasien dan 0,10 di 2 pasien. Kemungkinan kedua jauh lebih berbahaya di
-alat medis. Dengan `records`, metrik per-pasien tinggal `y[records == r]`.
+A global metric ("recall 0.78") hides something important: 0.78 can mean uniform, or it can be 0.95 in
+20 patients and 0.10 in 2 patients. The second possibility is far more dangerous in a
+medical device. With `records`, a per-patient metric is just `y[records == r]`.
 
-Tanpa kolom itu, informasinya **hilang permanen** begitu array disatukan — dan
-tidak bisa direkonstruksi, karena urutan beat sudah menyatu.
+Without that column, the information is **permanently lost** once the arrays are merged, and
+it cannot be reconstructed, because the beat order has already merged.
 
-### `FileNotFoundError`, bukan `continue`
+### `FileNotFoundError`, not `continue`
 
 ```python
 if not os.path.exists(path):
     raise FileNotFoundError(f"{path} — jalankan `make prep` dulu")
 ```
 
-Melewati record yang hilang akan menghasilkan split yang **valid secara bentuk
-tapi lebih kecil diam-diam** — dan kamu baru sadar saat membandingkan jumlah
-beat dengan Bab 4 yang sudah dicetak.
+Skipping a missing record would produce a split that is **valid in form
+but silently smaller**, and you would only notice when comparing the beat count
+with the already-printed Chapter 4.
 
 ### `reshape(-1, WIN_LEN, 1)`
 
@@ -144,14 +144,14 @@ beat dengan Bab 4 yang sudah dicetak.
 "X_morph": np.concatenate(morph).reshape(-1, WIN_LEN, 1)
 ```
 
-`Conv1D` di Keras menuntut bentuk `(batch, langkah_waktu, kanal)`. Kita punya
-satu kanal (MLII), jadi dimensi terakhir = 1. Ditambahkan di sini, sekali,
-bukan di dalam loop training — supaya `train.npz` sudah berbentuk persis seperti
-yang dimakan model.
+`Conv1D` in Keras demands the shape `(batch, langkah_waktu, kanal)`. We have
+one channel (MLII), so the last dimension = 1. It is added here, once,
+not inside the training loop, so that `train.npz` already has exactly the shape
+the model consumes.
 
 ---
 
-## 4. Angka hasil `make split`
+## 4. Numbers from `make split`
 
 ```
 DS1     22 record   152904 beat   Normal 137451 (89,9%)   Aritmia 15453 (10,1%)
@@ -159,49 +159,49 @@ DS2     22 record    49656 beat   Normal  44206 (89,0%)   Aritmia  5450 (11,0%)
 X_morph (152904, 256, 1) / (49656, 256, 1)      X_rr (152904, 3) / (49656, 3)
 ```
 
-DS1 berisi tiga salinan tiap beat (satu bersih + dua ber-jitter, lihat
+DS1 contains three copies of each beat (one clean + two jittered, see
 [`prep-beats-walkthrough.md`](prep-beats-walkthrough.md) §4): $152904 = 3 \times
-50968$. Tanpa augmentasi, $50968 + 49656 = 100624$ — sama persis dengan total
-Fase 2 data bersih. Tidak ada beat yang hilang atau terhitung dua kali.
+50968$. Without augmentation, $50968 + 49656 = 100624$, exactly the same as the Phase 2
+clean-data total. No beat is lost or counted twice.
 
-### Rasio kelasnya mirip, sebaran pasiennya tidak
+### The class ratios are similar, the patient distributions are not
 
-| | DS1 (latih) | DS2 (uji) |
+| | DS1 (train) | DS2 (test) |
 |---|---|---|
-| aritmia terbanyak | 208 (46,3%), 106 (25,7%), 119 (22,3%) | **232 (77,7%)**, 200 (33,0%), 233 (27,6%) |
-| aritmia ~nol | 230, 115, 122 (0,0%) | **212 (0,0%)**, 111 (0,0%), 103 (0,1%) |
-| beat per record (bersih) | 1.616 (rec 124) – 3.360 (rec 215) | 1.516 (rec 123) – 3.248 (rec 213) |
+| most arrhythmia | 208 (46.3%), 106 (25.7%), 119 (22.3%) | **232 (77.7%)**, 200 (33.0%), 233 (27.6%) |
+| arrhythmia ~zero | 230, 115, 122 (0.0%) | **212 (0.0%)**, 111 (0.0%), 103 (0.1%) |
+| beats per record (clean) | 1,616 (rec 124) – 3,360 (rec 215) | 1,516 (rec 123) – 3,248 (rec 213) |
 
-Rasio agregat nyaris sama (10,1% vs 11,0%) — itu kebetulan yang menguntungkan,
-bukan hasil penyeimbangan. **Jangan tergoda "memperbaiki" split supaya lebih
-seimbang**: daftarnya milik de Chazal 2004 dan gunanya justru supaya angkamu
-sebanding dengan literatur.
+The aggregate ratios are nearly the same (10.1% vs 11.0%): that is a lucky coincidence,
+not the result of balancing. **Do not be tempted to "fix" the split to make it more
+balanced**: the list belongs to de Chazal 2004 and its purpose is precisely so that your numbers
+are comparable with the literature.
 
-Yang tidak boleh diabaikan: **rec 212 menyumbang 2.745 beat uji tanpa satu pun
-aritmia**, sementara **rec 232 didominasi aritmia (77,7%)**. Rata-rata global
-akan meratakan dua kutub ini. Itulah kenapa kolom `records` disimpan.
+What must not be ignored: **rec 212 contributes 2,745 test beats without a single
+arrhythmia**, while **rec 232 is dominated by arrhythmia (77.7%)**. The global average
+will flatten these two poles. That is why the `records` column is kept.
 
-### Split lintas database (`make split-multi`)
+### Cross-database split (`make split-multi`)
 
-`build_split_multi` merakit split untuk ablasi lintas database dan menulis
-`train_multi.npz`, `test_ds2.npz`, serta `test_<db>.npz`:
+`build_split_multi` assembles the split for the cross-database ablation and writes
+`train_multi.npz`, `test_ds2.npz`, and `test_<db>.npz`:
 
-- **train:** DS1 mitdb + porsi latih database yang ada di `TRAIN_DATABASES`.
-- **ds2:** DS2 mitdb apa adanya — angka utama yang sebanding literatur.
-- **`<db>_test`:** held-out tiap database tambahan, dipilih dengan aturan
-  `sorted(records)[::4]` (`split_train_test`), bukan seed.
+- **train:** DS1 mitdb + the training portion of the databases in `TRAIN_DATABASES`.
+- **ds2:** DS2 mitdb as is: the main number comparable with the literature.
+- **`<db>_test`:** the held-out set of each additional database, chosen by the rule
+  `sorted(records)[::4]` (`split_train_test`), not by a seed.
 
-Database yang belum di-prep dilewati, tetapi database yang baru sebagian ter-prep
-ditolak `ValueError`, karena aturan `[::4]` atas daftar yang tidak lengkap
-memberi split yang berbeda tanpa tanda. Cek kebocoran yang sama berlaku antara
-`train` dan setiap set uji. Model produksi tetap dilatih dari `train.npz`
-(mitdb saja).
+Databases that have not been prepped are skipped, but a database that is only partly prepped
+is rejected with `ValueError`, because the `[::4]` rule over an incomplete list
+gives a different split without any sign. The same leakage check applies between
+`train` and every test set. The production model is still trained from `train.npz`
+(mitdb only).
 
-### Konstanta multi-database di `config.py`
+### Multi-database constants in `config.py`
 
-Tujuan Fase A (permintaan pembimbing): memperluas data latih. Sebaran berikut
-terukur 19 Sep 2026 dari anotasi asli PhysioNet yang dipetakan lewat `AAMI_MAP`,
-bukan disalin dari paper (angka yang sama dibekukan di
+The goal of Phase A (a supervisor's request): expand the training data. The following distribution
+was measured on 19 Sep 2026 from the original PhysioNet annotations mapped through `AAMI_MAP`,
+not copied from a paper (the same numbers are frozen in
 `tests/test_multidataset.py`):
 
 ```
@@ -209,96 +209,96 @@ svdb      78 rec, 128 Hz | S 12.198/73rec  V  9.943/67rec  F  23/6rec   Q 79/20r
 incartdb  75 rec, 257 Hz | S  1.960/36rec  V 20.013/70rec  F 219/22rec  Q  6/5rec
 ```
 
-**Kenapa dua database ini.** Keduanya punya anotasi beat-level (`.atr`, satu
-simbol per R-peak) dengan alfabet WFDB yang sama, jadi `AAMI_MAP` menanganinya
-tanpa mapping baru. PTB-XL, CPSC, dan Chapman ditolak bukan karena frekuensi
-cuplik, tetapi karena diagnosisnya per-rekaman: label per-beat tidak bisa
-diturunkan dari sana. Syarat yang sama berlaku untuk database berikutnya yang
-ditambahkan ke `download_data.py`.
+**Why these two databases.** Both have beat-level annotations (`.atr`, one
+symbol per R-peak) with the same WFDB alphabet, so `AAMI_MAP` handles them
+without a new mapping. PTB-XL, CPSC, and Chapman were rejected not because of the sampling
+frequency, but because their diagnoses are per recording: per-beat labels cannot be
+derived from them. The same condition applies to the next database
+added to `download_data.py`.
 
-**Peran yang diharapkan.** svdb untuk recall S (0,422 ± 0,156; dari 634 beat S
-di ~20 pasien ke ~11.250 di ~102). incartdb untuk konsentrasi F: 372 dari 394
-beat F mitdb ada di record 208 saja (satu pasien efektif), sedangkan incartdb
-menyebar 219 beat di 22 record; yang diperbaiki cakupan pasien, bukan jumlah
-beat. Q tidak tertolong: 100 beat di tiga database (mitdb 8 + 7, svdb 79,
-incartdb 6) sehingga Q tetap bukan kelas yang bisa dilaporkan.
+**Expected role.** svdb for recall S (0.422 ± 0.156; from 634 S beats
+in ~20 patients to ~11,250 in ~102). incartdb for F concentration: 372 of the 394
+mitdb F beats are in record 208 alone (one effective patient), whereas incartdb
+spreads 219 beats over 22 records; what is improved is patient coverage, not the beat
+count. Q is not helped: 100 beats across three databases (mitdb 8 + 7, svdb 79,
+incartdb 6) so Q remains a class that cannot be reported.
 
-**DS2 mitdb tidak berubah satu byte.** Dia satu-satunya set yang sebanding
-literatur, dan aturan "DS2 tidak memilih apa pun" hanya bisa ditegakkan kalau
-komposisinya bukan variabel. Data baru masuk train; sisanya menjadi test
-terpisah untuk generalisasi antar-database. `load_record(db="mitdb")` dijaga
-44/44 record byte-identik dengan sebelum Fase A.
+**DS2 mitdb does not change by a single byte.** It is the only set comparable with the
+literature, and the rule "DS2 selects nothing" can only be enforced if its
+composition is not a variable. New data goes into train; the rest becomes a separate
+test for cross-database generalization. `load_record(db="mitdb")` is guarded
+44/44 records byte-identical to before Phase A.
 
-**`leads`.** Dipilih lead pertama yang tersedia. mitdb MLII = acuan alat
-(AD8232 lead II). incartdb `II` paling dekat dengannya. svdb (Holter) tidak
-menamai lead, jadi `ECG1` dipakai; polaritasnya diverifikasi `scripts/check_lead.py`
-(gate A2: 8/8 record svdb positif di R).
+**`leads`.** The first available lead is chosen. mitdb MLII = the device reference
+(AD8232 lead II). incartdb `II` is closest to it. svdb (Holter) does not
+name its leads, so `ECG1` is used; its polarity was verified by `scripts/check_lead.py`
+(gate A2: 8/8 svdb records positive at R).
 
-**`selaraskan` dan `ALIGN_WIN = 16`.** Konvensi anotasi antar-database berbeda.
-Terukur atas beat normal, posisi puncak relatif anotasi di sinyal ter-bandpass:
+**`selaraskan` and `ALIGN_WIN = 16`.** Annotation conventions differ between databases.
+Measured over normal beats, the peak position relative to the annotation in the bandpassed signal:
 
 ```
 mitdb  median  +3   p5..p95  +1..+5     anotasi DI puncak; +3/+4 = group delay
 svdb   median +10   p5..p95  -2..+15    ~6 sampel lebih awal, sebaran 3x lebih lebar
 ```
 
-Bias +6 sampel itu di atas ambang bahaya repo ini (meleset 4 sampel menjatuhkan
-precision 0,48 → 0,12) dan sistematis, bukan jitter berpusat nol: tanpa koreksi
-tiap beat svdb tergeser searah dan model membacanya sebagai morfologi lain, alias
-belajar identitas dataset. Maka svdb dan incartdb diselaraskan
-(`align_r`: geser anotasi ke puncak, lalu kembalikan group delay; sepadan
-dengan penyelarasan Pan-Tompkins di firmware, jendela lebih sempit). mitdb wajib
-`False`: dia acuan `golden_ref.h` dan semua ablasi terkunci, dan median +3 vs +4
-berarti menyelaraskannya menggeser R ~1 sampel dan membatalkan semuanya.
-Setengah-lebar jendela cari-puncak 16 sampel (±44 ms) menutup p1..p99 svdb
-(−9..+15) tanpa menjangkau gelombang T (~200-300 ms = 72-108 sampel); 25
-(`PT_REFINE_WIN`, ±70 ms) dibuat untuk sebaran detektor (std 13 sampel) dan di
-sini terlalu lebar. Terukur pada audit Fase A, 1.133 dari 48.630 beat database
-baru (2,33%) ingin bergeser ≥ 16 sampel dan terpotong di batas jendela; itu
-diterima, karena melebarkan jendela membuat `argmax` bisa melompat ke gelombang
-T, dan sisa geseran itu masih di dalam sebaran yang dilatih augmentasi jitter.
-`check_lead.py` membaca polaritas dari kolom "mentah" dan
-alignment dari kolom "selaras"; kolom "selaras" tidak boleh memvonis polaritas
-karena `align_r` memakai argmax bertanda yang memaksa nilai di R positif.
+That +6 sample bias is above this repo's danger threshold (a 4-sample miss drops
+precision 0.48 → 0.12) and is systematic, not zero-centered jitter: without correction
+every svdb beat is shifted in the same direction and the model reads it as a different morphology, i.e.
+learns the dataset identity. So svdb and incartdb are aligned
+(`align_r`: shift the annotation to the peak, then restore the group delay; equivalent
+to the Pan-Tompkins alignment in the firmware, with a narrower window). mitdb must be
+`False`: it is the reference for `golden_ref.h` and all locked ablations, and a median of +3 vs +4
+means aligning it shifts R by ~1 sample and invalidates everything.
+The half-width of the peak-search window of 16 samples (±44 ms) covers svdb p1..p99
+(−9..+15) without reaching the T wave (~200-300 ms = 72-108 samples); 25
+(`PT_REFINE_WIN`, ±70 ms) was made for the detector's spread (std 13 samples) and here
+is too wide. Measured in the Phase A audit, 1,133 of 48,630 beats of the new
+databases (2.33%) wanted to shift ≥ 16 samples and were truncated at the window boundary; that is
+accepted, because widening the window lets `argmax` jump to the T
+wave, and the remaining shift is still within the spread trained by the jitter augmentation.
+`check_lead.py` reads polarity from the "mentah" (raw) column and
+alignment from the "selaras" (aligned) column; the "selaras" column must not judge polarity
+because `align_r` uses a signed argmax that forces the value at R to be positive.
 
-**Laju cuplik diseragamkan ke 360 Hz.** `WIN_PRE` terdefinisi dalam sampel,
-bukan waktu: 128 sampel @ 360 Hz = 355 ms (yang diablasi dan dikunci), sedangkan
-128 sampel @ 128 Hz = 1.000 ms, fisiologi lain sama sekali. Yang membayar di
-ablasi window adalah konteks gelombang P dan interval PR ~150-200 ms sebelum R,
-jadi durasinya yang harus dijaga. Dengan target 360 Hz, `WIN_PRE/WIN_POST`,
-koefisien bandpass, `ECG_FS` firmware, dan `golden_ref.h` tidak berubah.
-`resample_to_fs` memakai `resample_poly` (polyphase, linear-phase), dan posisi R
-cukup dibulatkan selama arahnya upsample (indeks makin menyebar, tak mungkin
-bertabrakan); bila suatu hari `fs_target < fs_source`, dua R bisa jatuh ke indeks
-yang sama (RR = 0), dan itu harus berisik. `fs` setiap record dicek terhadap
-janji `DATASETS[db]["fs"]` sebelum resample, supaya tabel config yang salah tidak
-tertutupi resample.
+**The sampling rate is unified to 360 Hz.** `WIN_PRE` is defined in samples,
+not time: 128 samples @ 360 Hz = 355 ms (what was ablated and locked), whereas
+128 samples @ 128 Hz = 1,000 ms, entirely different physiology. What pays off in the
+window ablation is the context of the P wave and the PR interval ~150-200 ms before R,
+so the duration is what must be preserved. With a 360 Hz target, `WIN_PRE/WIN_POST`,
+the bandpass coefficients, the firmware `ECG_FS`, and `golden_ref.h` do not change.
+`resample_to_fs` uses `resample_poly` (polyphase, linear-phase), and the R position
+only needs to be rounded as long as the direction is upsampling (indices spread further apart, they cannot
+collide); if one day `fs_target < fs_source`, two R's could fall on the same index
+(RR = 0), and that must be loud. The `fs` of each record is checked against the
+promise `DATASETS[db]["fs"]` before resampling, so that a wrong config table is not
+masked by the resample.
 
-**`id_offset`.** Lihat `record_int_id` di §3. Tanpa peta itu `int("I18")`
-melempar `ValueError` di `stack_records`, bukan gagal dengan pesan berguna.
+**`id_offset`.** See `record_int_id` in §3. Without that map `int("I18")`
+raises `ValueError` in `stack_records`, rather than failing with a useful message.
 
-**`SPLIT_EVERY_NTH = 4`.** Held-out tiap database tambahan = setiap record ke-4
-dalam urutan tersortir (~25%). Aturan, bukan seed: tidak ada yang bisa
-dipancing, dan siapa pun dapat memverifikasinya dengan `sorted(records)[::4]`.
-Konsekuensi yang sudah diperiksa: held-out incartdb hanya mendapat ~13-20 beat F
-(I05 = 9, I65 = 4, plus sisa kecil) karena record F terbesar (I18 = 56,
-I74 = 48) jatuh ke train. Itu disengaja; F di test dilaporkan sebagai hitungan
-TP/FN mentah, bukan recall berkoma.
+**`SPLIT_EVERY_NTH = 4`.** The held-out set of each additional database = every 4th record
+in sorted order (~25%). A rule, not a seed: nothing can be
+steered, and anyone can verify it with `sorted(records)[::4]`.
+A consequence that has been checked: the incartdb held-out gets only ~13-20 F beats
+(I05 = 9, I65 = 4, plus a small remainder) because the largest F records (I18 = 56,
+I74 = 48) fall into train. That is intentional; F in test is reported as raw
+TP/FN counts, not a recall with decimals.
 
-**`n_record`.** Jumlah record lengkap yang diharapkan (mitdb 48 − 4
-`PACED_EXCLUDED` = 44). Aturan held-out dihitung dari daftar yang ADA, jadi
-database yang baru separuh terunduh menghasilkan held-out yang berbeda tanpa
-tanda. Terukur 19 Sep pada 65/75 record incartdb: I68 masuk held-out padahal
-seharusnya tidak, dan I65/I69/I73 hilang (I65 memegang 4 beat F). Karena itu
-`build_split_multi` menolak database yang jumlah recordnya tidak pas; split yang
-salah lebih buruk daripada error. `available_records` juga menuntut `.hea`,
-`.dat`, dan `.atr` sekaligus, karena unduhan yang masih berjalan meninggalkan
-`.hea` tanpa `.atr`.
+**`n_record`.** The expected number of complete records (mitdb 48 − 4
+`PACED_EXCLUDED` = 44). The held-out rule is computed from the list that EXISTS, so a
+database that is only half downloaded produces a different held-out set without any
+sign. Measured on 19 Sep with 65/75 incartdb records: I68 entered the held-out set when
+it should not have, and I65/I69/I73 were lost (I65 holds 4 F beats). That is why
+`build_split_multi` rejects a database whose record count is not exact; a
+wrong split is worse than an error. `available_records` also demands `.hea`,
+`.dat`, and `.atr` together, because a download still in progress leaves a
+`.hea` without an `.atr`.
 
-**`TRAIN_DATABASES = ("mitdb", "svdb")`, incartdb hanya test.** Held-out selalu menjadi
-test, tetapi porsi train sebuah database hanya ikut bila dia ada di `TRAIN_DATABASES`.
-Fase B mengukur incartdb merugikan di latih walau menyumbang 256.454 beat latih
-(4 varian × 3 seed):
+**`TRAIN_DATABASES = ("mitdb", "svdb")`, incartdb test only.** The held-out set always becomes
+test, but the train portion of a database only joins if it is in `TRAIN_DATABASES`.
+Phase B measured incartdb as harmful in training even though it contributes 256,454 training beats
+(4 variants × 3 seeds):
 
 ```
                 mitdb      +svdb    +incartdb   +keduanya
@@ -306,65 +306,65 @@ AUC            0,9373     0,9314     0,8881      0,9092
 recall S       0,4221     0,4980     0,3312      0,4050
 ```
 
-Rentang recall S +svdb [0,423; 0,573] dan +incartdb [0,307; 0,355] terpisah:
-efeknya berlawanan, dan di "+keduanya" hampir saling meniadakan (−0,017).
-Penyebabnya bukan lead (II ≈ MLII, gate A2) atau resolusi (257 > 128 Hz),
-melainkan komposisi: 15.592 beat V dari populasi lain menumpulkan pemisahan
-N-vs-S. incartdb tetap dipakai sebagai test antar-database (41.108 beat,
-19 pasien). Model produksi tetap mitdb saja (`model/CLAUDE.md`, baris Database
-LATIH); `TRAIN_DATABASES` hanya dipakai jalur ablasi.
+The recall S ranges +svdb [0.423; 0.573] and +incartdb [0.307; 0.355] are separate:
+the effects are opposite, and in "+both" they almost cancel (−0.017).
+The cause is not the lead (II ≈ MLII, gate A2) or the resolution (257 > 128 Hz),
+but composition: 15,592 V beats from another population blunt the N-vs-S
+separation. incartdb is still used as the cross-database test (41,108 beats,
+19 patients). The production model is still mitdb only (`model/CLAUDE.md`, row Database
+LATIH); `TRAIN_DATABASES` is only used by the ablation path.
 
-**Angka beku di `tests/test_multidataset.py`.** Semuanya diukur 19 Sep 2026 dan
-dibekukan supaya perubahan senyap ketahuan. Bila salah satu gagal, urutan
-tersangkanya: (1) daftar record berubah, (2) `AAMI_MAP`/`BEAT_SYMBOLS` diedit,
-(3) `DATASETS` salah isi, bukan "angkanya kebetulan beda". VAL dijaga mirip DS2
-(threshold dikalibrasi di VAL lalu dipakai di DS2), sedangkan train boleh
-bergeser karena svdb kaya S.
-
----
-
-## 5. Yang sengaja TIDAK dilakukan
-
-**Tidak ada `shuffle`.** Urutan di dalam file mengikuti urutan record. Pengacakan
-adalah urusan `model.fit(shuffle=True)` saat training — dilakukan di memori, per
-epoch, dan tidak pernah menyeberangi batas train/test.
-
-**Tidak ada validation split di `train.npz`.** DS1 dibelah jadi train/validation
-di Fase 5 lewat `split_train_val`, yang juga **per pasien**: record di
-`VAL_RECORDS` (101, 114, 201, 220, 223) menjadi validation, dan fungsi itu
-menolak record val di luar DS1. DS2 tidak ikut campur.
-
-**Tidak ada normalisasi tambahan.** `windows` sudah z-score per window sejak
-Fase 1; `rr` sengaja dibiarkan mentah (JEBAKAN #2 PRD). Menghitung $\mu,\sigma$
-di sini berarti menghitungnya dari DS1+DS2 sekaligus = kebocoran.
-
-**DS2 tidak dibaca untuk apa pun selain disimpan.** Aturan #4 `CLAUDE.md`:
-haram disentuh sampai Fase 6. Distribusi labelnya dicetak karena itu DoD Fase 3
-— bukan untuk jadi dasar keputusan apa pun.
+**Frozen numbers in `tests/test_multidataset.py`.** All were measured on 19 Sep 2026 and
+frozen so that silent changes are noticed. If one fails, the order of
+suspects: (1) the record list changed, (2) `AAMI_MAP`/`BEAT_SYMBOLS` edited,
+(3) `DATASETS` filled in wrong, not "the numbers happen to differ". VAL is kept similar to DS2
+(the threshold is calibrated on VAL then used on DS2), whereas train may
+shift because svdb is rich in S.
 
 ---
 
-## 6. Cek pemahaman
+## 5. What is deliberately NOT done
 
-1. Kalau rec 208 (46,3% aritmia, DS1) dipindah ke DS2, metrik mana yang berubah
-   paling banyak — dan kenapa itu tetap bukan alasan sah untuk memindahkannya?
-2. `records` tidak disimpan. Di Fase 6 kamu ingin tahu recall per pasien. Kenapa
-   tidak bisa direkonstruksi dari `train.npz` saja?
-3. Model dilatih dengan `X_morph` ber-`shape (N, 256)` bukan `(N, 256, 1)`.
-   Error-nya muncul di mana, dan kenapa lebih baik bentuknya dibereskan di
-   Fase 3 daripada di skrip training?
-4. Seseorang mengganti `build_split` jadi mengacak 100.624 beat lalu membelah
-   80:20. Akurasi Fase 6 naik dari 0,80 jadi 0,99. Apa nama kesalahannya, dan
-   cek satu baris mana di `src/dataset.py` yang seharusnya mencegahnya?
+**No `shuffle`.** The order within the file follows the record order. Shuffling
+is the business of `model.fit(shuffle=True)` during training: done in memory, per
+epoch, and never crossing the train/test boundary.
 
-## 7. Skrip pendukung
+**No validation split in `train.npz`.** DS1 is split into train/validation
+in Phase 5 via `split_train_val`, which is also **per patient**: the records in
+`VAL_RECORDS` (101, 114, 201, 220, 223) become validation, and that function
+rejects val records outside DS1. DS2 is not involved.
 
-| Perintah | Melihat apa |
+**No additional normalization.** `windows` is already z-scored per window since
+Phase 1; `rr` is deliberately left raw (PRD JEBAKAN #2, trap #2). Computing $\mu,\sigma$
+here would mean computing it from DS1+DS2 together = leakage.
+
+**DS2 is not read for anything other than being stored.** Rule #4 of `CLAUDE.md`:
+forbidden to touch until Phase 6. Its label distribution is printed because that is the Phase 3 DoD,
+not to become the basis of any decision.
+
+---
+
+## 6. Comprehension check
+
+1. If rec 208 (46.3% arrhythmia, DS1) were moved to DS2, which metric would change
+   the most, and why is that still not a valid reason to move it?
+2. `records` is not stored. In Phase 6 you want to know recall per patient. Why
+   can it not be reconstructed from `train.npz` alone?
+3. The model is trained with `X_morph` of `shape (N, 256)` rather than `(N, 256, 1)`.
+   Where does the error appear, and why is it better to fix the shape in
+   Phase 3 than in the training script?
+4. Someone changes `build_split` to shuffle 100,624 beats and then split
+   80:20. Phase 6 accuracy rises from 0.80 to 0.99. What is the name of the mistake, and
+   which one-line check in `src/dataset.py` should have prevented it?
+
+## 7. Supporting scripts
+
+| Command | What it shows |
 |---|---|
-| `make split` | Rakit train/test + ringkasan distribusi per split |
-| `make split-multi` | Rakit split lintas database (ablasi) |
-| `make test` | Seluruh test; `tests/test_dataset.py` mengunci kontrak split Fase 3 |
+| `make split` | Assemble train/test + a distribution summary per split |
+| `make split-multi` | Assemble the cross-database split (ablation) |
+| `make test` | All tests; `tests/test_dataset.py` locks the Phase 3 split contract |
 
 ---
 
-**[← Fase 2b — prep_beats](prep-beats-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 4 — model →](model-walkthrough.md)**
+**[← Phase 2b: prep_beats](prep-beats-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[Phase 4: model →](model-walkthrough.md)**

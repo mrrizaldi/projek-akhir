@@ -1,14 +1,14 @@
-# Walkthrough `src/io_mitdb.py` — Fase 0
+# Walkthrough `src/io_mitdb.py`: Phase 0
 
-> **Ruang lingkup:** pemuatan satu record PhysioNet beranotasi-beat menjadi sinyal satu kanal, posisi R-peak, dan simbol beat.
-> **Kode terkait:** `src/io_mitdb.py`, `config.py` (`CHANNEL`, `BEAT_SYMBOLS`, `DATASETS`), `scripts/plot_phase0.py`, `tests/test_io_mitdb.py`
-> **Prasyarat:** —
+> **Scope:** loading one beat-annotated PhysioNet record into a single-channel signal, R-peak positions, and beat symbols.
+> **Related code:** `src/io_mitdb.py`, `config.py` (`CHANNEL`, `BEAT_SYMBOLS`, `DATASETS`), `scripts/plot_phase0.py`, `tests/test_io_mitdb.py`
+> **Prerequisite:** none
 
-Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 5–6. Fase ini paling awal, dan kesalahannya
-paling mahal: semua fase sesudahnya memakai keluarannya apa adanya.
+A study document, not a specification. The official specification remains
+`PRD_Model_Aritmia_TinyML.pdf` pp. 5–6. This phase is the earliest, and its mistakes are
+the most expensive: every phase after it uses its output as is.
 
-Reproduksi:
+Reproduction:
 
 ```
 cd model
@@ -19,48 +19,48 @@ make plot0 REC=114        # overlay R-peak anotasi
 
 ---
 
-## 0. Kontraknya satu baris
+## 0. The contract in one line
 
 ```python
 signal, r_locations, symbols, fs = load_record("100")
 ```
 
-| Keluaran | Bentuk | Isi |
+| Output | Shape | Content |
 |---|---|---|
-| `signal` | `[N] float32` | sinyal kanal MLII, dalam mV |
-| `r_locations` | `[M] int64` | indeks sampel puncak R (anotasi kardiolog) |
-| `symbols` | `list[str]`, len M | simbol MIT-BIH per beat |
-| `fs` | `int` | sampling rate, dijamin 360 |
+| `signal` | `[N] float32` | the MLII channel signal, in mV |
+| `r_locations` | `[M] int64` | sample indices of the R peaks (cardiologist annotation) |
+| `symbols` | `list[str]`, len M | the MIT-BIH symbol per beat |
+| `fs` | `int` | sampling rate, guaranteed 360 |
 
-Record 100: `signal` 650.000 sampel (30 menit × 360 Hz), 2.273 beat.
+Record 100: `signal` 650,000 samples (30 minutes × 360 Hz), 2,273 beats.
 
-Modul ini **murni**: tanpa `print`, tanpa plot, tanpa kode top-level. Itu yang
-membuatnya bisa di-`import` di pytest tanpa ikut memuat record 30 menit.
+This module is **pure**: no `print`, no plot, no top-level code. That is what
+lets it be `import`ed in pytest without loading a 30-minute record along with it.
 
 ---
 
-## 1. Anatomi satu record MIT-BIH
+## 1. Anatomy of one MIT-BIH record
 
-Tiap record adalah tiga file dengan nama sama:
+Each record is three files with the same name:
 
-| File | Isi |
+| File | Content |
 |---|---|
-| `100.hea` | header teks: nama kanal, fs, jumlah sampel, gain |
-| `100.dat` | sinyal biner dua kanal |
-| `100.atr` | anotasi kardiolog: posisi sampel + simbol per beat |
+| `100.hea` | text header: channel names, fs, sample count, gain |
+| `100.dat` | binary two-channel signal |
+| `100.atr` | cardiologist annotation: sample position + symbol per beat |
 
 ```python
 record = wfdb.rdrecord(path)        # .hea + .dat
 annotation = wfdb.rdann(path, "atr")  # .atr
 ```
 
-Anotasi itulah aset paling berharga dari MIT-BIH: dua kardiolog independen
-menandai **tiap** detak selama 30 menit × 48 rekaman. Itu sebabnya dataset 1980-an
-ini masih menjadi standar evaluasi klasifikasi aritmia.
+The annotation is the most valuable asset of MIT-BIH: two independent cardiologists
+marked **every** beat across 30 minutes × 48 recordings. That is why this 1980s dataset
+is still the standard for evaluating arrhythmia classification.
 
 ---
 
-## 2. Dua gerbang yang gagal berisik
+## 2. Two gates that fail loudly
 
 ```python
 spec = DATASETS[db]
@@ -71,31 +71,31 @@ if record.fs != spec["fs"]:
 channel = select_lead(record_id, record.sig_name, spec["leads"])   # raise kalau nihil
 ```
 
-Untuk mitdb (`db="mitdb"`, bawaan), `DATASETS["mitdb"]` menjanjikan `fs = 360`
-dan lead `("MLII",)`. Database lain (svdb, incartdb) memakai gerbang yang sama
-dengan janji masing-masing, lalu di-resample ke 360 Hz oleh `resample_to_fs`.
-Pemeriksaan `fs` dilakukan **sebelum** resample, supaya resample tidak menutupi
-record yang rusak atau tabel `config.py` yang salah.
+For mitdb (`db="mitdb"`, the default), `DATASETS["mitdb"]` promises `fs = 360`
+and the lead `("MLII",)`. Other databases (svdb, incartdb) use the same gate
+with their own promises, and are then resampled to 360 Hz by `resample_to_fs`.
+The `fs` check is done **before** the resample, so that the resample does not mask
+a corrupt record or a wrong `config.py` table.
 
-**Kenapa `raise`, bukan `continue` atau resample diam-diam.** Kalau satu record
-ber-`fs` berbeda lolos, seluruh fitur RR-nya salah skala (dibagi 360 padahal
-seharusnya lain) dan tidak ada satu pun tanda di hilir. Kegagalan yang berisik di
-awal jauh lebih murah daripada angka yang salah diam-diam di Fase 6.
+**Why `raise`, not `continue` or a silent resample.** If a single record
+with a different `fs` gets through, all its RR features are wrongly scaled (divided by 360 when
+it should be something else) and there is not a single sign downstream. A loud failure
+at the start is far cheaper than a silently wrong number in Phase 6.
 
-Yang benar-benar tertangkap gerbang ini:
+What this gate actually catches:
 
 ```
 102 → ValueError: record 102: tidak ada kanal ['MLII'], hanya ['V5', 'V2']
 104 → ValueError: record 104: tidak ada kanal ['MLII'], hanya ['V5', 'V2']
 ```
 
-Dua record itu memang tidak punya MLII. Mereka juga ada di
-`config.PACED_EXCLUDED` — jadi alasannya dua: **teknis** (tak punya kanal) dan
-**metodologis** (pasien ber-pacemaker).
+Those two records really do not have MLII. They are also in
+`config.PACED_EXCLUDED`, so there are two reasons: **technical** (no channel) and
+**methodological** (pacemaker patients).
 
 ---
 
-## 3. Jebakan urutan kanal — record 114
+## 3. The channel order trap: record 114
 
 ```python
 def select_lead(record_id, sig_name, leads):
@@ -108,91 +108,91 @@ channel = select_lead(record_id, record.sig_name, spec["leads"])
 signal = record.p_signal[:, channel].astype(np.float32)
 ```
 
-Kelihatan sepele, dan justru di sini jebakannya. Hampir semua record MIT-BIH
-menaruh MLII di kolom 0:
+It looks trivial, and this is exactly where the trap is. Almost all MIT-BIH records
+put MLII in column 0:
 
 ```
 record 100 → sig_name = ['MLII', 'V5']    → MLII di index 0
 record 114 → sig_name = ['V5', 'MLII']    → MLII di index 1  ←
 ```
 
-`p_signal[:, 0]` akan bekerja mulus untuk 45 record dan **diam-diam mengambil
-kanal yang salah** untuk 114. Sinyal V5 tetap terlihat seperti EKG normal di
-plot; yang berubah cuma morfologi QRS — persis hal yang dipelajari model.
+`p_signal[:, 0]` will work smoothly for 45 records and **silently take the wrong
+channel** for 114. The V5 signal still looks like a normal ECG in the
+plot; only the QRS morphology changes, which is exactly what the model learns.
 
-Karena itu kanal dicari **lewat nama**, tidak pernah lewat indeks tetap, dan
-`select_lead` menolak (bukan jatuh ke kanal 0) kalau nama yang diminta tidak ada.
-Verifikasinya: `make plot0 REC=114` — garis R-peak anotasi harus mendarat tepat
-di puncak R, plus assert mekanis membandingkan hasil `load_record` dengan
+That is why the channel is looked up **by name**, never by a fixed index, and
+`select_lead` rejects (rather than falling back to channel 0) if the requested name does not exist.
+Its verification: `make plot0 REC=114`: the annotated R-peak lines must land exactly
+on the R peaks, plus a mechanical assert compares the `load_record` result with
 `p_signal[:, 1]`.
 
 ---
 
-## 4. Menyaring non-beat — dan kenapa `is_qrs` tidak boleh dipakai
+## 4. Filtering non-beats, and why `is_qrs` must not be used
 
-File `.atr` tidak hanya berisi detak. Ada juga penanda peristiwa:
+The `.atr` file does not only contain beats. It also has event markers:
 
 ```python
 symbols = np.asarray(annotation.symbol)
 is_beat = np.isin(symbols, list(BEAT_SYMBOLS))
 ```
 
-Yang benar-benar terbuang:
+What is actually discarded:
 
-| Record | Anotasi mentah | Dibuang | Beat tersisa |
+| Record | Raw annotations | Discarded | Beats remaining |
 |---|---|---|---|
-| 100 | 2.274 | `+`×1 | 2.273 → `{N: 2239, A: 33, V: 1}` |
-| 114 | 1.890 | `+`×3, `~`×7, `\|`×1 | 1.879 → `{N: 1820, V: 43, A: 10, F: 4, J: 2}` |
+| 100 | 2,274 | `+`×1 | 2,273 → `{N: 2239, A: 33, V: 1}` |
+| 114 | 1,890 | `+`×3, `~`×7, `\|`×1 | 1,879 → `{N: 1820, V: 43, A: 10, F: 4, J: 2}` |
 
-Arti simbolnya: `+` perubahan ritme, `~` perubahan kualitas sinyal, `|` artefak
-isolated QRS-like. Semuanya **peristiwa**, bukan detak — kalau ikut, mereka jadi
-"beat" tanpa QRS di tengah window.
+The meaning of the symbols: `+` rhythm change, `~` signal quality change, `|` an isolated
+QRS-like artifact. All are **events**, not beats: if they were included, they would become
+"beats" with no QRS in the middle of the window.
 
-### JEBAKAN: `wfdb.io.annotation.is_qrs`
+### TRAP (JEBAKAN): `wfdb.io.annotation.is_qrs`
 
-Cara yang tampak paling natural adalah memakai tabel bawaan wfdb:
+The way that looks most natural is to use wfdb's built-in table:
 
 ```python
 is_beat = [wfdb.io.annotation.is_qrs[s] for s in symbols]   # ← JANGAN
 ```
 
-Gejalanya: `[`, `]`, `x`, `)` lolos sebagai "beat". Sebabnya tabel wfdb menandai
-penanda **awal/akhir ventricular flutter** dan **non-conducted P-wave** sebagai
-QRS — benar secara terminologi sinyal, salah untuk keperluan kita.
+The symptom: `[`, `]`, `x`, `)` get through as "beats". The cause is that the wfdb table marks
+the **start/end of ventricular flutter** markers and **non-conducted P-waves** as
+QRS: correct in signal terminology, wrong for our purposes.
 
-Solusinya **whitelist eksplisit**, bukan blacklist:
+The solution is an **explicit whitelist**, not a blacklist:
 
 ```python
 BEAT_SYMBOLS = {"N","L","R","e","j", "A","a","J","S", "V","E", "F", "/","f","Q"}
 ```
 
-15 simbol, persis yang punya kelas AAMI. Perbedaan whitelist vs blacklist di sini
-menentukan: dengan blacklist, simbol yang tidak kamu antisipasi **lolos**; dengan
-whitelist, simbol tak dikenal **ikut terbuang**. Untuk data medis, gagal ke arah
-membuang jauh lebih aman.
+15 symbols, exactly those that have an AAMI class. The difference between a whitelist and a blacklist here
+is decisive: with a blacklist, a symbol you did not anticipate **gets through**; with a
+whitelist, an unknown symbol **gets dropped along with the rest**. For medical data, failing in the direction of
+dropping is far safer.
 
-Ini juga yang membuat `AAMI_MAP[symbol]` di Fase 2 boleh melempar `KeyError` —
-apa pun yang sampai ke sana dijamin sudah ada di whitelist, jadi `KeyError`
-berarti ada yang bocor di hulu.
-
----
-
-## 5. Kenapa MLII, dan kenapa `float32`
-
-**MLII** (modified limb lead II) adalah lead dengan kompleks QRS paling menonjol
-pada mayoritas orang — sumbu jantung kira-kira sejajar dengannya. Praktisnya:
-46 dari 48 record MIT-BIH punya MLII, dan alat sadap satu-lead seperti AD8232
-di proyek ini juga memasang elektroda pada posisi yang mendekati lead II. Jadi
-memilih MLII bukan cuma soal ketersediaan data — itu menjaga **kesamaan antara
-data latih dan sinyal yang benar-benar masuk ke ESP32 saat deploy**.
-
-`astype(np.float32)`: `p_signal` bawaan wfdb float64. Separuh memori, dan sama
-dengan presisi input model float32 sebelum kuantisasi. 650.000 sampel × 48
-record: 250 MB vs 125 MB.
+This is also what lets `AAMI_MAP[symbol]` in Phase 2 raise `KeyError`:
+anything that reaches there is guaranteed to be in the whitelist already, so a `KeyError`
+means something leaked upstream.
 
 ---
 
-## 6. Angka rujukan
+## 5. Why MLII, and why `float32`
+
+**MLII** (modified limb lead II) is the lead with the most prominent QRS complex
+in the majority of people, since the cardiac axis is roughly parallel to it. In practice:
+46 of the 48 MIT-BIH records have MLII, and a single-lead sensing device such as the AD8232
+in this project also places its electrodes at a position close to lead II. So
+choosing MLII is not only about data availability: it preserves the **similarity between
+training data and the signal that actually enters the ESP32 at deploy time**.
+
+`astype(np.float32)`: the wfdb default `p_signal` is float64. Half the memory, and the same
+as the model's float32 input precision before quantization. 650,000 samples × 48
+records: 250 MB vs 125 MB.
+
+---
+
+## 6. Reference numbers
 
 ```
 48 record lengkap (.hea + .dat + .atr)      → make check
@@ -203,25 +203,25 @@ record 102 & 104: ValueError (tanpa MLII)
 
 ---
 
-## 7. Cek pemahaman
+## 7. Comprehension check
 
-1. `channel = 0` di-hardcode. Record mana yang rusak, dan kenapa bug itu **tidak**
-   akan terlihat di grafik sinyal maupun di loss training?
-2. Whitelist `BEAT_SYMBOLS` diganti blacklist `{"+", "~", "|"}`. Simbol apa yang
-   lolos, dan apa akibatnya pada window yang tersegmentasi?
-3. `fs` yang tidak cocok di-resample diam-diam, bukan di-`raise`. Fitur mana yang
-   rusak, dan di fase berapa kamu baru akan menyadarinya?
-4. Kenapa fungsi ini mengembalikan `symbols` mentah dan bukan langsung label
-   biner? (Petunjuk: lihat pemakaian `symbols` di Fase 6.)
+1. `channel = 0` is hardcoded. Which record breaks, and why would that bug **not**
+   be visible in the signal plot or in the training loss?
+2. The `BEAT_SYMBOLS` whitelist is replaced with the blacklist `{"+", "~", "|"}`. Which symbols
+   get through, and what is the consequence for the segmented windows?
+3. A mismatched `fs` is silently resampled instead of being `raise`d. Which feature
+   breaks, and in which phase would you only notice it?
+4. Why does this function return the raw `symbols` rather than a binary
+   label directly? (Hint: see the use of `symbols` in Phase 6.)
 
-## 8. Skrip pendukung
+## 8. Supporting scripts
 
-| Perintah | Melihat apa |
+| Command | What it shows |
 |---|---|
-| `make data` | Unduh 48 record MIT-BIH (sekali) |
-| `make check` | Kelengkapan `.hea`/`.dat`/`.atr` tiap record |
-| `make plot0 REC=n` | Overlay R-peak anotasi di sinyal — verifikasi kanal benar |
+| `make data` | Download the 48 MIT-BIH records (once) |
+| `make check` | Completeness of `.hea`/`.dat`/`.atr` for each record |
+| `make plot0 REC=n` | Overlay of annotated R-peaks on the signal: verify the channel is correct |
 
 ---
 
-**—**  ·  [Peta walkthrough](README.md)  ·  **[Fase 1 — preprocessing →](preprocessing-walkthrough.md)**
+**-**  ·  [Walkthrough map](README.md)  ·  **[Phase 1: preprocessing →](preprocessing-walkthrough.md)**

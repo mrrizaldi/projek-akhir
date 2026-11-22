@@ -14,7 +14,7 @@ Board: ESP32-S3 N16R8 (16 MB flash, 8 MB PSRAM), board id PlatformIO
 
 Penjelasan rinci: [`firmware-walkthrough`](../model/docs/firmware-walkthrough.md)
 (port preprocessing dan TFLM), [`mqtt-walkthrough`](../model/docs/mqtt-walkthrough.md)
-(publikasi, PDSR, latensi), [`akuisisi-walkthrough`](../model/docs/akuisisi-walkthrough.md)
+(publikasi, PDSR, latensi), [`acquisition-walkthrough`](../model/docs/acquisition-walkthrough.md)
 (merekam sinyal tubuh).
 
 ## Environment PlatformIO
@@ -163,7 +163,7 @@ pengukuran ada di walkthrough yang dirujuk.
   pull-up internal ±45 kΩ tidak melawannya.
 - LO+/LO− tidak dipakai menyetir LED. LO hanya melaporkan elektroda lepas
   total, dan pada 3-lead tanpa RL yang rapat LO menyala terus walau sinyalnya
-  bagus. LED disetir ayunan bersih (akuisisi-walkthrough §2).
+  bagus. LED disetir ayunan bersih (acquisition-walkthrough §2).
 - `neopixelWrite()` mematikan interrupt ±30 µs per panggilan; LED karena itu
   diperbarui paling sering tiap `PERIOD_LED_MS` (250 ms), bukan tiap loop.
 - Layar tidak dapat dibaca balik (CS ke GND, tanpa MISO). `diag_screen()`
@@ -221,7 +221,7 @@ pengukuran ada di walkthrough yang dirujuk.
   `numpy.std()`). Di `ecg_rr_features`, varians RR lokal yang negatif akibat
   galat pembulatan dijepit ke 0.
 - Ayunan kualitas diukur pada sinyal setelah bandpass, dikurangi kontribusi
-  50 Hz (`FREQUENCY_MAINS_HZ`) yang diukur dengan Goertzel (akuisisi-walkthrough §2).
+  50 Hz (`FREQUENCY_MAINS_HZ`) yang diukur dengan Goertzel (acquisition-walkthrough §2).
   Clipping tetap dinilai dari ADC mentah karena sinyal yang terpotong di rail
   sudah kehilangan informasi sebelum filter.
 - Kriteria RR (300–1500 ms, |dRR| ≤ 200 ms) adalah gerbang masuk fase
@@ -623,7 +623,7 @@ Padanan serial: `r` (mulai / stop dan simpan) dan `j` (jeda / lanjut). Batas
 300 detik per berkas tidak menghitung waktu jeda. Berkas ditarik
 ke laptop dengan `make pull` di `model/` dan dianalisis per segmen dengan
 `make analyze` (prosedur lengkap:
-[`akuisisi-walkthrough`](../model/docs/akuisisi-walkthrough.md) §3–§5).
+[`acquisition-walkthrough`](../model/docs/acquisition-walkthrough.md) §3–§5).
 
 Format berkas `/rekam/NNN.csv`:
 

@@ -1,22 +1,22 @@
-# Peta walkthrough — jalur model TinyML, Fase 0 → 8
+# Walkthrough map: TinyML model path, Phase 0 → 8
 
-Titik masuk untuk belajar pipeline ini. Tiap fase punya satu dokumen: alur kode
-langkah demi langkah, matematika di baliknya, keputusan beserta alternatif yang
-ditolak, angka nyata, dan soal cek pemahaman.
+Entry point for learning this pipeline. Each phase has one document: the code
+flow step by step, the mathematics behind it, the decisions along with the
+alternatives that were rejected, real numbers, and comprehension check questions.
 
-**Ini dokumen belajar, bukan spesifikasi.** Spesifikasi resmi =
-`PRD_Model_Aritmia_TinyML.pdf`. Keputusan yang mengikat = tabel decision point
-di `../CLAUDE.md`.
+**This is a study document, not a specification.** The official specification is
+`PRD_Model_Aritmia_TinyML.pdf`. The binding decisions are the decision point table
+in `../CLAUDE.md`.
 
-**Pekerjaan terbuka** (konsumsi daya, WiFi OFF darurat, rekaman ke server, PCB rev2):
-daftar bertanggal di [`../CLAUDE.md` §Open work](../CLAUDE.md#open-work).
-Data resmi sinyal tubuh = sesi 22 Okt 2026 siang
-([`../data/recordings/README.md`](../data/recordings/README.md)); rekaman pengembangan
-diarsipkan di [`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md).
+**Open work** (power consumption, emergency WiFi OFF, recording to the server, PCB rev2):
+the dated list is in [`../CLAUDE.md` §Open work](../CLAUDE.md#open-work).
+The official body-signal data is the 22 Oct 2026 afternoon session
+([`../data/recordings/README.md`](../data/recordings/README.md)); development recordings
+are archived in [`../data/arsip/rekaman-uji-coba/`](../data/arsip/rekaman-uji-coba/README.md).
 
 ---
 
-## Alur data, satu layar
+## Data flow, one screen
 
 ```
 data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
@@ -57,55 +57,55 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
 
 ---
 
-## Urutan baca
+## Reading order
 
-Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
+In order 0 → 7. Each document assumes the previous ones have been read.
 
-| # | Dokumen | Menjawab |
+| # | Document | Answers |
 |---|---|---|
-| 0 | [io-mitdb](io-mitdb-walkthrough.md) | Dari mana data datang, kenapa MLII, apa yang dibuang sebelum apa pun dihitung |
-| 1 | [preprocessing](preprocessing-walkthrough.md) | Kenapa filter kausal, bagaimana Butterworth & Pan-Tompkins bekerja, kenapa window 256 (128/128) |
-| 2 | [features-rr](features-rr-walkthrough.md) | Kenapa butuh fitur ritme selain bentuk, bagaimana label AAMI dipetakan, jebakan alignment |
-| 2b | [prep-beats](prep-beats-walkthrough.md) | Siapa yang menjalankan Fase 0-2 ke 44 record, beat mana yang dibuang & pembukuannya |
-| 3 | [dataset](dataset-walkthrough.md) | Kenapa split per pasien, apa itu kebocoran identitas |
-| 4 | [model](model-walkthrough.md) | Kenapa dua cabang, kenapa GAP bukan Flatten, dari mana 6.417 param |
-| 5 | [train](train-walkthrough.md) | Kenapa accuracy dilarang, bagaimana class weight bekerja, kenapa monitor AUC |
-| 6 | [evaluate](evaluate-walkthrough.md) | Kenapa threshold dikunci sebelum DS2, kelas aritmia mana yang gagal & kenapa |
-| 6b | [segmentasi-deteksi](segmentasi-deteksi-walkthrough.md) | Biaya segmentasi on-device: kenapa geser 4 sampel menjatuhkan precision 4×, dan kenapa detektor membuang aritmia |
-| 6c | [jitter](jitter-walkthrough.md) | Berapa jauh R-peak di alat meleset sungguhan, kenapa ±18 sampel milik paper tidak boleh disalin, dan kenapa melatih dengan error justru menaikkan angka di data bersih |
-| 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
-| HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
-| HW | [akuisisi](akuisisi-walkthrough.md) | **Panduan kerja**: merekam dari badan, menarik data, menilai kualitas, membuat grafik |
-| HW-6 | [mqtt](mqtt-walkthrough.md) | **Panduan kerja**: dua toggle (`y` sumber sinyal, `m` publikasi), kenapa dummy ditaruh di ADC bukan di publisher, dan kenapa publikasi digerbangi kualitas kontak (LO±, ayunan, dengung) bukan ada-tidaknya beat |
+| 0 | [io-mitdb](io-mitdb-walkthrough.md) | Where the data comes from, why MLII, what is discarded before anything is computed |
+| 1 | [preprocessing](preprocessing-walkthrough.md) | Why a causal filter, how Butterworth & Pan-Tompkins work, why a 256 window (128/128) |
+| 2 | [features-rr](features-rr-walkthrough.md) | Why rhythm features are needed besides shape, how AAMI labels are mapped, the alignment trap |
+| 2b | [prep-beats](prep-beats-walkthrough.md) | Who runs Phase 0-2 over the 44 records, which beats are dropped & the bookkeeping |
+| 3 | [dataset](dataset-walkthrough.md) | Why a per-patient split, what identity leakage is |
+| 4 | [model](model-walkthrough.md) | Why two branches, why GAP rather than Flatten, where the 6,417 params come from |
+| 5 | [train](train-walkthrough.md) | Why accuracy is forbidden, how class weight works, why monitor AUC |
+| 6 | [evaluate](evaluate-walkthrough.md) | Why the threshold is locked before DS2, which arrhythmia classes fail & why |
+| 6b | [segmentasi-deteksi](segmentasi-deteksi-walkthrough.md) | The cost of on-device segmentation: why a 4-sample shift drops precision 4×, and why the detector discards arrhythmia |
+| 6c | [jitter](jitter-walkthrough.md) | How far the R-peak on the device really misses, why the paper's ±18 samples must not be copied, and why training with error actually raises the numbers on clean data |
+| 7 | [quantize](quantize-walkthrough.md) | What changes under INT8, why a metric can "rise" while the model does not improve |
+| HW | [firmware](firmware-walkthrough.md) | The port to C, the Python↔C golden harness, and why the `MEAN` op must be replaced for TFLM |
+| HW | [acquisition](acquisition-walkthrough.md) | **Working guide**: recording from the body, pulling data, assessing quality, making plots |
+| HW-6 | [mqtt](mqtt-walkthrough.md) | **Working guide**: two toggles (`y` signal source, `m` publishing), why the dummy is placed at the ADC rather than in the publisher, and why publishing is gated by contact quality (LO±, swing, hum) rather than by whether a beat exists |
 
-Fase 8 tidak punya walkthrough — isinya verifikasi, bukan konsep baru.
-Jalankan `make poc` dan baca `scripts/check_poc.py`.
+Phase 8 has no walkthrough: its content is verification, not a new concept.
+Run `make poc` and read `scripts/check_poc.py`.
 
 ---
 
-## Jebakan yang membentuk seluruh desain
+## Traps that shaped the whole design
 
-Jebakan yang paling menentukan desain:
+The traps that most determined the design:
 
-| Jebakan | Gejala kalau kena | Dibahas di |
+| Trap | Symptom when hit | Covered in |
 |---|---|---|
-| **Filter non-kausal** (`filtfilt`) | Training mulus, akurasi di device anjlok | [1](preprocessing-walkthrough.md) §2 |
-| **Alignment window ↔ label** | `assert len(a)==len(b)` LOLOS, recall ~0 di Fase 6 | [2](features-rr-walkthrough.md) §3, [2b](prep-beats-walkthrough.md) §1-2 |
-| **Kebocoran identitas pasien** | Akurasi 99% yang tidak berarti apa-apa | [3](dataset-walkthrough.md) §1 |
-| **Threshold dituning di DS2** | Angka bagus yang gugur saat ditanya penguji | [6](evaluate-walkthrough.md) §0 |
-| **Op sama, hasil beda di TFLM** | Model benar di PC, keyakinan runtuh di device | [HW](firmware-walkthrough.md) §5 |
-| **R-peak meleset 4 sampel** | Precision jatuh 4×, tanpa error | [6b](segmentasi-deteksi-walkthrough.md) §2 |
-| **Threshold dikalibrasi di kondisi yang salah** | AUC nyaris utuh tapi F1 anjlok 20% | [6c](jitter-walkthrough.md) §4 |
+| **Non-causal filter** (`filtfilt`) | Smooth training, accuracy collapses on the device | [1](preprocessing-walkthrough.md) §2 |
+| **Window ↔ label alignment** | `assert len(a)==len(b)` PASSES, recall ~0 in Phase 6 | [2](features-rr-walkthrough.md) §3, [2b](prep-beats-walkthrough.md) §1-2 |
+| **Patient identity leakage** | A 99% accuracy that means nothing | [3](dataset-walkthrough.md) §1 |
+| **Threshold tuned on DS2** | Good numbers that fall apart when an examiner asks | [6](evaluate-walkthrough.md) §0 |
+| **Same op, different result in TFLM** | Model correct on the PC, confidence collapses on the device | [HW](firmware-walkthrough.md) §5 |
+| **R-peak off by 4 samples** | Precision drops 4×, with no error | [6b](segmentasi-deteksi-walkthrough.md) §2 |
+| **Threshold calibrated under the wrong conditions** | AUC nearly intact but F1 drops 20% | [6c](jitter-walkthrough.md) §4 |
 
-Sebagian besar jebakan ini **tidak menghasilkan error apa pun**. Itu benang
-merahnya: bug paling mahal di ML bukan yang crash, melainkan yang menghasilkan
-angka bagus dari prosedur yang salah.
+Most of these traps **produce no error at all**. That is the common thread: the
+most expensive bug in ML is not the one that crashes, but the one that produces
+good numbers from a flawed procedure.
 
 ---
 
-## Angka penting (rujukan cepat)
+## Key numbers (quick reference)
 
-Konfigurasi terpasang (window 256 + augmentasi jitter, Fase 6c):
+Installed configuration (window 256 + jitter augmentation, Phase 6c):
 
 ```
 dataset     44 record, 202.560 beat — DS1 ditumpuk 3 salinan (1 bersih + 2 jitter)
@@ -120,9 +120,9 @@ per kelas   V 0,9248 | S 0,4390 | F 0,0670
 seg. deteksi F1 0,6499 (anotasi 0,6594), recall sistem 0,6035
 ```
 
-Baseline pembanding (window 90/160 = 250, tanpa augmentasi, threshold 0,35).
-Konfigurasi ini tidak dipakai lagi; angkanya dipertahankan sebagai titik acuan
-perbaikan Fase 6c:
+Comparison baseline (window 90/160 = 250, no augmentation, threshold 0.35).
+This configuration is no longer used; its numbers are kept as the reference point
+for the Phase 6c improvement:
 
 ```
 dataset     100.619 beat | DS1 50.965 | DS2 49.654
@@ -132,8 +132,8 @@ device      26,0 ms/detak, tensor arena 12.756 B, cocok PC digit demi digit
 per kelas   V 0,9332 | S 0,3034 | F 0,1675
 ```
 
-Ablasi Fase 6c (3 seed, rantai evaluasi yang sama) yang mendasari konfigurasi
-terpasang — rincian di [jitter](jitter-walkthrough.md) §5:
+Phase 6c ablation (3 seeds, same evaluation chain) that underpins the installed
+configuration; details in [jitter](jitter-walkthrough.md) §5:
 
 ```
 baseline 90/160          F1 DS2 0,5660 ± 0,0202   AUC 0,8870
@@ -142,65 +142,65 @@ baseline 90/160          F1 DS2 0,5660 ± 0,0202   AUC 0,8870
 jitter empiris di DS2    F1      0,6670 ± 0,0194  (model w128, kondisi deploy)
 ```
 
-Kedua perbaikan dikunci di `config.py`: `WIN_PRE = WIN_POST = 128`
-(window 256, varian 128/128 dari ablasi Fase B: F1 DS2 0,6911 ± 0,029),
+Both improvements are locked in `config.py`: `WIN_PRE = WIN_POST = 128`
+(window 256, the 128/128 variant from the Phase B ablation: F1 DS2 0.6911 ± 0.029),
 `JITTER_MODEL = "empiris"`, `JITTER_COPIES = 2`, `THRESHOLD = 0.80`.
 
-Dua angka yang paling perlu dapat dijelaskan di sidang:
+The two numbers that most need to be explainable at the thesis defense:
 
-1. **Accuracy DS2 0,9207 hanya 3 poin di atas menebak Normal terus (0,8902)** —
-   padahal tebak-Normal ber-recall 0 dan model 0,70; itu sebabnya accuracy
-   tidak dipakai. → [5](train-walkthrough.md) §3, [6](evaluate-walkthrough.md) §4
-2. **Recall F hanya 0,0670** — dan mengapa hal itu dapat diramalkan sejak Fase 3
-   (372 dari 414 beat F di DS1 berada di record 208 saja). →
+1. **DS2 accuracy 0.9207 is only 3 points above always guessing Normal (0.8902)**,
+   even though always-Normal has recall 0 and the model 0.70; that is why accuracy
+   is not used. → [5](train-walkthrough.md) §3, [6](evaluate-walkthrough.md) §4
+2. **Recall F is only 0.0670**, and why that could be predicted as early as Phase 3
+   (372 of the 414 F beats in DS1 are in record 208 alone). →
    [6](evaluate-walkthrough.md) §5
 
 ---
 
-## Eksperimen yang tidak diadopsi
+## Experiments not adopted
 
-Eksperimen multi-database, fitur, dan regime latih (Fase A–G) berakhir tanpa
-perubahan konfigurasi. Semua diukur 3–6 seed, dilaporkan rerata ±
-setengah-rentang, ambang sinyal 0,04 F1 untuk rerata 3 seed, DS2 hanya
-mendiagnosis. Satu-satunya hasil yang masuk produksi adalah assert
-`MAX_RHYTHM_SCALE` ([quantize](quantize-walkthrough.md)). Knob-nya tetap ada
-di kode dan byte-identik saat mati, jadi tiap ablasi bisa diulang dengan satu
-perintah (lihat Alat analisis pendukung).
+The multi-database, feature, and training regime experiments (Phases A–G) ended
+with no configuration change. All were measured over 3–6 seeds, reported as mean ±
+half-range, with a signal threshold of 0.04 F1 for the 3-seed mean, and DS2 only
+diagnoses. The only result that entered production is the `MAX_RHYTHM_SCALE`
+assert ([quantize](quantize-walkthrough.md)). The knobs remain in the code and are
+byte-identical when off, so each ablation can be repeated with a single command
+(see Supporting analysis tools).
 
-Beban alarm palsu pembanding: FPR 5,21% (2.302 FP dari 2.302 + 41.904 beat normal di DS2) pada 60 bpm = 86.400 beat per hari, sekitar 89% normal (sekitar 76.900 beat), setara sekitar 4.000 alarm palsu per hari.
+Comparison false alarm burden: FPR 5.21% (2,302 FP out of 2,302 + 41,904 normal beats in DS2) at 60 bpm = 86,400 beats per day, about 89% normal (about 76,900 beats), equivalent to about 4,000 false alarms per day.
 
-| Usul | Vonis | Bukti singkat | Dibuka kembali bila |
+| Proposal | Verdict | Brief evidence | Reopened if |
 |---|---|---|---|
-| K1 `class_weight=None` | gugur | prediksi paper precision +31 poin; terukur +0,3 poin di mitdb+svdb karena kalibrasi threshold di hilir menyerapnya (threshold 0,40 → 0,15); recall S −0,076 | — |
-| K2 `RR+1` / tunda 1 beat | jadi, tidak dikunci | terimplementasi sampai firmware (`#if ECG_RR_RATIO`, `ecg_live.cpp` menilai `idx_hist-1`), dorman karena K3 tidak menang | K3 menang |
-| K3 fitur RR berbentuk rasio | gugur | bagian dari "fitur baru" di tabel 2×2 di bawah: −0,003 di mitdb | — |
-| K4 lebar QRS (peringkat 1–2 mutual information) | gugur | di mitdb recall V 0,944 → 0,898, recall F 0,152 → 0,029; knob `PA_QRSW=1` | — |
-| K5 jendela `RR_local_avg` 10 → 32 | dihentikan | efek yang dicari lebih kecil dari lantai derau 0,04 | ada set uji dengan lantai derau < 0,02 |
-| K6 pooling berbobot pengganti GAP | dihentikan | kapasitas bukan penyebab: model 6.417 param sudah lebih besar dari pembanding utama (Farag 2023, 1.267 param, 1.245 terlatih; INT8 15–18 KB vs 22,94 KB) | idem K5 |
-| K7 input turunan pertama | dihentikan | paper menang di sinyal bersih tetapi jatuh di bawah derau AWGN; harus diuji di rekaman tubuh | ≥ 3 rekaman tubuh berayun > 1.000 counts, uji di rekaman tubuh |
-| K8 kelas F dan Q tetap di biner | dikonfirmasi | recall F sempurna pun hanya +0,037 F1 (di bawah ambang); hanya S yang bisa menggerakkan angka utama (+0,113) | — |
-| K9 tanpa sklearn (mutual information) | dikonfirmasi | gate dependency; peringkat paper dipakai sebagai hipotesis, divalidasi `ablasi.py` | — |
-| K10 PTQ, bukan QAT | dikonfirmasi | PTQ lolos target; ranjau skala ritme ditutup assert `MAX_RHYTHM_SCALE` | — |
-| T5 aturan k-dari-n | gugur | 65,3% beat aritmia DS2 kejadian tunggal; k ≥ 2 membuang 87% TP dan menyimpan FP yang bergerombol (`check_fp.py`) | — |
-| T5b gerbang kualitas sinyal untuk klasifikasi | dihentikan di `model/` | MIT-BIH terlalu bersih untuk mengalibrasi ambang kualitas; gerbang kualitas hidup di firmware ([mqtt](mqtt-walkthrough.md) §3.1) | — |
-| T6 augmentasi skala/warp, volume per teknik | dihentikan | paling jauh dari akar masalah; selisih antar-teknik di bawah lantai derau | — |
-| T7 rata-rata bobot (`--swa`) | gugur | F1 DS2 0,6911 → 0,6346; di LR 1e-3 tidak ada dataran untuk dirata-rata ([train](train-walkthrough.md) §6b) | diuji di LR 1e-4 |
-| T9 focal loss | dihentikan | efek di bawah lantai derau | idem K5 |
-| T11 personalisasi per pasien | dihentikan | kalibrasi tanpa label butuh jangkar tak-terawasi yang belum jelas | dokumen scoping lebih dulu |
-| T12 learning rate 1e-4 | jadi, tidak dikunci | AUC naik 4/4 set, TEST-C F1 +0,124, recall F dua kali lipat, tetapi recall S 0,4473 → 0,3126, nyata di titik operasi setara ([train](train-walkthrough.md) §6b) | keputusan user mengubah fokus kelas |
-| Database latih + svdb / + incartdb | gugur (mitdb saja) | svdb +0,076 recall S tetapi precision turun; incartdb AUC 0,8881 dan recall S 0,331; gabungannya saling meniadakan ([dataset](dataset-walkthrough.md) §4) | — |
-| Gate A3: subsample beat F record 208 | ditolak | plafon F sempurna +0,037 di bawah ambang; recall F rendah karena cakupan pasien, bukan bobot gradien | — |
-| Set kalibrasi threshold lebih besar (+svdb, +incartdb) | tidak dipakai | celah F1 terhadap optimum DS2 menyempit 0,034–0,068 → 0,014–0,020 (`check_calibration.py`, satu seed), tetapi memakai held-out untuk kalibrasi menghapus perannya sebagai TEST-B/TEST-C | held-out dipecah kalibrasi/uji, keputusan user |
-| Tahap 2 penamaan V/S | tidak dikirim | presisi nama V 91,7% di DS2, maksimum 43,9% di VAL; DS2 tidak boleh mensertifikasi (`second_stage_rules.py`) | VAL yang mewakili keragaman morfologi V |
-| Normalisasi window diganti | ditarik | rujukan (Frontiers Digit Health 2026) bocor lewat jendela baseline yang tumpang tindih dengan set uji; z-score di sini dihitung dari window itu sendiri sehingga mekanisme itu tidak ada | — |
-| Test-time adaptation (BeatRhythm-TTA) | ditolak | butuh backprop saat inferensi pada 12-lead; tidak bisa dipasang di ESP32-S3 | — |
-| Augmentasi GAN / BiLSTM | ditolak | teknik 6–7 Khosravi Khaliran 2024; biaya latih dan dependensi tidak sebanding dengan selisih di bawah lantai derau | — |
-| Segmentasi per RR + resampling 480 titik | ditolak | menormalkan panjang beat sehingga informasi beat datang terlalu awal terhapus dari window; merusak deteksi S | — |
-| Angka akurasi 98,9% Khosravi Khaliran 2024 | tidak dibandingkan | protokol 17 kelas per fragmen, split acak, dan 10-fold CV pada dataset yang sudah diaugmentasi: dua kebocoran bertumpuk | — |
+| K1 `class_weight=None` | dropped | the paper predicts precision +31 points; measured +0.3 points on mitdb+svdb because the downstream threshold calibration absorbs it (threshold 0.40 → 0.15); recall S −0.076 | - |
+| K2 `RR+1` / delay 1 beat | built, not locked | implemented through to the firmware (`#if ECG_RR_RATIO`, `ecg_live.cpp` scores `idx_hist-1`), dormant because K3 does not win | K3 wins |
+| K3 ratio-shaped RR feature | dropped | part of the "new features" in the 2×2 table below: −0.003 on mitdb | - |
+| K4 QRS width (mutual information rank 1–2) | dropped | on mitdb recall V 0.944 → 0.898, recall F 0.152 → 0.029; knob `PA_QRSW=1` | - |
+| K5 `RR_local_avg` window 10 → 32 | stopped | the effect sought is smaller than the 0.04 noise floor | a test set with a noise floor < 0.02 exists |
+| K6 weighted pooling replacing GAP | stopped | capacity is not the cause: the 6,417-param model is already larger than the main comparison (Farag 2023, 1,267 params, 1,245 trainable; INT8 15–18 KB vs 22.94 KB) | same as K5 |
+| K7 first-derivative input | stopped | the paper wins on clean signal but falls below under AWGN noise; must be tested on body recordings | ≥ 3 body recordings swinging > 1,000 counts, tested on body recordings |
+| K8 classes F and Q stay in binary | confirmed | even perfect recall F gives only +0.037 F1 (below the threshold); only S can move the main number (+0.113) | - |
+| K9 no sklearn (mutual information) | confirmed | dependency gate; the paper's ranking is used as a hypothesis, validated by `ablasi.py` | - |
+| K10 PTQ, not QAT | confirmed | PTQ meets the target; the rhythm-scale trap is closed by the `MAX_RHYTHM_SCALE` assert | - |
+| T5 k-of-n rule | dropped | 65.3% of DS2 arrhythmia beats are single events; k ≥ 2 discards 87% of TP and keeps the clustered FP (`check_fp.py`) | - |
+| T5b signal quality gate for classification | stopped in `model/` | MIT-BIH is too clean to calibrate a quality threshold; the quality gate lives in the firmware ([mqtt](mqtt-walkthrough.md) §3.1) | - |
+| T6 scale/warp augmentation, volume per technique | stopped | furthest from the root cause; the difference between techniques is below the noise floor | - |
+| T7 weight averaging (`--swa`) | dropped | F1 DS2 0.6911 → 0.6346; at LR 1e-3 there is no plateau to average ([train](train-walkthrough.md) §6b) | tested at LR 1e-4 |
+| T9 focal loss | stopped | effect below the noise floor | same as K5 |
+| T11 per-patient personalization | stopped | label-free calibration needs an unsupervised anchor that is still unclear | a scoping document first |
+| T12 learning rate 1e-4 | built, not locked | AUC up on 4/4 sets, TEST-C F1 +0.124, recall F doubled, but recall S 0.4473 → 0.3126, real at the equivalent operating point ([train](train-walkthrough.md) §6b) | a user decision changes the class focus |
+| Training database + svdb / + incartdb | dropped (mitdb only) | svdb +0.076 recall S but precision drops; incartdb AUC 0.8881 and recall S 0.331; the combination cancels out ([dataset](dataset-walkthrough.md) §4) | - |
+| Gate A3: subsample F beats of record 208 | rejected | the perfect-F ceiling +0.037 is below the threshold; recall F is low because of patient coverage, not gradient weight | - |
+| Larger threshold calibration set (+svdb, +incartdb) | not used | the F1 gap to the DS2 optimum narrows 0.034–0.068 → 0.014–0.020 (`check_calibration.py`, one seed), but using the held-out sets for calibration removes their role as TEST-B/TEST-C | held-out split into calibration/test, user decision |
+| Stage 2 V/S naming | not shipped | V name precision 91.7% on DS2, at most 43.9% on VAL; DS2 must not certify (`second_stage_rules.py`) | a VAL that represents the diversity of V morphology |
+| Window normalization replaced | withdrawn | the reference (Frontiers Digit Health 2026) leaks through baseline windows that overlap the test set; the z-score here is computed from the window itself so that mechanism does not exist | - |
+| Test-time adaptation (BeatRhythm-TTA) | rejected | needs backprop at inference on 12-lead; cannot be deployed on the ESP32-S3 | - |
+| GAN / BiLSTM augmentation | rejected | techniques 6–7 of Khosravi Khaliran 2024; the training cost and dependencies are out of proportion to a difference below the noise floor | - |
+| Per-RR segmentation + 480-point resampling | rejected | normalizes the beat length so that information from a beat arriving too early is erased from the window; damages S detection | - |
+| Khosravi Khaliran 2024 accuracy figure of 98.9% | not compared | a 17-class per-fragment protocol, random split, and 10-fold CV on an already-augmented dataset: two stacked leakages | - |
 
-### Ringkasan satu layar
+### One-screen summary
 
-Tabel 2×2 dataset × fitur (ambang sinyal: < 0,04 F1 bukan sinyal):
+The 2×2 table of dataset × features (signal threshold: < 0.04 F1 is not a signal):
 
 ```
 F1              fitur LAMA (3)    fitur BARU (6)
@@ -210,41 +210,42 @@ mitdb+svdb      0,6262 +-0,063    0,6960 +-0,049
 svdb merugikan -0,065   fitur baru menambalnya +0,070   hasil akhir +0,005
 ```
 
-**Interaksi murni, bukan dua perbaikan bertumpuk.** svdb menurunkan F1 lewat
-pergeseran domain; fitur baru hanya menambal kerusakan itu; gabungannya kembali
-ke titik awal. Tanpa sel keempat (mitdb + fitur baru), kesimpulannya salah dua kali.
-Fitur baru di mitdb+svdb membuat recall S lebih andal (±0,156 → ±0,058), bukan
-lebih tinggi.
+**A pure interaction, not two stacked improvements.** svdb lowers F1 through a
+domain shift; the new features only patch that damage; the combination returns
+to the starting point. Without the fourth cell (mitdb + new features), the
+conclusion is wrong twice over.
+The new features on mitdb+svdb make recall S more reliable (±0.156 → ±0.058), not
+higher.
 
-Asal FP di DS2 (`check_fp.py`, 2.302 FP): 2 record menyumbang 56,6%, 8 record
-92,4%. Per simbol: N 1.568 (FPR 0,043), L/LBBB 536 (FPR 0,130), R/RBBB 187
-(FPR 0,054). L+R = 31,4% FP: beat yang AAMI sebut Normal tetapi QRS-nya lebar
-seperti ventrikular. Record 222 (FPR 0,344) gagal lewat cabang ritme (ritme
-tak teratur: 9% nodal escape, 8% atrial prematur).
+Origin of FP in DS2 (`check_fp.py`, 2,302 FP): 2 records contribute 56.6%, 8 records
+92.4%. Per symbol: N 1,568 (FPR 0.043), L/LBBB 536 (FPR 0.130), R/RBBB 187
+(FPR 0.054). L+R = 31.4% of FP: beats that AAMI calls Normal but whose QRS is wide
+like a ventricular one. Record 222 (FPR 0.344) fails through the rhythm branch
+(irregular rhythm: 9% nodal escape, 8% premature atrial).
 
-Pola yang berulang di K1, T12, dan T5: usul dari paper tidak berpindah bila
-pipeline ini punya langkah adaptif di hilir yang papernya tidak punya
-(kalibrasi threshold, label per-beat). Ablasi paper yang sah pun hanya
-berpindah bila tidak ada langkah adaptif di antara knob dan metrik.
+The pattern repeated in K1, T12, and T5: proposals from papers do not transfer if
+this pipeline has an adaptive step downstream that the paper does not have
+(threshold calibration, per-beat labels). Even a valid paper ablation transfers
+only if there is no adaptive step between the knob and the metric.
 
-### Alat analisis pendukung
+### Supporting analysis tools
 
-| Skrip | Untuk apa |
+| Script | Purpose |
 |---|---|
-| `scripts/check_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar. Knob `PA_CHECK_REC` = jumlah rekaman per basis data (bawaan 8), mis. `PA_CHECK_REC=20 python scripts/check_lead.py` dari folder `model/` |
-| `scripts/check_calibration.py` | Seberapa jauh kalibrasi VAL dari optimum DS2. DS2 mendiagnosis, TIDAK memilih |
-| `scripts/second_stage_rules.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL hanya dapat mensertifikasi presisi 43,9% |
-| `scripts/ablasi.py --db` | Latih multi-database. Bawaan `mitdb` = jalur terkunci, byte-identik |
-| `PA_QRSW=1` `PA_RR_RATIO=1` | Knob fitur Fase D. Tanpa env, nilainya sama dengan konfigurasi terkunci |
-| `scripts/check_fp.py` | Asal 2.302 FP: sebaran per record, panjang run TP vs FP, FP per simbol. Dasar gugurnya aturan k-dari-n |
-| `scripts/summarize_ablation.py` | Rerata ± setengah-rentang per tag + vonis ambang 0,04, sehingga §7 tidak dihitung tangan |
-| `scripts/ablasi.py --swa N` | Knob T7: rata-rata bobot N epoch ber-`val_auc` terbaik. Bawaan 0 = jalur terkunci |
-| `scripts/ablasi.py --lr`, `--cross-db` | Knob T12 (learning rate) dan T8 (evaluasi TEST-B/TEST-C, 39 pasien held-out) |
-| `scripts/check_operating_point.py` | Verifikasi pertukaran recall S pada titik operasi setara |
+| `scripts/check_lead.py` | Lead polarity & alignment across databases. Two columns (raw/aligned), two verdicts: do not mix them up. Knob `PA_CHECK_REC` = number of recordings per database (default 8), e.g. `PA_CHECK_REC=20 python scripts/check_lead.py` from the `model/` folder |
+| `scripts/check_calibration.py` | How far the VAL calibration is from the DS2 optimum. DS2 diagnoses, does NOT select |
+| `scripts/second_stage_rules.py` | V/S naming rules on top of the binary decision. Not shipped: VAL can only certify a precision of 43.9% |
+| `scripts/ablasi.py --db` | Multi-database training. Default `mitdb` = the locked path, byte-identical |
+| `PA_QRSW=1` `PA_RR_RATIO=1` | Phase D feature knobs. Without the env, the values equal the locked configuration |
+| `scripts/check_fp.py` | Origin of the 2,302 FP: spread per record, TP vs FP run length, FP per symbol. The basis for dropping the k-of-n rule |
+| `scripts/summarize_ablation.py` | Mean ± half-range per tag + verdict at the 0.04 threshold, so §7 is not computed by hand |
+| `scripts/ablasi.py --swa N` | T7 knob: weight averaging of the N epochs with the best `val_auc`. Default 0 = the locked path |
+| `scripts/ablasi.py --lr`, `--cross-db` | T12 knob (learning rate) and T8 (TEST-B/TEST-C evaluation, 39 held-out patients) |
+| `scripts/check_operating_point.py` | Verification of the recall S trade-off at the equivalent operating point |
 
 ---
 
-## Cara menjalankan ulang semuanya
+## How to rerun everything
 
 ```
 make data && make check     # Fase 0  (sekali)
@@ -261,4 +262,4 @@ cd ../firmware && pio test -e native      # 23 test di PC (preprocessing, INA219
                   pio test -e esp32-s3    # preprocessing + inferensi di board
 ```
 
-Seed dikunci (`config.SEED = 42`), jadi angka di atas harus keluar sama.
+The seed is locked (`config.SEED = 42`), so the numbers above must come out the same.

@@ -68,16 +68,16 @@ alur dan alasan ada di walkthrough yang disebut di kolom terakhir.
 | `export_model_h.py` | `make export` | `model_int8.tflite` → `firmware/include/model_int8.h`. Beda dari `xxd -i`: ikut membawa scale & zero_point tiap tensor ([firmware](docs/firmware-walkthrough.md)) |
 | `export_golden.py` | `python scripts/export_golden.py` | `ecg_preproc.h` + `golden_ref.h` ([firmware](docs/firmware-walkthrough.md) §1, §3) |
 | `extra_metrics.py` | `.venv/bin/python scripts/extra_metrics.py` | DS2 float32 dan INT8: PR-AUC (*average precision*) dengan prevalensi sebagai garis dasar, MCC pada `THRESHOLD`, *recall* per kelas AAMI S/V/F (simbol dari `per_record/<rek>.npz`, urutan DS2 diperiksa terhadap `y`), rerata dan median *recall* per rekaman, jumlah label yang berubah karena kuantisasi → `artifacts/metrics/fase7_metrik_tambahan.csv` ([evaluate](docs/evaluate-walkthrough.md) §3b, [quantize](docs/quantize-walkthrough.md) §6) |
-| `window_quality.py` | `.venv/bin/python scripts/window_quality.py <rekaman.csv> ...` | SQI Orphanidou 2015 per jendela 10 detik → `artifacts/metrics/kualitas/jendela10s_<rekaman>.csv` ([akuisisi](docs/akuisisi-walkthrough.md) §6) |
+| `window_quality.py` | `.venv/bin/python scripts/window_quality.py <rekaman.csv> ...` | SQI Orphanidou 2015 per jendela 10 detik → `artifacts/metrics/kualitas/jendela10s_<rekaman>.csv` ([akuisisi](docs/acquisition-walkthrough.md) §6) |
 | `eval_detected_segmentation.py` | `python scripts/eval_detected_segmentation.py` | Biaya segmentasi Pan-Tompkins vs anotasi ([segmentasi-deteksi](docs/segmentasi-deteksi-walkthrough.md)). Angka pembanding dibaca dari keluaran `eval_fp32.py`, tidak dihafal |
 | `measure_jitter.py`, `sweep_jitter.py` | `python scripts/measure_jitter.py`, `python scripts/sweep_jitter.py [--tag dasar]` | Residu detektor DS1 dan metrik sebagai fungsi jitter ([jitter](docs/jitter-walkthrough.md)) |
 | `ablasi.py` | `python scripts/ablasi.py --tag <nama> [--jitter empiris --copies 2]` | Satu varian ujung ke ujung, lihat di bawah |
 | `summarize_ablation.py` | `python scripts/summarize_ablation.py [--tag A B] [--vs A]` | Rerata ± setengah-rentang per tag, vonis ambang F1 0,04, tag < 3 seed ditandai |
 | `check_lead.py`, `check_calibration.py`, `check_fp.py`, `check_operating_point.py`, `second_stage_rules.py` | lihat [docs/README.md](docs/README.md) §Alat analisis pendukung | Diagnosis eksperimen; DS2 hanya mendiagnosis, tidak memilih parameter |
-| `pull_recording.py` | `make pull [N=n]` | Tarik rekaman dari board ([akuisisi](docs/akuisisi-walkthrough.md)). Bila board masih merekam, skrip menghentikan & menyimpannya dulu. Port lain: `ECG_PORT=/dev/ttyACM1` |
+| `pull_recording.py` | `make pull [N=n]` | Tarik rekaman dari board ([akuisisi](docs/acquisition-walkthrough.md)). Bila board masih merekam, skrip menghentikan & menyimpannya dulu. Port lain: `ECG_PORT=/dev/ttyACM1` |
 | `analyze_recording.py` | `make analyze FILE=... [TITLE="R1"]` | Nilai kualitas rekaman dengan angka, lihat di bawah |
 | `quality_trend.py` | `.venv/bin/python scripts/quality_trend.py <berkas-1.csv> [<lanjutan>.csv ...]` | Kualitas per detik satu sesi rekam (berkas lanjutan disambung urut, `celah` selain 0 diperingatkan, berkas ber-`# jeda` ditolak) dengan rumus gerbang firmware: ayunan tersaring, dengung 50 Hz (bin FFT 1 detik = bin Goertzel `gate.cpp`), `ayun_bersih`, clipping, RR wajar, lama RR tenang. Mencetak ringkasan per menit dan detik pertama tiap syarat gerbang terpenuhi; tabel per detik → `artifacts/metrics/kualitas/<berkas-1>-sesi<k>.csv`. Dasar durasi pemanasan 60 s gerbang kalibrasi ([mqtt](docs/mqtt-walkthrough.md) §3.1) |
-| `plot_recording.py` | `make plot FILE=... [START=detik]` | Grafik EKG 60 detik terbaik (atau mulai detik tertentu) dalam baris 10 detik + HR per detak ([akuisisi](docs/akuisisi-walkthrough.md) §5) |
+| `plot_recording.py` | `make plot FILE=... [START=detik]` | Grafik EKG 60 detik terbaik (atau mulai detik tertentu) dalam baris 10 detik + HR per detak ([akuisisi](docs/acquisition-walkthrough.md) §5) |
 | `measure_power.py`, `pull_power.py` | `.venv/bin/python scripts/measure_power.py`, `make pull-power [N=n]` | Tangga daya dari laptop dan dari board ([firmware](docs/firmware-walkthrough.md) §5d) |
 | `broker_info.py` | `make broker-info` | SSID WiFi laptop, IPv4 LAN, status port, saran entri `wifi_secrets.h`. Firmware tidak me-resolve nama host, jadi broker = alamat IP dan board harus di SSID yang sama. Memakai `ip -j` (iproute2, Linux saja) dan `nmcli -t` |
 
@@ -127,7 +127,7 @@ itu dengan `measure_jitter.py`.
 ### `analyze_recording.py`
 
 Masukan: keluaran `dump` firmware (baris `# fs=.. n=.. lewat=..` lalu satu nilai
-ADC per baris; format di [akuisisi](docs/akuisisi-walkthrough.md) §3). Semua
+ADC per baris; format di [akuisisi](docs/acquisition-walkthrough.md) §3). Semua
 hitungan berjalan per segmen lalu digabung: filter mulai dari nol di awal tiap
 segmen dan interval RR tidak pernah melintasi `# jeda`
 (`tests/test_analyze_recording.py`).
