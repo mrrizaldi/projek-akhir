@@ -1,12 +1,12 @@
-# Walkthrough `firmware/` — port ke ESP32-S3
+# Walkthrough `firmware/`: port to the ESP32-S3
 
-> **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/acquisition.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/power.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
-> **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
+> **Scope:** porting preprocessing, R detection, and INT8 inference to the ESP32-S3, along with the golden harness that keeps C↔Python equivalence.
+> **Related code:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/acquisition.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/power.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Prerequisite:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Phase 7)
 
-Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
+A study document, not a specification. This is the hardware path in PRD Appendix C.
 
-Reproduksi:
+Reproduction:
 
 ```
 cd firmware
@@ -15,16 +15,16 @@ pio test -e esp32-s3    # preprocessing, inferensi, dan perangkat PCB di board s
 pio run                 # build firmware utama (env esp32-s3)
 ```
 
-`platformio.ini` memuat dua env:
+`platformio.ini` contains two envs:
 
-| Env | Isi | Dipakai untuk |
+| Env | Content | Used for |
 |---|---|---|
-| `esp32-s3` | `main.cpp` + seluruh pipeline + MQTT + perangkat PCB (TFT, buzzer, tombol, INA219) | firmware utama (bawaan `pio run`) dan test di board |
-| `native` | modul murni tanpa Arduino | `pio test -e native` di PC |
+| `esp32-s3` | `main.cpp` + the entire pipeline + MQTT + PCB devices (TFT, buzzer, buttons, INA219) | the main firmware (the `pio run` default) and tests on the board |
+| `native` | pure modules without Arduino | `pio test -e native` on the PC |
 
 ---
 
-## 0. Peta besar
+## 0. The big picture
 
 ```
 model/src/preprocessing.py  ─┐  golden reference (Python)
@@ -45,51 +45,51 @@ firmware/include/model_int8.h ────────────────�
   (dari model/scripts/export_model_h.py)
 ```
 
-Aturan tunggalnya: **Python adalah kebenaran.** Kalau C dan Python berbeda,
-C yang salah — sampai terbukti sebaliknya dengan angka.
+Its single rule: **Python is the truth.** If C and Python differ,
+C is wrong, until proven otherwise with numbers.
 
 ---
 
-## 1. Kenapa harus ada golden reference
+## 1. Why a golden reference is needed
 
-Risiko terbesar jalur hardware bukan kode yang crash, tapi **train/deploy
-mismatch**: filter di C sedikit berbeda dari yang dipakai saat training, window
-yang masuk model jadi bergeser distribusinya, dan akurasi runtuh **tanpa satu
-pun error**. Alat tetap menyala, LED tetap berkedip, angka tetap keluar.
+The biggest risk of the hardware path is not code that crashes, but **train/deploy
+mismatch**: the filter in C differs slightly from the one used in training, the distribution of the window
+entering the model shifts, and accuracy collapses **without a single
+error**. The device stays on, the LED still blinks, numbers still come out.
 
-Karena itu vektor uji ditulis **sebelum** kode C. Dibuat sesudah, godaannya
-adalah menyetel toleransi sampai kode yang terlanjur ditulis lolos — itu
-pembenaran, bukan verifikasi.
+That is why the test vectors are written **before** the C code. If made afterward, the temptation
+is to tune the tolerance until the already-written code passes, which is
+justification, not verification.
 
-`golden_ref.h` berisi record 208 (DS1), 2.400 sampel pertama:
+`golden_ref.h` contains record 208 (DS1), the first 2,400 samples:
 `golden_raw` → `golden_filtered` → `golden_window` → `golden_rr` →
-`golden_prob_int8`. Sembilan beat: N, F, V, N, V, V, N, V, V.
+`golden_prob_int8`. Nine beats: N, F, V, N, V, V, N, V, V.
 
-Header GENERATED tidak memuat komentar; isinya dibaca dari sini:
+The GENERATED header contains no comments; its content is read from here:
 
-| Simbol | Arti |
+| Symbol | Meaning |
 |---|---|
-| `ECG_N_RR` | Didefinisikan di `model_int8.h` dan `ecg_preproc.h`, keduanya di balik `#ifndef` supaya tidak bentrok |
-| `ECG_N_RR_BASE`, `ECG_RR_RATIO`, `ECG_QRSW` | Bentuk fitur ritme (Fase D): jumlah kolom RR saja (tanpa QRSw/HOS) dan knob `PA_RR_RATIO`/`PA_QRSW` |
-| `ECG_R_IN_WINDOW`, `ECG_QRSW_SEARCH` | Posisi R di window (`WIN_PRE` + group delay) dan toleransi cari puncak ±4 untuk `ecg_qrs_width()` |
-| `ECG_PT_OFFSET`, `ECG_PT_REFINE`, `ECG_GROUP_DELAY` | Penyelarasan R-peak, urutan wajib `r - ECG_PT_OFFSET` → puncak dalam ±`ECG_PT_REFINE` → `- ECG_GROUP_DELAY` (§2 `ecg_align_r`) |
-| `ecg_sos`, `ECG_N_SOS` | Butterworth 0,5-40 Hz orde 4, `{b0, b1, b2, a0, a1, a2}` per baris; kausal, group delay +4 sampel dibiarkan |
-| `ECG_IN_*_SCALE/ZERO`, `ECG_OUT_*` | Kuantisasi affine: `q = round(x / scale) + zero_point`, `x = (q - zero_point) * scale` |
-| `GOLDEN_RR_FIRST` | Beat 0 & 1 tak punya RR_prev/dRR: baris `golden_rr` dan probabilitasnya 0, jangan diuji. RR dihitung dari R-peak potongan ini saja, bukan record utuh, karena C hanya punya beat yang ada di potongan |
-| `GOLDEN_RR_LAST` | 1 bila `PA_RR_RATIO` aktif: beat terakhir butuh beat ke depan yang tidak ada di potongan |
-| `GOLDEN_TOL_*` | Toleransi float32 vs float64 (§3) |
+| `ECG_N_RR` | Defined in `model_int8.h` and `ecg_preproc.h`, both behind `#ifndef` so they do not collide |
+| `ECG_N_RR_BASE`, `ECG_RR_RATIO`, `ECG_QRSW` | The shape of the rhythm features (Phase D): the RR column count only (without QRSw/HOS) and the knobs `PA_RR_RATIO`/`PA_QRSW` |
+| `ECG_R_IN_WINDOW`, `ECG_QRSW_SEARCH` | The R position in the window (`WIN_PRE` + group delay) and the ±4 peak-search tolerance for `ecg_qrs_width()` |
+| `ECG_PT_OFFSET`, `ECG_PT_REFINE`, `ECG_GROUP_DELAY` | R-peak alignment, mandatory order `r - ECG_PT_OFFSET` → peak within ±`ECG_PT_REFINE` → `- ECG_GROUP_DELAY` (§2 `ecg_align_r`) |
+| `ecg_sos`, `ECG_N_SOS` | Butterworth 0.5-40 Hz order 4, `{b0, b1, b2, a0, a1, a2}` per row; causal, the +4 sample group delay is left in place |
+| `ECG_IN_*_SCALE/ZERO`, `ECG_OUT_*` | Affine quantization: `q = round(x / scale) + zero_point`, `x = (q - zero_point) * scale` |
+| `GOLDEN_RR_FIRST` | Beats 0 & 1 have no RR_prev/dRR: the `golden_rr` rows and their probabilities are 0, do not test them. RR is computed from the R-peaks of this excerpt only, not the whole record, because C only has the beats that are in the excerpt |
+| `GOLDEN_RR_LAST` | 1 if `PA_RR_RATIO` is active: the last beat needs a next beat that is not in the excerpt |
+| `GOLDEN_TOL_*` | float32 vs float64 tolerance (§3) |
 | `golden_rr` | Per beat: RR_prev, RR_ratio, dRR |
-| `golden_r_detection` | R-peak Pan-Tompkins atas `golden_filtered`, indeks MENTAH (belum dikompensasi/diselaraskan) |
+| `golden_r_detection` | Pan-Tompkins R-peaks over `golden_filtered`, RAW indices (not yet compensated/aligned) |
 
-`export_golden.py` meng-assert bahwa memfilter potongan 2.400 sampel identik
-dengan memfilter sinyal utuh lalu memotongnya (filter kausal), jadi vektor uji
-berdiri sendiri.
+`export_golden.py` asserts that filtering the 2,400-sample excerpt is identical
+to filtering the whole signal and then cutting it (a causal filter), so the test vectors
+stand on their own.
 
 ---
 
-## 2. Tiga fungsi di `ecg_pipeline.cpp`
+## 2. Three functions in `ecg_pipeline.cpp`
 
-### `ecg_bandpass` — kaskade 4 biquad, transposed direct-form II
+### `ecg_bandpass`: a cascade of 4 biquads, transposed direct-form II
 
 ```c
 float y = c[0]*x + s[0];          // b0*x + state0
@@ -98,33 +98,33 @@ s[1] = c[2]*x - c[5]*y;           // b2*x - a2*y
 x = y;                            // masuk ke section berikutnya
 ```
 
-`ecg_sos` disimpan `{b0,b1,b2,a0,a1,a2}` per baris; `a0` selalu 1 (scipy sudah
-menormalisasi), jadi indeksnya dilewati — `a1` ada di kolom 4, bukan 3.
+`ecg_sos` is stored `{b0,b1,b2,a0,a1,a2}` per row; `a0` is always 1 (scipy already
+normalized it), so its index is skipped: `a1` is in column 4, not 3.
 
-**`state` milik pemanggil, bukan fungsi.** Itu yang membuat filter bisa dipanggil
-per potongan sampel tanpa mengubah hasil — kondisi kerja sebenarnya, karena ADC
-mengirim sampel mengalir, tidak pernah 2.400 sekaligus.
+**The `state` belongs to the caller, not the function.** That is what lets the filter be called
+per chunk of samples without changing the result, which is the actual working condition, because the ADC
+delivers samples flowing, never 2,400 at once.
 
-### `ecg_window_zscore` — pembagi N, bukan N−1
+### `ecg_window_zscore`: divisor N, not N−1
 
 ```c
 const double std_pop = sqrt(kuadrat / ECG_WIN_LEN_);
 ```
 
-numpy `std()` default memakai pembagi $N$ (populasi). Memakai $N-1$ (sampel)
-menghasilkan selisih ~0,2% — lolos mata, tertangkap toleransi.
+numpy `std()` defaults to the divisor $N$ (population). Using $N-1$ (sample)
+gives a difference of ~0.2%, which slips past the eye and is caught by the tolerance.
 
-### `ecg_rr_features` — jendela kausal yang menyusut
+### `ecg_rr_features`: a causal window that shrinks
 
 ```c
 const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
 ```
 
-`ECG_RR_LOCAL_WINDOW` di-*generate* dari `config.py`, tidak ditulis `10` di sini.
-Kalau suatu saat angkanya diubah di Python dan C masih 10, tidak ada yang crash —
-Python dan C cuma diam-diam menghitung ritme berbeda.
+`ECG_RR_LOCAL_WINDOW` is *generated* from `config.py`, `10` is not written here.
+If one day the number is changed in Python and C is still 10, nothing crashes:
+Python and C just silently compute different rhythms.
 
-### `ecg_detect_r` — Pan-Tompkins, lima tahap
+### `ecg_detect_r`: Pan-Tompkins, five stages
 
 ```c
 pt_bandpass(filtered, scratch, n);        // 5-15 Hz, 2 biquad, kausal
@@ -134,20 +134,20 @@ pt_mwi(scratch, n);                       // rata-rata bergerak 54 sampel (150 m
 // lalu ambang adaptif + refraktori 200 ms
 ```
 
-`scratch` disediakan pemanggil (n float) — **tanpa alokasi dinamis**, syarat wajar
-di MCU dan sekaligus membuat pemakaian memorinya terlihat di tempat pemanggilan.
+`scratch` is provided by the caller (n floats): **no dynamic allocation**, a reasonable requirement
+on an MCU and one that also makes its memory use visible at the call site.
 
-Dua detail yang mudah meleset saat porting:
+Two details that are easy to get wrong when porting:
 
-- **Akumulator MWI pakai `double`.** Rata-rata bergerak menjumlahkan dan
-  mengurangi ratusan ribu kali; dengan `float` galatnya menumpuk sampai ambang
-  adaptif ikut bergeser.
-- **Kernel turunan sudah digeser 2 sampel** agar kausal (bentuk aslinya butuh
-  `x[i+1]`, `x[i+2]`). Geseran itu bagian dari kontrak, bukan koreksi.
+- **The MWI accumulator uses `double`.** The moving average adds and
+  subtracts hundreds of thousands of times; with `float` the error accumulates until the adaptive
+  threshold shifts too.
+- **The derivative kernel is shifted by 2 samples** to be causal (its original form needs
+  `x[i+1]`, `x[i+2]`). That shift is part of the contract, not a correction.
 
-Deteksi C cocok dengan Python pada 11 dari 11 puncak di `golden_raw`.
+The C detection matches Python on 11 of 11 peaks in `golden_raw`.
 
-### `ecg_align_r` — tiga koreksi yang tidak boleh terlewat
+### `ecg_align_r`: three corrections that must not be missed
 
 ```c
 int lo = r_kasar - ECG_PT_OFFSET;                    // 38: median delay (kalibrasi DS1)
@@ -155,47 +155,47 @@ int puncak = argmax(filtered, lo - 25 .. lo + 25);   // puncak R sebenarnya
 return puncak - ECG_GROUP_DELAY;                     // 4: geseran bandpass kausal
 ```
 
-Hasilnya menaruh R di indeks **94** dalam window, sama seperti window training.
-Meleset 4 sampel ke arah mana pun dan precision jatuh dari 0,479 ke 0,124 —
-angkanya diukur di [Fase 6b](segmentasi-deteksi-walkthrough.md) §2.
+The result puts R at index **94** in the window, the same as the training window.
+A miss of 4 samples in either direction and precision falls from 0.479 to 0.124;
+the number was measured in [Phase 6b](segmentasi-deteksi-walkthrough.md) §2.
 
-Test `test_align_r_puts_peak_at_r_idx` menjaganya sebagai sifat, bukan
-sebagai angka: dia memotong window dari hasil `ecg_align_r` lalu memastikan
-puncaknya mendarat di `R_IDX = ECG_WIN_PRE + ECG_GROUP_DELAY`. Pencariannya
-dibatasi ±20 di sekitar `R_IDX` — `argmax` global tidak bisa dipakai karena
-record 208 punya detak berdekatan (697 → 853) sehingga window selebar ini sering
-memuat R tetangga yang lebih tinggi.
+The test `test_align_r_puts_peak_at_r_idx` guards it as a property, not
+as a number: it cuts the window from the `ecg_align_r` result and then makes sure
+the peak lands at `R_IDX = ECG_WIN_PRE + ECG_GROUP_DELAY`. Its search
+is limited to ±20 around `R_IDX`; a global `argmax` cannot be used because
+record 208 has closely spaced beats (697 → 853) so a window this wide often
+contains a taller neighboring R.
 
-Prinsipnya: **test yang menjaga sifat harus menuliskan sifatnya, bukan hasil
-hitungannya.** Indeks R yang ditulis sebagai angka lurus di lebih dari satu
-tempat akan tertinggal saat window berubah, dan test-nya gagal dengan pesan yang
-menuduh firmware.
+The principle: **a test that guards a property must write down the property, not the result of
+its computation.** An R index written as a literal number in more than one
+place will be left behind when the window changes, and the test fails with a message that
+accuses the firmware.
 
 ---
 
-## 3. Toleransi: float32 vs float64, dan kenapa itu tidak menular
+## 3. Tolerance: float32 vs float64, and why it does not spread
 
-Golden dihitung scipy dengan float64; device float32 (FPU ESP32-S3 hanya
-single-precision, `double` di-emulasi software dan lambat). Di filter **IIR yang
-rekursif**, selisih presisi itu menumpuk:
+The golden is computed by scipy with float64; the device is float32 (the ESP32-S3 FPU is only
+single-precision, `double` is emulated in software and slow). In a **recursive IIR**
+filter, that precision difference accumulates:
 
 ```
 selisih terukur pada tahap bandpass: 2,09e-4  (amplitudo ~0,4)
 ```
 
-Bukan bug — yang haram adalah beda **sistematis**: geseran indeks, koefisien
-tertukar, `a0` ikut terbaca. Karena itu toleransi tidak sekadar dilonggarkan;
-`test_pipeline_whole` menjalankan mentah → bandpass → z-score seluruhnya di C
-lalu membandingkan ke window golden — dan lolos.
+Not a bug: what is forbidden is a **systematic** difference: an index shift, swapped coefficients,
+`a0` being read in. That is why the tolerance is not simply loosened;
+`test_pipeline_whole` runs raw → bandpass → z-score entirely in C
+then compares to the golden window, and passes.
 
-Alasannya elegan: **z-score membagi dengan simpangan baku**, jadi pergeseran
-yang dialami bersama oleh seluruh window ikut ternormalisasi. Keputusan Fase 1
-yang diambil demi kekebalan antar-pasien sekaligus memberi toleransi presisi di
+The reason is elegant: **the z-score divides by the standard deviation**, so a shift
+experienced by the whole window together gets normalized too. A Phase 1 decision
+taken for cross-patient immunity also gives precision tolerance on the
 device.
 
 ---
 
-## 4. `test_bandpass_streaming` — test yang tidak punya padanan di Python
+## 4. `test_bandpass_streaming`: a test with no counterpart in Python
 
 ```c
 for (size_t i = 0; i < GOLDEN_N; i += 64) {
@@ -203,87 +203,87 @@ for (size_t i = 0; i < GOLDEN_N; i += 64) {
 }
 ```
 
-Dipanggil per blok 64 sampel, hasilnya wajib sama dengan sekali jalan 2.400
-sampel. Kalau `state` biquad tidak bertahan antar-panggilan, test tunggal tetap
-hijau dan yang ini merah. Bug ini mustahil ketahuan dari sisi Python, karena di
-Python sinyal selalu tersedia utuh.
+Called per block of 64 samples, the result must equal a single run of 2,400
+samples. If the biquad `state` does not persist across calls, the single test stays
+green and this one goes red. This bug is impossible to detect from the Python side, because in
+Python the signal is always available whole.
 
 ---
 
-## 5. Jebakan TFLite Micro: op yang sama, hasil berbeda
+## 5. The TFLite Micro trap: the same op, a different result
 
-Ini jebakan terbesar jalur hardware, dan hampir seluruhnya tak terlihat tanpa
+This is the biggest trap of the hardware path, and almost entirely invisible without the
 harness.
 
-### Gejala
+### Symptom
 
-Model, bobot, input, dan parameter kuantisasi identik. Hasilnya tidak:
+The model, weights, input, and quantization parameters are identical. The result is not:
 
 ```
 beat 2 (V):  PC 0,9727   device 0,3359
 beat 3 (N):  PC 0,0039   device 0,0391
 ```
 
-Semua tertekan ke tengah — model masih mengurutkan benar, tapi keyakinannya
-runtuh. Di threshold 0,35, beat aritmia berubah jadi "normal".
+Everything is pushed toward the middle: the model still ranks correctly, but its confidence
+collapses. At a threshold of 0.35, an arrhythmia beat turns into "normal".
 
-### Penelusuran
+### Investigation
 
-| Langkah | Hasil | Kesimpulan |
+| Step | Result | Conclusion |
 |---|---|---|
-| Suapi window & RR **golden** langsung | tetap meleset | bukan port C-nya |
-| Bandingkan parameter kuantisasi device vs header | identik | bukan salah scale/zero |
-| PC dengan kernel referensi (bukan XNNPACK) | 0,969 | PC konsisten, device yang menyimpang |
-| **Ganti library TFLM** (Chirale → tanakamasayuki) | **angka salah yang identik** | bukan bug satu library — sifat TFLM |
+| Feed the **golden** window & RR directly | still off | not its C port |
+| Compare the device vs header quantization parameters | identical | not a wrong scale/zero |
+| PC with the reference kernel (not XNNPACK) | 0.969 | the PC is consistent, the device deviates |
+| **Swap the TFLM library** (Chirale → tanakamasayuki) | **the identical wrong numbers** | not a bug in one library: a property of TFLM |
 
-Dua implementasi independen sepakat di angka yang salah. Itu yang mematikan
-hipotesis "bug library" dan mengarahkan ke **op**.
+Two independent implementations agree on the wrong number. That is what kills
+the "library bug" hypothesis and points to the **op**.
 
-### Sebab
+### Cause
 
-`GlobalAveragePooling1D` menjadi op `MEAN`, dan TFLM menghitungnya berbeda dari
-TFLite biasa. Solusinya mengganti cara rata-rata itu **dituliskan**, bukan
-mengubah modelnya.
+`GlobalAveragePooling1D` becomes the `MEAN` op, and TFLM computes it differently from
+regular TFLite. The solution is to change how that average is **written**, not
+to change the model.
 
-### Empat cara menulis rata-rata, dan kenapa tiga ditolak
+### Four ways to write the average, and why three are rejected
 
-| Rata-rata ditulis sebagai | Ukuran | Di PC | Di device |
+| Average written as | Size | On PC | On device |
 |---|---|---|---|
-| `MEAN` (model latih) | 17,8 KB | 0,973 | **0,336** (salah) |
-| `AVERAGE_POOL_2D` | 20,8 KB | 0,945 | 0,945 (cocok), tapi **recall DS2 0,528** |
-| `AVERAGE_POOL_2D` + `Flatten` | 19,4 KB | 0,945 | **0,418** (salah) |
-| **`DEPTHWISE_CONV_2D` bobot 1/31** | 22,9 KB | 0,973 | **0,973** (dipakai) |
+| `MEAN` (training model) | 17.8 KB | 0.973 | **0.336** (wrong) |
+| `AVERAGE_POOL_2D` | 20.8 KB | 0.945 | 0.945 (matches), but **recall DS2 0.528** |
+| `AVERAGE_POOL_2D` + `Flatten` | 19.4 KB | 0.945 | **0.418** (wrong) |
+| **`DEPTHWISE_CONV_2D` weights 1/31** | 22.9 KB | 0.973 | **0.973** (used) |
 
-**Kenapa pooling gagal walau hasilnya "benar":** op pooling **mewarisi skala
-kuantisasi input-nya** (0,332 di sini), sedangkan op konvolusi mendapat skala
-**output sendiri** (0,0429 — persis yang dipilih `MEAN`). Rata-rata 31 nilai
-jauh lebih kecil dari rentang input, jadi pooling membuang ~3 bit resolusi.
-Di 6 beat uji hampir tak terlihat; di 49.654 beat DS2, recall jatuh dari 0,655
-ke 0,528.
+**Why pooling fails even though its result is "correct":** a pooling op **inherits the
+quantization scale of its input** (0.332 here), whereas a convolution op gets its
+**own output scale** (0.0429, exactly what `MEAN` chose). The average of 31 values is
+much smaller than the input range, so pooling throws away ~3 bits of resolution.
+On 6 test beats it is almost invisible; on the 49,654 DS2 beats, recall falls from 0.655
+to 0.528.
 
-**Kenapa `Flatten` gagal:** dia memunculkan `SHAPE`, `PACK`, `STRIDED_SLICE` —
-op shape-dinamis, dan TFLM tidak punya alokasi dinamis.
+**Why `Flatten` fails:** it brings in `SHAPE`, `PACK`, `STRIDED_SLICE`,
+dynamic-shape ops, and TFLM has no dynamic allocation.
 
-**Kenapa DepthwiseConv1D berhasil:** konvolusi dengan kernel $[\frac{1}{31},
-\dots]$ secara matematika *adalah* rata-rata (identik sampai 1,19e-07 di
-float32), tapi dia op konvolusi — dapat skala output sendiri, dan
-`DEPTHWISE_CONV_2D` termasuk kernel paling matang di TFLM.
+**Why DepthwiseConv1D works:** a convolution with the kernel $[\frac{1}{31},
+\dots]$ mathematically *is* an average (identical down to 1.19e-07 in
+float32), but it is a convolution op: it gets its own output scale, and
+`DEPTHWISE_CONV_2D` is among the most mature kernels in TFLM.
 
-Ini hidup sebagai `build_deploy_model()` di `model/src/model.py`: masuk model
-latih, keluar varian dengan bobot disalin apa adanya. **Tidak ada latih ulang.**
+This lives as `build_deploy_model()` in `model/src/model.py`: the training model goes in,
+a variant comes out with the weights copied as is. **No retraining.**
 
 ---
 
-## 5b. Alur hidup (`ecg_live.cpp`)
+## 5b. The live flow (`ecg_live.cpp`)
 
-Menggabungkan semua yang sudah terverifikasi jadi satu jalur: sampel ADC masuk
-satu per satu, beat siap-klasifikasi keluar.
+It combines everything already verified into one path: ADC samples come in
+one by one, a ready-to-classify beat comes out.
 
 ```c
 int ecg_live_push(float sample_raw, ecg_beat_t *beat);
 ```
 
-Di dalamnya:
+Inside it:
 
 ```
 sampel mentah
@@ -294,17 +294,17 @@ sampel mentah
    → beat keluar
 ```
 
-**Inferensi sengaja TIDAK di dalam modul ini.** Pemanggil yang menjalankannya
-sehingga `ecg_live` bisa diuji di `pio test -e native` tanpa TFLite Micro sama
-sekali — dan itu memisahkan bug logika alur dari bug inferensi.
+**Inference is deliberately NOT inside this module.** The caller runs it
+so that `ecg_live` can be tested in `pio test -e native` without TFLite Micro at
+all, and that separates flow logic bugs from inference bugs.
 
-Dua beat pertama tiap sesi tidak pernah keluar: belum punya `RR_prev`/`dRR`,
-aturan yang sama persis dengan `valid_beat_indices` di `prep_beats.py`.
+The first two beats of each session never come out: they do not have `RR_prev`/`dRR` yet,
+exactly the same rule as `valid_beat_indices` in `prep_beats.py`.
 
-### Diuji tanpa elektroda
+### Tested without electrodes
 
-`golden_raw` diputar ulang sampel demi sampel seolah datang dari ADC 360 Hz.
-Karena jawabannya sudah diketahui, seluruh rantai bisa diverifikasi:
+`golden_raw` is replayed sample by sample as if it came from a 360 Hz ADC.
+Because the answer is already known, the whole chain can be verified:
 
 ```
 beat keluar   : 6 (6 cocok anotasi, 6 prediksi benar)
@@ -313,13 +313,13 @@ beat keluar   : 6 (6 cocok anotasi, 6 prediksi benar)
   r=1181 (N) p=0.0039 -> 0   r=1860 (N) p=0.0117 -> 0
 ```
 
-Mode putar-ulang ini bukan alat sementara. Dengan elektroda terpasang pun, dia
-satu-satunya cara menguji firmware secara **deterministik** — sinyal tubuh tidak
-pernah sama dua kali, jadi perubahan hasil tidak bisa dibedakan antara "kode
-berubah" dan "jantung berbeda". Dia juga memisahkan dua jenis kegagalan: kalau
-putar-ulang benar tapi sinyal nyata kacau, masalahnya di akuisisi/analog.
+This replay mode is not a temporary tool. Even with electrodes attached, it is
+the only way to test the firmware **deterministically**: a body signal
+is never the same twice, so a change in results cannot be told apart as "the code
+changed" or "the heart is different". It also separates two kinds of failure: if
+the replay is correct but the real signal is a mess, the problem is in acquisition/analog.
 
-### Bebannya bursty — dan itu menentukan arsitektur firmware
+### The load is bursty, and that determines the firmware architecture
 
 ```
 rata-rata    :     82 us/sampel dari anggaran 2778 us  → beban 3,0%
@@ -327,21 +327,21 @@ puncak burst : 33.428 us (deteksi 4 detik + inferensi bersamaan)
 antrean min  : 13 sampel
 ```
 
-Rata-ratanya sangat longgar, tapi **puncaknya 12× anggaran satu sampel**. Kalau
-akuisisi dan pemrosesan berjalan di satu alur berurutan, 12 sampel akan hilang
-tiap kali deteksi berjalan — dan sampel yang hilang merusak interval RR, fitur
-yang paling menentukan kelas S.
+The average is very loose, but **the peak is 12× the budget of a single sample**. If
+acquisition and processing run in a single sequential flow, 12 samples would be lost
+each time detection runs, and lost samples corrupt the RR interval, the feature
+that most determines class S.
 
-Konsekuensinya untuk firmware produksi: **ADC harus diumpankan timer ISR ke
-antrean**, dan `ecg_live_push` menguras antrean itu di loop utama. Burst cuma
-menumpuk ~13 sampel sementara, lalu terkuras karena beban rata-rata 3%.
+The consequence for the production firmware: **the ADC must be fed by a timer ISR into a
+queue**, and `ecg_live_push` drains that queue in the main loop. A burst only
+piles up ~13 samples temporarily, then drains because the average load is 3%.
 
-Yang di-assert test bukan puncaknya, melainkan rata-rata — puncaknya dilaporkan
-supaya antreannya bisa disizing dengan angka, bukan tebakan.
+What the test asserts is not the peak but the average; the peak is reported
+so the queue can be sized with a number, not a guess.
 
 ---
 
-## 5c. Firmware produksi (`main.cpp`)
+## 5c. The production firmware (`main.cpp`)
 
 ```
 timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
@@ -357,100 +357,100 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
                                               └─ menu di layar (bila terbuka)
 ```
 
-Pin map PCB rev1 dan urutan pemasangan perangkat berada di
-`firmware/include/board.h` dan `firmware/src/board.cpp`, dipakai
-bersama oleh `main.cpp` dan test device `test_hw_*`. Tabel pin, peta tombol,
-dan pohon menu ada di [`firmware/README.md`](../../firmware/README.md) bagian
+The PCB rev1 pin map and the device installation order are in
+`firmware/include/board.h` and `firmware/src/board.cpp`, used
+jointly by `main.cpp` and the `test_hw_*` device tests. The pin table, button map,
+and menu tree are in [`firmware/README.md`](../../firmware/README.md) section
 Pemakaian di perangkat.
 
-Arti LED dan prosedur rekam ada di
-[`acquisition-walkthrough.md`](acquisition-walkthrough.md) §2–3; gerbang kalibrasi dan
-publikasi ada di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.
+The meaning of the LED and the recording procedure are in
+[`acquisition-walkthrough.md`](acquisition-walkthrough.md) §2–3; the calibration gate and
+publishing are in [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.
 
-**ADC dibaca DI DALAM ISR, bukan di loop.** Ini konsekuensi langsung dari
-temuan §5b: beban menggumpal sampai 33 ms. Kalau ISR cuma menaikkan penanda dan
-loop yang membaca ADC, sampel tetap terbaca — tapi **terlambat**, karena ADC
-mengambil nilai saat dibaca, bukan saat seharusnya. Jitter waktu sebesar burst
-itu masuk langsung ke interval RR.
+**The ADC is read INSIDE the ISR, not in the loop.** This is a direct consequence of the
+§5b finding: the load clumps up to 33 ms. If the ISR only raises a flag and the
+loop reads the ADC, the samples are still read, but **late**, because the ADC
+takes the value when it is read, not when it should have been. Timing jitter of the size of that burst
+goes straight into the RR interval.
 
-`adc1_get_raw()` dipakai, bukan `analogRead()`: yang kedua membawa penguncian
-dan tidak aman dipanggil dari ISR.
+`adc1_get_raw()` is used, not `analogRead()`: the latter carries locking
+and is not safe to call from an ISR.
 
-Antrean 256 sampel (0,7 detik) — jauh di atas 13 yang dibutuhkan, tapi murah
-(512 byte) dan memberi ruang bagi WiFi/MQTT yang ikut memakai waktu loop. Batas
-711 ms inilah yang membatasi setiap operasi jaringan di `ecg_mqtt.cpp`
+A queue of 256 samples (0.7 seconds): far above the 13 needed, but cheap
+(512 bytes) and gives room for WiFi/MQTT, which also uses loop time. This limit of
+711 ms is what bounds every network operation in `ecg_mqtt.cpp`
 ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §7b).
-`n_lewat` menghitung sampel yang hilang saat antrean penuh; angkanya **harus
-tetap 0**, dan ikut disimpan ke berkas rekaman.
+`n_lewat` counts the samples lost when the queue is full; the number **must
+stay 0**, and is also saved to the recording file.
 
-### Tombol dan menu: layar berganti, pemrosesan tidak
+### Buttons and menu: the screen changes, the processing does not
 
-`buttons.cpp` hanya menghasilkan event per tombol: `TEKAN`, `PENDEK` (dilepas
-sebelum 800 ms), `LAMA` (masih ditahan saat 800 ms tercapai, tanpa menunggu
-dilepas), dan `LEPAS`. Arti event dirangkai pemanggil: `main.cpp` untuk mode
-monitor (B1 pendek bisu, B2 pendek beku, B3 pendek rekam, B2 lama buka menu),
-dan `menu.cpp` selama menu terbuka (B3/B1 pendek naik/turun, B2 lama pilih,
-B2 pendek kembali, B1/B3 lama langsung ke monitor). Aksi pendek terjadi saat
-dilepas karena tekanan yang sama bisa berlanjut menjadi tekan lama.
+`buttons.cpp` only produces per-button events: `TEKAN` (press), `PENDEK` (released
+before 800 ms), `LAMA` (still held when 800 ms is reached, without waiting for
+release), and `LEPAS` (release). The meaning of the events is assembled by the caller: `main.cpp` for monitor
+mode (short B1 mute, short B2 freeze, short B3 record, long B2 open menu),
+and `menu.cpp` while the menu is open (short B3/B1 up/down, long B2 select,
+short B2 back, long B1/B3 straight to monitor). Short actions happen on
+release because the same press could continue into a long press.
 
-Menu bukan mode terpisah. `loop()` tetap menguras antrean, menjalankan
-`ecg_live`, inferensi, rekam, dan MQTT di setiap iterasi; yang berubah hanya
-siapa yang memakai layar (`display_set_monitor(false)`) dan siapa yang
-menerima event tombol. Gelombang tidak digambar selama menu terbuka, tetapi
-bip detak tetap dijadwalkan dan NeoPixel tetap mengikuti fase.
+The menu is not a separate mode. `loop()` still drains the queue, runs
+`ecg_live`, inference, recording, and MQTT on every iteration; all that changes is
+who uses the screen (`display_set_monitor(false)`) and who
+receives button events. The waveform is not drawn while the menu is open, but
+the beat beep is still scheduled and the NeoPixel still follows the phase.
 
-Konsekuensinya, setiap penggambaran menu berjalan di `loop()` yang sama dengan
-pengurasan antrean dan memblokirnya selama menggambar. Batasnya adalah
-kedalaman antrean ISR, 256 sampel = **711 ms**. Pohon menu berupa array struct
-statis; `display_menu_row()` mengingat isi tiap baris dan hanya menggambar
-ulang baris yang berubah sehingga menggeser sorotan menyentuh dua baris saja.
+As a consequence, every menu drawing runs in the same `loop()` as
+the queue draining and blocks it while drawing. The limit is the
+ISR queue depth, 256 samples = **711 ms**. The menu tree is an array of static
+structs; `display_menu_row()` remembers the content of each row and only redraws
+rows that changed, so moving the highlight touches only two rows.
 
-Terukur di board (13 Okt 2026):
+Measured on the board (13 Oct 2026):
 
-| Operasi | Waktu |
+| Operation | Time |
 |---|---|
-| Bingkai menu penuh (judul, enam baris, petunjuk) | ±200 ms |
-| Geser sorotan (dua baris) | ±36 ms |
-| Kedalaman antrean ISR | 711 ms |
-| Sampel hilang selama navigasi | 0 |
+| Full menu frame (title, six rows, hint) | ±200 ms |
+| Moving the highlight (two rows) | ±36 ms |
+| ISR queue depth | 711 ms |
+| Samples lost during navigation | 0 |
 
-Halaman teks (Status, Info) dihitung ulang sekali per detik dengan aturan yang
-sama: baris yang isinya tidak berubah tidak digambar. Pengecualian yang memblok
-lebih lama dari 711 ms adalah menu Tes perangkat (bunyi, pola layar ±2 detik,
-tunggu tombol sampai 10 detik); selama tes, timer akuisisi dihentikan sehingga
-tidak ada sampel yang dihitung hilang, dan antrean tidak meluap.
+Text pages (Status, Info) are recomputed once per second with the same rule:
+rows whose content has not changed are not drawn. The exception that blocks
+longer than 711 ms is the Tes perangkat (device tests) menu (sound, screen pattern ±2 seconds,
+wait for a button up to 10 seconds); during a test, the acquisition timer is stopped so
+no samples are counted as lost, and the queue does not overflow.
 
-Navigasi dapat diuji tanpa jari: serial `t1`–`t3` menyuntik tekan pendek dan
-`T1`–`T3` tekan lama, dan setiap gerakan menu mencetak
+Navigation can be tested without a finger: serial `t1`–`t3` injects a short press and
+`T1`–`T3` a long press, and every menu movement prints
 `menu: <judul> [i/n] <baris>`.
 
-### Terukur di board (tanpa elektroda, ADC membaca derau)
+### Measured on the board (no electrodes, the ADC reads noise)
 
-Kondisi uji: build inti tanpa modul MQTT dan tanpa tabel replay.
+Test conditions: the core build without the MQTT module and without the replay table.
 
 ```
 RAM   21,2% (69.404 B)    Flash 6,4% (419.209 B)
 antrean saat burst: 12 sampel      sampel hilang: 0
 ```
 
-Antrean 12 saat diperiksa di tengah burst — cocok dengan 13 yang dihitung dari
-pengukuran §5b.
+A queue of 12 when checked in the middle of a burst: matching the 13 computed from the
+§5b measurement.
 
-### Tiga sumber sinyal (menu Sumber sinyal)
+### Three signal sources (the Sumber sinyal menu)
 
-Sumber dipilih dari menu **Sumber sinyal** dan disimpan di NVS sehingga tetap
-berlaku setelah boot:
+The source is chosen from the **Sumber sinyal** (Signal source) menu and stored in NVS so it stays
+in effect after boot:
 
-| Sumber | Isi antrean ISR | Kegunaan |
+| Source | ISR queue content | Purpose |
 |---|---|---|
-| Sensor (ADC) | `adc1_get_raw()` dari AD8232 | operasi dan perekaman sinyal tubuh |
-| REPLAY 208 | `golden_raw` record 208 (2400 sampel, 9 beat), diputar berulang | beban identik untuk ukur daya, uji MQTT tanpa elektroda |
-| Replay rekaman | berkas `/rekam/NNN.csv` dimuat ke PSRAM (maks. 300 detik), diputar berulang | memutar ulang sinyal tubuh yang pernah direkam lewat jalur produksi; baris `#` (header, `# jeda`) dilewati sehingga segmen diputar bersambung |
+| Sensor (ADC) | `adc1_get_raw()` from the AD8232 | operation and body signal recording |
+| REPLAY 208 | `golden_raw` of record 208 (2400 samples, 9 beats), played repeatedly | identical load for power measurement, MQTT tests without electrodes |
+| Replay rekaman (recording replay) | the file `/rekam/NNN.csv` loaded into PSRAM (max. 300 seconds), played repeatedly | replaying a body signal that was once recorded through the production path; `#` lines (header, `# jeda`) are skipped so segments play back to back |
 
-Selama replay, pojok kanan atas layar monitor menampilkan `RP 208` (acuan) atau
-`RP#NNN` (rekaman) berwarna kuning. Serial `y` tetap ada sebagai jalur
-cadangan: ADC ⇄ replay acuan. Kedua replay
-memakai satu cabang di ISR yang membaca array apa pun yang ditunjuk `rp_data`:
+During replay, the top right corner of the monitor screen shows `RP 208` (reference) or
+`RP#NNN` (recording) in yellow. Serial `y` remains as a fallback path:
+ADC ⇄ reference replay. Both replays
+use a single branch in the ISR that reads whichever array `rp_data` points to:
 
 ```cpp
 if (rp_data) {
@@ -461,43 +461,43 @@ if (rp_data) {
 }
 ```
 
-Memuat berkas rekaman memblok `loop()` (membaca LittleFS); selama itu timer
-dihentikan agar tidak tercatat sampel hilang. PSRAM aman dibaca di ISR ini
-karena ISR tidak dipasang dengan `ESP_INTR_FLAG_IRAM` sehingga ia ikut
-ditahan saat flash ditulis.
+Loading a recording file blocks `loop()` (it reads LittleFS); during that time the timer
+is stopped so no lost samples are recorded. PSRAM is safe to read in this ISR
+because the ISR is not installed with `ESP_INTR_FLAG_IRAM`, so it is
+held off while flash is being written.
 
-Satu cabang di ISR, dan **seluruh jalur di hilirnya tidak berubah** — bandpass,
-deteksi, penyelarasan, inferensi, LED, REC, dan MQTT semuanya berjalan seperti
-biasa. Kalau simulasi punya jalur sendiri, yang tervalidasi bukan jalur
-produksi.
+A single branch in the ISR, and **the whole path downstream does not change**: bandpass,
+detection, alignment, inference, LED, REC, and MQTT all run as
+usual. If the simulation has its own path, what is validated is not the production
+path.
 
-Skalanya bebas (bandpass membuang DC, z-score membuang skala); yang haram cuma
-terpotong di rail. 1000 counts/mV menaruh puncak R (~1,5 mV) di ~3550.
+The scale is free (the bandpass removes DC, the z-score removes scale); what is forbidden is only
+clipping at the rail. 1000 counts/mV puts the R peak (~1.5 mV) at ~3550.
 
-Dua kegunaan, dan yang kedua justru yang lebih penting:
+Two uses, and the second is actually the more important:
 
-1. **Beban kerja identik tiap ulangan** — syarat mengukur daya per mode (HW-7).
-   Tanpa sinyal, tidak ada beat, dan mode inferensi mengukur nol pekerjaan.
-2. **Jumlah beat yang SEHARUSNYA keluar jadi diketahui persis.** Itu yang
-   membuat kehilangan data di jalur MQTT bisa diukur, bukan cuma dirasakan:
-   beat hilang = beat seharusnya − beat yang sampai di broker. Setiap ganti
-   sumber (menu atau `y`) me-reset `ecg_live` dan pencacah beat supaya
-   hitungannya mulai dari nol. Selama replay (acuan maupun rekaman), syarat
-   pemanasan dan RR-tenang gerbang kalibrasi dilewati; bypass itu diturunkan
-   dari sumber sinyal sehingga berhenti bersama replay
+1. **An identical workload each repetition**, a requirement for measuring power per mode (HW-7).
+   Without a signal, there are no beats, and the inference mode measures zero work.
+2. **The number of beats that SHOULD come out is known exactly.** That is what
+   lets data loss on the MQTT path be measured, not just felt:
+   lost beats = expected beats − beats that reach the broker. Every change of
+   source (menu or `y`) resets `ecg_live` and the beat counter so that
+   the count starts from zero. During replay (reference or recording), the
+   warm-up and calm-RR conditions of the calibration gate are skipped; that bypass is derived
+   from the signal source so it stops together with the replay
    ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1b).
 
-Konsekuensinya: uji resiliensi pipeline tidak perlu menunggu elektroda.
+The consequence: pipeline resilience tests do not need to wait for electrodes.
 
-#### JEBAKAN: float di dalam ISR membunuh board, pelan-pelan
+#### TRAP (JEBAKAN): float inside an ISR kills the board, slowly
 
-Mengalikan langsung di `on_timer()` tampak wajar:
+Multiplying directly in `on_timer()` looks reasonable:
 
 ```cpp
 float v = golden_raw[replay_i] * SCALE_REPLAY + OFFSET_REPLAY;   // SALAH
 ```
 
-Kode itu ter-build bersih dan berjalan sekitar 20 detik, lalu:
+That code builds cleanly and runs for about 20 seconds, then:
 
 ```
 Guru Meditation Error: Core 1 panic'ed (Coprocessor exception).
@@ -505,22 +505,22 @@ EXCCAUSE: 0x00000004
 Rebooting...
 ```
 
-ESP32 **tidak menyimpan register FPU saat masuk ISR**. Operasi float di sana
-merusak state FPU task yang sedang diinterupsi, dan panic-nya baru muncul saat
-task itu dijadwalkan lagi — jadi **bukan crash seketika**, yang membuatnya lolos
-uji pendek. Terukur: panic di detik 18,49.
+The ESP32 **does not save the FPU registers on ISR entry**. A float operation there
+corrupts the FPU state of the task being interrupted, and the panic only appears when
+that task is scheduled again, so it is **not an immediate crash**, which lets it slip through
+short tests. Measured: panic at second 18.49.
 
-Obatnya konversi sekali di `acquisition_begin()` (dipanggil `setup()`) ke
-`static uint16_t sim_counts[GOLDEN_N]` (4.800 byte), ISR tinggal menyalin
-integer. Ongkosnya RAM 21,2% → 22,7%.
+The remedy is a one-time conversion in `acquisition_begin()` (called by `setup()`) into
+`static uint16_t sim_counts[GOLDEN_N]` (4,800 bytes), and the ISR just copies
+integers. The cost is RAM 21.2% → 22.7%.
 
-Gejala turunannya lebih berbahaya daripada crash-nya: board reboot diam-diam,
-`replay` kembali `false`, dan pengukuran berikutnya melaporkan **angka yang
-masuk akal tapi salah objek** — 2 beat/detik dari derau ADC, bukan dari replay.
+The derived symptom is more dangerous than the crash itself: the board silently reboots,
+`replay` goes back to `false`, and the next measurement reports **a plausible
+number but of the wrong object**: 2 beats/second from ADC noise, not from the replay.
 
-#### Terukur di board
+#### Measured on the board
 
-Kondisi uji: board N16R8, 18 Sep 2026, tanpa elektroda, replay ON.
+Test conditions: board N16R8, 18 Sep 2026, no electrodes, replay ON.
 
 ```
 periode putaran : 11 beat / 6,67 detik golden  (1,58 beat/detik)
@@ -530,127 +530,127 @@ sampel hilang   : 0        antrean puncak: 21 dari 256
 mentah          : 1168..3618 counts (ayun 2720) — sesuai 1000 c/mV + 2048
 ```
 
-Golden punya **9 beat beranotasi**, device mengeluarkan **11**. Dua selisihnya
-artefak **sambungan putaran**: sampel terakhir menyambung ke sampel pertama, dan
-diskontinuitas itu terlihat seperti QRS bagi detektor. Salah satunya keluar
-dengan `p = 0,500` persis — model pun tidak bisa memutuskan. Untuk akuntansi
-MQTT, yang dipakai **11 beat per putaran**, bukan 9: yang dihitung apa yang
-dikirim alat, bukan apa yang ada di anotasi.
+The golden has **9 annotated beats**, and the device emits **11**. The two extra are an
+artifact of the **loop seam**: the last sample connects to the first sample, and
+that discontinuity looks like a QRS to the detector. One of them comes out
+with exactly `p = 0,500`: the model cannot decide either. For MQTT
+accounting, **11 beats per loop** is used, not 9: what is counted is what
+the device sends, not what is in the annotations.
 
-#### Tanpa elektroda dan tanpa replay, alat ini mengarang aritmia
+#### Without electrodes and without replay, this device invents arrhythmia
 
-Dengan input ADC mengambang (tanpa elektroda, replay OFF), firmware
-mengeluarkan **~2 beat/detik, 57% diklasifikasi ARITMIA**. Derau
-kecil (ayun 15 counts) tetap punya puncak, dan Pan-Tompkins berambang adaptif
-selalu menemukan sesuatu — ambangnya relatif terhadap sinyal yang ada, jadi
-"tidak ada sinyal" bukan kondisi yang ia kenali.
+With a floating ADC input (no electrodes, replay OFF), the firmware
+emits **~2 beats/second, 57% classified as ARRHYTHMIA**. Small
+noise (swing 15 counts) still has peaks, and an adaptive-threshold Pan-Tompkins
+always finds something: its threshold is relative to the signal that exists, so
+"no signal" is not a condition it recognizes.
 
-Karena itu publikasi MQTT digerbangi penilai kualitas sinyal (`THRESHOLD_SWING`)
-dan fase kalibrasi, bukan ada-tidaknya beat
-([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1). Tanpa gerbang itu,
-elektroda lepas = banjir alarm palsu ke broker.
+That is why MQTT publishing is gated by the signal quality assessor (`THRESHOLD_SWING`)
+and the calibration phase, not by whether a beat exists
+([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1). Without that gate,
+detached electrodes = a flood of false alarms to the broker.
 
-### Jebakan kecil: BPM dari `millis()`
+### A small trap: BPM from `millis()`
 
-Menghitung BPM dari selisih waktu antar-cetak menghasilkan "2000 bpm", karena beat keluar **bergerombol** — deteksi berjalan sekali per
-detik lalu mengeluarkan beberapa beat sekaligus. Jarak waktu antar-cetak bukan
-jarak antar-detak. BPM harus dihitung dari `beat.rr[0]`, satu-satunya sumber
-yang benar-benar mengukur interval jantung.
+Computing BPM from the time difference between prints produces "2000 bpm", because beats come out **in clusters**: detection runs once per
+second and then emits several beats at once. The time gap between prints is not
+the gap between beats. BPM must be computed from `beat.rr[0]`, the only source
+that actually measures the heart interval.
 
 ---
 
-## 5d. Tangga ukur daya
+## 5d. The power measurement ladder
 
-Konsumsi dipisahkan per tahap lewat isolasi mode: tiap anak tangga menambah satu
-beban, dan ongkos satu tahap adalah selisih dua anak tangga. Satu anak tangga
-dipilih lewat serial `p0`–`p5`; `p` diikuti huruf lain (mis. `px`) kembali ke
-operasi normal. Seluruh tangga dijalankan dengan dua cara: dari laptop
-(`measure_power.py`, di bawah) atau oleh board sendiri (tangga mandiri, menu
-**Ukur daya** atau serial `V`).
+Consumption is separated per stage through mode isolation: each rung adds one
+load, and the cost of one stage is the difference between two rungs. One rung is
+chosen via serial `p0`–`p5`; `p` followed by another letter (e.g. `px`) returns to
+normal operation. The whole ladder is run in two ways: from the laptop
+(`measure_power.py`, below) or by the board itself (the standalone ladder, the menu
+**Ukur daya** (Measure power) or serial `V`).
 
-| Mode | Yang berjalan | Ongkos yang diisolasi |
+| Mode | What runs | The isolated cost |
 |---|---|---|
-| `p0` | timer ISR mati, radio WiFi mati, LED padam | dasar: ESP32-S3 + AD8232 + TFT (lampu latar) + regulator |
-| `p1` | + ISR 360 Hz dan pengurasan antrean | akuisisi |
-| `p2` | + `ecg_live_push()` dan penilai kualitas | DSP: bandpass, deteksi R, segmentasi |
-| `p3` | + inferensi CNN per detak | TinyML |
-| `p4` | + gelombang TFT, bip, LED | antarmuka |
-| `p5` | + radio WiFi (`setSleep(false)`) dan publikasi MQTT | radio = operasi normal |
+| `p0` | timer ISR off, WiFi radio off, LED off | the base: ESP32-S3 + AD8232 + TFT (backlight) + regulator |
+| `p1` | + the 360 Hz ISR and queue draining | acquisition |
+| `p2` | + `ecg_live_push()` and the quality assessor | DSP: bandpass, R detection, segmentation |
+| `p3` | + per-beat CNN inference | TinyML |
+| `p4` | + TFT waveform, beep, LED | interface |
+| `p5` | + WiFi radio (`setSleep(false)`) and MQTT publishing | radio = normal operation |
 
-Teks TFT 1 Hz, tombol, dan pembacaan INA219 berjalan di semua mode sehingga
-ongkosnya hilang pada selisih. Sumber sinyal wajib replay: tanpa sinyal tidak
-ada beat, dan `p3` akan mengukur nol inferensi. Radio dimatikan dengan
-`esp_wifi_stop()`, bukan `WiFi.mode(WIFI_OFF)`; yang terakhir ikut men-deinit
-driver dan berebut dengan task WiFi, gejalanya panic `LoadProhibited` di core 0.
+The 1 Hz TFT text, buttons, and INA219 reading run in all modes so
+their cost cancels in the differences. The signal source must be replay: without a signal there are
+no beats, and `p3` would measure zero inference. The radio is turned off with
+`esp_wifi_stop()`, not `WiFi.mode(WIFI_OFF)`; the latter also de-inits the
+driver and races with the WiFi task, the symptom being a `LoadProhibited` panic on core 0.
 
-Selama mode ukur aktif, INA219 dibaca tiap 100 ms (lebih lama dari konversi
-rata-rata 128 sampel, ~68 ms) dan dirata-ratakan per jendela 10 detik. Satu
-baris per jendela:
+While the measurement mode is active, the INA219 is read every 100 ms (longer than the conversion
+average of 128 samples, ~68 ms) and averaged per 10-second window. One
+line per window:
 
 ```
 DAYA p3 n=101 I=<mA> sd=<mA> mA V=<V> P=<mW> mW beat=17 lewat=0 replay=1
 ```
 
-`sd` adalah simpangan baku bacaan 100 ms di dalam jendela, `beat` jumlah beat
-yang keluar dari `ecg_live` di jendela itu (bukti beban DSP berjalan), dan
-`lewat` sampel yang hilang (wajib 0). INA219 memakai PGA ÷8 (`0x3FFF`,
-±320 mV = ±3,2 A pada 0,1 ohm) karena burst TX WiFi melewati ±400 mA milik
-PGA ÷1; LSB register shunt tetap 10 µV.
+`sd` is the standard deviation of the 100 ms readings within the window, `beat` the number of beats
+that came out of `ecg_live` in that window (proof the DSP load is running), and
+`lewat` the lost samples (must be 0). The INA219 uses PGA ÷8 (`0x3FFF`,
+±320 mV = ±3.2 A at 0.1 ohm) because WiFi TX bursts exceed the ±400 mA of
+PGA ÷1; the shunt register LSB stays 10 µV.
 
-`model/scripts/measure_power.py` menjalankan tangga: membaca status `s`,
-menyalakan replay bila belum, mengirim tiap mode, membuang jendela pertama
-(transien ganti mode), mengambil 6 jendela (60 detik) per mode, menulis CSV ke
-`model/artifacts/metrics/daya/<ts>.csv`, lalu mencetak rata-rata ± std per mode
-dan selisih antar-mode. Cek mekanis: arus monoton naik `p0 ≤ … ≤ p5`, tiap
-selisih > 2 × std, `lewat = 0`, dan `beat > 0` mulai `p2`. Skrip berhenti tanpa
-menulis CSV bila tegangan bus < 1 V, yaitu bila INA219 tidak berada di jalur
-arus alat.
+`model/scripts/measure_power.py` runs the ladder: reading the `s` status,
+turning on replay if it is not yet on, sending each mode, discarding the first window
+(mode-change transient), taking 6 windows (60 seconds) per mode, writing a CSV to
+`model/artifacts/metrics/daya/<ts>.csv`, then printing the mean ± std per mode
+and the difference between modes. Mechanical checks: current rises monotonically `p0 ≤ … ≤ p5`, each
+difference > 2 × std, `lewat = 0`, and `beat > 0` from `p2`. The script stops without
+writing a CSV if the bus voltage is < 1 V, i.e. if the INA219 is not in the device's
+current path.
 
-Catatan tafsir: `loop()` tidak pernah tidur, jadi CPU 240 MHz aktif penuh di
-semua mode. Selisih `p1`–`p3` adalah ongkos instruksi tambahan pada CPU yang
-sudah aktif, dan dapat tenggelam di bawah 2 × std; cek skrip melaporkannya
-sebagai tahap yang belum terukur, bukan sebagai angka.
+Interpretation note: `loop()` never sleeps, so the 240 MHz CPU is fully active in
+all modes. The `p1`–`p3` difference is the cost of additional instructions on a CPU that
+is already active, and can sink below 2 × std; the script check reports it
+as a stage not yet measured, not as a number.
 
-### Rasional rancangan
+### Design rationale
 
-- **Mode lewat perintah serial, bukan build flag.** Flash ulang antar-mode
-  mengubah kondisi termal board dan menambah variabel yang tidak dikendalikan.
-- **`p2` satu blok DSP.** `ecg_live_push()` mengerjakan bandpass, deteksi, dan
-  segmentasi di balik satu pintu (`firmware/include/ecg_live.h`); memisahkan
-  bandpass dari deteksi berarti membongkar modul yang sudah terverifikasi
+- **Modes via serial command, not a build flag.** Reflashing between modes
+  changes the board's thermal condition and adds an uncontrolled variable.
+- **`p2` is one DSP block.** `ecg_live_push()` does the bandpass, detection, and
+  segmentation behind one door (`firmware/include/ecg_live.h`); separating
+  bandpass from detection means dismantling a module that is already verified by the
   golden.
-- **Tanpa pustaka INA219.** `Wire` sudah ada di framework Arduino, dan
-  dependency baru adalah gate point. Rumus di `ina219.cpp`:
+- **No INA219 library.** `Wire` is already in the Arduino framework, and
+  a new dependency is a gate point. The formulas in `ina219.cpp`:
   `I [mA] = Vshunt_reg × 0,01 / R_SHUNT`, `V [V] = (Vbus_reg >> 3) × 0,004`.
-- **Arus diam INA219 ikut terhitung.** VCC modul diambil dari 3V3 board (sisi
-  beban), jadi arus diamnya (±1 mA) ada di semua mode: hilang pada selisih
-  antar-mode, dan disebut terang-terangan bila angka absolut dilaporkan.
-- **I2C di GPIO 17/18.** Keduanya pin ADC2, yang mati total begitu WiFi menyala
-  (acquisition-walkthrough §1). Memakainya untuk I2C tidak mengorbankan apa pun,
-  sedangkan GPIO 1–10 adalah ADC1 yang masih dibutuhkan.
-- **Shunt di sisi positif (high-side).** Shunt di jalur GND mengangkat
-  referensi ground board terhadap ground laptop; jalur data USB dan pembacaan
-  ADC AD8232 ikut bergeser, padahal sinyal itulah yang konsumsinya sedang
-  diukur. INA219 dirancang untuk high-side (common-mode sampai 26 V).
-- **Cek silang multimeter wajib.** Kalibrasi shunt dapat meleset tanpa tanda
-  apa pun; perbandingan dengan multimeter (prosedur langkah 6) satu-satunya
-  pertahanan, dan `R_SHUNT` satu-satunya konstanta yang dikoreksi.
-- **Assert `Σ selisih = p3 − p0` tidak dipakai.** Persamaan itu teleskopik,
-  selalu benar secara aljabar berapa pun angkanya; cek itu tidak pernah bisa
-  gagal. Dua cek yang dipakai (monoton dan selisih > 2 × std) bisa gagal, dan
-  kegagalannya menunjuk sebab yang berbeda: monoton gagal = gating mode bocor;
-  selisih tenggelam = tahap itu belum terukur.
+- **The INA219 quiescent current is counted.** The module VCC is taken from the board 3V3 (load
+  side), so its quiescent current (±1 mA) is in all modes: it cancels in the
+  differences between modes, and is stated openly when the absolute number is reported.
+- **I2C on GPIO 17/18.** Both are ADC2 pins, which go completely dead as soon as WiFi is on
+  (acquisition-walkthrough §1). Using them for I2C sacrifices nothing,
+  whereas GPIO 1–10 are ADC1, which is still needed.
+- **The shunt on the positive side (high-side).** A shunt on the GND line raises the
+  board's ground reference relative to the laptop ground; the USB data line and the AD8232
+  ADC reading shift too, even though that signal is exactly what the consumption is
+  measuring. The INA219 is designed for high-side (common-mode up to 26 V).
+- **A multimeter cross-check is mandatory.** The shunt calibration can drift with no sign
+  at all; comparison with a multimeter (procedure step 6) is the only
+  defense, and `R_SHUNT` is the only constant that is corrected.
+- **The assert `Σ selisih = p3 − p0` is not used.** That equation is telescoping,
+  always algebraically true whatever the numbers; that check can never
+  fail. The two checks used (monotonic and difference > 2 × std) can fail, and
+  their failures point to different causes: monotonic failing = mode gating leaks;
+  a sunk difference = that stage is not yet measured.
 
-Alternatif osiloskop atau penanda GPIO tidak dipakai karena hasil transiennya
-sulit dijadikan tabel rata-rata. Alternatif mencatat arus beserta timestamp
-lalu mencocokkannya offline tidak dipakai karena menuntut sinkronisasi waktu
-dan sampling INA219 cepat; isolasi mode memberi rata-rata steady-state dengan
-kerja lebih sedikit.
+The oscilloscope or GPIO marker alternative is not used because its transient results
+are hard to turn into a table of averages. The alternative of logging current with timestamps
+then matching it offline is not used because it demands time synchronization
+and fast INA219 sampling; mode isolation gives a steady-state average with
+less work.
 
-### Kondisi jalur ukur saat ini
+### The current state of the measurement path
 
-Register mentah INA219 (`pio test -e esp32-s3 -f test_hw_ina219 -v`, 13 Okt
-2026, board dicatu USB laptop):
+The raw INA219 registers (`pio test -e esp32-s3 -f test_hw_ina219 -v`, 13 Oct
+2026, board powered from the laptop USB):
 
 ```
 mentah: shunt 0x3400 (13312 x 10 uV) | bus 0x000A -> 1 x 4 mV, CNVR 1 OVF 0
@@ -658,94 +658,94 @@ mentah: shunt 0x55FF (22015 x 10 uV) | bus 0x000A -> 1 x 4 mV, CNVR 1 OVF 0
 mentah: shunt 0x4FFF (20479 x 10 uV) | bus 0x0002 -> 0 x 4 mV, CNVR 1 OVF 0
 ```
 
-Tegangan bus (VIN− terhadap GND) 0–4 mV, sedangkan tegangan shunt melompat
-133–220 mV antar-bacaan. Arus 1,3–2,2 A pada bus 0 V tidak mungkin berasal dari
-beban; kedua pin VIN mengambang. INA219 belum berada di jalur arus alat, dan
-board menerima daya langsung dari konektor USB. Angka arus di layar dan di baris
-status pada kondisi ini bukan konsumsi alat. Jalur ukur (firmware + skrip) sudah diuji
-ujung ke ujung dengan `--force`: keenam mode terkonfirmasi, `lewat = 0` di semua
-mode, dan radio kembali tersambung di `p5`.
+The bus voltage (VIN− relative to GND) is 0–4 mV, while the shunt voltage jumps
+133–220 mV between readings. A current of 1.3–2.2 A at a bus of 0 V cannot come from a
+load; both VIN pins are floating. The INA219 is not yet in the device's current path, and the
+board receives power directly from the USB connector. The current figures on screen and in the
+status line in this condition are not the device's consumption. The measurement path (firmware + script) has been tested
+end to end with `--force`: all six modes confirmed, `lewat = 0` in all
+modes, and the radio reconnects at `p5`.
 
-### Prosedur ukur daya
+### Power measurement procedure
 
-INA219 dipasang di sisi baterai: TP4056 `OUT+` → `VIN+` → `VIN−` → masukan
-konverter DC-DC, yang keluarannya mencatu pin 5V board. Rangkaian, tabel pin,
-bacaan pemeriksaan, dan hal yang perlu dicek pada regulator board:
-[`firmware/README.md`](../../firmware/README.md) bagian Catu daya dan
-pengukuran arus. Karena arus diukur di sel, hasilnya sudah memuat rugi
-konverter dan langsung dipakai untuk umur baterai (kapasitas mAh dibagi arus
-mA), tanpa konversi efisiensi.
+The INA219 is installed on the battery side: TP4056 `OUT+` → `VIN+` → `VIN−` → the input of the
+DC-DC converter, whose output powers the board's 5V pin. The circuit, pin table,
+check readings, and what to check on the board regulator:
+[`firmware/README.md`](../../firmware/README.md) section Catu daya dan
+pengukuran arus. Because the current is measured at the cell, the result already includes converter
+losses and is directly usable for battery life (mAh capacity divided by current in
+mA), without an efficiency conversion.
 
-Prosedur di bawah memerintah tangga dari laptop lewat serial. Kabel USB biasa
-tidak dapat dipakai selama pengukuran, karena VBUS-nya ikut mencatu board dan
-membagi arus dengan baterai. Jalur serial memakai kabel USB data tanpa VBUS:
-kawat merah (VBUS) diputus dan ujungnya diisolasi, sedangkan D+, D−, dan GND
-tetap tersambung.
+The procedure below commands the ladder from the laptop over serial. An ordinary USB cable
+cannot be used during measurement, because its VBUS also powers the board and
+splits current with the battery. The serial path uses a USB data cable without VBUS:
+the red wire (VBUS) is cut and its end insulated, while D+, D−, and GND
+stay connected.
 
-1. Rakit rangkaian catu dan sambungkan pin logika INA219 dengan semua catu
-   terlepas.
-2. Cabut masukan pengisi TP4056, lalu nyalakan alat dari baterai.
-3. Sambungkan kabel data tanpa VBUS ke port USB board yang dipakai serial.
-   Pastikan port muncul (`pio device list`).
-4. Ketik `s` di `pio device monitor`. Baris `INA219` harus menunjukkan `V`
-   3,0–4,2 V dan `I` positif dan stabil. Bila tidak, ikuti tabel bacaan di
+1. Assemble the supply circuit and connect the INA219 logic pins with all supplies
+   disconnected.
+2. Unplug the TP4056 charger input, then power the device from the battery.
+3. Connect the data cable without VBUS to the board USB port used for serial.
+   Make sure the port appears (`pio device list`).
+4. Type `s` in `pio device monitor`. The `INA219` line must show `V`
+   3.0–4.2 V and `I` positive and stable. If not, follow the readings table in the
    README.
-5. Tutup monitor serial (port tidak boleh dipakai dua program), lalu jalankan
-   dari folder `model/`:
+5. Close the serial monitor (the port must not be used by two programs), then run
+   from the `model/` folder:
 
    ```
    .venv/bin/python scripts/measure_power.py
    ```
 
-   Durasi sekitar 7,5 menit (6 mode × 70 detik). Agar `p5` mewakili operasi
-   normal, broker aktif harus terjangkau; periksa dengan `make broker-info`
-   (port 1883 `terbuka`) sebelum mulai. Pemeriksaan tegangan bus < 1 V di skrip
-   tetap berlaku untuk baterai: tegangan sel minimum 3,0 V sehingga bacaan di
-   bawah 1 V hanya muncul bila INA219 tidak berada di jalur arus.
-6. Cek silang sekali dengan multimeter mode arus yang disisipkan di titik yang
-   sama (antara TP4056 `OUT+` dan masukan konverter) pada satu mode; selisih
-   dikoreksi lewat `R_SHUNT` di `board.h`
+   Duration is about 7.5 minutes (6 modes × 70 seconds). For `p5` to represent
+   normal operation, an active broker must be reachable; check with `make broker-info`
+   (port 1883 `terbuka`) before starting. The bus voltage < 1 V check in the script
+   still applies to the battery: the minimum cell voltage is 3.0 V so a reading below
+   1 V only appears if the INA219 is not in the current path.
+6. Cross-check once with a multimeter in current mode inserted at the
+   same point (between TP4056 `OUT+` and the converter input) on one mode; the difference
+   is corrected through `R_SHUNT` in `board.h`
    (`R_baru = R_lama × I_ina219 / I_multimeter`).
-7. Ulangi pada beberapa tegangan sel (mis. sel penuh dan sel sekitar 3,5 V):
-   arus di sisi baterai naik saat tegangan sel turun, karena konverter
-   menjaga daya keluaran.
+7. Repeat at several cell voltages (e.g. a full cell and a cell around 3.5 V):
+   the current on the battery side rises as the cell voltage falls, because the converter
+   maintains output power.
 
-### Tangga mandiri dan `make pull-power`
+### The standalone ladder and `make pull-power`
 
-Tangga mandiri menghilangkan kebutuhan kabel data tanpa VBUS: board
-menjalankan `p0`–`p5` sendiri dari baterai, menyimpan hasilnya, lalu laptop
-menariknya setelah pengukuran selesai. Prosedur langkah demi langkah:
-[`firmware/README.md`](../../firmware/README.md) bagian Ukur daya tanpa laptop.
+The standalone ladder removes the need for the data cable without VBUS: the board
+runs `p0`–`p5` itself from the battery, stores the result, and the laptop
+pulls it after measurement is finished. Step-by-step procedure:
+[`firmware/README.md`](../../firmware/README.md) section Ukur daya tanpa laptop.
 
-Isinya sama dengan `measure_power.py`, dipindah ke `power.cpp`:
+Its content is the same as `measure_power.py`, moved to `power.cpp`:
 
-- Tiap langkah: buang 1 jendela transien, ambil 6 jendela 10 detik
-  (`POWER_BLOCK`, `POWER_WINDOW_MS`), total ±7 menit. Jendela dicatat oleh
-  `power_service()` yang sama dengan baris `DAYA`; `power_sweep_tick()` hanya
-  memindah langkah sehingga `loop()` tidak tertahan selain saat menulis CSV
-  di akhir.
-- Sumber ADC dipindah ke replay acuan selama tangga dan dikembalikan sesudahnya,
-  agar beban identik antar-ulangan.
-- Menu ditutup selama tangga sehingga `p4` mengukur layar monitor yang
-  sebenarnya, bukan layar menu yang nyaris diam. Halaman hasil terbuka sendiri
-  di akhir.
-- Kriteria sah per langkah sama dengan skrip: V bus ≥ 1 V, `lewat = 0` (mulai
-  `p1`), `beat > 0` (mulai `p2`), dan arus naik lebih dari 2 × sd dari langkah
-  sebelumnya. Langkah yang gagal tampil `pN!` di layar dan `sah = 0` di CSV.
-  Tangga yang batal di tengah (mode diubah dari luar, INA219 berhenti menjawab)
-  membuat semua langkah tidak sah.
-- Hasil ke `/daya/NNN.csv`, kolom `waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah`;
-  `waktu` UTC ISO bila jam NTP sudah tersinkron, selain itu `+<detik uptime>s`.
+- Each step: discard 1 transient window, take 6 windows of 10 seconds
+  (`POWER_BLOCK`, `POWER_WINDOW_MS`), a total of ±7 minutes. The windows are recorded by
+  the same `power_service()` as the `DAYA` line; `power_sweep_tick()` only
+  moves the step so `loop()` is not held up except when writing the CSV
+  at the end.
+- The ADC source is moved to reference replay during the ladder and restored afterward,
+  so the load is identical between repetitions.
+- The menu is closed during the ladder so `p4` measures the real
+  monitor screen, not a menu screen that is nearly still. The results page opens by itself
+  at the end.
+- The validity criteria per step are the same as the script: V bus ≥ 1 V, `lewat = 0` (from
+  `p1`), `beat > 0` (from `p2`), and current rises by more than 2 × sd from the previous
+  step. A failed step shows `pN!` on screen and `sah = 0` in the CSV.
+  A ladder aborted midway (mode changed from outside, INA219 stops answering)
+  makes all steps invalid.
+- Results go to `/daya/NNN.csv`, columns `waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah`;
+  `waktu` is UTC ISO if the NTP clock is synchronized, otherwise `+<detik uptime>s`.
 
-`make pull-power` (`scripts/pull_power.py`) mengirim `v` untuk daftar berkas,
-lalu `v<n>` (bawaan: berkas terakhir; `N=<n>` untuk yang lain), menyimpan ke
-`model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv`, dan mengulang
-validasi dengan kriteria `measure_power.py` sehingga penilaian board dan laptop
-dapat dibandingkan. Skrip keluar dengan kode 1 bila ada langkah TIDAK SAH.
+`make pull-power` (`scripts/pull_power.py`) sends `v` for the file list,
+then `v<n>` (default: the last file; `N=<n>` for others), saves to
+`model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv`, and repeats
+validation with the `measure_power.py` criteria so that the board's and the laptop's assessments
+can be compared. The script exits with code 1 if any step is INVALID (TIDAK SAH).
 
-## 6. Angka device
+## 6. Device numbers
 
-Kondisi uji: board N16R8, 18 Sep 2026, window 256, `pio test -e esp32-s3`.
+Test conditions: board N16R8, 18 Sep 2026, window 256, `pio test -e esp32-s3`.
 
 ```
 inferensi     : 26,6 ms per detak (240 MHz, kernel referensi tanpa ESP-NN)
@@ -756,51 +756,51 @@ RAM firmware  : 74.284 byte (22,7% dari 320 KB)   build inti + 4.800 B tabel rep
 Flash firmware: 430.569 byte (6,6% dari 6,25 MB)  build inti
 ```
 
-Build firmware utama lengkap (dengan modul MQTT dan `wifi_secrets.h` terisi),
-`pio run`: **RAM 37,0% (121.336 B), Flash 13,5% (887.873 B)**. Selisihnya
-dari build inti adalah tumpukan WiFi, buffer paket MQTT, dan ring cadangan;
-rinciannya di [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §7.
+The complete main firmware build (with the MQTT module and a filled `wifi_secrets.h`),
+`pio run`: **RAM 37.0% (121,336 B), Flash 13.5% (887,873 B)**. The difference
+from the core build is the WiFi stack, MQTT packet buffers, and the backup ring;
+details in [`mqtt-walkthrough.md`](mqtt-walkthrough.md) §7.
 
-Biaya window 256 dibanding window 250 yang diuji sebagai pembanding: inferensi
-26,0 → 26,6 ms (+0,6 ms), arena 12.756 → 12.948 B, model 22,91 → 22,94 KB.
-Sepadan dengan F1 +0,09.
+The cost of window 256 compared with the window 250 tested as a comparison: inference
+26.0 → 26.6 ms (+0.6 ms), arena 12,756 → 12,948 B, model 22.91 → 22.94 KB.
+Commensurate with F1 +0.09.
 
-Satu detak ~0,8 detik, jadi 26 ms = **3,3% duty cycle** — cukup longgar untuk
-kontinu. Bila daya menjadi kendala, `esp-tflite-micro` dengan kernel ESP-NN
-(SIMD khusus S3) dapat memangkasnya beberapa kali lipat; selisihnya bahan
-pembahasan yang baik di laporan.
+One beat ~0.8 seconds, so 26 ms = **3.3% duty cycle**, loose enough for
+continuous operation. If power becomes a constraint, `esp-tflite-micro` with the ESP-NN kernel
+(S3-specific SIMD) can cut it several-fold; the difference is good material
+for discussion in the report.
 
-`+119 KB flash` itu library TFLM, bukan modelnya (22,9 KB). Karena itu
-`MicroMutableOpResolver<8>` mendaftarkan persis 8 op yang dipakai — bukan
-`AllOpsResolver` yang menarik seluruh kernel.
+The `+119 KB flash` is the TFLM library, not the model (22.9 KB). That is why
+`MicroMutableOpResolver<8>` registers exactly the 8 ops used, not
+`AllOpsResolver`, which pulls in all kernels.
 
 ---
 
-## 7. Cek pemahaman
+## 7. Comprehension check
 
-1. `state` di `ecg_bandpass` dipindah jadi variabel `static` di dalam fungsi.
-   Test mana yang tetap hijau, dan kapan bug-nya muncul di alat sungguhan?
-2. Kenapa `AVERAGE_POOL_2D` lolos uji 6 beat golden tapi gagal di 49.654 beat
-   DS2 — dan pelajaran apa soal ukuran himpunan uji?
-3. Model dilatih ulang lalu di-`make quantize`, tapi `make export` lupa
-   dijalankan. Apa yang terjadi di device, dan kenapa tidak ada error?
-4. `resolver.AddMean()` dihapus padahal model deploy tidak memakai `MEAN` lagi.
-   Apa efeknya pada ukuran flash, dan kenapa `AllOpsResolver` dihindari?
+1. `state` in `ecg_bandpass` is moved to a `static` variable inside the function.
+   Which test stays green, and when does the bug appear on a real device?
+2. Why does `AVERAGE_POOL_2D` pass the 6-beat golden test but fail on the 49,654 DS2
+   beats, and what lesson is there about the size of the test set?
+3. The model is retrained and then `make quantize`d, but `make export` is forgotten.
+   What happens on the device, and why is there no error?
+4. `resolver.AddMean()` is removed even though the deploy model no longer uses `MEAN`.
+   What is the effect on flash size, and why is `AllOpsResolver` avoided?
 
-## 8. Perintah
+## 8. Commands
 
-| Perintah | Melihat apa |
+| Command | What it shows |
 |---|---|
-| `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
-| `pio test -e esp32-s3` | 29 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_integration` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_buttons` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
-| `pio test -e esp32-s3 -f test_hw_buzzer` | satu suite saja |
-| `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG, bacaan perangkat) |
-| `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |
-| `pio run -t upload` | flash firmware utama |
-| `cd model && make export` | regenerasi `model_int8.h` setelah model berubah |
-| `cd model && .venv/bin/python scripts/measure_power.py` | tangga ukur daya `p0`–`p5` dari laptop → `artifacts/metrics/daya/<ts>.csv` (§5d) |
-| `cd model && make pull-power [N=<n>]` | tarik hasil tangga mandiri `/daya/NNN.csv` → `artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv` (§5d) |
+| `pio test -e native` | 23 tests on the PC: `test_preproc` 11 (preprocessing, R detection, live flow), `test_ina219` 6, `test_mqtt` 6 |
+| `pio test -e esp32-s3` | 29 tests on the board: `test_preproc` 11, `test_inference` 5, `test_hw_integration` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_buttons` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
+| `pio test -e esp32-s3 -f test_hw_buzzer` | a single suite only |
+| `pio test -e esp32-s3 -v` | plus `Serial.printf` output (benchmark, DIAG, device readings) |
+| `pio run` | build the main firmware (env `esp32-s3`), see RAM/Flash |
+| `pio run -t upload` | flash the main firmware |
+| `cd model && make export` | regenerate `model_int8.h` after the model changes |
+| `cd model && .venv/bin/python scripts/measure_power.py` | the `p0`–`p5` power measurement ladder from the laptop → `artifacts/metrics/daya/<ts>.csv` (§5d) |
+| `cd model && make pull-power [N=<n>]` | pull the standalone ladder result `/daya/NNN.csv` → `artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv` (§5d) |
 
 ---
 
-**[← Fase 7 — quantize](quantize-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[akuisisi sinyal →](acquisition-walkthrough.md)**
+**[← Phase 7: quantize](quantize-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[signal acquisition →](acquisition-walkthrough.md)**
