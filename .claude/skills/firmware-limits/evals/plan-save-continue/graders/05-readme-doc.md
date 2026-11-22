@@ -4,4 +4,4 @@ focus: trace
 weight: 1
 ---
 
-The answer includes text for `firmware/README.md` (procedure in the feature section, pitfalls with numbers in §Pitfalls), and numbers not yet measured are written as not verified on a board.
+The answer includes the actual procedure sentences for `docs/features/recording.md` and pitfalls with numbers for `firmware/README.md` §Pitfalls, and numbers not yet measured are written as not verified on a board.
