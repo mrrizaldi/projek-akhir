@@ -542,7 +542,7 @@ Four parallel agents, one file group each, finance `d50820a` rules: inline code,
 
 - [ ] Fidelity check per file, pasted in the commit body: inline-code spans counted old vs new (a `grep -o` over backtick pairs piped to `sort | uniq -c`, diff empty except the reported ones); every `file:line` pointer still resolves (`pointers.sh`); `check_docs.py` green; `grep -c '—'` 0.
 - [ ] Group A changes section headings that skills cite in the root and `model/` `CLAUDE.md`: Task 5.4 runs after group A. Skills keep citing `laporan/CLAUDE.md` sections by their current Indonesian headings.
-- [ ] Ask the user before deleting finished working docs (`docs/2026-11-21-rencana-rework-skill-codebase*`): repo rule, deletion needs approval.
+- [ ] Ask the user before deleting finished working docs (`docs/2026-11-21-skill-codebase-rework*`): repo rule, deletion needs approval.
 
 ### Task 5.4: skills in English, renamed folders
 

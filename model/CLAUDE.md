@@ -93,11 +93,11 @@ only after it is truly closed (record the closure in the related walkthrough).
   scripts.
 - **(13 Oct 2026) Power consumption per operating mode.** Power measurement per mode
   (idle, inference, WiFi/MQTT): design in
-  [`docs/firmware-walkthrough.md` §5d](docs/firmware-walkthrough.md#5d-tangga-ukur-daya) (rationale in the section "Rasional rancangan").
+  [`docs/firmware-walkthrough.md` §5d](docs/firmware-walkthrough.md#5d-the-power-measurement-ladder) (rationale in the section "Design rationale").
   The measurement path is ready: from the laptop (serial `p0`-`p5`, `scripts/measure_power.py`
   -> `artifacts/metrics/daya/<ts>.csv`) or standalone from the battery (menu Ukur daya
-  / serial `V`, then `make pull-power`; procedure in `firmware/README.md` section
-  "Ukur daya tanpa laptop"). The INA219 is already on the battery path (ladder of 14 Oct 2026
+  / serial `V`, then `make pull-power`; procedure in
+  [`docs/features/power-measurement.md`](../docs/features/power-measurement.md)). The INA219 is already on the battery path (ladder of 14 Oct 2026
   read 3.69 V, ±137–154 mA without WiFi; the battery lasted almost 1 hour).
   **Blocked by the supply:** `p5` needs WiFi ON, which waits for the 5 V converter (the
   WiFi OFF item below). After that, run the ladder without the charger, then fill
@@ -117,8 +117,8 @@ only after it is truly closed (record the closure in the related walkthrough).
      as the board and ThingsBoard running, then `make pull-power`. The ladder
      `/daya/003.csv` (14 Oct, without WiFi, suspected charger plugged in starting
      +326 s) is not used for the laporan.
-  4. Delete this item and the sentence "Selama keluaran konverter belum disetel"
-     in `firmware/README.md` section "Hal yang perlu dicek pada rakitan".
+  4. Delete this item and the sentence "until the battery converter output is set"
+     in `firmware/README.md` section Measurements, "Battery supply and WiFi".
 - **(14 Oct 2026) Plan, done after WiFi is back ON: recording straight
   to the server.** One recording session is at most 5 files × 300 s
   (1,500 s) in LittleFS 3,456 KiB and must be pulled over USB. The direction the user asked for:

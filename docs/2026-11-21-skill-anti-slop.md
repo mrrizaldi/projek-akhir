@@ -1,123 +1,122 @@
-# Skill penulisan laporan tanpa pola tulisan AI
+# Skill for writing reports without AI writing patterns
 
-Tujuan: teks `laporan/buku-pa` dan `laporan/progres-pa-1` tidak terbaca sebagai
-keluaran model bahasa (frasa klise, ritme seragam, pola tiga butir, kalimat
-penutup yang merangkum ulang).
+Goal: the text of `laporan/buku-pa` and `laporan/progres-pa-1` must not read as
+language-model output (cliche phrases, uniform rhythm, three-item patterns, closing
+sentences that restate the paragraph).
 
-## Kandidat skill luar
+## Candidate external skills
 
-| Skill | Kecocokan | Catatan |
+| Skill | Fit | Notes |
 |---|---|---|
-| naskah-id (nothinx) | Paling cocok | Karya ilmiah (skripsi, laporan penelitian), EYD V dan KBBI, tidak mengubah angka, hasil, dan sitasi |
-| humanizer-indonesia (adhiprib) | Sebagian | Katalog pola tulisan AI berbahasa Indonesia; mode kerjanya menyunting ulang teks, jadi yang diambil hanya katalognya |
-| opencraftdev/humanizer | Tidak dipakai | Cakupan skripsi sempit, tumpang tindih dengan naskah-id, format ZIP claude.ai |
-| Indonesia EYD Writing Skill (ClaudSkills) | Belum | Sumber agregator, repo asal belum diketahui |
-| blader/humanizer, hardikpandya/stop-slop | Tidak dipakai | Pola bahasa Inggris |
-| coreyhaines31/marketingskills | Tidak dipakai | Marketing dan SEO |
-| alvinindra/bahasa-skills | Acuan pembanding | Paket penulisan bahasa Indonesia dari nol |
+| naskah-id (nothinx) | Best fit | Scientific work (thesis, research report), EYD V and KBBI, does not change numbers, results, and citations |
+| humanizer-indonesia (adhiprib) | Partial | A catalog of Indonesian AI writing patterns; its working mode re-edits text, so only the catalog is taken |
+| opencraftdev/humanizer | Not used | Narrow thesis coverage, overlaps with naskah-id, claude.ai ZIP format |
+| Indonesia EYD Writing Skill (ClaudSkills) | Not yet | Aggregator source, origin repo not yet known |
+| blader/humanizer, hardikpandya/stop-slop | Not used | English patterns |
+| coreyhaines31/marketingskills | Not used | Marketing and SEO |
+| alvinindra/bahasa-skills | Comparison reference | A from-scratch Indonesian writing package |
 
-Keberadaan dan isi repo di atas belum diperiksa langsung (daftar berasal dari
-riset chat, 21 Nov 2026).
+The existence and contents of the repos above have not been checked directly (the list
+comes from chat research, 21 Nov 2026).
 
-## Benturan dengan aturan repo
+## Conflicts with repo rules
 
-Skill luar tidak dipasang mentah karena berbenturan dengan aturan yang berlaku:
+External skills are not installed as is because they conflict with the rules in force:
 
-1. Istilah teknis tetap bahasa Inggris dan miring (`\textit{board}`, bukan
-   "papan"), keputusan user 20 Okt 2026. Skill EYD cenderung membakukan istilah.
-2. Kalimat penulis tidak ditulis ulang tanpa konfirmasi (`laporan/CLAUDE.md`
+1. Technical terms stay English and italic (`\textit{board}`, not "papan"), a user
+   decision of 20 Oct 2026. EYD skills tend to standardize terms.
+2. The author's sentences are not rewritten without confirmation (`laporan/CLAUDE.md`
    §Ingest suntingan WordCraft).
-3. Larangan titik dua, titik koma, dan em dash di paragraf sudah ada di
-   `laporan/CLAUDE.md` dan diperiksa `scripts/cek_tabel.py`.
-4. Struktur paragraf semula diatur skill `narasi-pa`, yang dinonaktifkan 21 Nov
-   2026 (lihat Keputusan posisi skill).
+3. The ban on colons, semicolons, and em dashes in paragraphs already exists in
+   `laporan/CLAUDE.md` and is checked by `scripts/cek_tabel.py`.
+4. Paragraph structure was originally governed by the `narasi-pa` skill, which was
+   deactivated on 21 Nov 2026 (see Skill position decision).
 
-## Keputusan posisi skill
+## Skill position decision
 
-Rencana distilasi ke `narasi-pa` tidak dipakai: user memutuskan 21 Nov 2026 bahwa `tulis-tanpa-slop` menggantikan `narasi-pa`.
+The plan to distil into `narasi-pa` is not used: on 21 Nov 2026 the user decided that
+`tulis-tanpa-slop` replaces `narasi-pa`.
 
-## Urutan kerja (keputusan user 21 Nov 2026)
+## Order of work (user decision, 21 Nov 2026)
 
-Pekerjaan anti-slop dimulai dari kode (skill `antislop-code` untuk komentar
-kode WordCraft dan skrip yang disentuh). Skill penulisan laporan dibahas
-terpisah sesudahnya; diskusi kandidat di atas dilanjutkan nanti.
+The anti-slop work starts from code (the `antislop-code` skill for the code comments of
+WordCraft and the scripts that get touched). The report-writing skill is discussed
+separately afterwards; the discussion of the candidates above continues later.
 
-## Hasil riset dan uji coba (21 Nov 2026)
+## Research and trial results (21 Nov 2026)
 
-Katalog riset (74 pola, profil dan lisensi sumber, konflik dengan aturan
-rumah, celah): `2026-11-21-skill-anti-slop/katalog.md`. Atas keputusan user,
-`narasi-pa` diabaikan untuk uji coba ini dan dibuat skill baru
-`tulis-tanpa-slop` beserta pemeriksa `scripts/check_slop.py`. Uji coba hanya di
-`laporan/progres-pa-1` Bab 2 sampai Bab 4; Bab 1, bagian depan, dan Bab 5
-tidak disentuh. Cadangan sebelum uji coba: tag git
-`backup/pra-antislop-20261121-1127` dan arsip
+The research catalog (74 patterns, source profiles and licenses, conflicts with house
+rules, gaps): `2026-11-21-skill-anti-slop/katalog.md`. By user decision, `narasi-pa`
+was ignored for this trial and a new skill `tulis-tanpa-slop` was created together with
+the checker `scripts/check_slop.py`. The trial covers only `laporan/progres-pa-1`
+Chapter 2 to Chapter 4; Chapter 1, the front matter, and Chapter 5 were not touched.
+Backup before the trial: git tag `backup/pra-antislop-20261121-1127` and archive
 `~/backups/projek-akhir/progres-pa-1-20261121-1127.tar.gz`.
 
-Baseline `check_slop.py --ringkas` sebelum penyuntingan:
+Baseline `check_slop.py --ringkas` before editing:
 
-| Bab | Kata | Rerata kalimat (sb) | galat | tinjau | karena itu sisipan | paragraf yaitu ≥ 2 |
+| Chapter | Words | Mean sentence length (sd) | errors | review | karena itu inserted | paragraphs with yaitu ≥ 2 |
 |---|---|---|---|---|---|---|
-| 2 | 4.545 | 20,3 (7,9) | 8 | 8 | 1 | 2 |
-| 3 | 7.472 | 17,2 (7,8) | 2 | 37 | 18 | 10 |
-| 4 | 7.674 | 16,3 (8,1) | 7 | 41 | 25 | 7 |
+| 2 | 4,545 | 20.3 (7.9) | 8 | 8 | 1 | 2 |
+| 3 | 7,472 | 17.2 (7.8) | 2 | 37 | 18 | 10 |
+| 4 | 7,674 | 16.3 (8.1) | 7 | 41 | 25 | 7 |
 
-Temuan yang tidak ada di sumber mana pun: larangan titik dua dan larangan
-pembuka "Oleh karena itu" di aturan lama melahirkan kebiasaan baru, yaitu
-"karena itu" yang disisipkan di tengah klausa dan "yaitu" berderet. Keduanya
-masuk skill sebagai pola utama.
+A finding that is in no source: the ban on colons and the ban on the opener "Oleh karena
+itu" in the old rules produced a new habit, namely "karena itu" inserted in the middle
+of a clause and strings of "yaitu". Both went into the skill as main patterns.
 
-Hasil uji coba (commit `0852264`, `a02a466`, `57b5f8c`; tiap bab
-`--banding` invarian aman, `cek_tabel` 0 galat, PDF 125 hlm 0 undefined/Overfull):
+Trial results (commits `0852264`, `a02a466`, `57b5f8c`; each chapter `--banding`
+invariant safe, `cek_tabel` 0 errors, PDF 125 pages 0 undefined/Overfull):
 
-| Bab | galat | tinjau | Rerata kalimat (sb) |
+| Chapter | errors | review | Mean sentence length (sd) |
 |---|---|---|---|
-| 2 | 8 → 0 | 8 → 2 | 20,3 (7,9) → 19,5 (7,5) |
-| 3 | 2 → 0 | 37 → 7 | 17,2 (7,8) → 17,3 (7,8) |
-| 4 | 7 → 0 | 41 → 8 | 16,3 (8,1) → 16,2 (8,0) |
+| 2 | 8 → 0 | 8 → 2 | 20.3 (7.9) → 19.5 (7.5) |
+| 3 | 2 → 0 | 37 → 7 | 17.2 (7.8) → 17.3 (7.8) |
+| 4 | 7 → 0 | 41 → 8 | 16.3 (8.1) → 16.2 (8.0) |
 
-Eval skill (penulis sonnet, penilai haiku): 8, 9, 9, 9, 10 dari 10. Putaran 4
-dan 5 atas izin user; yang meluluskan adalah contoh dua kalimat untuk "karena
-itu" yang merujuk ke kalimat sebelumnya. Riwayat di
+Skill eval (writer sonnet, grader haiku): 8, 9, 9, 9, 10 out of 10. Rounds 4 and 5 were
+run with the user's permission; what made it pass was a two-sentence example for "karena
+itu" that refers to the previous sentence. History in
 `.claude/skills/tulis-tanpa-slop/eval.md`.
 
-Temuan isi selama penyuntingan, diperbaiki di commit `39d0268`: progres-pa-1
-Bab 3 menyebut "lima hal" untuk empat butir (kini "empat hal"), dan kalimat
-"TinyML memungkinkan ..." di buku-pa Bab 2 tertelan baris komentar `% sumber:`
-(kini di baris sendiri dan tercetak).
+Content findings during editing, fixed in commit `39d0268`: progres-pa-1 Chapter 3 said
+"lima hal" for four items (now "empat hal"), and the sentence "TinyML memungkinkan ..."
+in buku-pa Chapter 2 was swallowed by the `% sumber:` comment line (now on its own line
+and printed).
 
-## Sisa pekerjaan
+## Remaining work
 
-1. User meninjau progres-pa-1 Bab 2–4 hasil uji coba, lalu memutuskan
-   dipakai atau dikembalikan
+1. The user reviews the trial result of progres-pa-1 Chapter 2 to 4, then decides
+   whether to keep it or revert it
    (`git checkout backup/pra-antislop-20261121-1127 -- laporan/progres-pa-1/bab`).
-2. Bila dipakai: perluasan ke progres-pa-1 Bab 1, Bab 5, abstrak, dan ke
-   buku-pa. Menunggu keputusan user.
-3. Klaim tanpa angka yang dibiarkan karena faktanya tidak ada di naskah.
-   User menyediakan angka atau memutuskan klaimnya dilunakkan.
-   - bab2: akurasi Mulyawan "tinggi";
-   - bab2: "baru sedikit yang dibuktikan" dan "salah satu dari sedikit studi";
-   - bab2: "dua keperluan yang berbeda", hanya satu yang diuraikan;
-   - bab3: "menekan jumlah parameter secara drastis" dan "model yang telah
+2. If kept: extension to progres-pa-1 Chapter 1, Chapter 5, the abstract, and to
+   buku-pa. Awaiting the user's decision.
+3. Claims without numbers that were left because the fact is not in the manuscript.
+   The user supplies the numbers or decides the claims are softened.
+   - bab2: Mulyawan's accuracy "tinggi";
+   - bab2: "baru sedikit yang dibuktikan" and "salah satu dari sedikit studi";
+   - bab2: "dua keperluan yang berbeda", only one is described;
+   - bab3: "menekan jumlah parameter secara drastis" and "model yang telah
      teruji akurat".
-4. Celah aturan. `narasi-pa` dinonaktifkan 21 Nov 2026; aturan berikut
-   belum punya padanan dan menjadi bahan penyetelan `tulis-tanpa-slop`
-   berikutnya.
+4. Rule gaps. `narasi-pa` was deactivated on 21 Nov 2026; the following rules
+   have no equivalent yet and become material for the next tuning of
+   `tulis-tanpa-slop`.
 
-   | Aturan narasi-pa | Ringkasan (≤ 8 kata) | Padanan di tulis-tanpa-slop |
+   | narasi-pa rule | Summary (≤ 8 words) | Equivalent in tulis-tanpa-slop |
    |---|---|---|
-   | 1 | Penjelas tabel: temuan, bukti, makna | tidak ada |
-   | 2 | Pembuka paragraf penjelas bervariasi | tidak ada |
-   | 3 | Jangan membaca ulang isi tabel | tidak ada |
-   | 4 | Kekuatan klaim sebanding bukti | ada (Frasa: S-SIGNIFIKAN, S-MUTLAK; tabel kata tidak ada) |
-   | 5 | Kalimat 15–30 kata, pecah di atas 35 | ada (Kalimat: S-PANJANG, S-RANTAI-YANG) |
-   | 6 | Satu paragraf satu fungsi, 60–150 kata | tidak ada |
-   | 7 | Tanpa pembuka meta di subbab | ada (Paragraf: S-DOKUMEN) |
-   | 8 | Kohesi lama ke baru, pembuka dirotasi | tidak ada |
-   | 9 | Istilah dan singkatan konsisten | ada (Yang bukan slop: pengulangan istilah) |
-   | 10 | Benang merah hasil ke target | tidak ada |
-   | 11 | Register rancangan versus capaian | tidak ada |
-   | 12 | Sunting tidak mengubah isi | ada (Yang tidak boleh berubah) |
-5. `laporan/progres-pa-1/bab/bab2.tex:96`: baris komentar `% sumber:` masih
-   memuat sisa teks "TinyML memungkinkan model kecerdasan buatan". Tidak
-   tercetak, kalimatnya sudah ada di baris prosa; cukup dirapikan saat bab
-   itu disunting lagi.
+   | 1 | Table explainer: finding, evidence, meaning | none |
+   | 2 | Vary the openers of explanatory paragraphs | none |
+   | 3 | Do not re-read the table contents | none |
+   | 4 | Claim strength proportional to evidence | exists (Frasa: S-SIGNIFIKAN, S-MUTLAK; no word table) |
+   | 5 | Sentences of 15–30 words, split above 35 | exists (Kalimat: S-PANJANG, S-RANTAI-YANG) |
+   | 6 | One paragraph one function, 60–150 words | none |
+   | 7 | No meta openers in subsections | exists (Paragraf: S-DOKUMEN) |
+   | 8 | Old-to-new cohesion, rotated openers | none |
+   | 9 | Consistent terms and abbreviations | exists (Yang bukan slop: term repetition) |
+   | 10 | Thread from result to target | none |
+   | 11 | Design versus achievement register | none |
+   | 12 | Editing does not change content | exists (Yang tidak boleh berubah) |
+5. `laporan/progres-pa-1/bab/bab2.tex:96`: the `% sumber:` comment line still
+   contains a remnant of the text "TinyML memungkinkan model kecerdasan buatan". It is
+   not printed, the sentence already exists in the prose line; it only needs tidying
+   when that chapter is edited again.

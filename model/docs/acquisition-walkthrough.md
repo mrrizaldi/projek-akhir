@@ -534,7 +534,7 @@ recording. A Python script that sets `s.dtr = s.rts = False` before
 the entire session. Open the port with the default `serial.Serial(port, 115200)` without
 touching DTR/RTS (like `make pull`) if the board may be recording, then
 verify the state from the board's reply (`s`), do not assume it (`model/CLAUDE.md`
-§Jebakan).
+§Pitfalls found so far).
 
 ---
 
