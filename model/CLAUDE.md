@@ -70,8 +70,8 @@ Long write-ups go in a walkthrough or Bab 4 of the laporan, not here.
 
 - **(13 Oct 2026) PCB rev2: physical check before fabrication.** The design is in
   [`../hardware/mainboard/`](../hardware/mainboard/README.md) (schematic +
-  layout, `check_board.py` passes). What remains is in the "Yang belum
-  terverifikasi" section of that README: row spacing of the physical DevKit
+  layout, `check_board.py` passes). What remains is in the "Not yet
+  verified" section of that README: row spacing of the physical DevKit
   headers, module pin order, module mechanical space, breadboard test of the
   D1→VSYS path, battery connector, and the voltage of the switch lamp. Measure
   the VIN_ESP voltage after D2 when powered from the battery.
@@ -83,6 +83,16 @@ Long write-ups go in a walkthrough or Bab 4 of the laporan, not here.
 List of things that are NOT finished and easy to forget. Items are dated; delete an item
 only after it is truly closed (record the closure in the related walkthrough).
 
+- **(22 Nov 2026) English serial log text needs the board connected.** Phase 4.1
+  of [`docs/2026-11-22-english-codebase.md`](../docs/2026-11-22-english-codebase.md):
+  translate the free-form `Serial.print*` text in `firmware/src` and
+  `firmware/test/test_hw_*`, keeping the frozen protocol tokens (`SIMPAN`,
+  `---MULAI---`, `---SELESAI---`, the `DAYA p..` line, `# fs=` header, `# jeda`)
+  byte for byte, and update the matching patterns in
+  `scripts/record_flow_check.py` and `scripts/pull_power.py` in the same commit.
+  Verify on the board: flash, run `scripts/record_flow_check.py`, `make pull` of a
+  short recording, and `pio test -e esp32-s3 -f test_hw_buttons -f test_hw_integration`.
+  Phase 7 cleanup of that plan waits for this item.
 - **(23 Oct 2026) A recording starts by itself shortly after the board is plugged into USB.**
   Observed twice: 22 Oct (`rekam=1 n=417` in the first status) and 23 Oct
   (a 30.5 s recording without electrodes, starting ±1 s before the first port was opened).
