@@ -3,11 +3,15 @@ import difflib
 import io
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
 import tokenize
 from pathlib import Path
+
+if sys.version_info < (3, 12):
+    sys.exit("renames.py needs Python >= 3.12 (f-string tokenizing)")
 
 MAP = Path("scripts/rename_map.tsv")
 GLOSSARY = Path("scripts/glossary.tsv")
@@ -23,6 +27,7 @@ SKIP = (
     "firmware/include/model_int8.h",
 )
 TEXT_SUFFIXES = {".md", ".sh", ".yml", ".yaml", ".ini", ".json", ".txt", ".inc", ""}
+C_SUFFIXES = {".cpp", ".h", ".c"}
 FROZEN = {"WIFI_DAFTAR", "BROKER_DAFTAR"}
 C_TOKEN = re.compile(r'#include "[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*')
 WORD = re.compile(r"\w+")
@@ -34,21 +39,46 @@ SRC_FLAGS = re.compile(r"^build_src_flags = .*?-D([A-Z_]+)=.*$", re.M)
 OBJ_DIR = "firmware/.pio/build/esp32-s3/src"
 
 
-def load_pairs(path):
-    pairs = {}
-    if path.exists():
-        for line in path.read_text().splitlines():
-            if line.strip():
-                old, new = line.split("\t")
-                pairs[old] = new
-                old_stem, old_ext = os.path.splitext(old)
-                new_stem, new_ext = os.path.splitext(new)
-                if old_ext and old_ext == new_ext and "/" not in old and " " not in old:
-                    pairs.setdefault(old_stem, new_stem)
+def read(path):
+    with open(path, encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
+def write(path, text):
+    with open(path, "w", encoding="utf-8", newline="") as handle:
+        handle.write(text)
+
+
+def load_pairs(path, chain=True):
+    explicit = {}
+    if Path(path).exists():
+        for number, line in enumerate(read(path).split("\n"), 1):
+            line = line.rstrip("\r")
+            if not line.strip():
+                continue
+            if line.count("\t") != 1:
+                sys.exit(f"{path}:{number}: need exactly one TAB")
+            old, new = line.split("\t")
+            if old in explicit:
+                sys.exit(f"{path}:{number}: duplicate key {old}")
+            explicit[old] = new
+    derived = {}
+    for old, new in explicit.items():
+        old_stem, old_ext = os.path.splitext(old)
+        new_stem, new_ext = os.path.splitext(new)
+        if old_ext and old_ext == new_ext and "/" not in old and " " not in old:
+            if old_stem in explicit and explicit[old_stem] != new_stem:
+                sys.exit(f"{path}: key {old_stem} shadows the stem of {old}")
+            if derived.get(old_stem, new_stem) != new_stem:
+                sys.exit(f"{path}: conflicting stems for {old_stem}")
+            derived[old_stem] = new_stem
+    pairs = {**derived, **explicit}
     targets = list(pairs.values())
     clashes = {t for t in targets if targets.count(t) > 1}
     if clashes:
         sys.exit(f"map is not one-to-one: {sorted(clashes)}")
+    if chain and set(pairs) & set(targets):
+        sys.exit(f"map has chained renames: {sorted(set(pairs) & set(targets))}")
     return pairs
 
 
@@ -87,7 +117,7 @@ def apply_c(text, pairs):
 
 def apply_py(text, pairs):
     hits = [t for t in tokenize.generate_tokens(io.StringIO(text).readline) if t.type == tokenize.NAME and t.string in pairs]
-    lines = text.splitlines(keepends=True)
+    lines = io.StringIO(text).readlines()
     for token in reversed(hits):
         row, col = token.start
         line = lines[row - 1]
@@ -99,66 +129,113 @@ def apply_text(text, pairs):
     safe = {k: v for k, v in pairs.items() if not re.fullmatch(r"[A-Za-z]+", k)}
     if not safe:
         return text
-    pattern = re.compile(r"(?<![\w.-])(" + "|".join(map(re.escape, sorted(safe, key=len, reverse=True))) + r")(?![\w-])")
+    pattern = re.compile(r"(?:(?<=-D)|(?<![\w-]))(" + "|".join(map(re.escape, sorted(safe, key=len, reverse=True))) + r")(?![\w-])")
     return pattern.sub(lambda m: safe[m.group(1)], text)
 
 
-def tracked(paths):
-    files = subprocess.run(["git", "ls-files", *paths], capture_output=True, text=True, check=True).stdout.split()
-    return [f for f in files if not f.startswith(SKIP) and Path(f).is_file() and is_text(Path(f))]
+def tracked(paths, skip=True, quiet=False):
+    raw = subprocess.run(["git", "ls-files", "-z", "--", *paths], capture_output=True, check=True).stdout
+    found = []
+    for name in raw.decode("utf-8", "surrogateescape").split("\0"):
+        if not name or (skip and name.startswith(SKIP)) or not Path(name).is_file():
+            continue
+        if is_text(name):
+            found.append(name)
+        elif not quiet:
+            print(f"skipped (non-utf8): {name}")
+    return found
 
 
-def is_text(path):
+def is_text(name):
     try:
-        path.read_text()
+        read(name)
         return True
     except UnicodeDecodeError:
         return False
 
 
+def guard(sources, every_py, pairs):
+    ids = identifiers(pairs)
+    errors = []
+    strings, params = set(), set()
+    for text in every_py.values():
+        strings |= py_strings(text)
+        params |= {n.arg for n in ast.walk(ast.parse(text)) if isinstance(n, ast.arg)}
+    pool = {"c": set(), "py": set()}
+    used_all = {"c": set(), "py": set()}
+    for path, text in sorted(sources.items()):
+        language = "py" if path.endswith(".py") else "c"
+        present = py_names(text) if language == "py" else c_names(text)
+        used = {k for k in ids if k in present}
+        taken = {ids[k] for k in used} & (present - used)
+        if taken:
+            errors.append(f"{path}: target names already used {sorted(taken)}")
+        pool[language] |= present
+        used_all[language] |= used
+        if language == "py":
+            in_strings = used & strings
+            if in_strings:
+                errors.append(f"{path}: names also in string literals {sorted(in_strings)}")
+            for node in ast.walk(ast.parse(text)):
+                if isinstance(node, ast.keyword) and node.arg in used and node.arg not in params:
+                    errors.append(f"EXTERNAL-KWARG {path}:{node.lineno} {node.arg}")
+    for language in pool:
+        clash = {ids[k] for k in used_all[language]} & pool[language]
+        if clash:
+            errors.append(f"global collision ({language}): targets already exist {sorted(clash)}")
+    return errors
+
+
+def report_stale(pairs):
+    keys = [k for k in pairs if not WORD.fullmatch(k)]
+    if not keys:
+        return
+    pattern = re.compile(r"(?:(?<=-D)|(?<![\w-]))(" + "|".join(map(re.escape, sorted(keys, key=len, reverse=True))) + r")(?![\w-])")
+    for name in tracked(["."], skip=False, quiet=True):
+        if name in ("scripts/rename_map.tsv", "scripts/glossary.tsv"):
+            continue
+        for number, line in enumerate(read(name).split("\n"), 1):
+            for match in pattern.finditer(line):
+                print(f"stale {name}:{number} {match.group(1)}")
+
+
 def apply(paths):
     pairs = load_pairs(MAP)
     ids = identifiers(pairs)
-    refused = False
-    for name in tracked(paths):
+    texts = {name: read(name) for name in tracked(paths)}
+    sources = {n: t for n, t in texts.items() if Path(n).suffix in C_SUFFIXES or n.endswith(".py")}
+    every_py = {n: read(n) for n in tracked(["."], quiet=True) if n.endswith(".py")}
+    errors = guard(sources, every_py, pairs)
+    if errors:
+        for error in errors:
+            print(f"REFUSED {error}")
+        sys.exit(1)
+    for name, text in texts.items():
         path = Path(name)
-        text = path.read_text()
-        if path.suffix in {".cpp", ".h", ".c"}:
-            present, new = c_names(text), apply_c(text, pairs)
-            strings = set()
+        if path.suffix in C_SUFFIXES:
+            new = apply_c(text, pairs)
         elif path.suffix == ".py":
-            present, new = py_names(text), apply_py(text, ids)
-            strings = py_strings(text)
+            new = apply_py(text, ids)
         elif path.suffix in TEXT_SUFFIXES or path.name == "Makefile":
             new = apply_text(text, pairs)
-            if new != text:
-                path.write_text(new)
-                print(f"renamed {name}")
-            continue
         else:
             continue
-        used = {k for k in ids if k in present}
-        taken = {ids[k] for k in used} & (present - used)
-        from_strings = used & strings
-        if taken or from_strings:
-            refused = True
-            print(f"REFUSED {name}: target names already used {sorted(taken)}; names also in string literals {sorted(from_strings)}")
-            continue
         if new != text:
-            path.write_text(new)
+            write(name, new)
             print(f"renamed {name}")
-    sys.exit(1 if refused else 0)
+    report_stale(pairs)
+    sys.exit(0)
 
 
 def leftovers(paths):
-    words = set(load_pairs(GLOSSARY))
+    words = set(load_pairs(GLOSSARY, chain=False))
     found = False
     for name in tracked(paths):
         path = Path(name)
-        if path.suffix in {".cpp", ".h", ".c"}:
-            names = c_names(path.read_text())
+        if path.suffix in C_SUFFIXES:
+            names = c_names(read(name))
         elif path.suffix == ".py":
-            names = py_names(path.read_text())
+            names = py_names(read(name))
         else:
             continue
         for token in sorted(names - FROZEN):
@@ -186,44 +263,41 @@ class Renamer(ast.NodeTransformer):
 
 
 def show(rev, path):
-    return subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True, text=True, check=True).stdout
+    return subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True, check=True).stdout.decode("utf-8")
 
 
-def python_pairs(rev_a, rev_b, pairs):
-    out = subprocess.run(
-        ["git", "diff", "--name-status", "-M", rev_a, rev_b, "--", "*.py"], capture_output=True, text=True, check=True
-    ).stdout
-    matched, added, deleted = [], [], []
-    for line in out.splitlines():
-        status, *paths = line.split("\t")
-        if status.startswith("R"):
-            matched.append((paths[0], paths[1]))
-        elif status == "M":
-            matched.append((paths[0], paths[0]))
-        elif status == "A":
-            added.append(paths[0])
-        elif status == "D":
-            deleted.append(paths[0])
-    for old in deleted:
-        new = str(Path(old).with_name(pairs.get(Path(old).name, Path(old).name)))
-        if new in added:
-            added.remove(new)
-            matched.append((old, new))
-        else:
-            matched.append((old, None))
-    return matched + [(None, new) for new in added]
+def python_files(rev):
+    raw = subprocess.run(["git", "ls-tree", "-r", "-z", "--name-only", rev], capture_output=True, check=True).stdout
+    names = raw.decode("utf-8").split("\0")
+    return [n for n in names if n.endswith(".py") and not n.startswith(SKIP)]
+
+
+def counterpart(old, pairs):
+    return str(Path(old).with_name(pairs.get(Path(old).name, Path(old).name)))
 
 
 def same_python(rev_a, rev_b):
     pairs = load_pairs(MAP)
     ids = identifiers(pairs)
+    files_a, files_b = python_files(rev_a), python_files(rev_b)
+    sources = {name: show(rev_a, name) for name in files_a}
     failed = False
-    for old, new in python_pairs(rev_a, rev_b, pairs):
-        if old is None or new is None:
+    for error in guard(sources, sources, pairs):
+        failed = True
+        print(f"REFUSED {error}")
+    claimed = set()
+    compared = 0
+    for old in files_a:
+        new = counterpart(old, pairs)
+        if new not in files_b:
+            new = old
+        if new not in files_b or new in claimed:
             failed = True
-            print(f"UNPAIRED {old} -> {new}")
+            print(f"UNPAIRED {old} -> None")
             continue
-        a = ast.dump(Renamer(ids).visit(ast.parse(show(rev_a, old))), indent=1)
+        claimed.add(new)
+        compared += 1
+        a = ast.dump(Renamer(ids).visit(ast.parse(sources[old])), indent=1)
         b = ast.dump(ast.parse(show(rev_b, new)), indent=1)
         if a == b:
             print(f"same {old} -> {new}")
@@ -231,7 +305,11 @@ def same_python(rev_a, rev_b):
             failed = True
             print(f"DIFF {old} -> {new}")
             print("\n".join(list(difflib.unified_diff(a.splitlines(), b.splitlines(), lineterm=""))[:20]))
-    sys.exit(1 if failed else 0)
+    for new in sorted(set(files_b) - claimed):
+        failed = True
+        print(f"UNPAIRED None -> {new}")
+    print(f"compared {compared} files")
+    sys.exit(1 if failed or compared == 0 else 0)
 
 
 def run(cmd, cwd=None, env=None, stdin=None):
@@ -247,7 +325,7 @@ def build(root, rev, where):
     secrets = Path(root) / "firmware/include/wifi_secrets.h"
     (firmware / "include/wifi_secrets.h").write_bytes(secrets.read_bytes())
     ini = firmware / "platformio.ini"
-    ini.write_text(SRC_FLAGS.sub(lambda m: f'build_src_flags = -D{m.group(1)}=\\"pin\\"', ini.read_text()))
+    write(ini, SRC_FLAGS.sub(lambda m: f'build_src_flags = -D{m.group(1)}=\\"pin\\"', read(ini)))
     run(["pio", "run", "-s"], cwd=firmware, env=dict(os.environ, SOURCE_DATE_EPOCH="0"))
     return {o.name: o for o in (Path(where) / OBJ_DIR).glob("*.o")}
 
@@ -255,7 +333,7 @@ def build(root, rev, where):
 def listing(obj):
     stripped = obj.with_name(obj.name + ".nodebug")
     run([OBJCOPY, "--strip-debug", "-R", ".comment", str(obj), str(stripped)])
-    lines = [line for line in run([OBJDUMP, "-dr", "-s", str(stripped)]).splitlines() if "file format" not in line]
+    lines = [line for line in run([OBJDUMP, "-dr", "-s", "-h", "-t", str(stripped)]).splitlines() if "file format" not in line]
     return run([CPPFILT], stdin="\n".join(lines).replace("._Z", ". _Z"))
 
 
@@ -280,6 +358,8 @@ def same_firmware(rev_a, rev_b):
     try:
         objs_a = build(root, rev_a, str(trees[0]))
         objs_b = build(root, rev_b, str(trees[1]))
+        if not objs_a:
+            sys.exit("no objects built")
         expected = {name: pairs.get(name[:-2], name[:-2]) + ".o" for name in objs_a}
         failed = False
         for name in sorted(objs_a):
@@ -290,7 +370,7 @@ def same_firmware(rev_a, rev_b):
                 continue
             a = renamed(listing(objs_a[name]), ids)
             b = listing(objs_b[target])
-            if a == b:
+            if a.splitlines() == b.splitlines():
                 print(f"same {name} -> {target}")
             else:
                 failed = True
@@ -299,10 +379,12 @@ def same_firmware(rev_a, rev_b):
         for name in sorted(set(objs_b) - set(expected.values())):
             failed = True
             print(f"EXTRA {name}")
+        print(f"compared {len(objs_a)} objects")
         sys.exit(1 if failed else 0)
     finally:
         for tree in trees:
             subprocess.run(["git", "-C", root, "worktree", "remove", "--force", str(tree)], capture_output=True)
+        shutil.rmtree(work, ignore_errors=True)
 
 
 COMMANDS = {
