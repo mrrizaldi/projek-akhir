@@ -1,28 +1,28 @@
-# Walkthrough `src/preprocessing.py` — Fase 1
+# Walkthrough `src/preprocessing.py`: Phase 1
 
-> **Ruang lingkup:** bandpass kausal, detektor Pan-Tompkins, segmentasi per detak, dan normalisasi z-score per window.
-> **Kode terkait:** `src/preprocessing.py`, `config.py` (`BANDPASS_*`, `PT_*`, `WIN_PRE`, `WIN_POST`), `scripts/plot_phase1.py`, `scripts/plot_phase1_segment.py`, `scripts/bench_pantompkins.py`, `scripts/plot_walkthrough.py`
-> **Prasyarat:** [`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md)
+> **Scope:** causal bandpass, the Pan-Tompkins detector, per-beat segmentation, and per-window z-score normalization.
+> **Related code:** `src/preprocessing.py`, `config.py` (`BANDPASS_*`, `PT_*`, `WIN_PRE`, `WIN_POST`), `scripts/plot_phase1.py`, `scripts/plot_phase1_segment.py`, `scripts/bench_pantompkins.py`, `scripts/plot_walkthrough.py`
+> **Prerequisite:** [`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md)
 
-Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 7–9. Lanjutan dari
-[`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md) (Fase 0). Semua angka & gambar di sini dari
-**record 100, 5 detik pertama** (`fs = 360 Hz` → 1800 sampel).
+A study document, not a specification. The official specification remains
+`PRD_Model_Aritmia_TinyML.pdf` pp. 7–9. Continues from
+[`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md) (Phase 0). All numbers and figures here come from
+**record 100, the first 5 seconds** (`fs = 360 Hz` → 1800 samples).
 
-Reproduksi gambar:
+Reproducing the figures:
 
 ```
 cd model
 .venv/bin/python scripts/plot_walkthrough.py 100
 ```
 
-> Rumus ditulis LaTeX (`$…$`). Kalau viewer-mu tidak render math (VS Code preview
-> bawaan perlu ekstensi "Markdown+Math"), buka di GitHub atau pakai
+> Formulas are written in LaTeX (`$…$`). If your viewer does not render math (the built-in VS Code preview
+> needs the "Markdown+Math" extension), open it on GitHub or use
 > `Markdown Preview Enhanced`.
 
 ---
 
-## 0. Peta besar — ada DUA jalur, jangan tertukar
+## 0. The big picture: there are TWO paths, do not mix them up
 
 ```
                       load_record()  →  signal mentah + r_locations (ANOTASI)
@@ -39,150 +39,150 @@ cd model
                                         (dibandingkan dengan anotasi, TIDAK masuk training)
 ```
 
-Kenapa dipisah: segmentasi training pakai R-peak **anotasi kardiolog** supaya
-error detektor tidak mencemari label model (keputusan terkunci, PRD Fase 2).
-Pan-Tompkins ada di file yang sama karena dialah detektor yang berjalan di
-ESP32 (port C: `ecg_detect_r`). Versi Python menjadi acuan **seberapa akurat
-dia** dan sumber golden reference untuk port C.
+Why they are separate: training segmentation uses the **cardiologist-annotated** R-peaks so that
+detector errors do not contaminate the model's labels (a locked decision, PRD Phase 2).
+Pan-Tompkins is in the same file because it is the detector that runs on the
+ESP32 (C port: `ecg_detect_r`). The Python version serves as the reference for **how accurate
+it is** and as the source of the golden reference for the C port.
 
-![Pipeline 4 langkah](../artifacts/metrics/walkthrough_pipeline_100.png)
+![4-step pipeline](../artifacts/metrics/walkthrough_pipeline_100.png)
 
 ---
 
-## 1. `design_bandpass_sos()` — desain filter Butterworth
+## 1. `design_bandpass_sos()`: designing the Butterworth filter
 
 ```python
 sos = butter(BANDPASS_ORDER, [BANDPASS_LOW, BANDPASS_HIGH],
              btype="bandpass", fs=FS, output="sos")
 ```
 
-### Kenapa bandpass 0.5–40 Hz
+### Why a 0.5–40 Hz bandpass
 
-Sinyal EKG mentah = QRS (5–15 Hz) + gelombang P/T (0.5–10 Hz) + sampah:
+A raw ECG signal = QRS (5–15 Hz) + P/T waves (0.5–10 Hz) + junk:
 
-| Gangguan | Frekuensi | Dibuang oleh |
+| Disturbance | Frequency | Removed by |
 |---|---|---|
-| Baseline wander (napas, gerak elektroda) | < 0.5 Hz | highpass 0.5 Hz |
-| EMG / noise otot | > 40 Hz | lowpass 40 Hz |
-| Interferensi listrik PLN | 50/60 Hz | lowpass 40 Hz |
+| Baseline wander (breathing, electrode movement) | < 0.5 Hz | highpass 0.5 Hz |
+| EMG / muscle noise | > 40 Hz | lowpass 40 Hz |
+| Mains electrical interference | 50/60 Hz | lowpass 40 Hz |
 
-Lihat panel 1 vs 2 di gambar: garis dasar yang melayang di $-0.3$ mV jadi rata di
-nol. Angkanya: `mean` raw $= -0.3063$ → filtered $= +0.0000$.
+See panel 1 vs 2 in the figure: the baseline drifting at $-0.3$ mV becomes flat at
+zero. In numbers: raw `mean` $= -0.3063$ → filtered $= +0.0000$.
 
-### Matematika Butterworth
+### Butterworth mathematics
 
-Respons magnitudo lowpass Butterworth orde $n$ dengan cutoff $\omega_c$:
+The magnitude response of an order-$n$ Butterworth lowpass with cutoff $\omega_c$:
 
 $$|H(j\omega)|^2 = \frac{1}{1 + \left(\dfrac{\omega}{\omega_c}\right)^{2n}}$$
 
-Sifatnya: **maximally flat** di passband (tidak bergelombang seperti Chebyshev),
-roll-off $-20n$ dB/dekade. Orde 4 → $-80$ dB/dekade. Bandpass dibuat dengan
-transformasi frekuensi lowpass→bandpass, jadi orde efektif jadi $2n = 8$
-(8 pole), yang di SciPy jadi 4 buah second-order section.
+Its property: **maximally flat** in the passband (no ripple, unlike Chebyshev),
+roll-off $-20n$ dB/decade. Order 4 → $-80$ dB/decade. The bandpass is made by the
+lowpass→bandpass frequency transform, so the effective order becomes $2n = 8$
+(8 poles), which in SciPy becomes 4 second-order sections.
 
-### Kenapa `output="sos"` bukan `"ba"`
+### Why `output="sos"` and not `"ba"`
 
-Bentuk `ba` = satu polinomial orde 8. Koefisiennya beda orde-orde besaran
-→ galat pembulatan float bisa membuat filter **tidak stabil**. SOS memecahnya jadi
-kaskade biquad:
+The `ba` form = a single order-8 polynomial. Its coefficients differ by orders of magnitude,
+so float rounding error can make the filter **unstable**. SOS breaks it into a
+cascade of biquads:
 
 $$H(z) = \prod_{k=1}^{4} \frac{b_{0k} + b_{1k}z^{-1} + b_{2k}z^{-2}}{1 + a_{1k}z^{-1} + a_{2k}z^{-2}}$$
 
-Tiap section cuma orde 2 → numerik aman. Bonus: format ini persis yang dipakai
-firmware C sebagai 4 biquad berantai.
+Each section is only order 2, so it is numerically safe. Bonus: this format is exactly what the
+C firmware uses, as 4 chained biquads.
 
 ---
 
-## 2. `apply_bandpass()` — eksekusi filter
+## 2. `apply_bandpass()`: running the filter
 
 ```python
 return sosfilt(sos, signal, axis=0, zi=None)
 ```
 
-Satu section biquad = persamaan beda (difference equation):
+One biquad section = a difference equation:
 
 $$y[n] = b_0 x[n] + b_1 x[n-1] + b_2 x[n-2] - a_1 y[n-1] - a_2 y[n-2]$$
 
-Perhatikan: **hanya indeks $\le n$**. Itu definisi *kausal* — output saat ini
-cuma butuh masa lalu.
+Note: **only indices $\le n$**. That is the definition of *causal*: the current output
+needs only the past.
 
-### JEBAKAN #1 PRD: `sosfilt`, BUKAN `filtfilt`
+### PRD PITFALL #1: `sosfilt`, NOT `filtfilt`
 
-`filtfilt` memfilter maju lalu **mundur** ($y[n]$ butuh $x[n+k]$). Hasilnya
-zero-phase, kelihatan cantik di plot — tapi butuh seluruh sinyal tersimpan.
-Di ESP32 yang streaming sampel satu per satu, itu mustahil. Kalau training pakai
-`filtfilt` dan device pakai kausal, distribusi input model beda → akurasi anjlok
-di lapangan (*train/deploy mismatch*).
+`filtfilt` filters forward and then **backward** ($y[n]$ needs $x[n+k]$). The result is
+zero-phase, which looks pretty on a plot, but needs the entire signal stored.
+On an ESP32 that streams samples one at a time, that is impossible. If training uses
+`filtfilt` and the device uses causal filtering, the model's input distribution differs and accuracy collapses
+in the field (*train/deploy mismatch*).
 
-Harga yang kita bayar: **group delay**. Filter kausal menggeser sinyal ke kanan.
-Itu tidak masalah untuk klasifikasi (semua beat digeser sama rata), tapi jadi
-penting di Pan-Tompkins — lihat §3.6.
+The price we pay: **group delay**. A causal filter shifts the signal to the right.
+That is not a problem for classification (all beats are shifted equally), but it becomes
+important in Pan-Tompkins; see §3.6.
 
-### Cek cepat
+### Quick check
 
 ```python
 np.allclose(sosfilt(sos, x)[:100], sosfilt(sos, x[:100]))   # True — kausal
 ```
-Kalau potongan awal hasil filter berubah saat sinyal diperpanjang, berarti bocor
-ke masa depan (bug).
+If the early part of the filter result changes when the signal is extended, it means it leaks
+into the future (a bug).
 
 ---
 
-## 3. Pan-Tompkins — kaskade 5 tahap
+## 3. Pan-Tompkins: a 5-stage cascade
 
-![Kaskade Pan-Tompkins](../artifacts/metrics/walkthrough_pt_100.png)
+![Pan-Tompkins cascade](../artifacts/metrics/walkthrough_pt_100.png)
 
-Ide dasarnya: QRS itu **lonjakan curam berdurasi ~80–120 ms**. Kalau kita membuat
-sinyal turunan yang dikuadratkan lalu diratakan, QRS jadi satu bukit gemuk yang
-mudah dipisah dengan threshold, sementara P/T (landai) dan noise (sempit)
-tenggelam.
+The basic idea: a QRS is a **steep spike lasting ~80–120 ms**. If we make a
+derivative signal, square it, and then smooth it, the QRS becomes one fat hill that is
+easy to separate with a threshold, while P/T (gentle) and noise (narrow)
+sink away.
 
-### 3.1 `_pt_bandpass` — 5–15 Hz
+### 3.1 `_pt_bandpass`: 5–15 Hz
 
 ```python
 sos = butter(PT_BAND_ORDER, [PT_BAND_LOW, PT_BAND_HIGH], btype="bandpass", fs=fs, output="sos")
 ```
 
-Bandpass **kedua**, lebih sempit dari yang di §1. Tujuannya beda: §1 bersihkan
-sinyal untuk *dilihat model*; ini menonjolkan pita energi QRS untuk *dideteksi*.
-Panel (b): gelombang T yang tadinya jelas jadi kecil, QRS tetap dominan.
+A **second** bandpass, narrower than the one in §1. Its purpose is different: §1 cleans the
+signal to be *seen by the model*; this one emphasizes the QRS energy band to be *detected*.
+Panel (b): the T wave that was clear becomes small, while the QRS stays dominant.
 
-Orde 2 (bukan 4) — cukup, dan makin rendah orde makin kecil delay.
+Order 2 (not 4): enough, and the lower the order, the smaller the delay.
 
-### 3.2 `_pt_derivative` — ukur kemiringan
+### 3.2 `_pt_derivative`: measuring slope
 
-Kernel klasik Pan-Tompkins:
+The classic Pan-Tompkins kernel:
 
 $$y[n] = \frac{1}{8T}\bigl(-x[n-2] - 2x[n-1] + 2x[n+1] + x[n+2]\bigr)$$
 
-Itu **non-kausal** (ada $x[n+1]$, $x[n+2]$). Trik di kode: geser 2 sampel supaya
-jadi kausal —
+That is **non-causal** (it has $x[n+1]$, $x[n+2]$). The trick in the code: shift by 2 samples so that
+it becomes causal:
 
 ```python
 b = np.array([1, 2, 0, -2, -1]) / (8 * T)
 lfilter(b, [1.0], signal)
 ```
 
-yang mengimplementasikan
+which implements
 
 $$y[n] = \frac{1}{8T}\bigl(x[n] + 2x[n-1] - 2x[n-3] - x[n-4]\bigr)$$
 
-Bentuknya identik, cuma **tertunda 2 sampel** ($\approx 5.6$ ms). Ini pendekatan
-turunan beda-terpusat: $y \approx \dfrac{dx}{dt}$, satuannya mV/detik — makanya
-sumbu-y panel (c) melompat ke orde puluhan.
+The shape is identical, just **delayed by 2 samples** ($\approx 5.6$ ms). This is an approximation of the
+central-difference derivative: $y \approx \dfrac{dx}{dt}$, in units of mV/second, which is why the
+y-axis of panel (c) jumps to the tens.
 
-Turunan dipakai karena QRS punya slope paling curam di seluruh EKG. Gelombang T besar
-tapi landai → turunannya kecil → otomatis tertekan.
+The derivative is used because the QRS has the steepest slope in the whole ECG. The T wave is large
+but gentle → its derivative is small → automatically suppressed.
 
-### 3.3 `_pt_square` — kuadratkan
+### 3.3 `_pt_square`: squaring
 
 $$y[n] = x[n]^2$$
 
-Dua efek: (1) semua jadi positif, jadi slope naik & slope turun sama-sama
-berkontribusi; (2) non-linear — yang besar dibesarkan lebih dari yang kecil.
-Rasio QRS : noise ikut membesar kuadratik. Panel (d): $\pm 45$ jadi $\approx 2000$.
+Two effects: (1) everything becomes positive, so rising slope and falling slope both
+contribute; (2) it is non-linear: large values are amplified more than small ones.
+The QRS : noise ratio grows quadratically as well. Panel (d): $\pm 45$ becomes $\approx 2000$.
 
-### 3.4 `_pt_moving_window_integration` — ratakan 150 ms
+### 3.4 `_pt_moving_window_integration`: smoothing over 150 ms
 
 ```python
 n = round(PT_MWI_WINDOW_MS / 1000 * fs)   # 150 ms * 360 Hz = 54 sampel
@@ -190,37 +190,37 @@ b = np.ones(n) / n
 lfilter(b, [1.0], signal)
 ```
 
-Moving average kausal:
+A causal moving average:
 
 $$y[n] = \frac{1}{N}\sum_{k=0}^{N-1} x[n-k], \qquad N = 54$$
 
-Panel (d) punya 2–3 spike per QRS (slope naik, slope turun). Setelah diratakan,
-mereka melebur jadi **satu bukit tunggal** (panel e) — jauh lebih enak
-di-threshold. Lebar jendela sengaja $\approx$ lebar QRS: kalau terlalu sempit,
-bukitnya tetap pecah; terlalu lebar, QRS dan gelombang T bisa menyatu.
+Panel (d) has 2–3 spikes per QRS (rising slope, falling slope). After smoothing,
+they merge into a **single hill** (panel e), much easier
+to threshold. The window width is deliberately $\approx$ the QRS width: if too narrow,
+the hill still splits; too wide, the QRS and T wave can merge.
 
-### 3.5 `_pt_adaptive_threshold_detect` — ambil puncaknya
+### 3.5 `_pt_adaptive_threshold_detect`: picking the peaks
 
-Threshold tetap tidak jalan: amplitudo EKG berubah antar-pasien, bahkan
-antar-menit. Pan-Tompkins memakai dua estimator berjalan:
+A fixed threshold does not work: ECG amplitude changes between patients, even
+between minutes. Pan-Tompkins uses two running estimators:
 
-- $\text{SPKI}$ — level puncak sinyal (QRS)
-- $\text{NPKI}$ — level puncak noise
+- $\text{SPKI}$: the signal (QRS) peak level
+- $\text{NPKI}$: the noise peak level
 
-Ambang:
+The threshold:
 
 $$\text{THRESHOLD}_1 = \text{NPKI} + 0.25\,(\text{SPKI} - \text{NPKI})$$
 
-yaitu 25% jalan dari lantai-noise menuju level-sinyal. Tiap kandidat puncak
-lokal $x$ mengupdate salah satu estimator dengan low-pass eksponensial:
+that is, 25% of the way from the noise floor to the signal level. Each local peak
+candidate $x$ updates one of the estimators with an exponential low-pass:
 
-$$\text{SPKI} \leftarrow 0.125\,x + 0.875\,\text{SPKI} \quad \text{(jika } x > \text{THRESHOLD}_1\text{)}$$
-$$\text{NPKI} \leftarrow 0.125\,x + 0.875\,\text{NPKI} \quad \text{(jika tidak)}$$
+$$\text{SPKI} \leftarrow 0.125\,x + 0.875\,\text{SPKI} \quad \text{(if } x > \text{THRESHOLD}_1\text{)}$$
+$$\text{NPKI} \leftarrow 0.125\,x + 0.875\,\text{NPKI} \quad \text{(otherwise)}$$
 
-Konstanta $0.125 = 1/8$ → adaptasi lambat (time constant $\approx 8$ puncak),
-jadi satu artefak besar tidak langsung merusak threshold.
+The constant $0.125 = 1/8$ → slow adaptation (time constant $\approx 8$ peaks),
+so one large artifact does not immediately wreck the threshold.
 
-Kandidat puncak dicari vektorisasi, bukan loop:
+Peak candidates are found vectorized, not in a loop:
 
 ```python
 candidates = np.where(
@@ -228,125 +228,125 @@ candidates = np.where(
 )[0] + 1
 ```
 
-Baca: sampel $i$ adalah puncak lokal jika $x_{i-1} < x_i \ge x_{i+1}$. Asimetris
-(`>` di kiri, `>=` di kanan) — supaya plateau datar tidak menghasilkan nol
-puncak maupun puncak ganda. `+ 1` mengembalikan offset karena slicing `[1:-1]`.
+Read: sample $i$ is a local peak if $x_{i-1} < x_i \ge x_{i+1}$. Asymmetric
+(`>` on the left, `>=` on the right) so that a flat plateau yields neither zero
+peaks nor double peaks. `+ 1` restores the offset caused by the `[1:-1]` slicing.
 
-Inisialisasi dari 2 detik pertama:
+Initialization from the first 2 seconds:
 
 ```python
 spki = max(integrated[:2*fs])      # asumsi ada minimal 1 QRS di 2 detik
 npki = mean(integrated[:2*fs])
 ```
 
-**Refraktori** — periode fisiologis ketika jantung tidak bisa depolarisasi lagi:
+**Refractory period**, the physiological period when the heart cannot depolarize again:
 
-$$i - i_{\text{last}} \ge \frac{200\,\text{ms}}{1000}\,f_s = 72\ \text{sampel}$$
+$$i - i_{\text{last}} \ge \frac{200\,\text{ms}}{1000}\,f_s = 72\ \text{samples}$$
 
-200 ms $\Rightarrow$ maksimum 300 bpm. Ini yang mencegah satu QRS terhitung dua
-kali (mis. gelombang R dan S berdekatan).
+200 ms $\Rightarrow$ a maximum of 300 bpm. This is what prevents one QRS from being counted twice
+(e.g. closely spaced R and S waves).
 
-### 3.6 Yang harus kamu sadari dari gambar
+### 3.6 What you should notice from the figure
 
-Di panel (f): silang merah (deteksi) **konsisten lebih kanan** dari bulat hijau
-(anotasi). Delay median terukur **40 sampel = 111 ms**, dan itu bukan bug — itu
-jumlah group delay bandpass 5–15 Hz + 2 sampel derivative + $\approx N/2 = 27$
-sampel MWI. Konsekuensinya:
+In panel (f): the red crosses (detections) are **consistently to the right** of the green dots
+(annotations). The median delay measured is **40 samples = 111 ms**, and that is not a bug: it is the
+sum of the 5–15 Hz bandpass group delay + 2 derivative samples + $\approx N/2 = 27$
+MWI samples. The consequences:
 
-- Untuk benchmark, toleransi $\pm 150$ ms (`bench_pantompkins.py`) menutupi delay ini.
-- Segmentasi on-device memakai Pan-Tompkins, jadi **delay ini dikompensasi**
-  (indeks digeser ke kiri sebesar `PT_DETECTOR_OFFSET = 38`, median DS1) sebelum
-  window dipotong. Tanpa kompensasi, window bergeser sistematis dari yang dilihat
-  model saat training. Rinciannya:
+- For the benchmark, the $\pm 150$ ms tolerance (`bench_pantompkins.py`) covers this delay.
+- On-device segmentation uses Pan-Tompkins, so **this delay is compensated**
+  (the index is shifted left by `PT_DETECTOR_OFFSET = 38`, the DS1 median) before the
+  window is cut. Without compensation, the window is systematically shifted from what the
+  model saw during training. Details:
   [`detection-segmentation-walkthrough.md`](detection-segmentation-walkthrough.md).
 
-Skor record 100: `TP=2263  FN=10  FP=9` → sensitivity 0.996,
+Record 100 score: `TP=2263  FN=10  FP=9` → sensitivity 0.996,
 precision 0.996.
 
 ---
 
-## 4. `segment_beats()` — potong per detak
+## 4. `segment_beats()`: cutting per beat
 
 ```python
 start, end = r - WIN_PRE, r + WIN_POST      # 128 sebelum, 128 sesudah
 if start < 0 or end > len(signal): continue
 ```
 
-Tiap beat jadi window $[R-128,\ R+128)$ = **256 sampel = 711 ms**, dengan
-R-peak anotasi selalu di indeks 128 (pada sinyal hasil filter, puncaknya tampak
-di indeks 132 karena group delay +4 sampel). Alignment tetap ini penting: CNN 1-D
-belajar pola relatif posisi, jadi kalau R-peak berpindah-pindah tiap sampel,
-model harus buang kapasitas untuk belajar invariansi geser.
+Each beat becomes a window $[R-128,\ R+128)$ = **256 samples = 711 ms**, with the
+annotated R-peak always at index 128 (in the filtered signal, the peak appears
+at index 132 because of the +4 sample group delay). This fixed alignment matters: a 1-D CNN
+learns patterns relative to position, so if the R-peak wanders from sample to sample,
+the model has to waste capacity learning shift invariance.
 
-Cakupan window terhadap anatomi satu detak:
+Window coverage relative to the anatomy of one beat:
 
-| Bagian | Perkiraan durasi | Masuk window? |
+| Part | Approximate duration | In the window? |
 |---|---|---|
-| Garis dasar + gelombang P + interval PR | ~200 ms | ya (128 sampel = 356 ms) |
-| QRS | 80–120 ms | ya |
-| Segmen ST + gelombang T | ~300–400 ms | sebagian besar (128 sampel = 356 ms) |
+| Baseline + P wave + PR interval | ~200 ms | yes (128 samples = 356 ms) |
+| QRS | 80–120 ms | yes |
+| ST segment + T wave | ~300–400 ms | mostly (128 samples = 356 ms) |
 
-Gelombang T perlu ikut karena morfologinya membedakan PVC dari beat normal.
-Sisi kiri sengaja sama panjang dengan sisi kanan: beat supraventrikular dibedakan
-oleh gelombang P dan interval PR, dan model butuh P **beserta garis dasar
-sebelumnya** untuk mengenalinya sebagai P.
+The T wave has to be included because its morphology distinguishes PVC from normal beats.
+The left side is deliberately as long as the right side: supraventricular beats are distinguished
+by the P wave and PR interval, and the model needs the P **together with the preceding baseline**
+to recognize it as a P.
 
-**Alternatif yang tidak dipakai.** Window asimetris 90/160 (250 sampel), yang
-cakupan T-nya lebih panjang, kalah dalam ablasi 3 seed: F1 DS2 0,5660 vs 0,6911
-untuk 128/128. Varian 112/144 (juga 256 sampel, juga kelipatan 8, cakupan T lebih
-panjang) setara 90/160, jadi yang menentukan adalah **konteks 128 sampel sebelum
-R**, bukan panjang window. Recall S naik monoton dengan `WIN_PRE` (90 → 0,268,
-112 → 0,369, 128 → 0,42–0,49), dengan harga recall F turun (0,308 → 0,15–0,20)
-karena cakupan T dipangkas. Data lengkap:
+**Alternative not used.** The asymmetric window 90/160 (250 samples), which
+has longer T coverage, lost in a 3-seed ablation: DS2 F1 0.5660 vs 0.6911
+for 128/128. The 112/144 variant (also 256 samples, also a multiple of 8, longer T
+coverage) is on par with 90/160, so what decides is the **128-sample context before
+R**, not the window length. S recall rises monotonically with `WIN_PRE` (90 → 0.268,
+112 → 0.369, 128 → 0.42–0.49), at the price of F recall falling (0.308 → 0.15–0.20)
+because the T coverage is trimmed. Full data:
 [`jitter-walkthrough.md`](jitter-walkthrough.md) §5–6.
 
-Guard `start < 0 or end > len(signal)` membuang beat di tepi rekaman. Record 100:
-**2 dari 2273 beat terbuang** (indeks 77 di awal, 649991 di akhir dari 650000
-sampel) → tersisa 2271 window. Cek `len(window) != WIN_LEN` setelahnya redundan
-secara logika, tapi murah dan membuat kontrak `(N, 256)` tidak bisa bohong.
+The `start < 0 or end > len(signal)` guard drops beats at the edge of the recording. Record 100:
+**2 of 2273 beats dropped** (index 77 at the start, 649991 at the end of 650000
+samples) → 2271 windows remain. The `len(window) != WIN_LEN` check afterwards is redundant
+logically, but cheap, and it keeps the `(N, 256)` contract from lying.
 
-Return `np.empty((0, WIN_LEN))` saat kosong, bukan `[]` — supaya `.shape[1]` di
-hilir tetap valid dan tidak perlu cek None.
+It returns `np.empty((0, WIN_LEN))` when empty, not `[]`, so that `.shape[1]` downstream
+stays valid and no None check is needed.
 
 ---
 
-## 5. `zscore_per_window()` — normalisasi per detak
+## 5. `zscore_per_window()`: per-beat normalization
 
 $$z_i[n] = \frac{x_i[n] - \mu_i}{\sigma_i + \varepsilon}, \qquad
 \mu_i = \frac{1}{L}\sum_{n} x_i[n], \quad
 \sigma_i = \sqrt{\frac{1}{L}\sum_n (x_i[n]-\mu_i)^2}$$
 
-dengan $L = 256$, $\varepsilon = 10^{-8}$.
+with $L = 256$, $\varepsilon = 10^{-8}$.
 
 ```python
 mean = windows.mean(axis=1, keepdims=True)   # (N, 1) — per window, bukan global
 ```
 
-`axis=1` = statistik dihitung **per baris**. Ini keputusan yang di-lock, dan
-alasannya dua:
+`axis=1` = statistics are computed **per row**. This is a locked decision, and
+there are two reasons:
 
-1. **Kebal beda amplitudo.** Gain elektroda, impedansi kulit, dan posisi lead
-   membuat pasien A punya QRS 1.2 mV sementara pasien B 0.4 mV. Setelah z-score
-   per window, keduanya jadi bentuk yang sebanding — model belajar *morfologi*,
-   bukan *seberapa besar sinyalnya*.
-2. **Nol kebocoran statistik.** Kalau $\mu,\sigma$ dihitung dari seluruh dataset
-   train, statistik itu ikut ke test set → *data leakage*. Per-window tidak butuh
-   apa pun dari luar window itu, jadi di device pun bisa dihitung on the fly.
+1. **Immune to amplitude differences.** Electrode gain, skin impedance, and lead position
+   give patient A a 1.2 mV QRS while patient B has 0.4 mV. After per-window
+   z-scoring, both become comparable shapes, and the model learns *morphology*,
+   not *how large the signal is*.
+2. **Zero statistical leakage.** If $\mu,\sigma$ were computed from the whole training
+   dataset, those statistics would carry over to the test set → *data leakage*. Per-window needs
+   nothing from outside that window, so it can be computed on the fly on the device too.
 
-$\varepsilon$ mencegah pembagian nol pada window flat (elektroda lepas → sinyal
-konstan → $\sigma = 0$). Tanpa itu, satu window rusak menghasilkan `NaN` yang
-menjalar ke seluruh gradien training.
+$\varepsilon$ prevents division by zero on a flat window (electrode detached → constant
+signal → $\sigma = 0$). Without it, one broken window yields `NaN` that
+spreads through the whole training gradient.
 
-Panel 3 vs 4 di gambar pertama: bentuknya identik, skalanya yang berubah — dari
-mV ke satuan "berapa simpangan baku". Verifikasi: `z.mean() = -0.0000`,
+Panel 3 vs 4 in the first figure: the shape is identical, only the scale changes, from
+mV to units of "how many standard deviations". Verification: `z.mean() = -0.0000`,
 `z.std() = 1.0000`.
 
-Cast `float32` di akhir: setengah memori `float64` dan format yang sama dengan
-input TFLite.
+The `float32` cast at the end: half the memory of `float64` and the same format as the
+TFLite input.
 
 ---
 
-## 6. Angka record 100 (rujukan cepat)
+## 6. Record 100 numbers (quick reference)
 
 ```
 anotasi          = 2273 beat        window valid = 2271   dibuang = 2
@@ -359,27 +359,27 @@ delay deteksi median = 40 sampel = 111 ms
 
 ---
 
-## 7. Cek pemahaman
+## 7. Comprehension check
 
-1. Kalau `BANDPASS_ORDER` diubah 4 → 2, apa yang berubah di panel PSD
-   `make plot1`, dan kenapa itu penting untuk port ke C?
-2. Kenapa `_pt_derivative` boleh digeser 2 sampel tanpa merusak deteksi, tapi
-   `filtfilt` tidak boleh dipakai sama sekali? (Petunjuk: konstan vs
-   bergantung-masa-depan.)
-3. `WIN_POST` dinaikkan 128 → 200. Berapa beat yang terbuang di record 100, dan
-   bagian gelombang apa yang mulai ikut tercakup?
-4. Kalau `zscore_per_window` diganti normalisasi global (satu $\mu,\sigma$ untuk
-   semua window), metrik mana yang naik palsu saat evaluasi inter-patient?
+1. If `BANDPASS_ORDER` is changed from 4 → 2, what changes in the PSD panel of
+   `make plot1`, and why does that matter for the port to C?
+2. Why may `_pt_derivative` be shifted by 2 samples without breaking detection, but
+   `filtfilt` must not be used at all? (Hint: constant vs
+   future-dependent.)
+3. `WIN_POST` is raised from 128 → 200. How many beats are dropped in record 100, and
+   what part of the waveform starts to be covered?
+4. If `zscore_per_window` is replaced with global normalization (one $\mu,\sigma$ for
+   all windows), which metric rises falsely in inter-patient evaluation?
 
-## 8. Skrip pendukung
+## 8. Supporting scripts
 
-| Perintah | Melihat apa |
+| Command | Looks at |
 |---|---|
-| `python scripts/plot_phase1.py 100` | Domain waktu + spectrogram + PSD sebelum/sesudah filter |
-| `python scripts/plot_phase1_segment.py 100` | 8 window, sebelum vs sesudah z-score |
-| `python scripts/bench_pantompkins.py 100` | Deteksi vs anotasi + Se/P+ |
-| `python scripts/plot_walkthrough.py 100` | Dua gambar di dokumen ini |
+| `python scripts/plot_phase1.py 100` | Time domain + spectrogram + PSD before/after the filter |
+| `python scripts/plot_phase1_segment.py 100` | 8 windows, before vs after z-score |
+| `python scripts/bench_pantompkins.py 100` | Detection vs annotation + Se/P+ |
+| `python scripts/plot_walkthrough.py 100` | The two figures in this document |
 
 ---
 
-**[← Fase 0 — io_mitdb](io-mitdb-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 2 — features_rr →](features-rr-walkthrough.md)**
+**[← Phase 0: io_mitdb](io-mitdb-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[Phase 2: features_rr →](features-rr-walkthrough.md)**
