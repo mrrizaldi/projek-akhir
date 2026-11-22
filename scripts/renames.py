@@ -14,6 +14,7 @@ if sys.version_info < (3, 12):
     sys.exit("renames.py needs Python >= 3.12 (f-string tokenizing)")
 
 MAP = Path("scripts/rename_map.tsv")
+SCOPED = Path("scripts/rename_map_scoped.tsv")
 GLOSSARY = Path("scripts/glossary.tsv")
 SKIP = (
     "laporan/",
@@ -22,6 +23,7 @@ SKIP = (
     "model/artifacts/",
     ".claude/skills-arsip/",
     "scripts/rename_map.tsv",
+    "scripts/rename_map_scoped.tsv",
     "scripts/glossary.tsv",
     "docs/2026-11-22-english-codebase.md",
     "firmware/include/model_int8.h",
@@ -29,7 +31,7 @@ SKIP = (
 TEXT_SUFFIXES = {".md", ".sh", ".yml", ".yaml", ".ini", ".json", ".txt", ".inc", ""}
 DEV_DOC_DIRS = ("model/data/", "model/artifacts/")
 INFO_DIRS = ("laporan/", "presentasi/", ".claude/skills-arsip/")
-ONE_OFF = ("scripts/rename_map.tsv", "scripts/glossary.tsv", "docs/2026-11-22-english-codebase.md")
+ONE_OFF = ("scripts/rename_map.tsv", "scripts/rename_map_scoped.tsv", "scripts/glossary.tsv", "docs/2026-11-22-english-codebase.md")
 C_SUFFIXES = {".cpp", ".h", ".c"}
 FROZEN = {"WIFI_DAFTAR", "BROKER_DAFTAR"}
 C_TOKEN = re.compile(r'#include "[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*')
@@ -395,9 +397,31 @@ def renamed(text, ids):
     )
 
 
+def load_scoped():
+    scoped = {}
+    if SCOPED.exists():
+        for number, line in enumerate(read(SCOPED).split("\n"), 1):
+            if not line.strip():
+                continue
+            if line.count("\t") != 2:
+                sys.exit(f"{SCOPED}:{number}: need exactly two TABs")
+            source, old, new = line.split("\t")
+            scoped.setdefault(source, {})[old] = new
+    return scoped
+
+
+def scoped_ids(scoped, name, pairs):
+    stem = name[:-2]
+    merged = {}
+    for source in (stem, pairs.get(stem, stem)):
+        merged.update(scoped.get(source, {}))
+    return merged
+
+
 def same_firmware(rev_a, rev_b):
     pairs = load_pairs(MAP)
     ids = identifiers(pairs)
+    scoped = load_scoped()
     root = run(["git", "rev-parse", "--show-toplevel"]).strip()
     work = Path(tempfile.mkdtemp())
     trees = [work / "a", work / "b"]
@@ -414,7 +438,7 @@ def same_firmware(rev_a, rev_b):
                 failed = True
                 print(f"MISSING {name} -> {target}")
                 continue
-            a = renamed(listing(objs_a[name]), ids)
+            a = renamed(listing(objs_a[name]), {**ids, **scoped_ids(scoped, name, pairs)})
             b = listing(objs_b[target])
             if a.splitlines() == b.splitlines():
                 print(f"same {name} -> {target}")
