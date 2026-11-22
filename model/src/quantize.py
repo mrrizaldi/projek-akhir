@@ -12,8 +12,8 @@ def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
         pool = np.flatnonzero(y == kelas)
         if len(pool) == 0:
             raise ValueError(f"class {kelas} is missing from the calibration data (PITFALL #4)")
-        ambil = max(1, round(n * len(pool) / len(y)))
-        idx.append(rng.choice(pool, size=min(ambil, len(pool)), replace=False))
+        pull = max(1, round(n * len(pool) / len(y)))
+        idx.append(rng.choice(pool, size=min(pull, len(pool)), replace=False))
     return np.sort(np.concatenate(idx))
 
 
@@ -46,21 +46,21 @@ def quantize_int8(model, rep_gen, int8_io: bool = INT8_IO) -> bytes:
     return blob
 
 
-def assert_rhythm_scale_sane(blob: bytes, ambang: float = MAX_RHYTHM_SCALE) -> float:
+def assert_rhythm_scale_sane(blob: bytes, cutoff: float = MAX_RHYTHM_SCALE) -> float:
     it = tf.lite.Interpreter(model_content=blob)
     for d in it.get_input_details():
         if "rhythm" not in d["name"]:
             continue
-        skala = float(d["quantization_parameters"]["scales"][0])
-        if skala > ambang:
+        input_scale = float(d["quantization_parameters"]["scales"][0])
+        if input_scale > cutoff:
             raise ValueError(
-                f"rhythm input quantization scale {skala:.4f} > threshold {ambang} — "
+                f"rhythm input quantization scale {input_scale:.4f} > threshold {cutoff} — "
                 f"almost certainly a beat with an extreme RR entered the calibration pool "
                 f"(check |X_rr|.max(); record 207 has RR_prev = 100 s). The rhythm "
                 f"branch would die without an error: change the calibration SEED or filter "
                 f"RR outliers before representative_dataset_gen."
             )
-        return skala
+        return input_scale
     return float("nan")
 
 

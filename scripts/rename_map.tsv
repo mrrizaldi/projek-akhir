@@ -1054,3 +1054,8 @@ kanal	channels
 latih	train_records
 penyebut	denominator
 teratas	best_epochs
+ambang	cutoff
+cari	search_radius
+langkah	time_steps
+ambil	pull
+skala	input_scale

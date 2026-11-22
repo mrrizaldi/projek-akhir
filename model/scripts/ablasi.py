@@ -108,8 +108,8 @@ def measure_arrays(model, d: dict, thr: float) -> dict:
 
 def split_val(d: dict):
     is_val = np.isin(d["records"], VAL_RECORDS)
-    ambil = lambda m: {k: v[m] for k, v in d.items()}
-    return ambil(~is_val), ambil(is_val)
+    pull = lambda m: {k: v[m] for k, v in d.items()}
+    return pull(~is_val), pull(is_val)
 
 
 def kalibrasi(model, va: dict) -> float:

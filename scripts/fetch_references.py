@@ -30,7 +30,7 @@ def bib_entries():
     return seen
 
 
-def ambil(url):
+def pull(url):
     r = subprocess.run(["curl", "-sSL", "--max-time", "90", "-A", UA, url], capture_output=True)
     if r.returncode:
         raise RuntimeError(r.stderr.decode().strip())
@@ -38,7 +38,7 @@ def ambil(url):
 
 
 def pdf_urls(doi):
-    j = json.loads(ambil(UNPAYWALL.format(doi=doi)))
+    j = json.loads(pull(UNPAYWALL.format(doi=doi)))
     loc = j.get("best_oa_location") or {}
     cands = [loc.get("url_for_pdf")] + [l.get("url_for_pdf") for l in j.get("oa_locations", [])]
     return [c for c in cands if c], j.get("is_oa")
@@ -47,7 +47,7 @@ def pdf_urls(doi):
 def unduh(key, cands):
     for u in cands:
         try:
-            data = ambil(u)
+            data = pull(u)
         except Exception as e:
             print(f"  failed {u}: {e}")
             continue
