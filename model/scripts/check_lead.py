@@ -30,11 +30,11 @@ def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
         if ok.sum() < 20:
             return {}
         w = zscore_per_window(segment_beats(filt, r[ok]))
-        di_r = w[:, R_IDX]
+        at_r = w[:, R_IDX]
         out[nama] = {
             "n": len(w),
-            "mean": float(di_r.mean()),
-            "%positif": float((di_r > 0).mean() * 100),
+            "mean": float(at_r.mean()),
+            "%positif": float((at_r > 0).mean() * 100),
             "puncak_di": int(np.argmax(np.abs(w).mean(axis=0))),
         }
     return out
@@ -48,10 +48,10 @@ def main() -> None:
           f"{'ALIGNED: mean':>13} {'%pos':>5} {'pk':>4}")
     print("-" * 82)
 
-    rencana = [("mitdb", None), ("svdb", "ECG1"), ("svdb", "ECG2"),
+    plan = [("mitdb", None), ("svdb", "ECG1"), ("svdb", "ECG2"),
                ("incartdb", None)]
     ringkas = {}
-    for db, lead in rencana:
+    for db, lead in plan:
         recs = available_records(db)
         if not recs:
             print(f"{db:10} {'-':6} no complete record yet — skipped")

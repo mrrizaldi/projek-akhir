@@ -21,7 +21,7 @@ def cek(nama: str, fn) -> None:
     hasil.append((ok, nama, detail))
 
 
-def _baca_csv(path: str) -> dict:
+def _read_csv(path: str) -> dict:
     with open(path) as f:
         kolom = f.readline().strip().split(",")
         nilai = f.readline().strip().split(",")
@@ -40,7 +40,7 @@ def reproducible():
     return True, f"requirements.txt complete, SEED={SEED} locked in training and PTQ"
 
 
-def preprocessing_kausal():
+def causal_preprocessing():
     src = open(os.path.join(ROOT, "src", "preprocessing.py")).read()
     if "filtfilt" in src:
         return False, "filtfilt found — PRD PITFALL #1"
@@ -49,7 +49,7 @@ def preprocessing_kausal():
     return True, "sosfilt (causal), zero uses of filtfilt"
 
 
-def split_terverifikasi():
+def split_verified():
     from src.dataset import assert_split_valid
     assert_split_valid()
     for r in DS1 + DS2:
@@ -69,11 +69,11 @@ def model_hybrid():
     return True, f"{n:,} params, 2 inputs, output {tuple(m.output.shape)}"
 
 
-def metrik_fp32():
+def fp32_metrics():
     path = os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")
     if not os.path.exists(path):
         return False, "fase6_metrics_fp32.csv does not exist yet — run `make eval`"
-    row = _baca_csv(path)
+    row = _read_csv(path)
     recall = float(row["recall"])
     if recall <= 0.05:
         return False, f"Arrhythmia recall {recall:.4f} ~ 0 — bug, check class_weight"
@@ -100,7 +100,7 @@ def model_int8():
     return True, f"{kb:.2f} KB < {MAX_MODEL_KB} KB, full-INT8 (dtype: {sorted(dtypes)})"
 
 
-def tabel_delta():
+def delta_table():
     path = os.path.join(METRICS_DIR, "fase7_delta.csv")
     if not os.path.exists(path):
         return False, "fase7_delta.csv does not exist yet — run `make quantize`"
@@ -119,7 +119,7 @@ def tabel_delta():
     return True, f"complete; recall delta {d_recall:+.4f} ({catatan})"
 
 
-def decision_tercatat():
+def decisions_recorded():
     md = open(os.path.join(ROOT, "CLAUDE.md")).read()
     seksi = re.search(r"## Decision point yang sudah di-lock(.*?)(?=\n## )", md, flags=re.S)
     if seksi is None:
@@ -136,13 +136,13 @@ def decision_tercatat():
 
 def main() -> None:
     cek("Reproducible (requirements + seed lock)", reproducible)
-    cek("Causal preprocessing (sosfilt, not filtfilt)", preprocessing_kausal)
-    cek("Inter-patient split disjoint + paced dropped", split_terverifikasi)
+    cek("Causal preprocessing (sosfilt, not filtfilt)", causal_preprocessing)
+    cek("Inter-patient split disjoint + paced dropped", split_verified)
     cek("Hybrid model ~6,000 params, 2 inputs", model_hybrid)
-    cek("DS2 float32 metrics exist and recall is not ~0", metrik_fp32)
+    cek("DS2 float32 metrics exist and recall is not ~0", fp32_metrics)
     cek(f"INT8 model < {MAX_MODEL_KB} KB, full-INT8", model_int8)
-    cek("float32 vs INT8 delta table complete", tabel_delta)
-    cek("All decision points recorded", decision_tercatat)
+    cek("float32 vs INT8 delta table complete", delta_table)
+    cek("All decision points recorded", decisions_recorded)
 
     print(f"\n{'':2} {'Checklist PoC (PRD Fase 8)':<46} Detail")
     print("-" * 100)

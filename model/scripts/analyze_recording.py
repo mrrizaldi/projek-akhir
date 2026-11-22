@@ -94,7 +94,7 @@ def analyze_segment(mentah, fs):
     }
 
 
-def gabung(hasil, fs):
+def combine(hasil, fs):
     awal = np.cumsum([0] + [h["n"] for h in hasil])
     r = np.concatenate([h["r"] + a for h, a in zip(hasil, awal)]).astype(int)
     rr = np.concatenate([h["rr"] for h in hasil])
@@ -124,7 +124,7 @@ def main() -> None:
     hasil = [analyze_segment(m, fs) for m in segmen]
     x = np.concatenate([h["x"] for h in hasil])
     filtered = np.concatenate([h["filtered"] for h in hasil])
-    r, rr, (ekg, hum, hf, drift), (kuat, bpm_ac, saingan), awal = gabung(hasil, fs)
+    r, rr, (ekg, hum, hf, drift), (kuat, bpm_ac, saingan), awal = combine(hasil, fs)
     bpm = 60 / rr if len(rr) else np.array([])
     masuk_akal = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 

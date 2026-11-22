@@ -57,13 +57,13 @@ for label, count in sorted(label_counts.items(), key=lambda x: -x[1]):
     print(f"   '{label}' : {count}")
 
 fs = record.fs
-durasi_plot = 30
-n_sampel = durasi_plot * fs
+plot_duration = 30
+n_samples = plot_duration * fs
 
-signal = record.p_signal[:n_sampel, 0]
-time = np.arange(n_sampel) / fs
+signal = record.p_signal[:n_samples, 0]
+time = np.arange(n_samples) / fs
 
-ann_mask = annotation.sample < n_sampel
+ann_mask = annotation.sample < n_samples
 ann_samples = annotation.sample[ann_mask]
 ann_symbols = np.array(annotation.symbol)[ann_mask]
 

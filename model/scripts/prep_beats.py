@@ -57,7 +57,7 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
     }
 
 
-def gabung(bagian: list) -> dict:
+def combine(bagian: list) -> dict:
     if len(bagian) == 1:
         return bagian[0]
     return {
@@ -102,7 +102,7 @@ def main() -> None:
             n_salinan = (args.copies
                          if (db == "mitdb" and rec in ds1 and args.jitter != "none")
                          else 0)
-            out = gabung([process_record(rec, sos, db=db)] + [
+            out = combine([process_record(rec, sos, db=db)] + [
                 process_record(rec, sos, db=db,
                                jitter=lambda r: jitter_r(r, args.delta, rng, args.jitter))
                 for _ in range(n_salinan)])

@@ -27,7 +27,7 @@ DELTA = list(range(0, 19, 2))
 N_SEED = 5
 
 
-def muat_ds2(sos) -> list:
+def load_ds2(sos) -> list:
     simpan = []
     for rec in DS2:
         signal, r, sym, _ = load_record(str(rec))
@@ -103,7 +103,7 @@ def main() -> None:
 
     os.makedirs(OUT_DIR, exist_ok=True)
     model = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, args.model))
-    cache = muat_ds2(design_bandpass_sos())
+    cache = load_ds2(design_bandpass_sos())
 
     rows = [ukur(model, cache, None, 0, 0)]
     print(f"{'jitter':>8} {'δ':>3} {'seed':>4} {'recall':>7} {'prec':>7} {'F1':>7} "

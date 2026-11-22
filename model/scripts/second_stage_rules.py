@@ -11,8 +11,8 @@ import tensorflow as tf
 from config import (
     ARTIFACT_DIR, FS, MIN_NAMED_PRECISION, R_IN_WINDOW, SEED,
 )
-from scripts.ablasi import kalibrasi, pisah_val, rakit_ds1
-from scripts.sweep_jitter import muat_ds2, rakit
+from scripts.ablasi import kalibrasi, split_val, assemble_ds1
+from scripts.sweep_jitter import load_ds2, rakit
 from src.features_rr import _width_at_fraction
 from src.preprocessing import design_bandpass_sos
 
@@ -60,7 +60,7 @@ def main() -> None:
     path = os.path.join(ARTIFACT_DIR, f"model_fp32_{args.tag}.keras")
     model = tf.keras.models.load_model(path)
 
-    va = pisah_val(rakit_ds1(sos, "empiris", 0, 2,
+    va = split_val(assemble_ds1(sos, "empiris", 0, 2,
                              np.random.default_rng(SEED), ["mitdb", "svdb"]))[1]
     thr = kalibrasi(model, va)
     print(f"[{args.tag}] stage 1 threshold from VAL = {thr:.2f}")
@@ -90,7 +90,7 @@ def main() -> None:
         print(f"[{args.tag}] QRSw2 threshold from VAL = {amb['qrsw2_ms']:.0f} ms "
               f"(V precision on VAL {amb['presisi_val']:.1%}, coverage {amb['cakupan_val']:.1%})")
 
-    Xm, Xr, y, aami = rakit(muat_ds2(sos), None, 0, 0)
+    Xm, Xr, y, aami = rakit(load_ds2(sos), None, 0, 0)
     prob = model.predict([Xm, Xr], verbose=0, batch_size=8192).ravel()
     ditandai = prob >= thr
     f = fitur_aturan(Xm[:, :, 0], Xr)
@@ -98,9 +98,9 @@ def main() -> None:
 
     print(f"\n[{args.tag}] DS2 — what the device SHOWS vs the annotation truth")
     print(f"{'':14}" + "".join(f"{k:>10}" for k in ("N","S","V","F","Q")) + f"{'total':>8}")
-    for nm in ("Normal", "V", "tak dinamai"):
-        sel = label == nm
-        print(f"{nm:14}" + "".join(f"{int((sel & (aami==k)).sum()):>10}"
+    for set_name in ("Normal", "V", "tak dinamai"):
+        sel = label == set_name
+        print(f"{set_name:14}" + "".join(f"{int((sel & (aami==k)).sum()):>10}"
                                   for k in ("N","S","V","F","Q"))
               + f"{int(sel.sum()):>8}")
     ditandai_n = int(ditandai.sum())

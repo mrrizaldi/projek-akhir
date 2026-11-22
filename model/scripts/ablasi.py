@@ -26,7 +26,7 @@ from src.preprocessing import (
 )
 from src.train import train
 from scripts.prep_beats import valid_beat_indices
-from scripts.sweep_jitter import muat_ds2, rakit
+from scripts.sweep_jitter import load_ds2, rakit
 
 OUT_DIR = os.path.join(METRICS_DIR, "ablasi")
 F1_TIE_MARGIN = 0.005
@@ -49,7 +49,7 @@ def catatan_latih(db_list) -> list:
     return pasangan
 
 
-def rakit_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
+def assemble_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
               db_list=("mitdb",)) -> dict:
     W, R, Y, REC = [], [], [], []
     for db, rec in catatan_latih(db_list):
@@ -106,7 +106,7 @@ def ukur_array(model, d: dict, thr: float) -> dict:
     return m
 
 
-def pisah_val(d: dict):
+def split_val(d: dict):
     is_val = np.isin(d["records"], VAL_RECORDS)
     ambil = lambda m: {k: v[m] for k, v in d.items()}
     return ambil(~is_val), ambil(is_val)
@@ -169,8 +169,8 @@ def main() -> None:
     t0 = time.time()
 
     sos = design_bandpass_sos()
-    ds1 = rakit_ds1(sos, args.jitter, args.delta, args.copies, rng, args.db)
-    tr, va = pisah_val(ds1)
+    ds1 = assemble_ds1(sos, args.jitter, args.delta, args.copies, rng, args.db)
+    tr, va = split_val(ds1)
     print(f"[{args.tag}] window {WIN_PRE}/{WIN_POST}={WIN_LEN}  n_rr={N_RR_FEATURES}  "
           f"HOS={USE_HOS}  jitter={args.jitter} x{args.copies}  db={'+'.join(args.db)}  "
           f"class_weight={'OFF' if args.no_class_weight else 'balanced'}  "
@@ -186,7 +186,7 @@ def main() -> None:
     thr = kalibrasi(model, va)
     print(f"[{args.tag}] threshold from VAL = {thr:.2f}")
 
-    cache = muat_ds2(sos)
+    cache = load_ds2(sos)
     bersih = ukur(model, cache, thr, None, 0)
     kotor = [ukur(model, cache, thr, "empiris", s) for s in SEED_DS2]
     rerata = {k: float(np.mean([m[k] for m in kotor])) for k in bersih}

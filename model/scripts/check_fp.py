@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import ARTIFACT_DIR, DS2, PER_RECORD_DIR, PROCESSED_DIR, THRESHOLD
 
 
-def panjang_run(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
+def run_lengths(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
     hasil = []
     for r in np.unique(records):
         s = mask[records == r]
@@ -27,8 +27,8 @@ def panjang_run(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
     return np.array(hasil, dtype=int)
 
 
-def ringkas_run(nama: str, mask: np.ndarray, records: np.ndarray) -> None:
-    R = panjang_run(mask, records)
+def summarize_runs(nama: str, mask: np.ndarray, records: np.ndarray) -> None:
+    R = run_lengths(mask, records)
     n = int(R.sum())
     if n == 0:
         print(f"{nama:<18} none")
@@ -38,7 +38,7 @@ def ringkas_run(nama: str, mask: np.ndarray, records: np.ndarray) -> None:
           f"run>=3 {100 * R[R >= 3].sum() / n:5.1f}%  longest {R.max()}")
 
 
-def muat_simbol(records_ds2) -> np.ndarray:
+def load_symbols(records_ds2) -> np.ndarray:
     sym = np.concatenate([np.load(os.path.join(PER_RECORD_DIR, f"{r}.npz"))["symbols"]
                           for r in records_ds2])
     return np.array([s.decode() if isinstance(s, bytes) else str(s) for s in sym])
@@ -54,7 +54,7 @@ def main() -> None:
 
     d = np.load(os.path.join(PROCESSED_DIR, "test.npz"))
     y, rec = d["y"].astype(int), d["records"]
-    sym = muat_simbol(DS2)
+    sym = load_symbols(DS2)
     if len(sym) != len(y):
         raise ValueError(f"symbols {len(sym)} != beats {len(y)} — DS2 order does not match")
 
@@ -73,19 +73,19 @@ def main() -> None:
     per_rec = sorted(((int(r), int((fp_mask & (rec == r)).sum()),
                        int(((y == 0) & (rec == r)).sum()))
                       for r in np.unique(rec)), key=lambda t: -t[1])
-    kum = 0
+    cumulative = 0
     for r, fp, neg in per_rec[:8]:
-        kum += fp
-        print(f"{r:>5} {fp:>6} {100 * fp / n_fp:5.1f}% {100 * kum / n_fp:5.1f}% "
+        cumulative += fp
+        print(f"{r:>5} {fp:>6} {100 * fp / n_fp:5.1f}% {100 * cumulative / n_fp:5.1f}% "
               f"{fp / neg if neg else 0:8.4f}")
-    print(f"top 8 records = {100 * kum / n_fp:.1f}% of all FP "
+    print(f"top 8 records = {100 * cumulative / n_fp:.1f}% of all FP "
           f"({len(per_rec)} records total)\n")
 
     print("== 2. Run length: TP vs FP ==")
-    ringkas_run("TP (pred=1,y=1)", tp_mask, rec)
-    ringkas_run("FP (pred=1,y=0)", fp_mask, rec)
+    summarize_runs("TP (pred=1,y=1)", tp_mask, rec)
+    summarize_runs("FP (pred=1,y=0)", fp_mask, rec)
     for r, _, _ in per_rec[:2]:
-        ringkas_run(f"  FP rec {r}", fp_mask & (rec == r), rec)
+        summarize_runs(f"  FP rec {r}", fp_mask & (rec == r), rec)
     print("\nk-of-n verdict: the 'k consecutive beats' rule only helps if FP are\n"
           "more SINGLE than TP. Compare the 'single' column above.\n")
 
