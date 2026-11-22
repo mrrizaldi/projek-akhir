@@ -117,6 +117,7 @@ Allowed only in `docs/features/`, never in `laporan/`.
 - **Explain the why as a present-tense reason.** Write "The gate waits for 30 s of plausible RR intervals so a loose electrode cannot start classification", not "added after the S02 session".
 - **No generic text and no fluff.** No intro about the importance of docs, no closing summary. Do not restate the code line by line; say what is not obvious from reading it. No marketing buzzwords.
 - **Omit what you cannot verify** in the repo code. Report the omission instead of hedging in the page.
+- **A page never says what it does not cover or why** ("not listed here because the grep did not include ...", "see the report", "[N]", TODO, "unverified"). Gaps go only in the final report. Reason: a gap note in a page is a placeholder that rots there and tells the reader nothing about the system.
 - No pointers to plans or specs that will be deleted once done; the page is the reference.
 - In update mode, rewrite history notes only inside sections you are already changing, and list the remaining ones in the report, so the diff stays reviewable.
 
@@ -139,7 +140,7 @@ python3 scripts/check_docs.py
 
 ## Final report
 
-End with this, in the chat (not in a file):
+End with this, in the chat (not in a file). The final report is the last thing in the answer, with nothing after it. Reason: the coordinator and the user read the end of the answer for status, and trailing text hides it.
 
 ```
 Docs: <created | updated> <paths>
