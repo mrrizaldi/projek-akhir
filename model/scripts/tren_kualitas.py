@@ -90,7 +90,7 @@ def lulus_pertama(syarat):
 def main() -> None:
     paths = sys.argv[1:]
     if not paths:
-        sys.exit("usage: python scripts/tren_kualitas.py <session-1-file.csv> [<continuation-file.csv> ...]")
+        sys.exit("usage: python scripts/quality_trend.py <session-1-file.csv> [<continuation-file.csv> ...]")
     mentah = muat_sesi(paths)
     ayun, hum50, ayun_bersih, clipping = nilai_per_detik(mentah)
     n_detik = len(ayun)

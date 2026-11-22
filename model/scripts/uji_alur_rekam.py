@@ -64,7 +64,7 @@ def main():
     print(f"port {port}, start: {st}")
     if st["rekam"] != "0" or st["menu"] != "0" or st["daya"] != "-1":
         sys.exit("Prerequisite: not recording, menu closed, normal power mode (check 's').\n"
-                 "Usage: uji_alur_rekam.py [port]")
+                 "Usage: record_flow_check.py [port]")
     if st["sumber"] != "adc":
         b.kirim("y\n", 2.0)
     lewati0 = b.status()["lewati"]
