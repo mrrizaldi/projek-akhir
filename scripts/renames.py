@@ -1,4 +1,5 @@
 import ast
+import builtins
 import difflib
 import io
 import keyword
@@ -35,6 +36,9 @@ INFO_DIRS = ("laporan/", "presentasi/", ".claude/skills-arsip/")
 ONE_OFF = ("scripts/rename_map.tsv", "scripts/rename_map_scoped.tsv", "scripts/glossary.tsv", "docs/2026-11-22-english-codebase.md")
 C_SUFFIXES = {".cpp", ".h", ".c"}
 FROZEN = {"WIFI_DAFTAR", "BROKER_DAFTAR"}
+BUILTINS = set(dir(builtins))
+DYNAMIC_IMPORTS = {"importlib", "__import__"}
+ATTRIBUTE_FUNCTIONS = {"getattr", "hasattr", "setattr", "delattr"}
 INTROSPECTION = {"locals", "vars", "globals", "dir", "eval", "exec", "__name__", "__qualname__", "__code__", "__dict__", "inspect", "pickle", "joblib", "dill"}
 C_TOKEN = re.compile(r'#include "[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*')
 WORD = re.compile(r"\w+")
@@ -518,6 +522,45 @@ def introspection_hits(tree, names):
     return sorted((names - {"__name__"} | attributes) & INTROSPECTION)
 
 
+def dynamic_access(tree, names):
+    found = sorted(names & DYNAMIC_IMPORTS)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr == "modules" and isinstance(node.value, ast.Name) and node.value.id == "sys":
+            found.append(f"sys.modules:{node.lineno}")
+        elif isinstance(node, ast.Call) and terminal_name(node.func) in ATTRIBUTE_FUNCTIONS:
+            key = node.args[1] if len(node.args) > 1 else None
+            if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
+                found.append(f"{terminal_name(node.func)}:{node.lineno}")
+    return found
+
+
+def imports_module(tree, stem):
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(a.name.rpartition(".")[2] == stem for a in node.names):
+            return True
+        if isinstance(node, ast.ImportFrom) and ((node.module or "").rpartition(".")[2] == stem or any(a.name == stem for a in node.names)):
+            return True
+    return False
+
+
+def pytest_parameters(tree):
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and (node.name.startswith("test") or is_fixture(node)):
+            found |= parameter_names(node)
+    return found
+
+
+def rebound(tree, name):
+    definitions = sum(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.name == name for n in ast.walk(tree))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)) and node.id == name:
+            return True
+        if isinstance(node, ast.arg) and node.arg == name:
+            return True
+    return definitions > 1
+
+
 def shape_problem(old, new):
     if new.startswith("__"):
         return f"{new} starts with a double underscore"
@@ -525,6 +568,8 @@ def shape_problem(old, new):
         return "the leading underscore changes"
     if old.startswith("test") != new.startswith("test"):
         return "the test prefix changes (pytest collection)"
+    if old.startswith("Test") != new.startswith("Test"):
+        return "the Test class prefix changes (pytest collection)"
     return None
 
 
@@ -604,19 +649,26 @@ def scoped_guard(rows_by_file, every_py, load_texts):
         imported_names = {(a.asname or a.name).split(".")[0] for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names}
         external = {name for last, name in imported if last not in repo_stems}
         stem = module_stem(path)
-        importers = {g for g, (their, _) in facts.items() if g != path and any(last == stem for last, _ in their)}
+        importers = {g for g, t in trees.items() if g != path and imports_module(t, stem)}
+        test_parameters = pytest_parameters(tree)
         strings = py_strings(every_py[path]).union(*(py_strings(every_py[g]) for g in importers))
         if any(name == "*" for _, name in imported):
             errors.append(f"SCOPED-STAR-IMPORT {path}: scoped rows need explicit imports")
         introspection = introspection_hits(tree, names[path])
         if introspection:
             errors.append(f"SCOPED-INTROSPECTION {path}: the file uses {introspection}, so no scoped rows")
+        for other in [path, *sorted(importers)]:
+            dynamic = dynamic_access(trees[other], names[other])
+            if dynamic:
+                errors.append(f"SCOPED-DYNAMIC {path}: {other} uses {dynamic}, so no scoped rows")
         for old, new in sorted(active.items()):
             where = f"{path}: {old} -> {new}"
             shape = shape_problem(old, new)
             module_level_name = old in top
             checks = (
                 (new in names[path], "SCOPED-TARGET-TAKEN", f"{new} already appears in the file"),
+                (old in BUILTINS, "SCOPED-BUILTIN", f"{old} is a builtin name"),
+                (old in test_parameters, "SCOPED-PYTEST-PARAM", f"{old} is a parameter of a test or fixture function"),
                 (old not in bound, "SCOPED-UNBOUND", f"{old} is never bound in the file (builtin or external name)"),
                 (old in external, "SCOPED-EXTERNAL-IMPORT", f"{old} is imported from a module outside the repo"),
                 (shape is not None, "SCOPED-SHAPE", shape),
@@ -630,7 +682,7 @@ def scoped_guard(rows_by_file, every_py, load_texts):
             errors += [f"{label} {where}: {reason}" for hit, label, reason in checks if hit]
             for other, line, func in kwargs.get(old, []):
                 callee = func.id if isinstance(func, ast.Name) else None
-                local = other == path and callee not in imported_names and old in accepts.get(callee, set())
+                local = other == path and callee not in imported_names and old in accepts.get(callee, set()) and not rebound(tree, callee)
                 if not local:
                     errors.append(f"SCOPED-KWARG {where}: keyword {old}= at {other}:{line} is not a call to a module-level function of {path}")
             if not module_level_name:
