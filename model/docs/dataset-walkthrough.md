@@ -20,14 +20,14 @@ make prep && make split
 ## 0. The big picture: this is where data stops being "per patient"
 
 ```
-per_record/100.npz  101.npz  ...  (44 file, satu per pasien)
+per_record/100.npz  101.npz  ...  (44 files, one per patient)
         │
-        │  build_split()  ← memilih file berdasar DS1/DS2, BUKAN mengacak beat
+        │  build_split()  ← selects files by DS1/DS2, does NOT shuffle beats
         ▼
 train.npz (DS1, 22 pasien)        test.npz (DS2, 22 pasien)
         │                                  │
         ▼                                  ▼
-   Fase 4-5 latih                    Fase 6 evaluasi (baru boleh disentuh)
+   Phase 4-5 train                   Phase 6 evaluate (only now may be touched)
 ```
 
 Phase 3 **computes nothing**. No filter, no new feature,
@@ -65,7 +65,7 @@ your number looks too good, the first suspicion is that the split leaks.
 
 ```python
 if set(np.unique(train["records"])) & set(np.unique(test["records"])):
-    raise ValueError("record bocor lintas split")
+    raise ValueError("record leaks across splits")
 ```
 
 That check runs on every `make split`. It is cheap, and it closes the only way this
@@ -77,9 +77,13 @@ leakage could get in silently.
 
 ```python
 ds1, ds2, paced = set(DS1), set(DS2), set(PACED_EXCLUDED)
-if ds1 & ds2:                    raise ...   # 1. tidak beririsan
-if (ds1 | ds2) & paced:          raise ...   # 2. paced tidak ikut
-if len(ds1)+len(ds2)+len(paced) != 48: raise ...   # 3. 22+22+4 = 48
+if ds1 & ds2:
+    raise ValueError(f"DS1 ∩ DS2 is not empty: {sorted(ds1 & ds2)}")
+if (ds1 | ds2) & paced:
+    raise ValueError(f"paced record included in split: {sorted((ds1 | ds2) & paced)}")
+total = len(ds1) + len(ds2) + len(paced)
+if total != 48:
+    raise ValueError(f"total records {total}, must be 48")
 ```
 
 It runs **before** any file is opened: if the list is wrong, it fails within
@@ -131,7 +135,7 @@ it cannot be reconstructed, because the beat order has already merged.
 
 ```python
 if not os.path.exists(path):
-    raise FileNotFoundError(f"{path} — jalankan `make prep` dulu")
+    raise FileNotFoundError(f"{path}: run `make prep` first")
 ```
 
 Skipping a missing record would produce a split that is **valid in form
@@ -141,7 +145,7 @@ with the already-printed Chapter 4.
 ### `reshape(-1, WIN_LEN, 1)`
 
 ```python
-"X_morph": np.concatenate(morph).reshape(-1, WIN_LEN, 1)
+"X_morph": np.concatenate(morph).reshape(-1, WIN_LEN, 1).astype(np.float32)
 ```
 
 `Conv1D` in Keras demands the shape `(batch, langkah_waktu, kanal)`. We have
