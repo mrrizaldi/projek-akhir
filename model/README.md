@@ -59,7 +59,7 @@ alur dan alasan ada di walkthrough yang disebut di kolom terakhir.
 | `plot_walkthrough.py` | `python scripts/plot_walkthrough.py 100` | Dua gambar pendamping preprocessing: jalur training (mentah → filter → segmen → z-score) dan kaskade Pan-Tompkins |
 | `bench_pantompkins.py` | `python scripts/bench_pantompkins.py 100` | Sensitivity/precision detektor terhadap anotasi, toleransi ±150 ms (PRD hal. 7-9), pemasangan greedy 1-ke-1 dari sisi anotasi. Detektor TIDAK dipakai segmentasi training |
 | `prep_beats.py` | `make prep` | Fase 0-2 per record → `per_record/<rec>.npz` ([prep-beats](docs/prep-beats-walkthrough.md)) |
-| `build_split.py` | `make split`, `--gabungan` | Fase 3 ([dataset](docs/dataset-walkthrough.md)). `--gabungan` menulis `train_multi.npz`/`test_ds2.npz`/`test_<db>.npz` dan tidak menimpa `train.npz`/`test.npz`, yang tetap dipakai mereproduksi ablasi terkunci |
+| `build_split.py` | `make split`, `--combined` | Fase 3 ([dataset](docs/dataset-walkthrough.md)). `--combined` menulis `train_multi.npz`/`test_ds2.npz`/`test_<db>.npz` dan tidak menimpa `train.npz`/`test.npz`, yang tetap dipakai mereproduksi ablasi terkunci |
 | `train_model.py` | `make train` | Fase 5 ([train](docs/train-walkthrough.md)) |
 | `calibrate_threshold.py` | `python scripts/calibrate_threshold.py` | Kunci threshold di VAL ([evaluate](docs/evaluate-walkthrough.md) §2) |
 | `eval_fp32.py` | `make eval` | Fase 6 di DS2; threshold dipakai apa adanya dari `config.THRESHOLD` |

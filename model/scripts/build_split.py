@@ -41,7 +41,7 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    if "--gabungan" in sys.argv:
+    if "--combined" in sys.argv:
         main_multi()
     else:
         main()

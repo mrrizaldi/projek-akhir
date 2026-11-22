@@ -28,7 +28,7 @@ data/processed/train.npz: data/processed/per_record/.stamp config.py src/dataset
 	$(PY) scripts/build_split.py
 split: data/processed/train.npz  ## rakit train.npz (DS1) & test.npz (DS2)
 split-multi: ## Fase A: train_multi.npz + test_ds2.npz + test_<db>.npz
-	$(PY) scripts/build_split.py --gabungan
+	$(PY) scripts/build_split.py --combined
 
 train: data/processed/train.npz  ## latih model di DS1 → artifacts/model_fp32.keras
 	$(PY) scripts/train_model.py
