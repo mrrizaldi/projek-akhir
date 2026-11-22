@@ -143,7 +143,7 @@ reason that it is obsolete".
 | `~/dev/local-file-links` | `tautan-lokal` | all of it | none (repo skill deleted) |
 | `~/dev/firmware-bounded-limits` | `batas-tidak-diam` | limits on buffers, queues, durations, capacity; slow operations in the loop | PA modules (LittleFS, PSRAM, firmware file names) |
 | `~/dev/indonesian-antislop-writing` | `tulis-tanpa-slop` + `scripts/check_slop.py` | pattern catalog, principles, procedure, checker (script name in English, patterns stay Indonesian) | house rules `laporan/CLAUDE.md`, book paths |
-| `~/dev/kicad-mcp-pcb` | `kicad-pcb-pa` | KiCad 9 MCP flow, Freerouting, reading pads, board check | PA board, nets, `cek_board.py` |
+| `~/dev/kicad-mcp-pcb` | `kicad-pcb-pa` | KiCad 9 MCP flow, Freerouting, reading pads, board check | PA board, nets, `check_board.py` |
 | `~/dev/wordcraft-latex-ingest` | `ingest-word` | flow backup → dry-run → confirm → sync → tidy → build | book paths, `make pdf-bersih`, local branch binary |
 
 Steps per agent:

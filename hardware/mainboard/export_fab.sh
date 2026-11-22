@@ -3,7 +3,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 OUT=fab/gerber
 ZIP=fab/mainboard-gerber-jlcpcb.zip
-/usr/bin/python3 tata_letak.py tuang
+/usr/bin/python3 layout.py tuang
 rm -rf "$OUT" "$ZIP"
 mkdir -p "$OUT"
 kicad-cli pcb export gerbers -o "$OUT/" \

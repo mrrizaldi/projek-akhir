@@ -70,7 +70,7 @@ Long write-ups go in a walkthrough or Bab 4 of the laporan, not here.
 
 - **(13 Oct 2026) PCB rev2: physical check before fabrication.** The design is in
   [`../hardware/mainboard/`](../hardware/mainboard/README.md) (schematic +
-  layout, `cek_board.py` passes). What remains is in the "Yang belum
+  layout, `check_board.py` passes). What remains is in the "Yang belum
   terverifikasi" section of that README: row spacing of the physical DevKit
   headers, module pin order, module mechanical space, breadboard test of the
   D1→VSYS path, battery connector, and the voltage of the switch lamp. Measure
