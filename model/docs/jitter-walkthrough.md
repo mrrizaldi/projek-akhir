@@ -1,7 +1,7 @@
 # Walkthrough jitter — ketahanan terhadap error segmentasi
 
 > **Ruang lingkup:** mengukur error posisi R-peak detektor, mengukur dampaknya pada model, lalu melatih model yang tahan terhadapnya (augmentasi jitter) dan memilih ukuran window lewat ablasi.
-> **Kode terkait:** `scripts/ukur_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
+> **Kode terkait:** `scripts/measure_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
 > **Prasyarat:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Fase 6b)
 
 Fase 6c, di luar PRD. Adaptasi Dias et al. 2021 (*Arrhythmia classification from
@@ -19,7 +19,7 @@ dan memperbaikinya.
                            │                          │
                            └──── selisihnya? ─────────┘
                                       │
-                         scripts/ukur_jitter.py        ← Task 1: UKUR
+                         scripts/measure_jitter.py        ← Task 1: UKUR
                                       │
                        residu_ds1.npy (kolam 50.601 selisih)
                                       │
@@ -58,7 +58,7 @@ lalu ukur.** Mereka menyebutnya *jitter*.
 
 ---
 
-## 2. `scripts/ukur_jitter.py` — jangan pinjam angka orang
+## 2. `scripts/measure_jitter.py` — jangan pinjam angka orang
 
 Paper memakai jitter seragam ±δ dengan δ ≤ 18 sampel (50 ms), diambil dari
 literatur QRS detection. Mereka **tidak punya detektor**, jadi angka pinjaman
@@ -301,7 +301,7 @@ Kolom run-1 berasal dari `artifacts/metrics/ablasi/ablasi_seed42.csv`: batch
 pertama lima varian (`bersih`, `jitter`, `w128`, `w112`, `hos`), semuanya seed
 42, ditulis sebelum `ablasi.py` punya kolom `seed`. Header-nya berbeda dari
 `ablasi.csv`, jadi berkas itu sengaja tidak digabung dan tidak dibaca
-`ringkas_ablasi.py`; ia disimpan sebagai bukti nondeterminisme di atas.
+`summarize_ablation.py`; ia disimpan sebagai bukti nondeterminisme di atas.
 `ablasi.csv` menampung semua run bertanda seed; hapus berkas itu untuk mulai
 bersih. Kolom `menit` mencatat durasi satu proses dari rakit sampai ukur:
 0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit untuk varian mitdb dengan
@@ -512,7 +512,7 @@ menemukan kembali cara mengujinya.
 
 | Skrip | Isi |
 |---|---|
-| `scripts/ukur_jitter.py` | ukur residu penyelarasan di DS1 → CSV, PNG, `residu_ds1.npy` |
+| `scripts/measure_jitter.py` | ukur residu penyelarasan di DS1 → CSV, PNG, `residu_ds1.npy` |
 | `scripts/sweep_jitter.py` | metrik DS2 sebagai fungsi δ (protokol Tabel 3 paper) |
 | `scripts/ablasi.py` | satu varian ujung-ke-ujung → baris di `ablasi.csv` |
 | `tests/test_jitter.py` | sifat `jitter_r` yang kalau rusak bikin hasil bohong |

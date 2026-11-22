@@ -369,7 +369,7 @@ sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
    Hasil: `artifacts/metrics/akuisisi/rekaman_<nama>_detik-<awal>.png`, enam
    baris 10 detik sinyal bandpass 0,5–40 Hz dengan tanda ▼ di setiap R
    terdeteksi, ditambah panel HR per detak. Tanpa `MULAI`,
-   `plot_rekaman.py` menggeser jendela 60 detik tiap 5 detik dan memilih yang
+   `plot_recording.py` menggeser jendela 60 detik tiap 5 detik dan memilih yang
    RR tak wajarnya (< 30 atau > 200 bpm) paling sedikit, lalu yang derau
    > 60 Hz-nya paling kecil relatif terhadap pita EKG. Tanda R memakai
    deteksi Pan-Tompkins yang dikoreksi `PT_DETECTOR_OFFSET` lalu diselaraskan
@@ -451,7 +451,7 @@ alami membuat puncak berikutnya meluruh. Deretan puncak setara = gangguan mesin.
 ### SQI per jendela 10 detik (Orphanidou 2015)
 
 Vonis `analyze_recording.py` berlaku per rekaman sehingga satu menit buruk di
-rekaman 300 detik bisa tersembunyi. `scripts/kualitas_jendela.py` menilai tiap
+rekaman 300 detik bisa tersembunyi. `scripts/window_quality.py` menilai tiap
 jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
 (`laporan/pustaka/orphanidou_2015.pdf`, hlm. 834–836):
 
@@ -463,13 +463,13 @@ jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
    Rerata korelasi ≥ 0,66 (ambang paper: *sensitivity* 94%, *specificity* 97%
    terhadap anotasi manual).
 
-R-peak memakai rantai yang sama dengan grafik (`plot_rekaman.puncak_r`:
+R-peak memakai rantai yang sama dengan grafik (`plot_recording.puncak_r`:
 kompensasi `PT_DETECTOR_OFFSET`, penyelarasan `PT_REFINE_WIN`) pada sinyal
 *bandpass*. Potongan yang terpotong tepi jendela dibuang.
 
 ```bash
 cd model
-.venv/bin/python scripts/kualitas_jendela.py data/recordings/20261022-1256-rekam-001.csv \
+.venv/bin/python scripts/window_quality.py data/recordings/20261022-1256-rekam-001.csv \
   data/recordings/20261022-1256-rekam-002.csv data/recordings/20261022-1257-rekam-003.csv \
   data/recordings/20261022-1257-rekam-004.csv
 ```

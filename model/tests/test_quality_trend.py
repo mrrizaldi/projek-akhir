@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.tren_kualitas import FREK_JALA_HZ, nilai_per_detik, tenang_per_detik
+from scripts.quality_trend import FREK_JALA_HZ, nilai_per_detik, tenang_per_detik
 
 FS = 360
 

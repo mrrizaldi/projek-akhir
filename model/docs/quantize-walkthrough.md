@@ -289,7 +289,7 @@ memisahkan keduanya, dan AUC bilang model INT8 setara.
 
 Dampak INT8 pada aritmia ECG di literatur cenderung terpusat di kelas S (Busia
 2024), jadi selisih agregat bisa menyembunyikan satu kelas yang jatuh. Diukur
-dengan `scripts/metrik_tambahan.py` (1 Nov 2026, *threshold* 0,80):
+dengan `scripts/extra_metrics.py` (1 Nov 2026, *threshold* 0,80):
 
 | *Recall* | Float32 | INT8 | Delta |
 |---|---|---|---|

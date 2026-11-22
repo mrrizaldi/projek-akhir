@@ -7,7 +7,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import METRICS_DIR
 from scripts.analyze_recording import analisis_segmen, muat
-from scripts.plot_rekaman import puncak_r
+from scripts.plot_recording import puncak_r
 
 JENDELA_SQI_S = 10
 HR_MIN_BPM, HR_MAKS_BPM = 40, 180

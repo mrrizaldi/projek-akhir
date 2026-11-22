@@ -13,12 +13,12 @@ data-semua: ## + svdb & incartdb (Fase A, ~1 GB) -> data/raw/<db>/
 check: ## cek kelengkapan .hea/.dat/.atr
 	$(PY) scripts/check_dataset.py
 plot0: ## verifikasi Fase 0 — overlay R-peak anotasi (REC=<record>, bawaan 100)
-	$(PY) scripts/plot_fase0.py $(REC)
+	$(PY) scripts/plot_phase0.py $(REC)
 
 plot1: ## verifikasi Fase 1a — raw vs bandpass (domain waktu + PSD)
-	$(PY) scripts/plot_fase1.py $(REC)
+	$(PY) scripts/plot_phase1.py $(REC)
 plot1seg: ## verifikasi Fase 1b — segmentasi + z-score per window
-	$(PY) scripts/plot_fase1_segment.py $(REC)
+	$(PY) scripts/plot_phase1_segment.py $(REC)
 
 data/processed/per_record/.stamp: config.py src/preprocessing.py src/features_rr.py
 	$(PY) scripts/prep_beats.py && touch $@
@@ -42,11 +42,11 @@ export: ## salin artefak ke firmware/ & laporan/
 pull: ## tarik rekaman dari board (N=nomor, bawaan terakhir) -> data/recordings/<tanggal-jam>.csv
 	$(PY) scripts/pull_recording.py $(N)
 pull-daya: ## tarik hasil tangga daya mandiri (N=nomor, bawaan terakhir) -> artifacts/metrics/daya/
-	$(PY) scripts/pull_daya.py $(N)
+	$(PY) scripts/pull_power.py $(N)
 analisis: ## analisis rekaman: make analisis FILE=data/recordings/xxx.csv [JUDUL="judul grafik"]
 	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE))) $(if $(JUDUL),"$(JUDUL)")
 grafik: ## grafik EKG 60 detik terbaik: make grafik FILE=data/recordings/xxx.csv [MULAI=detik]
-	$(PY) scripts/plot_rekaman.py $(FILE) $(if $(MULAI),--start $(MULAI))
+	$(PY) scripts/plot_recording.py $(FILE) $(if $(MULAI),--start $(MULAI))
 broker-info: ## SSID WiFi, IP LAN, port 1883/8080, saran entri wifi_secrets.h
 	$(PY) scripts/broker_info.py
 

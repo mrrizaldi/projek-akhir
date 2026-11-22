@@ -294,7 +294,7 @@ DS2 (rerata 3 seed), termasuk LR tengah 3e-4:
 3e-4 justru paling buruk di S, jadi tidak ada titik tengah yang memuaskan
 keduanya: menurunkan LR menurunkan S dan menaikkan yang lain. Defisit S
 terbukti nyata di titik operasi yang setara (6 dari 6 titik,
-`scripts/cek_titik_operasi.py`), bukan artefak threshold. **LR tetap 1e-3.**
+`scripts/check_operating_point.py`), bukan artefak threshold. **LR tetap 1e-3.**
 
 Recall per kelas pada recall total yang disamakan (seed 42):
 

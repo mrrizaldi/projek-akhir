@@ -148,7 +148,7 @@ berjumlah 89%. Dua metrik pelengkap, dihitung dengan numpy di `src/evaluate.py`:
   sel *confusion matrix*. Penyebut nol → 0,0 (sama dengan kebijakan
   pembagian-nol `binary_metrics`).
 
-Hasil DS2 (`scripts/metrik_tambahan.py`, 1 Nov 2026):
+Hasil DS2 (`scripts/extra_metrics.py`, 1 Nov 2026):
 
 | | Float32 | INT8 |
 |---|---|---|
@@ -258,7 +258,7 @@ diceritakan.
 
 ### Tahap 2: menamai aritmia (dieksperimenkan, tidak dikirim)
 
-`scripts/tahap2.py` menguji aturan penamaan di atas keputusan biner. Tahap 2
+`scripts/second_stage_rules.py` menguji aturan penamaan di atas keputusan biner. Tahap 2
 tidak dilatih dan tidak masuk `model_int8.h`; dia aturan skalar atas beat yang
 sudah ditandai tahap 1, jadi tidak bisa mengubah F1, hanya mengganti nama TP/FP
 yang sudah ada. Plafonnya recall tahap 1. Dua sumbu saja:

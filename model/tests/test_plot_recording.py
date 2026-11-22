@@ -1,7 +1,7 @@
 import numpy as np
 
 from scripts.analyze_recording import analisis_segmen
-from scripts.plot_rekaman import pilih_jendela
+from scripts.plot_recording import pilih_jendela
 
 FS = 360
 DETIK = 150

@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.kualitas_jendela import (
+from scripts.window_quality import (
     AMBANG_KORELASI_TEMPLATE, JEDA_RR_MAKS_S, JENDELA_SQI_S, nilai_jendela,
 )
 

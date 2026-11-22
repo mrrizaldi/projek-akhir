@@ -613,7 +613,7 @@ menghapusnya dan mengembalikan sumber ke ADC; board harus tidak merekam, menu
 tertutup, mode daya normal):
 
 ```
-cd model && .venv/bin/python scripts/uji_alur_rekam.py [/dev/ttyACM0]
+cd model && .venv/bin/python scripts/record_flow_check.py [/dev/ttyACM0]
 ```
 
 Port bawaan: `ECG_PORT`, atau `/dev/ttyACM*` pertama. Skrip menunggu hingga

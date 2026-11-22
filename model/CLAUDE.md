@@ -177,7 +177,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | `sklearn` untuk class weight | **tidak dipakai** — 3 baris numpy | rumus `balanced` cuma `N/(2·n_c)`; gate point CLAUDE.md: jangan tambah dependency (apalagi sebesar sklearn) untuk yang beberapa baris sudah selesai |
 | Monitor EarlyStopping | **`val_auc`** (mode max, patience 8, `restore_best_weights`) | `val_recall` bisa dicurangi (tebak Aritmia semua → recall 1,0); `val_loss` sudah terdistorsi `class_weight` jadi tak lagi bisa ditafsir; AUC bebas threshold & tak bisa dipalsukan satu kelas |
 | Metrik yang dipantau | **recall, precision, AUC** — accuracy TIDAK | accuracy 89,9% bisa dicapai dengan menebak Normal terus; menampilkannya cuma mengundang salah baca |
-| Learning rate | **default adam (1e-3)** — diablasi, tetap | Dengan 1e-3 `val_auc` memuncak di epoch 0 lalu turun monoton — model produksi adalah hasil SATU epoch, 8 epoch sisanya terbuang. Diablasi 3 LR × 3 seed + 39 pasien held-out: 1e-4 menaikkan AUC di 4/4 set evaluasi, TEST-C F1 +0,124, recall F dua kali lipat (0,180→0,359), recall V naik — **tapi recall S turun 0,4473→0,3126**. 3e-4 lebih buruk lagi di S (0,2024), jadi tidak ada titik manis di tengah. Defisit S diverifikasi NYATA di titik operasi setara (6/6 titik, `scripts/cek_titik_operasi.py`) — bukan artefak threshold. Dipertahankan karena **S adalah fokus penelitian ini** dan ongkos pindah (regen `model_int8.h`+`golden_ref.h`, validasi ulang board) besar. Pertukaran ini DILAPORKAN, bukan disembunyikan. Knob `ablasi.py --lr` ditinggal. Detail: `docs/train-walkthrough.md` §6b |
+| Learning rate | **default adam (1e-3)** — diablasi, tetap | Dengan 1e-3 `val_auc` memuncak di epoch 0 lalu turun monoton — model produksi adalah hasil SATU epoch, 8 epoch sisanya terbuang. Diablasi 3 LR × 3 seed + 39 pasien held-out: 1e-4 menaikkan AUC di 4/4 set evaluasi, TEST-C F1 +0,124, recall F dua kali lipat (0,180→0,359), recall V naik — **tapi recall S turun 0,4473→0,3126**. 3e-4 lebih buruk lagi di S (0,2024), jadi tidak ada titik manis di tengah. Defisit S diverifikasi NYATA di titik operasi setara (6/6 titik, `scripts/check_operating_point.py`) — bukan artefak threshold. Dipertahankan karena **S adalah fokus penelitian ini** dan ongkos pindah (regen `model_int8.h`+`golden_ref.h`, validasi ulang board) besar. Pertukaran ini DILAPORKAN, bukan disembunyikan. Knob `ablasi.py --lr` ditinggal. Detail: `docs/train-walkthrough.md` §6b |
 | Dropout Dense 16 | **0.0 (tanpa dropout)** — diablasi | val recall: 0.0→**0,700**, 0.2→0,274, 0.3→0,359, 0.5→0,651 (AUC nyaris sama semua). Dropout cuma bikin model makin konservatif — precision naik, recall turun, padahal recall yang kurang. Overfit di sini akar masalahnya variasi antar-pasien, bukan model kegedean |
 | Tipe I/O INT8 | **int8 in / int8 out** (`INT8_IO=True`) | full-INT8 end-to-end: nol kernel float, tensor arena terkecil. Firmware yang mengubah float↔int8 pakai scale/zero_point dari `model_int8.h` (jangan hardcode) |
 | Sampel kalibrasi PTQ | **300, stratified dari DS1**, seed dikunci | PRD 100-500; 300 → 30 beat Aritmia, cukup mencakup ekor distribusi, konversi tetap detikan. Stratified supaya JEBAKAN #4 (kelas minoritas tak terkalibrasi) mustahil terjadi |
@@ -200,7 +200,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | `RR+1` / tunda 1 beat (G2) | **TIDAK dipakai** — tapi sudah diimplementasikan | Karena `PA_RR_RATIO` tidak dikunci, firmware tidak menunda beat. Kalau nanti diaktifkan: `ecg_live.cpp` menilai `idx_hist-1`, buffer TIDAK berubah (r_hist[16] sudah memuat RR+1, ring 4 detik cukup), plus `ECG_LIVE_TIMEOUT` 3 detik untuk asistol dengan sentinel rasio 1,0 |
 | `MAX_RHYTHM_SCALE` | **0,05** — assert di `quantize_int8` | Skala INT8 tensor ritme diturunkan dari min/max 300 sampel kalibrasi. Satu beat ber-RR ekstrem di sana (record 207: RR_prev = 100 s) melebarkan skala ~30x dan RR normal tinggal beberapa level → cabang ritme MATI, dan gejalanya "recall S buruk", bukan error. Peluang 1,8%/seed. Nilai sehat 0,0129. Diuji dua arah |
 | Strategi imbalance (K1 diuji) | **`class_weight` balanced TETAP** | P1 Tabel 4 memprediksi precision +31 poin kalau dimatikan; terukur **+0,3 poin**. Sebabnya kalibrasi threshold di HILIR menyerap efeknya (threshold 0,40 → 0,15). Pelajaran: ablasi paper yang sah pun tak transfer kalau ada langkah adaptif yang mereka tidak punya. G1 DITUTUP atas dasar ablasi sendiri |
-| Tahap 2 (penamaan V/S) | **TIDAK dikirim** | Aturan lebar QRS mencapai presisi nama V 91,7% di DS2, tapi VAL maksimum cuma 43,9% — 5 pasien tidak mewakili keragaman morfologi V. §7 no.4 melarang DS2 mensertifikasi. `scripts/tahap2.py` menegakkannya sendiri: tanpa ambang yang lolos, tidak ada nama ditampilkan |
+| Tahap 2 (penamaan V/S) | **TIDAK dikirim** | Aturan lebar QRS mencapai presisi nama V 91,7% di DS2, tapi VAL maksimum cuma 43,9% — 5 pasien tidak mewakili keragaman morfologi V. §7 no.4 melarang DS2 mensertifikasi. `scripts/second_stage_rules.py` menegakkannya sendiri: tanpa ambang yang lolos, tidak ada nama ditampilkan |
 | Library TFLM | **`spaziochirale/Chirale_TensorFLowLite`** 2.0.0 | rilis terbaru di registry PlatformIO, jalan dgn framework Arduino. Kernel referensi (belum ESP-NN) → 26 ms/detak jadi baseline; pindah `esp-tflite-micro` kalau daya jadi kendala |
 | Board PlatformIO | **`4d_systems_esp32s3_gen4_r8n16`** | bukan tebakan — id dari projek uji yang sudah pernah ter-flash & jalan di hardware ini |
 | Segmentasi on-device | **kompensasi 38 + penyelarasan puncak ±25 + kurangi group delay 4** | tanpa salah satunya R tidak mendarat di `WIN_PRE+4` (= **132**) dan precision jatuh 4× (0,479→0,124); offset dikalibrasi di DS1 |
@@ -331,8 +331,8 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   menyentuh DTR/RTS tidak me-reset 3 dari 3 kali dan sesi rekam bertahan
   (n 1.450 → 3.461 antar dua pembukaan). `make pull` memakai pola bawaan, jadi
   aman. Pola DTR/RTS False dipakai hanya bila boot bersih memang diinginkan
-  (`measure_power.py` menunggu `MONITOR ARITMIA SIAP`; `pull_daya.py` dan
-  `uji_alur_rekam.py` menunggu board menjawab). Setelah membuka port,
+  (`measure_power.py` menunggu `MONITOR ARITMIA SIAP`; `pull_power.py` dan
+  `record_flow_check.py` menunggu board menjawab). Setelah membuka port,
   **verifikasi state** dari balasan board (`replay ON`, `rekam=1`, ayunan di
   `s`), jangan diasumsikan.
 - **Tanpa elektroda, alat mengarang aritmia: ~2 beat/detik, 57% "ARITMIA".**
@@ -427,7 +427,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 - **`import config` gagal dari `scripts/`.** Gejala: `ModuleNotFoundError` walau
   dijalankan dari `model/`. Sebab: `python scripts/x.py` menaruh `scripts/` di
   `sys.path[0]`, bukan cwd. Hindari: shim 1 baris `sys.path.insert` (lihat
-  `scripts/plot_fase0.py`); `conftest.py` sudah menangani sisi pytest.
+  `scripts/plot_phase0.py`); `conftest.py` sudah menangani sisi pytest.
 
 ## Kanal knowledge
 

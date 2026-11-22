@@ -40,12 +40,12 @@ Metode verifikasi tiga di atas: skrip memindai semua prototipe di `include/*.h` 
 | model/scripts/prep_beats.py:72 | fungsi tak dipanggil `available_records(raw_dir=RAW_DIR)` | `grep -rn available_records` di model/ dashboard/ scripts/ hanya definisi (satu hit). Hanya membungkus `available_records("mitdb")`, parameter `raw_dir` malah diabaikan. Setelah dihapus, impor `RAW_DIR` di berkas yang sama mungkin ikut tak terpakai (periksa). | hapus | nol |
 | model/scripts/prep_beats.py:10 | import tidak terpakai `PACED_EXCLUDED` | `grep -nw PACED_EXCLUDED scripts/prep_beats.py` hanya baris import | hapus dari import | nol |
 | model/scripts/bench_pantompkins.py:11 | import `FS` | grep -nw FS: hanya baris 11 | hapus | nol |
-| model/scripts/plot_fase0.py:11 | import `FS` | grep -nw FS: hanya baris 11 | hapus | nol |
+| model/scripts/plot_phase0.py:11 | import `FS` | grep -nw FS: hanya baris 11 | hapus | nol |
 | model/scripts/check_poc.py:5 | import `numpy as np` | grep -nw np: baris 5 dan satu string literal baris 40 (`"np.random.seed(SEED)"`), bukan pemakaian | hapus | nol |
 | model/scripts/check_poc.py:11 | import `PROCESSED_DIR`, `THRESHOLD` | grep -nw: hanya baris 11 | hapus | nol |
 | model/scripts/export_golden.py:11,14 | import `ALIGN_WIN`, `BANDPASS_LOW`, `BANDPASS_HIGH`, `BANDPASS_ORDER` | grep -nw tiap nama: hanya baris import (4 nama) | hapus | nol; generator bandpass memakai `src.preprocessing` |
 | model/scripts/sweep_jitter.py:14 | import `USE_HOS` | grep -nw USE_HOS: hanya baris 14 | hapus | nol |
-| model/scripts/cek_fp.py:53 | import `tensorflow as tf` (lokal dalam `main`) | `grep -n "keras\|tf\b" scripts/cek_fp.py`: `tf` tidak dipakai; `keras` dipakai baris 62 lewat `from tensorflow import keras` | hapus baris `import tensorflow as tf` saja | nol |
+| model/scripts/check_fp.py:53 | import `tensorflow as tf` (lokal dalam `main`) | `grep -n "keras\|tf\b" scripts/check_fp.py`: `tf` tidak dipakai; `keras` dipakai baris 62 lewat `from tensorflow import keras` | hapus baris `import tensorflow as tf` saja | nol |
 
 ## model/tests
 
@@ -56,8 +56,8 @@ Metode verifikasi tiga di atas: skrip memindai semua prototipe di `include/*.h` 
 ## scripts/, dashboard/, presentasi/
 
 Tidak ada temuan. Cek yang dijalankan:
-- Rujukan per berkas: untuk tiap `scripts/*`, `dashboard/*.py`, `model/scripts/*.py` dijalankan `git grep -l -w <nama> ... ':!laporan' ':!docs/arsip'`; semua punya rujukan di README/Makefile/skill/CI/dokumen aktif. Yang hanya dirujuk satu README: `cek_fp`, `cek_kalibrasi`, `cek_lead`, `ringkas_ablasi`, `plot_walkthrough`, `ukur_jitter`, `tahap2`, `cek_docx` (didokumentasikan sebagai alat yang dijalankan user, jadi dipertahankan).
-- Flag argparse tanpa pembaca: pemindai menandai `--mulai/--durasi` (plot_rekaman) dan `--kertas/--ketat/--hanya-galat/--tanpa-prosa/--uji` (cek_tabel); diperiksa manual, semuanya terbaca lewat nama variabel lain (`arg.kertas`, `mulai_s`, dst.). Positif palsu.
+- Rujukan per berkas: untuk tiap `scripts/*`, `dashboard/*.py`, `model/scripts/*.py` dijalankan `git grep -l -w <nama> ... ':!laporan' ':!docs/arsip'`; semua punya rujukan di README/Makefile/skill/CI/dokumen aktif. Yang hanya dirujuk satu README: `check_fp`, `check_calibration`, `check_lead`, `summarize_ablation`, `plot_walkthrough`, `measure_jitter`, `second_stage_rules`, `cek_docx` (didokumentasikan sebagai alat yang dijalankan user, jadi dipertahankan).
+- Flag argparse tanpa pembaca: pemindai menandai `--mulai/--durasi` (plot_recording) dan `--kertas/--ketat/--hanya-galat/--tanpa-prosa/--uji` (cek_tabel); diperiksa manual, semuanya terbaca lewat nama variabel lain (`arg.kertas`, `mulai_s`, dst.). Positif palsu.
 - Fungsi Python tak dipanggil (nama muncul hanya sekali di seluruh `*.py` yang ter-track): hanya `available_records`. Fungsi dengan dua kemunculan (def + satu panggilan) tidak dianggap mati.
 - `deck.js` (2 berkas): semua helper `const` dipakai > 1 kali.
 
@@ -66,9 +66,9 @@ Tidak ada temuan. Cek yang dijalankan:
 | path | jenis | bukti | usulan | risiko |
 |---|---|---|---|---|
 | hardware/mainboard.zip | arsip biner ter-track, tidak dirujuk | `git grep -F mainboard.zip -- . ':!laporan' ':!docs/arsip'` kosong. `unzip -l`: salinan 16 Okt 2026 berisi `.mcp-backups/`, `mainboard-backups/`, `mainboard.dsn`, `fp-info-cache`, `.kicad_pcb` lama (520 KB). Isinya sudah ada (versi terbaru) di `hardware/mainboard/`. Commit pembawanya: 2410147 "arsip mainboard". | pindah ke arsip atau hapus bila tidak dibutuhkan (git menyimpan riwayat); kebijakan repo memakai `git mv` ke `hardware/arsip/` | rendah; berisi backup kerja lama, bukan sumber |
-| model/artifacts/metrics/jitter/residu_ds1.npy | `.npy` intermediate ter-track | ditulis `ukur_jitter.py:142`; dibaca (dirujuk) `model/CLAUDE.md`, `model/README.md`, `jitter-walkthrough.md` sebagai masukan `PA_JITTER=empiris`. | pertahankan: dibaca model pada jitter empiris, bukan hasil buang | alasan mempertahankan; kebijakan B1 hanya mengecualikan `.npz` |
+| model/artifacts/metrics/jitter/residu_ds1.npy | `.npy` intermediate ter-track | ditulis `measure_jitter.py:142`; dibaca (dirujuk) `model/CLAUDE.md`, `model/README.md`, `jitter-walkthrough.md` sebagai masukan `PA_JITTER=empiris`. | pertahankan: dibaca model pada jitter empiris, bukan hasil buang | alasan mempertahankan; kebijakan B1 hanya mengecualikan `.npz` |
 | model/artifacts/metrics/ablasi/ablasi_seed42.csv | CSV arsip tak dirujuk dokumen aktif | `git grep -n ablasi_seed42 -- model`: hanya `model/docs/arsip/...robustness-changelog.md` ("arsip batch pertama"). Tidak ditulis oleh skrip mana pun. | pindah ke `model/artifacts/arsip/` atau hapus | rendah |
-| model/artifacts/metrics/{pantompkins_114,fase0_114,fase1_114}.png | figure kembaran record 114 | tak dirujuk dokumen aktif (`git grep pantompkins_114 fase0_114 fase1_114` kosong); dibangkitkan ulang oleh `bench_pantompkins.py`, `plot_fase0.py`, `plot_fase1.py` (`make plot0/plot1`). | pertahankan: figure final B1 (versi `_100` dirujuk buku); tinjau bila ingin mengurangi | rendah |
+| model/artifacts/metrics/{pantompkins_114,fase0_114,fase1_114}.png | figure kembaran record 114 | tak dirujuk dokumen aktif (`git grep pantompkins_114 fase0_114 fase1_114` kosong); dibangkitkan ulang oleh `bench_pantompkins.py`, `plot_phase0.py`, `plot_phase1.py` (`make plot0/plot1`). | pertahankan: figure final B1 (versi `_100` dirujuk buku); tinjau bila ingin mengurangi | rendah |
 
 Catatan: `model/artifacts/metrics/akuisisi/akuisisi_device.png` (untracked pada gitStatus) tidak termasuk audit.
 

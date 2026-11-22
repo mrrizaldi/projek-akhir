@@ -231,7 +231,7 @@ terpisah untuk generalisasi antar-database. `load_record(db="mitdb")` dijaga
 
 **`leads`.** Dipilih lead pertama yang tersedia. mitdb MLII = acuan alat
 (AD8232 lead II). incartdb `II` paling dekat dengannya. svdb (Holter) tidak
-menamai lead, jadi `ECG1` dipakai; polaritasnya diverifikasi `scripts/cek_lead.py`
+menamai lead, jadi `ECG1` dipakai; polaritasnya diverifikasi `scripts/check_lead.py`
 (gate A2: 8/8 record svdb positif di R).
 
 **`selaraskan` dan `ALIGN_WIN = 16`.** Konvensi anotasi antar-database berbeda.
@@ -257,7 +257,7 @@ sini terlalu lebar. Terukur pada audit Fase A, 1.133 dari 48.630 beat database
 baru (2,33%) ingin bergeser ≥ 16 sampel dan terpotong di batas jendela; itu
 diterima, karena melebarkan jendela membuat `argmax` bisa melompat ke gelombang
 T, dan sisa geseran itu masih di dalam sebaran yang dilatih augmentasi jitter.
-`cek_lead.py` membaca polaritas dari kolom "mentah" dan
+`check_lead.py` membaca polaritas dari kolom "mentah" dan
 alignment dari kolom "selaras"; kolom "selaras" tidak boleh memvonis polaritas
 karena `align_r` memakai argmax bertanda yang memaksa nilai di R positif.
 

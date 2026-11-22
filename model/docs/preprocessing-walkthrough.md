@@ -1,7 +1,7 @@
 # Walkthrough `src/preprocessing.py` — Fase 1
 
 > **Ruang lingkup:** bandpass kausal, detektor Pan-Tompkins, segmentasi per detak, dan normalisasi z-score per window.
-> **Kode terkait:** `src/preprocessing.py`, `config.py` (`BANDPASS_*`, `PT_*`, `WIN_PRE`, `WIN_POST`), `scripts/plot_fase1.py`, `scripts/plot_fase1_segment.py`, `scripts/bench_pantompkins.py`, `scripts/plot_walkthrough.py`
+> **Kode terkait:** `src/preprocessing.py`, `config.py` (`BANDPASS_*`, `PT_*`, `WIN_PRE`, `WIN_POST`), `scripts/plot_phase1.py`, `scripts/plot_phase1_segment.py`, `scripts/bench_pantompkins.py`, `scripts/plot_walkthrough.py`
 > **Prasyarat:** [`io-mitdb-walkthrough.md`](io-mitdb-walkthrough.md)
 
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
@@ -375,8 +375,8 @@ delay deteksi median = 40 sampel = 111 ms
 
 | Perintah | Melihat apa |
 |---|---|
-| `python scripts/plot_fase1.py 100` | Domain waktu + spectrogram + PSD sebelum/sesudah filter |
-| `python scripts/plot_fase1_segment.py 100` | 8 window, sebelum vs sesudah z-score |
+| `python scripts/plot_phase1.py 100` | Domain waktu + spectrogram + PSD sebelum/sesudah filter |
+| `python scripts/plot_phase1_segment.py 100` | 8 window, sebelum vs sesudah z-score |
 | `python scripts/bench_pantompkins.py 100` | Deteksi vs anotasi + Se/P+ |
 | `python scripts/plot_walkthrough.py 100` | Dua gambar di dokumen ini |
 

@@ -181,7 +181,7 @@ Beban alarm palsu pembanding: FPR 5,21% (2.302 FP dari 2.302 + 41.904 beat norma
 | K8 kelas F dan Q tetap di biner | dikonfirmasi | recall F sempurna pun hanya +0,037 F1 (di bawah ambang); hanya S yang bisa menggerakkan angka utama (+0,113) | — |
 | K9 tanpa sklearn (mutual information) | dikonfirmasi | gate dependency; peringkat paper dipakai sebagai hipotesis, divalidasi `ablasi.py` | — |
 | K10 PTQ, bukan QAT | dikonfirmasi | PTQ lolos target; ranjau skala ritme ditutup assert `MAX_RHYTHM_SCALE` | — |
-| T5 aturan k-dari-n | gugur | 65,3% beat aritmia DS2 kejadian tunggal; k ≥ 2 membuang 87% TP dan menyimpan FP yang bergerombol (`cek_fp.py`) | — |
+| T5 aturan k-dari-n | gugur | 65,3% beat aritmia DS2 kejadian tunggal; k ≥ 2 membuang 87% TP dan menyimpan FP yang bergerombol (`check_fp.py`) | — |
 | T5b gerbang kualitas sinyal untuk klasifikasi | dihentikan di `model/` | MIT-BIH terlalu bersih untuk mengalibrasi ambang kualitas; gerbang kualitas hidup di firmware ([mqtt](mqtt-walkthrough.md) §3.1) | — |
 | T6 augmentasi skala/warp, volume per teknik | dihentikan | paling jauh dari akar masalah; selisih antar-teknik di bawah lantai derau | — |
 | T7 rata-rata bobot (`--swa`) | gugur | F1 DS2 0,6911 → 0,6346; di LR 1e-3 tidak ada dataran untuk dirata-rata ([train](train-walkthrough.md) §6b) | diuji di LR 1e-4 |
@@ -190,8 +190,8 @@ Beban alarm palsu pembanding: FPR 5,21% (2.302 FP dari 2.302 + 41.904 beat norma
 | T12 learning rate 1e-4 | jadi, tidak dikunci | AUC naik 4/4 set, TEST-C F1 +0,124, recall F dua kali lipat, tetapi recall S 0,4473 → 0,3126, nyata di titik operasi setara ([train](train-walkthrough.md) §6b) | keputusan user mengubah fokus kelas |
 | Database latih + svdb / + incartdb | gugur (mitdb saja) | svdb +0,076 recall S tetapi precision turun; incartdb AUC 0,8881 dan recall S 0,331; gabungannya saling meniadakan ([dataset](dataset-walkthrough.md) §4) | — |
 | Gate A3: subsample beat F record 208 | ditolak | plafon F sempurna +0,037 di bawah ambang; recall F rendah karena cakupan pasien, bukan bobot gradien | — |
-| Set kalibrasi threshold lebih besar (+svdb, +incartdb) | tidak dipakai | celah F1 terhadap optimum DS2 menyempit 0,034–0,068 → 0,014–0,020 (`cek_kalibrasi.py`, satu seed), tetapi memakai held-out untuk kalibrasi menghapus perannya sebagai TEST-B/TEST-C | held-out dipecah kalibrasi/uji, keputusan user |
-| Tahap 2 penamaan V/S | tidak dikirim | presisi nama V 91,7% di DS2, maksimum 43,9% di VAL; DS2 tidak boleh mensertifikasi (`tahap2.py`) | VAL yang mewakili keragaman morfologi V |
+| Set kalibrasi threshold lebih besar (+svdb, +incartdb) | tidak dipakai | celah F1 terhadap optimum DS2 menyempit 0,034–0,068 → 0,014–0,020 (`check_calibration.py`, satu seed), tetapi memakai held-out untuk kalibrasi menghapus perannya sebagai TEST-B/TEST-C | held-out dipecah kalibrasi/uji, keputusan user |
+| Tahap 2 penamaan V/S | tidak dikirim | presisi nama V 91,7% di DS2, maksimum 43,9% di VAL; DS2 tidak boleh mensertifikasi (`second_stage_rules.py`) | VAL yang mewakili keragaman morfologi V |
 | Normalisasi window diganti | ditarik | rujukan (Frontiers Digit Health 2026) bocor lewat jendela baseline yang tumpang tindih dengan set uji; z-score di sini dihitung dari window itu sendiri sehingga mekanisme itu tidak ada | — |
 | Test-time adaptation (BeatRhythm-TTA) | ditolak | butuh backprop saat inferensi pada 12-lead; tidak bisa dipasang di ESP32-S3 | — |
 | Augmentasi GAN / BiLSTM | ditolak | teknik 6–7 Khosravi Khaliran 2024; biaya latih dan dependensi tidak sebanding dengan selisih di bawah lantai derau | — |
@@ -216,7 +216,7 @@ ke titik awal. Tanpa sel keempat (mitdb + fitur baru), kesimpulannya salah dua k
 Fitur baru di mitdb+svdb membuat recall S lebih andal (±0,156 → ±0,058), bukan
 lebih tinggi.
 
-Asal FP di DS2 (`cek_fp.py`, 2.302 FP): 2 record menyumbang 56,6%, 8 record
+Asal FP di DS2 (`check_fp.py`, 2.302 FP): 2 record menyumbang 56,6%, 8 record
 92,4%. Per simbol: N 1.568 (FPR 0,043), L/LBBB 536 (FPR 0,130), R/RBBB 187
 (FPR 0,054). L+R = 31,4% FP: beat yang AAMI sebut Normal tetapi QRS-nya lebar
 seperti ventrikular. Record 222 (FPR 0,344) gagal lewat cabang ritme (ritme
@@ -231,16 +231,16 @@ berpindah bila tidak ada langkah adaptif di antara knob dan metrik.
 
 | Skrip | Untuk apa |
 |---|---|
-| `scripts/cek_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar. Knob `PA_CEK_REC` = jumlah rekaman per basis data (bawaan 8), mis. `PA_CEK_REC=20 python scripts/cek_lead.py` dari folder `model/` |
-| `scripts/cek_kalibrasi.py` | Seberapa jauh kalibrasi VAL dari optimum DS2. DS2 mendiagnosis, TIDAK memilih |
-| `scripts/tahap2.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL hanya dapat mensertifikasi presisi 43,9% |
+| `scripts/check_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar. Knob `PA_CEK_REC` = jumlah rekaman per basis data (bawaan 8), mis. `PA_CEK_REC=20 python scripts/check_lead.py` dari folder `model/` |
+| `scripts/check_calibration.py` | Seberapa jauh kalibrasi VAL dari optimum DS2. DS2 mendiagnosis, TIDAK memilih |
+| `scripts/second_stage_rules.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL hanya dapat mensertifikasi presisi 43,9% |
 | `scripts/ablasi.py --db` | Latih multi-database. Bawaan `mitdb` = jalur terkunci, byte-identik |
 | `PA_QRSW=1` `PA_RR_RATIO=1` | Knob fitur Fase D. Tanpa env, nilainya sama dengan konfigurasi terkunci |
-| `scripts/cek_fp.py` | Asal 2.302 FP: sebaran per record, panjang run TP vs FP, FP per simbol. Dasar gugurnya aturan k-dari-n |
-| `scripts/ringkas_ablasi.py` | Rerata ± setengah-rentang per tag + vonis ambang 0,04, sehingga §7 tidak dihitung tangan |
+| `scripts/check_fp.py` | Asal 2.302 FP: sebaran per record, panjang run TP vs FP, FP per simbol. Dasar gugurnya aturan k-dari-n |
+| `scripts/summarize_ablation.py` | Rerata ± setengah-rentang per tag + vonis ambang 0,04, sehingga §7 tidak dihitung tangan |
 | `scripts/ablasi.py --swa N` | Knob T7: rata-rata bobot N epoch ber-`val_auc` terbaik. Bawaan 0 = jalur terkunci |
 | `scripts/ablasi.py --lr`, `--cross-db` | Knob T12 (learning rate) dan T8 (evaluasi TEST-B/TEST-C, 39 pasien held-out) |
-| `scripts/cek_titik_operasi.py` | Verifikasi pertukaran recall S pada titik operasi setara |
+| `scripts/check_operating_point.py` | Verifikasi pertukaran recall S pada titik operasi setara |
 
 ---
 

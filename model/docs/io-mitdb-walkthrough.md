@@ -1,7 +1,7 @@
 # Walkthrough `src/io_mitdb.py` — Fase 0
 
 > **Ruang lingkup:** pemuatan satu record PhysioNet beranotasi-beat menjadi sinyal satu kanal, posisi R-peak, dan simbol beat.
-> **Kode terkait:** `src/io_mitdb.py`, `config.py` (`CHANNEL`, `BEAT_SYMBOLS`, `DATASETS`), `scripts/plot_fase0.py`, `tests/test_io_mitdb.py`
+> **Kode terkait:** `src/io_mitdb.py`, `config.py` (`CHANNEL`, `BEAT_SYMBOLS`, `DATASETS`), `scripts/plot_phase0.py`, `tests/test_io_mitdb.py`
 > **Prasyarat:** —
 
 Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap

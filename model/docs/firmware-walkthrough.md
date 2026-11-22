@@ -737,7 +737,7 @@ Isinya sama dengan `measure_power.py`, dipindah ke `daya.cpp`:
 - Hasil ke `/daya/NNN.csv`, kolom `waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah`;
   `waktu` UTC ISO bila jam NTP sudah tersinkron, selain itu `+<detik uptime>s`.
 
-`make pull-daya` (`scripts/pull_daya.py`) mengirim `v` untuk daftar berkas,
+`make pull-daya` (`scripts/pull_power.py`) mengirim `v` untuk daftar berkas,
 lalu `v<n>` (bawaan: berkas terakhir; `N=<n>` untuk yang lain), menyimpan ke
 `model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv`, dan mengulang
 validasi dengan kriteria `measure_power.py` sehingga penilaian board dan laptop
