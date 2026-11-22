@@ -36,7 +36,7 @@ static int read_number()
 static void status()
 {
     const gate_quality_t &q = gate_quality();
-    const classifier_count_t &h = classifier_count();
+    const classifier_stats_t &h = classifier_stats();
     Serial.printf("status: rekam=%d n=%u | replay=%d | kualitas %s | beat %d "
                   "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u (tick %u) | "
                   "LO %d %d | mentah %d..%d ayun %d clipping %d\n"

@@ -21,10 +21,10 @@ alignas(16) static uint8_t arena[ARENA_N];
 static tflite::MicroInterpreter *interp;
 static TfLiteTensor *in_morph, *in_rr, *output_tensor;
 
-static classifier_count_t h;
+static classifier_stats_t h;
 
-const classifier_count_t &classifier_count(void) { return h; }
-void classifier_reset(void) { h = classifier_count_t{}; }
+const classifier_stats_t &classifier_stats(void) { return h; }
+void classifier_reset(void) { h = classifier_stats_t{}; }
 size_t classifier_arena(void) { return interp->arena_used_bytes(); }
 float classifier_threshold(void) { return ECG_THRESHOLD; }
 

@@ -11,11 +11,11 @@ float classifier_threshold(void);
 
 bool classifier_process(const ecg_beat_t &beat);
 
-struct classifier_count_t {
+struct classifier_stats_t {
     int total, arrhythmia, withheld;
     uint32_t latency_sum, latency_n, latency_max;
 };
-const classifier_count_t &classifier_count(void);
+const classifier_stats_t &classifier_stats(void);
 void classifier_reset(void);
 
 #endif

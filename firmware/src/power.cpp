@@ -19,20 +19,20 @@
 #ifndef POWER_BLOCK
 #define POWER_BLOCK 6
 #endif
-constexpr uint32_t WINDOW_POWER_MS = POWER_WINDOW_MS;
+constexpr uint32_t WINDOW_DURATION_MS = POWER_WINDOW_MS;
 constexpr int SWEEP_N = 6;
 constexpr uint32_t PERIOD_READ_INA219_MS = 100;
 
 static bool ina_present;
-static int mode_power = -1;
+static int current_mode = -1;
 static uint32_t beat_dsp;
 static bool restart_window;
 static void sweep_record(int n, double i, double sd, double v, unsigned beat, unsigned missed);
 
 void power_begin(void) { ina_present = ina219_begin(I2C_SDA, I2C_SCL); }
 bool power_ina_present(void) { return ina_present; }
-int power_mode(void) { return mode_power; }
-bool power_stage(int t) { return mode_power < 0 || mode_power >= t; }
+int power_mode(void) { return current_mode; }
+bool power_stage(int t) { return current_mode < 0 || current_mode >= t; }
 void power_count_beat(void) { beat_dsp++; }
 
 const char *power_ina_text(void)
@@ -50,7 +50,7 @@ void power_set_mode(int m)
 {
     static bool wifi_off;
     if (recorder_reject("mode daya")) return;
-    mode_power = m;
+    current_mode = m;
     acquisition_timer(m != 0);
     if (m >= 0 && m < 5) {
         if (!wifi_off) { ecg_mqtt_set_active(0); esp_wifi_stop(); }
@@ -65,7 +65,7 @@ void power_set_mode(int m)
     }
     restart_window = true;
     if (m < 0) Serial.println("daya: mode normal");
-    else       Serial.printf("daya: mode p%d, jendela %lu s\n", m, (unsigned long)(WINDOW_POWER_MS / 1000));
+    else       Serial.printf("daya: mode p%d, jendela %lu s\n", m, (unsigned long)(WINDOW_DURATION_MS / 1000));
 }
 
 void power_service(void)
@@ -73,7 +73,7 @@ void power_service(void)
     static uint32_t t_read, t_window, beat0, missed0;
     static double sum, sum2, sum_v;
     static int n;
-    if (mode_power < 0 || !ina_present || millis() - t_read < PERIOD_READ_INA219_MS) return;
+    if (current_mode < 0 || !ina_present || millis() - t_read < PERIOD_READ_INA219_MS) return;
     t_read = millis();
     if (restart_window) {
         restart_window = false;
@@ -82,12 +82,12 @@ void power_service(void)
     }
     float mA, V;
     if (ina219_read(R_SHUNT, &mA, &V)) { sum += mA; sum2 += (double)mA * mA; sum_v += V; n++; }
-    if (millis() - t_window < WINDOW_POWER_MS || n == 0) return;
+    if (millis() - t_window < WINDOW_DURATION_MS || n == 0) return;
     const double i = sum / n, v = sum_v / n;
     const double sd = sqrt(fmax(sum2 / n - i * i, 0.0));
     const unsigned beat = beat_dsp - beat0, missed = acquisition_missed() - missed0;
     Serial.printf("DAYA p%d n=%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW beat=%u lewat=%u replay=%d\n",
-                  mode_power, n, i, sd, v, i * v, beat, missed, (int)acquisition_replay());
+                  current_mode, n, i, sd, v, i * v, beat, missed, (int)acquisition_replay());
     sweep_record(n, i, sd, v, beat, missed);
     restart_window = true;
 }
@@ -108,7 +108,7 @@ static uint32_t t_step;
 static int source_start, recording_start;
 static power_row_t results[SWEEP_N];
 static int results_n;
-static int file_last = -1;
+static int last_file_number = -1;
 
 static File open_dir(void)
 {
@@ -128,18 +128,18 @@ int power_sweep_result(power_row_t *out, int max_count)
 
 int power_sweep_file(void)
 {
-    if (file_last >= 0) return file_last;
-    file_last = 0;
+    if (last_file_number >= 0) return last_file_number;
+    last_file_number = 0;
     File d = open_dir();
     if (d && d.isDirectory())
         for (File f = d.openNextFile(); f; f = d.openNextFile())
-            file_last = max(file_last, atoi(f.name()));
-    return file_last;
+            last_file_number = max(last_file_number, atoi(f.name()));
+    return last_file_number;
 }
 
 static void sweep_record(int n, double i, double sd, double v, unsigned beat, unsigned missed)
 {
-    if (step < 0 || mode_power != step) return;
+    if (step < 0 || current_mode != step) return;
     const int k = step_window++;
     Serial.printf("tangga: p%d jendela %d/%d%s\n", step, k + 1, POWER_BLOCK + 1,
                   k ? "" : " (transien, dibuang)");
@@ -164,7 +164,7 @@ static void begin_step(int m)
     step_window = 0;
     t_step = millis();
     Serial.printf("tangga: langkah %d/%d (p%d), buang 1 + ambil %d jendela %lu s\n", m + 1,
-                  SWEEP_N, m, POWER_BLOCK, (unsigned long)(WINDOW_POWER_MS / 1000));
+                  SWEEP_N, m, POWER_BLOCK, (unsigned long)(WINDOW_DURATION_MS / 1000));
     power_set_mode(m);
 }
 
@@ -178,7 +178,7 @@ void power_sweep_begin(void)
     recording_start = acquisition_source_recording();
     if (source_start != SOURCE_REFERENCE) acquisition_set_source(SOURCE_REFERENCE, 0, false);
     Serial.printf("tangga: mulai, perkiraan %lu s\n",
-                  (unsigned long)(SWEEP_N * (POWER_BLOCK + 1) * WINDOW_POWER_MS / 1000));
+                  (unsigned long)(SWEEP_N * (POWER_BLOCK + 1) * WINDOW_DURATION_MS / 1000));
     begin_step(0);
 }
 
@@ -242,7 +242,7 @@ static void finish(const char *cancel)
                  (int)valid[j.mode]);
     }
     f.close();
-    file_last = number;
+    last_file_number = number;
     const bool all_valid = !cancel && !failed && results_n == SWEEP_N;
     Serial.printf("tangga: %s -> %s\n", all_valid ? "SAH" : "TIDAK SAH", p);
 }
@@ -250,11 +250,11 @@ static void finish(const char *cancel)
 void power_sweep_tick(void)
 {
     if (step < 0) return;
-    if (mode_power != step) { finish("mode diubah dari luar tangga"); return; }
+    if (current_mode != step) { finish("mode diubah dari luar tangga"); return; }
     if (step_window > POWER_BLOCK) {
         if (step < SWEEP_N - 1) begin_step(step + 1);
         else finish(nullptr);
-    } else if (millis() - t_step > 2 * (POWER_BLOCK + 1) * WINDOW_POWER_MS + 5000) {
+    } else if (millis() - t_step > 2 * (POWER_BLOCK + 1) * WINDOW_DURATION_MS + 5000) {
         finish("jendela tidak datang (INA219 tidak menjawab?)");
     }
 }

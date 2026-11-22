@@ -157,11 +157,11 @@ diag_result_t diag_button(uint32_t limit_ms)
     const uint32_t t0 = millis();
     while (n < 3 && millis() - t0 < limit_ms) {
         for (int k = 0; k < 3; k++) {
-            const bool current = digitalRead(PIN_BTN[k]) == LOW;
-            if (current == pressed[k] || millis() - t_change[k] < DEBOUNCE_MS) continue;
-            pressed[k] = current;
+            const bool is_down = digitalRead(PIN_BTN[k]) == LOW;
+            if (is_down == pressed[k] || millis() - t_change[k] < DEBOUNCE_MS) continue;
+            pressed[k] = is_down;
             t_change[k] = millis();
-            if (current && !done[k]) {
+            if (is_down && !done[k]) {
                 done[k] = true;
                 n++;
                 Serial.printf("  B%d (GPIO%d) ok\n", k + 1, PIN_BTN[k]);

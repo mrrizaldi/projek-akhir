@@ -36,7 +36,7 @@ static void IRAM_ATTR on_timer()
     write_index = next;
 }
 
-static int beat_emitted, matched, prediction_correct, hr_off;
+static int beat_emitted, matched, prediction_correct, hr_mismatch;
 static uint32_t n_processed, loop_max_us;
 
 void test_model_loaded(void)
@@ -131,7 +131,7 @@ void test_run_replay_without_lost_samples(void)
                     if (abs(beat.r_abs - golden_r[b]) > 20) continue;
                     matched++;
                     const int hr_pc = (int)lroundf(60.0f * ECG_FS / (golden_r[b] - golden_r[b - 1]));
-                    if (abs(hr - hr_pc) > 3) hr_off++;
+                    if (abs(hr - hr_pc) > 3) hr_mismatch++;
                     if ((arrhythmia ? 1 : 0) == golden_label[b]) prediction_correct++;
                     Serial.printf("  r=%4d (%s) HR %3d (PC %3d) p=%.4f -> %d, PC %d\n",
                                   beat.r_abs, golden_sym[b], hr, hr_pc, p, (int)arrhythmia, golden_label[b]);
@@ -150,7 +150,7 @@ void test_run_replay_without_lost_samples(void)
 
     Serial.printf("diproses %u sampel, beat %d, cocok %d, benar %d, HR meleset %d, "
                   "sampel hilang %u, loop terlama %u us\n",
-                  (unsigned)n_processed, beat_emitted, matched, prediction_correct, hr_off,
+                  (unsigned)n_processed, beat_emitted, matched, prediction_correct, hr_mismatch,
                   (unsigned)n_missed, (unsigned)loop_max_us);
     TEST_ASSERT_EQUAL_UINT32_MESSAGE(0, n_missed, "antrean ISR penuh: loop (TFT/inferensi) terlalu lama");
 }
@@ -163,7 +163,7 @@ void test_beat_detected_each_round(void)
 void test_hr_equals_annotation(void)
 {
     TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, "terlalu sedikit beat cocok anotasi");
-    TEST_ASSERT_EQUAL_MESSAGE(0, hr_off, "HR beda > 3 bpm dari RR anotasi");
+    TEST_ASSERT_EQUAL_MESSAGE(0, hr_mismatch, "HR beda > 3 bpm dari RR anotasi");
 }
 
 void test_prediction_equals_pc(void)

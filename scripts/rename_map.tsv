@@ -114,8 +114,8 @@ klasifikasi_mulai	classifier_begin
 klasifikasi_arena	classifier_arena
 klasifikasi_ambang	classifier_threshold
 klasifikasi_proses	classifier_process
-klasifikasi_hitung_t	classifier_count_t
-klasifikasi_hitung	classifier_count
+klasifikasi_hitung_t	classifier_stats_t
+klasifikasi_hitung	classifier_stats
 klasifikasi_reset	classifier_reset
 ditahan	withheld
 tunda_jml	latency_sum
@@ -198,7 +198,7 @@ aktif	active
 DAYA_H	POWER_H
 DAYA_JENDELA_MS	POWER_WINDOW_MS
 DAYA_BLOK	POWER_BLOCK
-JENDELA_DAYA_MS	WINDOW_POWER_MS
+JENDELA_DAYA_MS	WINDOW_DURATION_MS
 TANGGA_N	SWEEP_N
 PERIODE_BACA_INA219_MS	PERIOD_READ_INA219_MS
 daya_mulai	power_begin
@@ -218,7 +218,7 @@ daya_tangga_hasil	power_sweep_result
 daya_tangga_berkas	power_sweep_file
 daya_serial	power_serial
 ina_ada	ina_present
-mode_daya	mode_power
+mode_daya	current_mode
 mulai_ulang	restart_window
 tangga_catat	sweep_record
 jendela_t	window_t
@@ -229,7 +229,7 @@ t_langkah	t_step
 sumber_awal	source_start
 rekam_awal	recording_start
 hasil_n	results_n
-berkas_akhir	file_last
+berkas_akhir	last_file_number
 buka_dir	open_dir
 mulai_langkah	begin_step
 wifi_mati	wifi_off
@@ -504,7 +504,7 @@ ring_uji	ring_test
 PUTARAN	ROUNDS
 beat_keluar	beat_emitted
 prediksi_benar	prediction_correct
-hr_meleset	hr_off
+hr_meleset	hr_mismatch
 n_diproses	n_processed
 loop_maks_us	loop_max_us
 layar_hr	screen_hr
