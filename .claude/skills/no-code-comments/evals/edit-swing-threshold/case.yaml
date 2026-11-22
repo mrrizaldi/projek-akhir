@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: edit-swing-threshold
+expected_outcome: |
+  The resulting snippet has no comments at all (the TODO is removed too), uses THRESHOLD_SWING from
+  gate.h through #include without redefining it, the change from 60 to 80 is shown on the
+  THRESHOLD_SWING line in gate.h, and the checker is
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py <file>`.

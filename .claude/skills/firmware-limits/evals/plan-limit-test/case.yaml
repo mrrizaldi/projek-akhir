@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: plan-limit-test
+expected_outcome: |
+  The test plan uses a small limit through PLATFORMIO_BUILD_FLAGS="-DRECORDER_SECONDS=10" pio run -t upload,
+  each test stands alone with a literal command, the s line before/during/after with
+  sampel hilang 0, expected lines with exact values and no approximation or placeholder, the real
+  300 second limit crossed once on the board, and results written as expectations until run.

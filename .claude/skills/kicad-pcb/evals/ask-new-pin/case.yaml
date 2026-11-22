@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: ask-new-pin
+expected_outcome: |
+  Reads hardware/mainboard/README.md and firmware/include/board.h first, then asks the user with at least two options (a free GPIO pin from board.h, or no GPIO), the consequence of each, and one recommendation; does not choose alone.

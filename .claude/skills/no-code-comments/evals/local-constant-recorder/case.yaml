@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: local-constant-recorder
+expected_outcome: |
+  The resulting snippet has no comments and does not redefine the write block size, because the
+  constant that already exists in that file (`SAMPLES_PER_WRITE` in recorder.cpp) is used. The
+  answer names the grep run in the target file (firmware/src/recorder.cpp, not only
+  firmware/include) and the checker
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py firmware/src/recorder.cpp`.

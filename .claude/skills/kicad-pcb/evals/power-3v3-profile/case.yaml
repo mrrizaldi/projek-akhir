@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: power-3v3-profile
+expected_outcome: |
+  `+3V3` is netclass Default, 0.3 mm width, 0.35 mm clearance. The Q1 gate branch carries net `/VCHG`, so netclass Power, 1.0 mm width, 0.35 mm clearance, even though the gate carries no current. The gap needs 1.0 mm; a round pad leaves 0.84 mm so it does not fit; an oval 2.0 x 1.5 mm pad leaves 1.04 mm and is recorded in the README footprint section.

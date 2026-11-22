@@ -1,7 +1,0 @@
-schema_version: "1.1"
-name: skrip-model-ke-readme
-expected_outcome: |
-  Kerangka skrip Python tanpa docstring dan tanpa komentar, mengimpor nilai dari config
-  (dengan sys.path.insert satu baris seperti skrip lain di model/scripts), penjelasan cara
-  pakai ditaruh sebagai baris baru di model/README.md bagian Skrip (bukan di docstring),
-  dan pemeriksanya `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py model/scripts/hitung_run_salah.py`.
