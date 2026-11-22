@@ -1,65 +1,66 @@
 # Mainboard (PCB rev2)
 
-Proyek KiCad untuk papan induk alat: ESP32-S3-DevKitC-1 N16R8, AD8232, TFT
-ST7789 1,47", INA219, modul buzzer pasif, tiga tombol, dan jalur catu
-baterai 18650 (TP4056 + boost MT3608) dengan saklar on-off. Semua modul
-dipasang lewat header 2,54 mm. Papan dua lapis, 110 × 103 mm.
+KiCad project for the device's main board: ESP32-S3-DevKitC-1 N16R8, AD8232,
+1.47" ST7789 TFT, INA219, passive buzzer module, three buttons, and an 18650
+battery supply path (TP4056 + MT3608 boost) with an on-off switch. All modules
+are mounted through 2.54 mm headers. Two-layer board, 110 × 103 mm.
 
-Kondisi: skematik dan layout lengkap, pemeriksaan otomatis lulus (lihat
-**Pemeriksaan**). Belum difabrikasi, dan butir di **Yang belum terverifikasi**
-harus dicek pada modul fisik sebelum Gerber dikirim.
+Status: schematic and layout are complete, and the automatic checks pass (see
+**Checks**). Not yet fabricated, and the items in **Not yet verified** must be
+checked on the physical modules before the Gerbers are sent.
 
-## Berkas
+## Files
 
-| Berkas | Isi |
+| File | Contents |
 |---|---|
-| `mainboard.kicad_pro`, `.kicad_sch`, `.kicad_pcb` | proyek KiCad 9.0.2 |
-| `lib/PA.kicad_sym`, `lib/PA.pretty/` | simbol dan footprint ESP32-S3-DevKitC-1 (library proyek, dirujuk lewat `${KIPRJMOD}`) |
-| `cek_board.py` | pemeriksaan netlist, ERC, DRC, dan paritas skematik–PCB; memanggil `cek_tata_letak.py` |
-| `cek_tata_letak.py` | pemeriksaan pcbnew (`/usr/bin/python3`): lebar jalur per netclass, jarak courtyard ≥ 1 mm, teks depan dan belakang |
-| `tata_letak.py` | alat layout (`/usr/bin/python3`): posisi terkunci, rute manual, pembersihan sesudah autoroute, pad GND solid, tuang zona, penempat teks, ukiran |
+| `mainboard.kicad_pro`, `.kicad_sch`, `.kicad_pcb` | KiCad 9.0.2 project |
+| `lib/PA.kicad_sym`, `lib/PA.pretty/` | ESP32-S3-DevKitC-1 symbol and footprint (project library, referenced through `${KIPRJMOD}`) |
+| `cek_board.py` | netlist, ERC, DRC, and schematic–PCB parity checks; calls `cek_tata_letak.py` |
+| `cek_tata_letak.py` | pcbnew checks (`/usr/bin/python3`): trace width per netclass, courtyard spacing ≥ 1 mm, front and back text |
+| `tata_letak.py` | layout tool (`/usr/bin/python3`): locked positions, manual routing, cleanup after autoroute, solid GND pads, zone pour, text placer, engraving |
 
-Berkas dibuat dengan KiCad 9.0.2 dan bisa dibuka KiCad 10. Arah sebaliknya
-tidak bisa: berkas KiCad 10 (misalnya skematik rev2 yang disusun dengan
-KiCad 10.0.6) ditolak KiCad 9 dengan pesan `Failed to load schematic`.
+The files are made with KiCad 9.0.2 and can be opened in KiCad 10. The reverse
+does not work: KiCad 10 files (for example the rev2 schematic authored with
+KiCad 10.0.6) are rejected by KiCad 9 with the message `Failed to load schematic`.
 
-## Peta pin
+## Pin map
 
-Sama dengan `firmware/include/board.h`. Nomor pad U1 mengikuti footprint
-resmi Espressif: pad 1–22 kolom kiri dari atas (3V3 … GND), pad 23–44 kolom
-kanan dari bawah (GND … GND). Urutan fisik kedua kolom sudah dicocokkan 44/44
-dengan gambar pinout resmi ESP32-S3-DevKitC-1.
+Same as `firmware/include/board.h`. The U1 pad numbers follow the official
+Espressif footprint: pads 1–22 are the left column from the top (3V3 … GND),
+pads 23–44 are the right column from the bottom (GND … GND). The physical
+order of both columns has been matched 44/44 against the official
+ESP32-S3-DevKitC-1 pinout drawing.
 
-| Fungsi | GPIO | Pad U1 | Net | Tujuan |
+| Function | GPIO | U1 pad | Net | Destination |
 |---|---|---|---|---|
 | EKG OUT / LO− / LO+ | 1 / 2 / 42 | 41 / 40 / 39 | `ECG_OUT` / `ECG_LON` / `ECG_LOP` | J3 pin 3 / 4 / 5 |
 | TFT SCK / MOSI | 9 / 8 | 15 / 12 | `TFT_SCK` / `TFT_MOSI` | J2 pin 3 / 4 |
 | TFT RES / DC | 10 / 11 | 16 / 17 | `TFT_RST` / `TFT_DC` | J2 pin 5 / 6 |
 | Buzzer | 13 | 19 | `BUZZ` | J9 pin 2 |
-| Tombol 1 / 2 / 3 | 4 / 5 / 6 | 4 / 5 / 6 | `BTN1..3` | SW1..3 ke GND |
+| Button 1 / 2 / 3 | 4 / 5 / 6 | 4 / 5 / 6 | `BTN1..3` | SW1..3 to GND |
 | INA219 SDA / SCL | 17 / 18 | 10 / 11 | `I2C_SDA` / `I2C_SCL` | U2 pin 4 / 3 |
-| 3V3 | – | 1, 2 | `+3V3` | semua VCC modul, SDN AD8232, BLK TFT |
-| 5V | – | 21 | `+5V` | keluaran D2 |
-| GND | – | 22, 23, 24, 44 | `GND` | semua pin GND DevKit tersambung |
+| 3V3 | – | 1, 2 | `+3V3` | all module VCC, AD8232 SDN, TFT BLK |
+| 5V | – | 21 | `+5V` | D2 output |
+| GND | – | 22, 23, 24, 44 | `GND` | all DevKit GND pins connected |
 
-Urutan pin header modul:
+Module header pin order:
 
-| Ref | Modul | Pin 1 → n |
+| Ref | Module | Pin 1 → n |
 |---|---|---|
 | J3 | AD8232 | GND, 3V3, OUT, LO−, LO+, SDN |
-| J2 | TFT ST7789 | GND, VCC, SCL, SDA, RES, DC, CS, BLK (CS ke GND, BLK ke 3V3) |
+| J2 | TFT ST7789 | GND, VCC, SCL, SDA, RES, DC, CS, BLK (CS to GND, BLK to 3V3) |
 | U2 | INA219 | VCC, GND, SCL, SDA, VIN−, VIN+ |
 | J9 | buzzer A18009 | GND, I/O, VCC |
 | J1 | boost MT3608 | VIN+, VIN−, VOUT+, VOUT− |
-| J10 | saklar on-off berlampu (di casing) | masuk (VSYS), keluar ke boost (VSW), GND lampu |
+| J10 | illuminated on-off switch (in the enclosure) | input (VSYS), output to boost (VSW), lamp GND |
 | J4 / J5 / J6 | TP4056 | IN+ IN− / B+ B− / OUT+ OUT− |
-| J8 | kabel holder 18650 (JST PH) | +, − |
+| J8 | 18650 holder cable (JST PH) | +, − |
 
-GPIO yang dihindari saat memindah pin: 26–37 (flash dan PSRAM octal N16R8),
-0/3/45/46 (strapping), 19/20 (USB). EKG ada di GPIO 1 karena kanal ADC1;
-ADC2 tidak dapat dipakai saat WiFi aktif. GPIO 12 bebas.
+GPIOs to avoid when moving pins: 26–37 (flash and octal PSRAM of the N16R8),
+0/3/45/46 (strapping), 19/20 (USB). EKG is on GPIO 1 because it is an ADC1
+channel; ADC2 cannot be used while WiFi is active. GPIO 12 is free.
 
-## Catu daya
+## Power supply
 
 ```
  J8 baterai ── J5 B+/B− (TP4056) ── J6 OUT+ = VBAT_OUT ── U2 VIN+ ─shunt─ VIN− = VBAT_SENSE
@@ -73,151 +74,157 @@ ADC2 tidak dapat dipakai saat WiFi aktif. GPIO 12 bebas.
                                      J1 VIN+ ◄────────┘    J1 VOUT+ = VBOOST ── D2 SS34 ──► +5V ── U1 pin 5V, C1 47 µF, C2 100 nF
 ```
 
-- Tanpa charger: gate Q1 ditarik R1 ke GND, Q1 menyala, baterai mencatu boost.
-- Dengan charger: VCHG 5 V mematikan Q1 sehingga baterai hanya menerima arus
-  isi dari TP4056 dan tidak mencatu beban. Boost dicatu dari VCHG lewat D1.
-  Katoda D1 ada di VSYS (masukan boost), bukan di +5V. Kalau katoda D1 di +5V,
-  body diode Q1 tetap mengalirkan baterai ke boost dan sel terkuras selama
-  dicas.
-- Saklar J10 memutus VSYS sebelum boost. OFF berarti alat mati total, juga
-  saat charger tercolok, sedangkan pengisian baterai tetap berjalan karena
-  TP4056 ada di depan saklar. Lampu saklar dicatu dari VSYS (±3,0–4,6 V).
-- R2 1 MΩ (R_Dummy di skematik rev2) dipertahankan apa adanya: beban ±4 µA
-  dari VBAT_SENSE ke GND.
-- Konverter ke 5 V adalah boost (MT3608). Buck seperti Mini360 butuh masukan
-  ≥ 4,75 V dan tidak bekerja dari sel Li-ion 3,0–4,2 V.
-- +5V hanya mencatu beban daya (pin 5V DevKit dan kapasitornya);
-  `cek_board.py` menolak pin lain di net `+5V`.
+- Without a charger: the Q1 gate is pulled to GND by R1, Q1 is on, and the
+  battery powers the boost.
+- With a charger: VCHG 5 V turns Q1 off so the battery only receives charge
+  current from the TP4056 and does not power the load. The boost is powered
+  from VCHG through D1. The D1 cathode is at VSYS (the boost input), not at
+  +5V. If the D1 cathode were at +5V, the Q1 body diode would still conduct
+  from the battery to the boost and the cell would drain while charging.
+- Switch J10 breaks VSYS before the boost. OFF means the device is fully off,
+  also while the charger is plugged in, while battery charging continues
+  because the TP4056 is ahead of the switch. The switch lamp is powered from
+  VSYS (±3.0–4.6 V).
+- R2 1 MΩ (R_Dummy in the rev2 schematic) is kept as is: a ±4 µA load from
+  VBAT_SENSE to GND.
+- The converter to 5 V is a boost (MT3608). A buck such as the Mini360 needs
+  an input ≥ 4.75 V and does not work from a 3.0–4.2 V Li-ion cell.
+- +5V only powers power loads (the DevKit 5V pin and its capacitors);
+  `cek_board.py` rejects any other pin on the `+5V` net.
 
 ## Layout
 
-| Area | Isi | Alasan |
+| Area | Contents | Reason |
 |---|---|---|
-| Tengah | U1, USB menghadap tepi bawah | semua GPIO terpakai ada di kolom kiri kecuali EKG |
-| Kanan atas | J3 AD8232, C4 | pad 39–41 U1 sejajar J3 pin 3–5, jalur EKG lurus 9 mm |
-| Kanan bawah | jalur baterai, INA219, Q1, D1, D2, header TP4056/boost/baterai | jauh dari AD8232; modul boost di luar papan lewat kabel |
-| Kiri | TFT, buzzer; tombol SW1–SW3 berjajar tegak di tepi kiri (x 53–57,5, y 57,5–88) | SPI TFT berlawanan sisi dengan jalur analog; tombol mudah dijangkau dari sisi papan |
-| Atas U1 | rule area `antena_devkit` | tanpa tembaga dan via di bawah antena WROOM |
-| Bawah | rule area `holder_18650` 80 × 24 mm (x 66–146, y 116,5–140,5) + garis silkscreen | tempat holder 18650 berkabel yang ditempel; baterai 65 × 18 mm, holder ±77 × 21 mm, margin 1,5 mm tiap sisi; footprint dilarang, jalur dan GND pour boleh |
+| Center | U1, USB facing the bottom edge | all used GPIOs are in the left column except EKG |
+| Top right | J3 AD8232, C4 | U1 pads 39–41 line up with J3 pins 3–5, EKG traces straight 9 mm |
+| Bottom right | battery path, INA219, Q1, D1, D2, TP4056/boost/battery headers | away from the AD8232; the boost module is off the board via a cable |
+| Left | TFT, buzzer; buttons SW1–SW3 in a vertical row on the left edge (x 53–57.5, y 57.5–88) | TFT SPI is on the opposite side from the analog trace; buttons are easy to reach from the board edge |
+| Above U1 | rule area `antena_devkit` | no copper or vias under the WROOM antenna |
+| Bottom | rule area `holder_18650` 80 × 24 mm (x 66–146, y 116.5–140.5) + silkscreen outline | place for the glued wired 18650 holder; battery 65 × 18 mm, holder ±77 × 21 mm, margin 1.5 mm on each side; footprints forbidden, traces and GND pour allowed |
 
-Jalur yang dirute manual dan dikunci (`locked`): tiga jalur EKG (F.Cu),
-catu AD8232 (3V3 dari pad 2 U1 lewat B.Cu ke C4/J3 pin 2, SDN ke 3V3),
-I2C ke INA219 (SDA di F.Cu; SCL turun lewat via ke B.Cu di x 118 dan
-menyeberang di bawah SDA, karena urutan pin INA219 SCL–SDA terbalik terhadap
-urutan dari DevKit), 3V3 ke INA219, 3V3 sisi kiri (U1 pad 2 ke C3), dan
-seluruh jalur daya (termasuk cabang gate Q1 dan R2). Gate Q1 lewat B.Cu
-karena urutan pin SOT-23 (G, D, S searah jarum jam) berlawanan dengan arah
-net di sekitarnya, dan gate tidak membawa arus. Sisa sinyal digital dirute
-Freerouting 2.3.0. GND dituang di kedua lapis.
+Traces routed manually and locked (`locked`): the three EKG traces (F.Cu), the
+AD8232 supply (3V3 from U1 pad 2 through B.Cu to C4/J3 pin 2, SDN to 3V3), I2C
+to the INA219 (SDA on F.Cu; SCL goes down through a via to B.Cu at x 118 and
+crosses under SDA, because the INA219 pin order SCL–SDA is reversed relative to
+the order from the DevKit), 3V3 to the INA219, 3V3 on the left side (U1 pad 2 to
+C3), and all power traces (including the Q1 gate branch and R2). The Q1 gate
+goes through B.Cu because the SOT-23 pin order (G, D, S clockwise) is opposite
+to the direction of the nets around it, and the gate carries no current. The
+remaining digital signals are routed by Freerouting 2.3.0. GND is poured on
+both layers.
 
-Batas JLCPCB untuk 2 lapis 1 oz (halaman *PCB Capabilities*): jalur/clearance
-0,10 mm, jalur ke lubang PTH 0,28 mm (rekomendasi 0,35 mm), via lubang 0,15 /
-pad 0,25 mm (lubang < 0,3 mm lebih mahal), ring PTH 0,18 mm (rekomendasi
-0,25 mm), teks silkscreen tinggi 1,0 mm dan garis 0,15 mm, tembaga ke tepi
-0,2 mm. Profil papan ini adalah profil "ideal teknis": lebar mengikuti
-kebutuhan arus menurut IPC-2221 (1 oz, kenaikan suhu 10 °C: 0,3 mm ±1 A,
-1,0 mm ±2,4 A), jarak dan ring mengikuti rekomendasi JLCPCB.
+JLCPCB limits for 2-layer 1 oz (the *PCB Capabilities* page): trace/clearance
+0.10 mm, trace to PTH hole 0.28 mm (recommendation 0.35 mm), via hole 0.15 /
+pad 0.25 mm (holes < 0.3 mm cost more), PTH ring 0.18 mm (recommendation
+0.25 mm), silkscreen text height 1.0 mm and line 0.15 mm, copper to edge
+0.2 mm. This board's profile is the "technically ideal" profile: widths follow
+the current requirement according to IPC-2221 (1 oz, 10 °C temperature rise:
+0.3 mm ±1 A, 1.0 mm ±2.4 A), spacing and rings follow the JLCPCB
+recommendations.
 
-| Netclass (`mainboard.kicad_pro`) | Net | Lebar | Clearance | Via |
+| Netclass (`mainboard.kicad_pro`) | Nets | Width | Clearance | Via |
 |---|---|---|---|---|
-| `Default` | sinyal digital, `+3V3`, GND | 0,3 mm | 0,35 mm | 0,9/0,4 mm |
-| `ECG` | `/ECG_*` | 0,4 mm | 0,35 mm | 0,9/0,4 mm |
-| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1,0 mm | 0,35 mm | 1,2/0,6 mm |
+| `Default` | digital signals, `+3V3`, GND | 0.3 mm | 0.35 mm | 0.9/0.4 mm |
+| `ECG` | `/ECG_*` | 0.4 mm | 0.35 mm | 0.9/0.4 mm |
+| `Power` | `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-` | 1.0 mm | 0.35 mm | 1.2/0.6 mm |
 
-Arus terbesar di papan: jalur baterai/boost ±1 A puncak (MT3608 dibatasi
-2 A) sehingga 1,0 mm memberi margin di atas batas boost. Sinyal hanya
-membawa miliampere; 0,3 mm dipilih karena tiga kali minimum JLCPCB dan muat di
-sela pin DevKit tanpa menyempit (0,3 + 2 × 0,35 = 1,0 mm ≤ celah 1,04 mm).
+The largest current on the board: the battery/boost trace ±1 A peak (the
+MT3608 is limited to 2 A), so 1.0 mm gives margin above the boost limit.
+Signals only carry milliamperes; 0.3 mm was chosen because it is three times
+the JLCPCB minimum and fits between the DevKit pins without narrowing
+(0.3 + 2 × 0.35 = 1.0 mm ≤ gap 1.04 mm).
 
-Jarak antar-courtyard komponen minimal 1,0 mm. Semua pad GND memakai thermal
-relief kecuali C2-2, yang disambung penuh (*solid*) karena hanya mendapat satu
-spoke di sela antara U1 dan jalur +5V.
+Component courtyard spacing is at least 1.0 mm. All GND pads use thermal
+relief except C2-2, which is connected solid because it only gets one spoke in
+the gap between U1 and the +5V trace.
 
-Teks: referensi di silkscreen (tinggi ≥ 1,0 mm, batas JLCPCB) dan value di
-Fab, sejajar sumbu header dan di sisi yang berlawanan, tanpa menumpuk dan
-tidak di atas pad. Pengecualian: ref C4 mendatar di atas C4, karena celah
-9 mm antara U1 dan J3 tidak muat teks tegak.
+Text: references on the silkscreen (height ≥ 1.0 mm, JLCPCB limit) and values
+on Fab, aligned with the header axis and on the opposite side, not stacked and
+not over pads. Exception: the C4 reference is horizontal above C4, because the
+9 mm gap between U1 and J3 does not fit upright text.
 
-## Perbedaan terhadap skematik rev2
+## Differences from the rev2 schematic
 
-Skematik rev2 (`mainboard.kicad_sch`, KiCad 10.0.6, PCB belum di-layout)
-dipakai sebagai acuan rangkaian. Perbedaannya:
+The rev2 schematic (`mainboard.kicad_sch`, KiCad 10.0.6, PCB not yet laid out)
+is used as the circuit reference. The differences:
 
-| Bagian | Rev2 | Mainboard ini | Alasan |
+| Part | Rev2 | This mainboard | Reason |
 |---|---|---|---|
-| Net 3V3 | label `3.3V` (ESP, AD8232, buzzer) dan simbol `+3.3V` (TFT) | satu net `+3V3` | nama berbeda di KiCad = dua net terpisah; VCC TFT tidak tersambung ke 3V3 ESP |
-| Pull-up tombol | R11–R13 1 kΩ ke +5V | dihapus, `INPUT_PULLUP` | GPIO ESP32-S3 maksimum 3,6 V |
-| BLK TFT | tidak tersambung | ke 3V3 | backlight selalu menyala |
-| Katoda D1 | ke +5V | ke VSYS | baterai tidak terkuras saat dicas |
-| Saklar daya | tidak ada | J10 di VSYS | |
-| Simbol U1 | ESP32-S3-DEVKITC-1-N8R8 | ESP32-S3-DevKitC-1-N16R8 | papan yang dipakai N16R8 |
-| GND DevKit | hanya pin GND kanan atas | keempat pin GND | |
-| Header boost | 2 pin (Input, Output) | 4 pin dengan GND | GND modul boost punya jalur sendiri |
-| Footprint header J1–J9 | belum diisi | PinSocket/PinHeader 2,54 mm, JST PH untuk baterai | |
-| Nama net | `SCL`, `OUT`, `buzz`, dll. | berprefiks (`I2C_`, `TFT_`, `ECG_`) | nama sama otomatis menyatu di KiCad |
+| 3V3 net | label `3.3V` (ESP, AD8232, buzzer) and symbol `+3.3V` (TFT) | a single net `+3V3` | different names in KiCad = two separate nets; the TFT VCC is not connected to the ESP 3V3 |
+| Button pull-up | R11–R13 1 kΩ to +5V | removed, `INPUT_PULLUP` | ESP32-S3 GPIO maximum is 3.6 V |
+| TFT BLK | not connected | to 3V3 | backlight always on |
+| D1 cathode | to +5V | to VSYS | battery does not drain while charging |
+| Power switch | none | J10 on VSYS | |
+| U1 symbol | ESP32-S3-DEVKITC-1-N8R8 | ESP32-S3-DevKitC-1-N16R8 | the board in use is N16R8 |
+| DevKit GND | only the top right GND pin | all four GND pins | |
+| Boost header | 2 pins (Input, Output) | 4 pins with GND | the boost module GND gets its own trace |
+| Footprint of headers J1–J9 | not yet assigned | PinSocket/PinHeader 2.54 mm, JST PH for the battery | |
+| Net names | `SCL`, `OUT`, `buzz`, etc. | prefixed (`I2C_`, `TFT_`, `ECG_`) | identical names merge automatically in KiCad |
 
-Ukuran footprint pasif mengikuti rev2: R dan C 0805 HandSolder, tombol
-`SW_PUSH_6mm_H7.3mm`. C1 memakai `CP_Radial_D5.0mm_P2.00mm` (pad sama dengan
-rev2) agar tanda polaritas tercetak.
+Passive footprint sizes follow rev2: R and C 0805 HandSolder, buttons
+`SW_PUSH_6mm_H7.3mm`. C1 uses `CP_Radial_D5.0mm_P2.00mm` (same pads as rev2) so
+the polarity mark is printed.
 
-## Rasional rangkaian modul
+## Module circuit rationale
 
-ESP32-S3 adalah perangkat 3,3 V: GPIO tidak tahan 5 V (batas VDD + 0,3 =
-3,6 V). Semua yang menyentuh GPIO dicatu dari 3V3, termasuk modul yang
-membawa transistor sendiri.
+The ESP32-S3 is a 3.3 V device: GPIOs do not tolerate 5 V (limit VDD + 0.3 =
+3.6 V). Everything that touches a GPIO is powered from 3V3, including modules
+that carry their own transistor.
 
-- **TFT.** Keempat jalur sinyal (SCL, SDA, RES, DC) tersambung langsung tanpa
-  resistor, karena level TFT dan ESP32-S3 sama-sama 3,3 V. Divider 2k2/3k3
-  dari sumber 3,3 V memberi 1,98 V, di bawah VIH ST7789 0,7 × VDDI = 2,31 V;
-  HIGH tidak terbaca. Bila SCK berdering, resistor seri 33 Ω dekat
-  ESP32-S3 dapat disisipkan. Header J2 delapan pin karena modul membawa CS;
-  CS diikat ke GND, maka firmware memakai `SPI_MODE3`
-  (`firmware/README.md`). BLK ke 3V3 (backlight selalu menyala); untuk
-  meredupkan atau mematikan backlight, BLK dapat dipindah ke GPIO 12 dan
-  disetir PWM.
-- **Buzzer.** Modul pasif A18009 aktif LOW, transistor penggeraknya terduga
-  PNP (S8550/9012; pastikan dari tulisan di badan transistor modul). PNP baru
-  mati bila tegangan basis hampir sama dengan emitornya (VCC). Dengan VCC
-  5 V, I/O HIGH 3,3 V menyisakan V_EB 1,7 V: PNP tetap menyala, buzzer tidak
-  pernah diam, dan arus dari 5 V masuk ke GPIO lewat sambungan E–B. Dengan
-  VCC 3V3, V_EB = 0 saat HIGH dan buzzer diam. Suara sedikit lebih pelan
-  daripada di 5 V; kerasnya dikembalikan dengan menyetel `TONE_HZ` ke
-  resonansi buzzer. Modul aktif (A07009) dijual di halaman toko yang sama:
-  bagian bawah buzzer aktif tertutup rapat, buzzer pasif memperlihatkan PCB
-  hijau.
-- **Tombol.** Tanpa resistor: tombol ke GND dan firmware memakai
-  `INPUT_PULLUP` (±45 kΩ ke 3V3) dengan debounce 50 ms (`buttons.cpp`). Karena jalur
-  tombol pendek, pull-up lemah ini tidak mudah kemasukan derau. Bila
-  pull-up eksternal tetap diinginkan, ujung atas resistor 10 kΩ ke 3V3,
-  bukan ke +5V.
-- **AD8232.** J3 pin 1 memakai simbol power `GND`: di KiCad, label lokal
-  `GND` tidak dijamin menyatu dengan simbol power. SDN diikat ke 3V3 sesuai
-  datasheet AD8232 (*"when not using this feature, permanently tie SDN to
-  +VS"*); SDN LOW mematikan chip dan SDN mengambang hasilnya tidak tentu.
-  Jalur EKG dari GPIO 1 berada di sisi kanan, berlawanan dengan SPI TFT
-  (GPIO 8/9) di sisi kiri (bagian **Layout**). GND dituang di kedua lapis.
-  Derau SPI di dekat jalur analog langsung terlihat di sinyal EKG.
+- **TFT.** All four signal lines (SCL, SDA, RES, DC) are connected directly
+  without resistors, because the TFT and ESP32-S3 levels are both 3.3 V. A
+  2k2/3k3 divider from a 3.3 V source gives 1.98 V, below the ST7789 VIH of
+  0.7 × VDDI = 2.31 V; HIGH is not read. If SCK rings, a 33 Ω series resistor
+  near the ESP32-S3 can be inserted. Header J2 has eight pins because the
+  module carries CS; CS is tied to GND, so the firmware uses `SPI_MODE3`
+  (`firmware/README.md`). BLK to 3V3 (backlight always on); to dim or turn off
+  the backlight, BLK can be moved to GPIO 12 and driven with PWM.
+- **Buzzer.** The A18009 passive module is active LOW, and its driver
+  transistor is presumed PNP (S8550/9012; confirm from the marking on the
+  module's transistor body). A PNP only turns off when the base voltage is
+  almost equal to its emitter (VCC). With VCC 5 V, I/O HIGH of 3.3 V leaves
+  V_EB 1.7 V: the PNP stays on, the buzzer is never silent, and current from 5 V
+  flows into the GPIO through the E–B junction. With VCC 3V3, V_EB = 0 when HIGH
+  and the buzzer is silent. The sound is slightly quieter than at 5 V; loudness
+  is restored by setting `TONE_HZ` to the buzzer resonance. An active module
+  (A07009) is sold on the same shop page: the underside of an active buzzer is
+  tightly sealed, while a passive buzzer shows a green PCB.
+- **Buttons.** No resistors: buttons go to GND and the firmware uses
+  `INPUT_PULLUP` (±45 kΩ to 3V3) with 50 ms debounce (`buttons.cpp`). Because
+  the button traces are short, this weak pull-up does not easily pick up noise.
+  If an external pull-up is still wanted, the top end of the 10 kΩ resistor
+  goes to 3V3, not to +5V.
+- **AD8232.** J3 pin 1 uses the power symbol `GND`: in KiCad, a local label
+  `GND` is not guaranteed to merge with the power symbol. SDN is tied to 3V3
+  per the AD8232 datasheet (*"when not using this feature, permanently tie SDN
+  to +VS"*); SDN LOW turns the chip off and a floating SDN gives an undefined
+  result. The EKG trace from GPIO 1 is on the right side, opposite the TFT SPI
+  (GPIO 8/9) on the left side (section **Layout**). GND is poured on both
+  layers. SPI noise near the analog trace is immediately visible in the EKG
+  signal.
 
-## Footprint ESP32-S3-DevKitC-1
+## ESP32-S3-DevKitC-1 footprint
 
-Diambil dari library resmi Espressif (`espressif/kicad-libraries`,
-`ESP32-S3-DevKitC.kicad_mod` dan simbol `ESP32-S3-DevKitC`). Posisi pad tidak
-diubah: 2 × 22 pin, pitch 2,54 mm, jarak antar-baris 22,86 mm. Yang diubah
-hanya lubang dan pad: lubang 0,8 mm menjadi 1,0 mm, pad oval 2,0 mm (mendatar)
-× 1,5 mm (tegak), ring 0,25 mm sesuai rekomendasi JLCPCB. Pin header persegi
-0,64 mm berdiagonal 0,9 mm sehingga tidak masuk lubang 0,8 mm; 1,0 mm sama
-dengan footprint `PinSocket` KiCad. Pad 1,5 mm tegak menyisakan celah 1,04 mm
-antar-pin satu kolom, cukup untuk jalur 0,3 mm + clearance 2 × 0,35 mm. Jalur
-3V3 ke AD8232 dan I2C ke INA219 menyeberangi kolom pin lewat celah ini. Simbol diturunkan dari format KiCad 10
-ke format KiCad 9 tanpa mengubah pin.
+Taken from the official Espressif library (`espressif/kicad-libraries`,
+`ESP32-S3-DevKitC.kicad_mod` and symbol `ESP32-S3-DevKitC`). Pad positions are
+unchanged: 2 × 22 pins, pitch 2.54 mm, row spacing 22.86 mm. Only the holes and
+pads were changed: hole 0.8 mm became 1.0 mm, oval pad 2.0 mm (horizontal) ×
+1.5 mm (vertical), ring 0.25 mm per the JLCPCB recommendation. A 0.64 mm square
+header pin has a 0.9 mm diagonal so it does not fit a 0.8 mm hole; 1.0 mm is the
+same as the KiCad `PinSocket` footprint. A vertical 1.5 mm pad leaves a 1.04 mm
+gap between pins in one column, enough for a 0.3 mm trace + 2 × 0.35 mm
+clearance. The 3V3 trace to the AD8232 and the I2C trace to the INA219 cross
+the pin columns through this gap. The symbol is downgraded from KiCad 10 format
+to KiCad 9 format without changing pins.
 
-## Pemeriksaan
+## Checks
 
 ```bash
 python3 hardware/mainboard/cek_board.py
 ```
 
-Hasil yang diharapkan:
+Expected result:
 
 ```
 netlist: 87/87 pin sesuai peta
@@ -230,35 +237,35 @@ teks: 0 temuan
 LULUS
 ```
 
-Skrip keluar dengan kode 1 bila satu pin saja menyimpang dari peta di atas,
-bila ada jalur lebih tipis dari netclass-nya, dua courtyard berjarak < 1 mm,
-atau teks menumpuk, di atas pad, keluar tepi, atau tidak searah header.
-Peta pin di skrip (`PIN_U1`, `PIN_LAIN`) wajib diperbarui bersamaan dengan
-`board.h` setiap kali pin dipindah.
+The script exits with code 1 if a single pin deviates from the map above, if
+any trace is thinner than its netclass, if two courtyards are < 1 mm apart, or
+if text overlaps, sits over a pad, goes off the edge, or is not aligned with the
+header. The pin map in the script (`PIN_U1`, `PIN_LAIN`) must be updated
+together with `board.h` whenever a pin is moved.
 
-## Ukiran nama
+## Name engraving
 
-Silkscreen sisi belakang, dicerminkan agar terbaca dari bawah, di balik area
-holder (yang bebas footprint sehingga sisi belakangnya tanpa pad):
+Back side silkscreen, mirrored so it reads from below, behind the holder area
+(which is footprint-free so its back side has no pads):
 
-| Baris | Teks | Tinggi | Posisi |
+| Line | Text | Height | Position |
 |---|---|---|---|
-| 1 | Muhammad Rafi Rizaldi | 2,5 mm | (106; 125) |
-| 2 | 3123600001 | 2,0 mm | (106; 131) |
+| 1 | Muhammad Rafi Rizaldi | 2.5 mm | (106; 125) |
+| 2 | 3123600001 | 2.0 mm | (106; 131) |
 
-Teksnya diatur di `UKIRAN` dan `POSISI_UKIRAN` (`tata_letak.py`).
+The text is set in `UKIRAN` and `POSISI_UKIRAN` (`tata_letak.py`).
 
-## Mengubah desain
+## Changing the design
 
-Perubahan rangkaian:
+Circuit changes:
 
-1. Buka `mainboard.kicad_pro` di KiCad 9 atau lebih baru.
-2. Ubah skematik. Penerapan ke board lewat skrip pcbnew (lihat skill user
-   `kicad-mcp-pcb` bagian *Net names match the schematic*), bukan F8, agar
-   nama net tetap `/NAMA`.
+1. Open `mainboard.kicad_pro` in KiCad 9 or later.
+2. Change the schematic. Apply it to the board through a pcbnew script (see the
+   user skill `kicad-mcp-pcb`, section *Net names match the schematic*), not
+   F8, so that net names stay `/NAMA` (NAMA = the net name).
 
-Rute ulang seluruh papan (posisi di `POSISI`, rute manual di fungsi `rute_*`
-pada `tata_letak.py`), dijalankan dari `hardware/mainboard/`:
+Re-route the whole board (positions in `POSISI`, manual routes in the `rute_*`
+functions in `tata_letak.py`), run from `hardware/mainboard/`:
 
 ```bash
 /usr/bin/python3 tata_letak.py hapus
@@ -266,8 +273,8 @@ pada `tata_letak.py`), dijalankan dari `hardware/mainboard/`:
 /usr/bin/python3 tata_letak.py tuang
 ```
 
-Lalu autoroute sisa sinyal dengan Freerouting (server MCP kicad: `open_project`,
-`autoroute` dengan `maxPasses` 60), kemudian:
+Then autoroute the remaining signals with Freerouting (kicad MCP server:
+`open_project`, `autoroute` with `maxPasses` 60), then:
 
 ```bash
 /usr/bin/python3 tata_letak.py bersih
@@ -278,62 +285,65 @@ Lalu autoroute sisa sinyal dengan Freerouting (server MCP kicad: `open_project`,
 python3 cek_board.py
 ```
 
-Hasil yang diharapkan: baris terakhir `cek_board.py` adalah `LULUS`.
-Freerouting bisa melapor sukses sambil meninggalkan sambungan; bila DRC
-melapor `unconnected`, sambungan itu ditambahkan ke fungsi `rute_*` di
-`tata_letak.py` lalu seluruh urutan diulang dari `hapus`.
+Expected result: the last line of `cek_board.py` is `LULUS` (PASS).
+Freerouting can report success while leaving connections; if DRC reports
+`unconnected`, add those connections to the `rute_*` functions in
+`tata_letak.py` and repeat the whole sequence from `hapus`.
 
-## Yang belum terverifikasi
+## Not yet verified
 
-1. **Jarak antar-baris header DevKit fisik.** Footprint memakai 22,86 mm
-   (resmi Espressif). Ukur papan N16R8 yang dipakai, karena klon bisa berbeda.
-2. **Urutan pin tiap modul** (J2, J3, U2, J9) terhadap silkscreen modul yang
-   dipegang. Urutan pin TFT 1,47" berbeda antar-vendor.
-3. **Ruang mekanik modul.** Ukuran dari penjual saling berbeda (AD8232 35×22
-   sampai 36×33 mm, TFT 19,5×44,5 atau 22×38,5 mm, INA219 22×20 mm), dan
-   outline badan modul belum digambar di PCB. Bila dibaringkan ke arah dalam
-   papan, badan TFT menutupi C6 dan badan AD8232 menutupi H2. Komponen SMD di
-   bawahnya aman selama modul terangkat di atas female header. Kepala baut H2
-   perlu dicek terhadap sisi bawah modul AD8232.
-4. **Jalur catu dengan D1 di VSYS** belum diuji di breadboard. Ukur VSYS dan
-   +5V dengan charger tercolok dan tercabut, dan pastikan arus baterai ≈ 0
-   saat dicas.
-5. **Konektor baterai** memakai JST PH 2 mm. Sesuaikan dengan kabel holder
-   18650 yang dipakai, dan ukur holdernya: area di papan 80 × 24 mm.
-6. **Tegangan lampu saklar J10.** Lampu dicatu VSYS ±3,0–4,6 V. Lampu LED
-   12 V atau neon 220 V tidak akan menyala di tegangan ini; cek tulisan di
-   badan saklar sebelum memakai pin lampu.
-7. **Arus isi TP4056.** Arus isi ditentukan Rprog di modul TP4056 (bawaan
-   1 A). Sesuaikan Rprog dengan kapasitas sel 18650 yang dipakai.
+1. **Row spacing of the physical DevKit headers.** The footprint uses 22.86 mm
+   (official Espressif). Measure the N16R8 board in use, because clones can
+   differ.
+2. **Pin order of each module** (J2, J3, U2, J9) against the silkscreen of the
+   module in hand. The pin order of the 1.47" TFT differs between vendors.
+3. **Module mechanical space.** Sizes from sellers differ from each other
+   (AD8232 35×22 to 36×33 mm, TFT 19.5×44.5 or 22×38.5 mm, INA219 22×20 mm), and
+   the module body outline is not yet drawn on the PCB. If laid toward the
+   inside of the board, the TFT body covers C6 and the AD8232 body covers H2.
+   SMD components underneath are safe as long as the module is raised above the
+   female header. The H2 screw head needs to be checked against the underside of
+   the AD8232 module.
+4. **Supply path with D1 on VSYS** has not been tested on a breadboard. Measure
+   VSYS and +5V with the charger plugged in and unplugged, and confirm the
+   battery current ≈ 0 while charging.
+5. **Battery connector** uses JST PH 2 mm. Match it to the 18650 holder cable in
+   use, and measure the holder: the area on the board is 80 × 24 mm.
+6. **Switch lamp voltage J10.** The lamp is powered from VSYS ±3.0–4.6 V. A 12 V
+   LED lamp or 220 V neon will not light at this voltage; check the marking on
+   the switch body before using the lamp pins.
+7. **TP4056 charge current.** The charge current is set by Rprog on the TP4056
+   module (default 1 A). Match Rprog to the capacity of the 18650 cell in use.
 
-## Ekspor fabrikasi
+## Fabrication export
 
-Berkas untuk JLCPCB dibuat dengan pengaturan dari panduan resmi JLCPCB untuk
-KiCad: lapisan F/B.Cu, F/B.Paste, F/B.Silkscreen, F/B.Mask, Edge.Cuts, ekstensi
-Protel, silkscreen dikurangi mask, via di-*tent* (setelan papan
-`(tenting front back)`), zona dituang sebelum plot, drill Excellon mm desimal
-origin absolut dengan PTH dan NPTH terpisah plus peta drill.
+The files for JLCPCB are produced with the settings from the official JLCPCB
+guide for KiCad: layers F/B.Cu, F/B.Paste, F/B.Silkscreen, F/B.Mask, Edge.Cuts,
+Protel extensions, silkscreen minus mask, vias *tented* (board setting
+`(tenting front back)`), zones poured before plotting, Excellon drill in mm
+decimal with absolute origin and PTH and NPTH separate plus a drill map.
 
 ```bash
 hardware/mainboard/ekspor_fab.sh
 ```
 
-Hasil: `hardware/mainboard/fab/mainboard-gerber-jlcpcb.zip` (14 berkas di akar
-zip), yang di-upload di tombol *Add gerber file*. Folder `fab/` tidak
-di-commit karena dibuat ulang oleh perintah di atas.
+Result: `hardware/mainboard/fab/mainboard-gerber-jlcpcb.zip` (14 files at the zip
+root), which is uploaded with the *Add gerber file* button. The `fab/` folder is
+not committed because it is regenerated by the command above.
 
-Pemeriksaan isi zip terhadap papan (Kondisi uji: 18 Okt 2026):
+Zip contents checked against the board (Test conditions: 18 Oct 2026):
 
-| Yang dicek | Gerber/drill | Papan |
+| What is checked | Gerber/drill | Board |
 |---|---|---|
-| Lubang PTH | 101 (0,4 ×3, 0,6 ×2, 0,75 ×2, 0,8 ×2, 1,0 ×80, 1,1 ×12) | sama |
-| Lubang NPTH | 4 × 3,2 mm | sama |
-| Flash F.Cu / B.Cu | 122 / 101 | 117 pad + 5 via / 96 pad THT + 5 via |
-| Bukaan mask depan | 121 tanpa via | 117 pad + 4 lubang baut (via ter-*tent*) |
-| Pad paste depan / belakang | 21 / 0 | 21 pad SMD / 0 |
-| Garis potong | 110,0 × 103,0 mm | sama |
+| PTH holes | 101 (0.4 ×3, 0.6 ×2, 0.75 ×2, 0.8 ×2, 1.0 ×80, 1.1 ×12) | same |
+| NPTH holes | 4 × 3.2 mm | same |
+| Flashes F.Cu / B.Cu | 122 / 101 | 117 pads + 5 vias / 96 THT pads + 5 vias |
+| Front mask openings | 121 without vias | 117 pads + 4 screw holes (vias are *tented*) |
+| Front / back paste pads | 21 / 0 | 21 SMD pads / 0 |
+| Outline | 110.0 × 103.0 mm | same |
 
-Tampilan visual Gerber dicek di pratinjau JLCPCB setelah upload dan, bila
-memilih *Confirm Production File*, di berkas produksi yang dikirim engineer.
+The visual appearance of the Gerbers is checked in the JLCPCB preview after
+upload and, if *Confirm Production File* is chosen, in the production file sent
+by the engineer.
 
-Butir di **Yang belum terverifikasi** dicek sebelum zip di-upload.
+The items in **Not yet verified** are checked before the zip is uploaded.
