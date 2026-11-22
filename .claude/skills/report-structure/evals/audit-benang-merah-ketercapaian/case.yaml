@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: audit-benang-merah-ketercapaian
+expected_outcome: |
+  The targets 'tinggi' and 'hemat' get the status 'Belum dapat divonis (target tanpa angka)' with a treatment (a number, or an indicative target plus a comparator). Power is written as not yet measured. The missing connection-loss scenarios are explicitly written as not done, with a reason. 'Seluruh tujuan tercapai' is removed or limited to match the table.

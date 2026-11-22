@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: abstrak-dan-sisa-versi-lama
+expected_outcome: |
+  The abstract is rewritten as an ordered results abstract (problem, goal, device and method, Bab 4 numbers, status and limitations in at most two sentences) with exact numbers and power written as not yet measured. 'proposal ini' is replaced, and the rev1/rev2 labels and the history of who designed it are removed from Bab 3 and replaced by the final design.

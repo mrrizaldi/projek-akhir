@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: pesan-akhir-dan-daftar-periksa
-expected_outcome: |
-  Pesan menyebut perintah daftar periksa: make pdf-bersih dengan grep undefined|Overfull, grep frasa sisa versi lama, grep label internal, grep di atas/di bawah, dan python3 scripts/cek_tabel.py. Angka keluaran ditulis [N] atau 'belum dijalankan', bukan dikarang. Pesan konsisten sebagai usulan dan tidak mengklaim berkas sudah diubah.

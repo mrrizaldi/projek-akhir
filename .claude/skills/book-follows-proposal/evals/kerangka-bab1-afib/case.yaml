@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: kerangka-bab1-afib
+expected_outcome: |
+  The Bab 1 skeleton stays equal to the proposal; no Batasan Masalah or other section is added, with the reason that the decision is Bab 1 follows the proposal.

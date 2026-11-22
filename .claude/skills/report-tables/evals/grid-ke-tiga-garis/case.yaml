@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: grid-ke-tiga-garis
+expected_outcome: |
+  The result uses \toprule, \midrule, \bottomrule; no |, \hline, \cline, \rowcolor. The separators after the LO row and before the Keluaran group row are \midrule, with no rule between Keluaran and Buzzer. Cell content is unchanged. In a longtable, \endfoot uses \bottomrule and the repeated header uses \toprule/\midrule.

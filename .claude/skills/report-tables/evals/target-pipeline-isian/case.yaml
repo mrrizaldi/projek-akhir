@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: target-pipeline-isian
+expected_outcome: |
+  The unit is in the row label or header, not in every cell. "Tidak diulang" becomes -- with a Keterangan sentence. "Sama" in deduplication becomes 0. p95 has the status Dilaporkan with the 2 second reference still in the Target column. Numbers do not change; the seconds to ms conversion is allowed only when told to the user.

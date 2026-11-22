@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: grid-tertutup-pembanding
+expected_outcome: |
+  The table becomes a plain closed grid: | at every column boundary, \hline after the header (in \endfirsthead and \endhead) and after every data row, without \toprule/\midrule/\bottomrule and without \rowcolor. The exception is only for this table; the component table stays three-line.

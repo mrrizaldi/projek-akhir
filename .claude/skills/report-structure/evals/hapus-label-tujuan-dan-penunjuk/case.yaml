@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: hapus-label-tujuan-dan-penunjuk
+expected_outcome: |
+  Titles are renamed by content with no numbered label, 'Subbab ini menjawab' is removed, 5.1 does not open with 'Tujuan pertama', the table of changes from the proposal is deleted, the Bab 4 opening is removed entirely, the sentence after the Tujuan list is deleted, and the section pointer is removed from 4.6.1 without leaving any other chapter or section pointer in .tex sentences.
