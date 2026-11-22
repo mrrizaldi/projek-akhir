@@ -130,7 +130,7 @@ def main():
         finally:
             git("worktree", "remove", "--force", str(new_tree))
 
-    pesan = f"{args.catatan}\n\npages={pages} log_errors={fault}".strip()
+    pesan = f"{args.catatan}\n\nhalaman={pages} galat_log={fault}".strip()
     git("tag", "-a", f"rilis/{args.proyek}/v{nomor}", rev, "-m", pesan)
     print(f"tag=rilis/{args.proyek}/v{nomor}")
 
