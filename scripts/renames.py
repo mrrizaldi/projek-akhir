@@ -42,6 +42,7 @@ ATTRIBUTE_FUNCTIONS = {"getattr", "hasattr", "setattr", "delattr"}
 INTROSPECTION = {"locals", "vars", "globals", "dir", "eval", "exec", "__name__", "__qualname__", "__code__", "__dict__", "inspect", "pickle", "joblib", "dill"}
 C_TOKEN = re.compile(r'#include "[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*')
 WORD = re.compile(r"\w+")
+ESCAPE = re.compile(r"\\.")
 BIN = Path.home() / ".platformio/packages/toolchain-xtensa-esp32s3/bin"
 OBJDUMP = str(BIN / "xtensa-esp32s3-elf-objdump")
 OBJCOPY = str(BIN / "xtensa-esp32s3-elf-objcopy")
@@ -109,7 +110,8 @@ def py_strings(text):
     found = set()
     for t in tokenize.generate_tokens(io.StringIO(text).readline):
         if t.type in (tokenize.STRING, getattr(tokenize, "FSTRING_MIDDLE", -1)):
-            found |= set(WORD.findall(t.string.replace("-", "_")))
+            raw = t.string.replace("-", "_")
+            found |= set(WORD.findall(raw)) | set(WORD.findall(ESCAPE.sub(" ", raw)))
     return found
 
 
