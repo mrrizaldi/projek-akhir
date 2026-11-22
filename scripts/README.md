@@ -251,7 +251,7 @@ dengan kode 2 dan pesan.
 scripts/trigger_eval.sh .claude/skills/<skill> [.claude/skills/<skill2> ...]
 ```
 
-Keluaran per skill: `nama=<skill> benar=<n>/<total>` dan `json=<path>`; JSON
+Keluaran per skill: `name=<skill> passed=<n>/<total>` dan `json=<path>`; JSON
 lengkap dan log galat ada di folder sementara `$T/out/`. Satu kueri dijalankan
 satu kali (`--runs-per-query 1`), jadi hasilnya sampel kecil dan bisa
 bergeser antarjalan. Biaya: satu panggilan model per kueri, sekitar 20
