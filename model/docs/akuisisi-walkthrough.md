@@ -363,12 +363,12 @@ sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
 
    ```
    make plot FILE=data/recordings/<nama>.csv            # 60 detik terbaik
-   make plot FILE=data/recordings/<nama>.csv MULAI=120  # mulai detik 120
+   make plot FILE=data/recordings/<nama>.csv START=120  # mulai detik 120
    ```
 
    Hasil: `artifacts/metrics/akuisisi/rekaman_<nama>_detik-<awal>.png`, enam
    baris 10 detik sinyal bandpass 0,5–40 Hz dengan tanda ▼ di setiap R
-   terdeteksi, ditambah panel HR per detak. Tanpa `MULAI`,
+   terdeteksi, ditambah panel HR per detak. Tanpa `START`,
    `plot_recording.py` menggeser jendela 60 detik tiap 5 detik dan memilih yang
    RR tak wajarnya (< 30 atau > 200 bpm) paling sedikit, lalu yang derau
    > 60 Hz-nya paling kecil relatif terhadap pita EKG. Tanda R memakai

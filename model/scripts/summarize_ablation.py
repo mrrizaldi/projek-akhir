@@ -19,7 +19,7 @@ def rerata_rentang(nilai: list) -> tuple:
     return sum(nilai) / len(nilai), (max(nilai) - min(nilai)) / 2
 
 
-def baca(path: str) -> tuple:
+def read_file(path: str) -> tuple:
     per_key = {}
     with open(path, newline="") as f:
         r = csv.DictReader(f)
@@ -31,7 +31,7 @@ def baca(path: str) -> tuple:
     return per_key, kolom
 
 
-def ringkas(baris: list, COLUMNS) -> dict:
+def digest(baris: list, COLUMNS) -> dict:
     out = {"n_seed": len(baris)}
     for kolom, _ in COLUMNS:
         nilai = [float(b[kolom]) for b in baris if b.get(kolom) not in (None, "")]
@@ -48,7 +48,7 @@ def main() -> None:
     ap.add_argument("--csv", default=os.path.join(METRICS_DIR, "ablasi", "ablasi.csv"))
     args = ap.parse_args()
 
-    per_tag, COLUMNS = baca(args.csv)
+    per_tag, COLUMNS = read_file(args.csv)
     tags = args.tag or list(per_tag)
     if args.vs and args.vs not in tags:
         tags = [args.vs] + tags
@@ -62,7 +62,7 @@ def main() -> None:
     print("-" * len(judul))
     hasil = {}
     for t in tags:
-        s = hasil[t] = ringkas(per_tag[t], COLUMNS)
+        s = hasil[t] = digest(per_tag[t], COLUMNS)
         sel = []
         for kolom, _ in COLUMNS:
             sel.append("        -        " if s[kolom] is None

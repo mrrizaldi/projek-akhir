@@ -12,12 +12,12 @@ data-all: ## + svdb & incartdb (Phase A, ~1 GB) -> data/raw/<db>/
 	$(PY) scripts/download_data.py --all
 check: ## check .hea/.dat/.atr completeness
 	$(PY) scripts/check_dataset.py
-plot0: ## verify Phase 0 — annotated R-peak overlay (REC=<record>, default 100)
+plot0: ## verify Phase 0: annotated R-peak overlay (REC=<record>, default 100)
 	$(PY) scripts/plot_phase0.py $(REC)
 
-plot1: ## verify Phase 1a — raw vs bandpass (time domain + PSD)
+plot1: ## verify Phase 1a: raw vs bandpass (time domain + PSD)
 	$(PY) scripts/plot_phase1.py $(REC)
-plot1seg: ## verify Phase 1b — segmentation + per-window z-score
+plot1seg: ## verify Phase 1b: segmentation + per-window z-score
 	$(PY) scripts/plot_phase1_segment.py $(REC)
 
 data/processed/per_record/.stamp: config.py src/preprocessing.py src/features_rr.py
@@ -43,10 +43,10 @@ pull: ## pull a recording from the board (N=number, default last) -> data/record
 	$(PY) scripts/pull_recording.py $(N)
 pull-power: ## pull the standalone power sweep result (N=number, default last) -> artifacts/metrics/daya/
 	$(PY) scripts/pull_power.py $(N)
-analyze: ## analyze a recording: make analyze FILE=data/recordings/xxx.csv [JUDUL="plot title"]
-	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE))) $(if $(JUDUL),"$(JUDUL)")
-plot: ## ECG plot of the best 60 seconds: make plot FILE=data/recordings/xxx.csv [MULAI=seconds]
-	$(PY) scripts/plot_recording.py $(FILE) $(if $(MULAI),--start $(MULAI))
+analyze: ## analyze a recording: make analyze FILE=data/recordings/xxx.csv [TITLE="plot title"]
+	$(PY) scripts/analyze_recording.py $(FILE) $(basename $(notdir $(FILE))) $(if $(TITLE),"$(TITLE)")
+plot: ## ECG plot of the best 60 seconds: make plot FILE=data/recordings/xxx.csv [START=seconds]
+	$(PY) scripts/plot_recording.py $(FILE) $(if $(START),--start $(START))
 broker-info: ## WiFi SSID, LAN IP, ports 1883/8080, wifi_secrets.h entry suggestion
 	$(PY) scripts/broker_info.py
 

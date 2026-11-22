@@ -40,19 +40,19 @@ def hos_features(windows: np.ndarray) -> np.ndarray:
 
 
 def _width_at_fraction(windows: np.ndarray, frac: float, r_idx: int,
-                       cari: int = 4) -> np.ndarray:
+                       search_radius: int = 4) -> np.ndarray:
     w = np.asarray(windows, dtype=np.float64)
     k, n = w.shape
     if k == 0:
         return np.zeros(0)
 
-    lo, hi = max(0, r_idx - cari), min(n, r_idx + cari + 1)
+    lo, hi = max(0, r_idx - search_radius), min(n, r_idx + search_radius + 1)
     peak_idx = lo + np.argmax(w[:, lo:hi], axis=1)
     puncak = w[np.arange(k), peak_idx]
-    ambang = (frac * puncak)[:, None]
+    cutoff = (frac * puncak)[:, None]
 
     idx = np.arange(n)[None, :]
-    bawah = w < ambang
+    bawah = w < cutoff
     kiri_ok = bawah & (idx < peak_idx[:, None])
     kanan_ok = bawah & (idx > peak_idx[:, None])
     kiri = np.where(kiri_ok.any(1), (idx * kiri_ok).max(1), 0)

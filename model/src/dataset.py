@@ -52,7 +52,7 @@ def stack_records(record_ids, per_record_dir: str = PER_RECORD_DIR,
     for rec in record_ids:
         path = os.path.join(per_record_dir, f"{rec}.npz")
         if not os.path.exists(path):
-            raise FileNotFoundError(f"{path} — run `make prep` first")
+            raise FileNotFoundError(f"{path}: run `make prep` first")
         with np.load(path) as z:
             morph.append(z["windows"])
             rr.append(z["rr"])
@@ -100,7 +100,7 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
         if len(tersedia) != n_expected:
             raise ValueError(
                 f"{db}: only {len(tersedia)}/{n_expected} records prepared. Held-out "
-                f"`sorted()[::4]` would DIFFER from the intended one — finish "
+                f"`sorted()[::4]` would DIFFER from the intended one: finish "
                 f"the download and `make prep --db {db}` first, or delete the {db} folder "
                 f"if it is meant to be skipped."
             )

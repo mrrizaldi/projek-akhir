@@ -34,7 +34,7 @@ def plot_confusion(counts: dict, out_path: str, judul: str) -> None:
 def main() -> None:
     path = os.path.join(PROCESSED_DIR, "test.npz")
     if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} — run `make split` first")
+        raise FileNotFoundError(f"{path}: run `make split` first")
     with np.load(path) as z:
         ds2 = {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 

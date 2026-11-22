@@ -67,9 +67,9 @@ def test_really_full_int8():
 def test_artifact_rhythm_scale_sane():
     from config import MAX_RHYTHM_SCALE
     with open(TFLITE, "rb") as f:
-        skala = assert_rhythm_scale_sane(f.read())
-    assert skala == pytest.approx(0.0129, abs=5e-3), f"skala bergeser: {skala}"
-    assert skala < MAX_RHYTHM_SCALE
+        input_scale = assert_rhythm_scale_sane(f.read())
+    assert input_scale == pytest.approx(0.0129, abs=5e-3), f"scale drifted: {input_scale}"
+    assert input_scale < MAX_RHYTHM_SCALE
 
 
 @butuh_artefak
@@ -77,4 +77,4 @@ def test_assert_rhythm_scale_really_fires():
     with open(TFLITE, "rb") as f:
         blob = f.read()
     with pytest.raises(ValueError, match="rhythm input quantization scale"):
-        assert_rhythm_scale_sane(blob, ambang=0.001)
+        assert_rhythm_scale_sane(blob, cutoff=0.001)

@@ -43,7 +43,7 @@ def reproducible():
 def causal_preprocessing():
     src = open(os.path.join(ROOT, "src", "preprocessing.py")).read()
     if "filtfilt" in src:
-        return False, "filtfilt found — PRD PITFALL #1"
+        return False, "filtfilt found: PRD PITFALL #1"
     if "sosfilt" not in src:
         return False, "sosfilt is not used"
     return True, "sosfilt (causal), zero uses of filtfilt"
@@ -54,7 +54,7 @@ def split_verified():
     assert_split_valid()
     for r in DS1 + DS2:
         if not os.path.exists(os.path.join(PER_RECORD_DIR, f"{r}.npz")):
-            return False, f"per_record/{r}.npz missing — run `make prep`"
+            return False, f"per_record/{r}.npz missing: run `make prep`"
     return True, f"DS1 {len(DS1)} + DS2 {len(DS2)} + paced {len(PACED_EXCLUDED)} = 48, disjoint"
 
 
@@ -72,11 +72,11 @@ def model_hybrid():
 def fp32_metrics():
     path = os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")
     if not os.path.exists(path):
-        return False, "fase6_metrics_fp32.csv does not exist yet — run `make eval`"
+        return False, "fase6_metrics_fp32.csv does not exist yet: run `make eval`"
     row = _read_csv(path)
     recall = float(row["recall"])
     if recall <= 0.05:
-        return False, f"Arrhythmia recall {recall:.4f} ~ 0 — bug, check class_weight"
+        return False, f"Arrhythmia recall {recall:.4f} ~ 0: bug, check class_weight"
     png = os.path.join(METRICS_DIR, "fase6_confusion_fp32.png")
     if not os.path.exists(png):
         return False, "confusion matrix PNG does not exist yet"
@@ -87,7 +87,7 @@ def fp32_metrics():
 def model_int8():
     path = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
     if not os.path.exists(path):
-        return False, "model_int8.tflite does not exist yet — run `make quantize`"
+        return False, "model_int8.tflite does not exist yet: run `make quantize`"
     kb = os.path.getsize(path) / 1024
     if kb >= MAX_MODEL_KB:
         return False, f"{kb:.2f} KB >= limit {MAX_MODEL_KB} KB"
@@ -103,7 +103,7 @@ def model_int8():
 def delta_table():
     path = os.path.join(METRICS_DIR, "fase7_delta.csv")
     if not os.path.exists(path):
-        return False, "fase7_delta.csv does not exist yet — run `make quantize`"
+        return False, "fase7_delta.csv does not exist yet: run `make quantize`"
     baris = {}
     with open(path) as f:
         f.readline()
@@ -153,7 +153,7 @@ def main() -> None:
     if gagal:
         print(f"{len(gagal)} items NOT done: {gagal}")
         sys.exit(1)
-    print(f"PoC COMPLETE — {len(hasil)}/{len(hasil)} items verified.")
+    print(f"PoC COMPLETE: {len(hasil)}/{len(hasil)} items verified.")
 
 
 if __name__ == "__main__":

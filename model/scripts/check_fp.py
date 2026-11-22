@@ -56,7 +56,7 @@ def main() -> None:
     y, rec = d["y"].astype(int), d["records"]
     sym = load_symbols(DS2)
     if len(sym) != len(y):
-        raise ValueError(f"symbols {len(sym)} != beats {len(y)} — DS2 order does not match")
+        raise ValueError(f"symbols {len(sym)} != beats {len(y)}: DS2 order does not match")
 
     model = keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
     prob = model.predict([d["X_morph"], d["X_rr"]], batch_size=512, verbose=0).ravel()

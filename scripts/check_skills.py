@@ -29,7 +29,7 @@ def split_frontmatter(teks):
     return None, teks
 
 
-def baca(jalur, problems):
+def read_file(jalur, problems):
     try:
         return jalur.read_text(encoding="utf-8")
     except OSError as e:
@@ -39,7 +39,7 @@ def baca(jalur, problems):
 
 def check_skill_md(base_dir, problems):
     jalur = base_dir / "SKILL.md"
-    teks = baca(jalur, problems)
+    teks = read_file(jalur, problems)
     if teks is None:
         return
     isi, badan = split_frontmatter(teks)
@@ -68,7 +68,7 @@ def check_case(case_dir, problems):
     if not prompt.is_file():
         problems.append(f"{prompt}: missing")
     else:
-        teks = baca(prompt, problems)
+        teks = read_file(prompt, problems)
         if teks is not None:
             isi, badan = split_frontmatter(teks)
             if isi is None:
@@ -80,7 +80,7 @@ def check_case(case_dir, problems):
     if not yaml.is_file():
         problems.append(f"{yaml}: missing")
     else:
-        teks = baca(yaml, problems)
+        teks = read_file(yaml, problems)
         if teks is not None:
             if not re.search(r'^schema_version:\s*"1\.1"\s*$', teks, re.M):
                 problems.append(f'{yaml}: needs schema_version: "1.1"')
@@ -94,7 +94,7 @@ def check_case(case_dir, problems):
     if not graders:
         problems.append(f"{case_dir / 'graders'}: needs at least one grader *.md")
     for berkas in graders:
-        teks = baca(berkas, problems)
+        teks = read_file(berkas, problems)
         if teks is None:
             continue
         isi, badan = split_frontmatter(teks)
@@ -168,19 +168,19 @@ def check_all(folder):
     return skill_dirs, problems
 
 
-def tulis(jalur, isi):
+def write_file(jalur, isi):
     jalur.parent.mkdir(parents=True, exist_ok=True)
     jalur.write_text(isi, encoding="utf-8")
 
 
 def make_valid_skill(base_dir, nama):
-    tulis(base_dir / nama / "SKILL.md", f"---\nname: {nama}\ndescription: satu baris\n---\nisi\n")
+    write_file(base_dir / nama / "SKILL.md", f"---\nname: {nama}\ndescription: satu baris\n---\nisi\n")
     case_dir = base_dir / nama / "evals" / "k1"
-    tulis(case_dir / "prompt.md", "---\nid: k1\n---\ntanya\n")
-    tulis(case_dir / "case.yaml", 'schema_version: "1.1"\nname: k1\nexpected_outcome: ok\n')
-    tulis(case_dir / "graders" / "g1.md", "---\ntype: rubric\nfocus: x\nweight: 1\n---\npernyataan\n")
+    write_file(case_dir / "prompt.md", "---\nid: k1\n---\ntanya\n")
+    write_file(case_dir / "case.yaml", 'schema_version: "1.1"\nname: k1\nexpected_outcome: ok\n')
+    write_file(case_dir / "graders" / "g1.md", "---\ntype: rubric\nfocus: x\nweight: 1\n---\npernyataan\n")
     triggers = [{"query": "a", "should_trigger": True}, {"query": "b", "should_trigger": False}]
-    tulis(base_dir / nama / "triggers" / "evals.json", json.dumps(triggers))
+    write_file(base_dir / nama / "triggers" / "evals.json", json.dumps(triggers))
 
 
 def uji():
@@ -191,22 +191,22 @@ def uji():
         assert problems == [], problems
 
         make_valid_skill(base_dir, "namasalah")
-        tulis(base_dir / "namasalah" / "SKILL.md", "---\nname: lain\ndescription: x\nextra: y\n---\nisi\n")
+        write_file(base_dir / "namasalah" / "SKILL.md", "---\nname: lain\ndescription: x\nextra: y\n---\nisi\n")
         _, problems = check_all(base_dir)
         assert any("must equal folder name" in m for m in problems), problems
         assert any("other than name/description" in m for m in problems), problems
 
-        tulis(base_dir / "namasalah" / "SKILL.md", f"---\nname: namasalah\ndescription: {'x' * (DESCRIPTION_LIMIT + 1)}\n---\nisi\n")
+        write_file(base_dir / "namasalah" / "SKILL.md", f"---\nname: namasalah\ndescription: {'x' * (DESCRIPTION_LIMIT + 1)}\n---\nisi\n")
         assert any("characters, maximum" in m for m in check_skill(base_dir / "namasalah"))
 
-        tulis(base_dir / "namasalah" / "SKILL.md", "---\nname: namasalah\ndescription: x\n---\n" + "baris\n" * BODY_LINE_LIMIT)
+        write_file(base_dir / "namasalah" / "SKILL.md", "---\nname: namasalah\ndescription: x\n---\n" + "baris\n" * BODY_LINE_LIMIT)
         assert any("must be below" in m for m in check_skill(base_dir / "namasalah"))
 
         make_valid_skill(base_dir, "tanpapemicu")
         (base_dir / "tanpapemicu" / "triggers" / "evals.json").unlink()
         assert any("evals.json: missing" in m for m in check_skill(base_dir / "tanpapemicu"))
 
-        tulis(base_dir / "tanpapemicu" / "triggers" / "evals.json", json.dumps([{"query": "a", "should_trigger": True}]))
+        write_file(base_dir / "tanpapemicu" / "triggers" / "evals.json", json.dumps([{"query": "a", "should_trigger": True}]))
         assert any("true and false" in m for m in check_skill(base_dir / "tanpapemicu"))
 
         make_valid_skill(base_dir, "tanpapenilai")
@@ -214,14 +214,14 @@ def uji():
         assert any("grader" in m for m in check_skill(base_dir / "tanpapenilai"))
 
         make_valid_skill(base_dir, "yamlsalah")
-        tulis(base_dir / "yamlsalah" / "evals" / "k1" / "case.yaml", "name: lain\n")
+        write_file(base_dir / "yamlsalah" / "evals" / "k1" / "case.yaml", "name: lain\n")
         assert len(check_skill(base_dir / "yamlsalah")) == 3
 
-        tulis(base_dir / "lama" / "SKILL.md", "---\nname: lama\ndescription: x\n---\nisi\n")
-        tulis(base_dir / "lama" / "eval.md", "eval lama\n")
+        write_file(base_dir / "lama" / "SKILL.md", "---\nname: lama\ndescription: x\n---\nisi\n")
+        write_file(base_dir / "lama" / "eval.md", "eval lama\n")
         assert any("legacy eval.md" in m for m in check_skill(base_dir / "lama"))
 
-        tulis(base_dir / "polos" / "SKILL.md", "---\nname: polos\ndescription: x\n---\nisi\n")
+        write_file(base_dir / "polos" / "SKILL.md", "---\nname: polos\ndescription: x\n---\nisi\n")
         assert len(check_skill(base_dir / "polos")) == 2
     print("self-test passed")
 

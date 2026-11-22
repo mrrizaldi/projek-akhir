@@ -45,7 +45,7 @@ def record_residual(rec: str, sos, tolerance: int):
     return residu, n_palsu, n_lewat, len(r_anot), class_missed
 
 
-def ringkas(residu: np.ndarray) -> dict:
+def digest(residu: np.ndarray) -> dict:
     a = np.abs(residu)
     return {
         "n": len(residu),
@@ -111,14 +111,14 @@ def main() -> None:
             x, y = kelas.get(k, (0, 0))
             kelas[k] = (x + a, y + b)
 
-        s = ringkas(residu)
+        s = digest(residu)
         baris.append((rec, n_beat, s["n"], n_lewat, n_palsu, s["median"], s["std"],
                       s["abs_p95"]))
         print(f"{rec:>5} {n_beat:>7} {s['n']:>7} {n_lewat:>6} {n_palsu:>6} "
               f"{s['median']:>5.0f} {s['std']:>6.2f} {s['abs_p95']:>6.1f}")
 
     residu = np.concatenate(semua)
-    s = ringkas(residu)
+    s = digest(residu)
 
     print("-" * 60)
     print(f"DS1: {tot_beat:,} annotated beats, {s['n']:,} paired, "

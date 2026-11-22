@@ -53,7 +53,7 @@ def select_window(hasil, fs, n, start_s):
     return min(calon, key=lambda c: (c[0], c[1]))
 
 
-def gambar(h, r, fs, mulai, n, judul, tujuan):
+def draw_rows(h, r, fs, mulai, n, judul, tujuan):
     baris = n // (SECONDS_PER_ROW * fs)
     fig, ax = plt.subplots(baris + 1, 1, figsize=(WIDTH_IN, ROW_HEIGHT_IN * (baris + 1)))
     y = h["filtered"]
@@ -101,7 +101,7 @@ def main() -> None:
     segment_text = f", segmen {k + 1}" if len(segmen) > 1 else ""
     judul = (f"{nama}{segment_text}: detik {mulai // fs}-{(mulai + n) // fs} "
              f"(bandpass 0,5-40 Hz, ▼ = R terdeteksi)")
-    bpm = gambar(hasil[k], r, fs, mulai, n, judul, tujuan)
+    bpm = draw_rows(hasil[k], r, fs, mulai, n, judul, tujuan)
     print(f"window seconds {mulai // fs}-{(mulai + n) // fs}{segment_text}: "
           f"odd RR {odd_rr}, noise >{MUSCLE_BAND_MIN_HZ} Hz {100 * muscle:.1f}% of ECG band, "
           f"HR median {np.median(bpm):.0f} bpm ({bpm.min():.0f}-{bpm.max():.0f}), {len(bpm) + 1} R")

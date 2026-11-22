@@ -7,7 +7,7 @@ from scripts.analyze_recording import (
 FS = 360
 
 
-def _ekg(detik, phase, dasar):
+def _synthetic_ecg(detik, phase, dasar):
     t = np.arange(int(detik * FS)) / FS
     x = np.full_like(t, dasar)
     for tb in np.arange(phase, detik, 1.0):
@@ -16,7 +16,7 @@ def _ekg(detik, phase, dasar):
 
 
 def test_rr_does_not_cross_pause(tmp_path):
-    s1, s2 = _ekg(20, 0.5, 2000), _ekg(20, 0.3, 2600)
+    s1, s2 = _synthetic_ecg(20, 0.5, 2000), _synthetic_ecg(20, 0.3, 2600)
     berkas = tmp_path / "rekam.csv"
     berkas.write_text(f"# fs={FS} n={len(s1) + len(s2)}\n"
                       + "\n".join(map(str, s1)) + "\n# jeda\n"
@@ -33,18 +33,18 @@ def test_rr_does_not_cross_pause(tmp_path):
 
 
 def test_short_autocorrelation_keeps_whole_segment():
-    x = (_ekg(50, 0.5, 2000) - 2000) / 1000.0
+    x = (_synthetic_ecg(50, 0.5, 2000) - 2000) / 1000.0
     assert pulse_per_window(x, FS) == autocorrelation_pulse(x, FS)
 
 
 def test_long_autocorrelation_median_per_window():
-    x = (_ekg(95, 0.5, 2000) - 2000) / 1000.0
+    x = (_synthetic_ecg(95, 0.5, 2000) - 2000) / 1000.0
     n = AUTOCORRELATION_WINDOW_S * FS
-    tiap = [autocorrelation_pulse(x[i:i + n], FS) for i in range(0, len(x) - n + 1, n)]
+    per_window = [autocorrelation_pulse(x[i:i + n], FS) for i in range(0, len(x) - n + 1, n)]
     strength, bpm, _ = pulse_per_window(x, FS)
-    assert len(tiap) == 3
-    assert strength == float(np.median([k for k, _, _ in tiap]))
-    assert bpm == float(np.median([b for _, b, _ in tiap]))
+    assert len(per_window) == 3
+    assert strength == float(np.median([k for k, _, _ in per_window]))
+    assert bpm == float(np.median([b for _, b, _ in per_window]))
 
 
 def test_clipping_judged_by_fraction_of_samples_at_firmware_rail():

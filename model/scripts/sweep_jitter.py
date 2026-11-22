@@ -28,10 +28,10 @@ N_SEED = 5
 
 
 def load_ds2(sos) -> list:
-    simpan = []
+    save_item = []
     for rec in DS2:
         signal, r, sym, _ = load_record(str(rec))
-        simpan.append({
+        save_item.append({
             "rec": rec,
             "n": len(signal),
             "filtered": apply_bandpass(signal, sos),
@@ -39,7 +39,7 @@ def load_ds2(sos) -> list:
             "aami": np.array([to_aami_class(s) for s in sym]),
             "y": np.array([to_binary_label(to_aami_class(s)) for s in sym], dtype=np.int8),
         })
-    return simpan
+    return save_item
 
 
 def rakit(cache: list, model_jitter: str, delta: int, seed: int):
@@ -108,21 +108,21 @@ def main() -> None:
     rows = [ukur(model, cache, None, 0, 0)]
     print(f"{'jitter':>8} {'δ':>3} {'seed':>4} {'recall':>7} {'prec':>7} {'F1':>7} "
           f"{'AUC':>7} {'reS':>6} {'reV':>6}")
-    cetak = lambda r: print(
+    emit = lambda r: print(
         f"{r['model_jitter']:>8} {r['delta']:>3} {r['seed']:>4} {r['recall']:>7.4f} "
         f"{r['precision']:>7.4f} {r['f1']:>7.4f} {r['auc']:>7.4f} "
         f"{r['recall_S']:>6.3f} {r['recall_V']:>6.3f}")
-    cetak(rows[0])
+    emit(rows[0])
 
     for delta in DELTA:
         for seed in range(N_SEED):
             if delta == 0 and seed > 0:
                 continue
             rows.append(ukur(model, cache, "seragam", delta, seed))
-            cetak(rows[-1])
+            emit(rows[-1])
     for seed in range(N_SEED):
         rows.append(ukur(model, cache, "empiris", 0, seed))
-        cetak(rows[-1])
+        emit(rows[-1])
 
     kolom = list(rows[0])
     out = os.path.join(OUT_DIR, f"sweep_jitter_{args.tag}.csv")

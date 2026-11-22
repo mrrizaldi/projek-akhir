@@ -73,10 +73,10 @@ def quiet_per_second(mentah, n_seconds):
     violated = np.zeros(n_seconds, dtype=bool)
     violated[beat_seconds[~plausible & (beat_seconds < n_seconds)]] = True
     beat = np.bincount(beat_seconds[beat_seconds < n_seconds], minlength=n_seconds)
-    tenang = np.zeros(n_seconds)
+    quiet_run_s = np.zeros(n_seconds)
     for t in range(1, n_seconds):
-        tenang[t] = 0.0 if violated[t] else tenang[t - 1] + 1.0
-    return beat, plausible, beat_seconds, tenang
+        quiet_run_s[t] = 0.0 if violated[t] else quiet_run_s[t - 1] + 1.0
+    return beat, plausible, beat_seconds, quiet_run_s
 
 
 def first_pass(conditions):
@@ -94,7 +94,7 @@ def main() -> None:
     mentah = load_session(paths)
     ayun, hum50, ayun_bersih, clipping = scores_per_second(mentah)
     n_seconds = len(ayun)
-    beat, plausible, beat_seconds, tenang = quiet_per_second(mentah, n_seconds)
+    beat, plausible, beat_seconds, quiet_run_s = quiet_per_second(mentah, n_seconds)
     waktu = np.arange(n_seconds)
 
     print(f"session {len(paths)} files, {n_seconds} seconds ({n_seconds / SECONDS_PER_MINUTE:.1f} minutes)\n")
@@ -105,10 +105,10 @@ def main() -> None:
         percent_plausible = 100.0 * plausible[in_minute].mean() if in_minute.any() else float("nan")
         print(f"{m // SECONDS_PER_MINUTE:5d} | {np.median(ayun_bersih[s]):11.0f} {np.percentile(ayun_bersih[s], LOWER_PERCENTILE):4.0f}"
               f" | {np.median(hum50[s]):16.0f} | {clipping[s].sum():14d} | {beat[s].sum():4d}"
-              f" | {percent_plausible:7.1f}% | {tenang[s].max():8.0f} s")
+              f" | {percent_plausible:7.1f}% | {quiet_run_s[s].max():8.0f} s")
 
     swing_ok = ayun_bersih >= THRESHOLD_SWING
-    rr_quiet = tenang >= QUIET_RR_S
+    rr_quiet = quiet_run_s >= QUIET_RR_S
     print(f"\nclean_swing >= {THRESHOLD_SWING} first        : {first_pass(swing_ok)}")
     print(f"quiet RR >= {QUIET_RR_S} s first          : {first_pass(rr_quiet)}")
     print(f"gate without {STABLE_S} s condition passes: {first_pass(swing_ok & rr_quiet)}")
@@ -117,7 +117,7 @@ def main() -> None:
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     nama = os.path.splitext(os.path.basename(paths[0]))[0] + f"-sesi{len(paths)}"
     keluaran = os.path.join(OUTPUT_FOLDER, f"{nama}.csv")
-    np.savetxt(keluaran, np.column_stack([waktu, ayun, hum50, ayun_bersih, clipping, beat, tenang]),
+    np.savetxt(keluaran, np.column_stack([waktu, ayun, hum50, ayun_bersih, clipping, beat, quiet_run_s]),
                fmt="%d", delimiter=",", header="detik,ayun,dengung50,ayun_bersih,clipping,beat,tenang_s",
                comments="")
     print(f"\n{keluaran}")

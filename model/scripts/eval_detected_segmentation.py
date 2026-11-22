@@ -121,7 +121,7 @@ def main() -> None:
         f"{k} {hit[k] / tot[k]:.3f}" for k in ("N", "S", "V", "F") if tot.get(k)))
     ar_t = sum(tot.get(k, 0) for k in "SVFQ")
     ar_k = sum(hit.get(k, 0) for k in "SVFQ")
-    print(f"   Normal {hit['N'] / tot['N']:.4f} vs Arrhythmia {ar_k / ar_t:.4f} — "
+    print(f"   Normal {hit['N'] / tot['N']:.4f} vs Arrhythmia {ar_k / ar_t:.4f}: "
           f"premature beats blocked by the detector 200 ms refractory period\n")
 
     print("A. Classification on beats that WERE detected")

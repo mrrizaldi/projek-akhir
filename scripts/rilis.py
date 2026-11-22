@@ -20,8 +20,8 @@ def git(*argumen, cwd=REPO_ROOT):
     return hasil.stdout.strip()
 
 
-def gagal(pesan):
-    print(pesan, file=sys.stderr)
+def gagal(msg):
+    print(msg, file=sys.stderr)
     sys.exit(1)
 
 
@@ -130,8 +130,8 @@ def main():
         finally:
             git("worktree", "remove", "--force", str(new_tree))
 
-    pesan = f"{args.catatan}\n\nhalaman={pages} galat_log={fault}".strip()
-    git("tag", "-a", f"rilis/{args.proyek}/v{nomor}", rev, "-m", pesan)
+    msg = f"{args.catatan}\n\nhalaman={pages} galat_log={fault}".strip()
+    git("tag", "-a", f"rilis/{args.proyek}/v{nomor}", rev, "-m", msg)
     print(f"tag=rilis/{args.proyek}/v{nomor}")
 
 

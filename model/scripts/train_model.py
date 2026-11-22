@@ -19,7 +19,7 @@ from src.train import make_class_weights, train
 def load_ds1() -> dict:
     path = os.path.join(PROCESSED_DIR, "train.npz")
     if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} — run `make split` first")
+        raise FileNotFoundError(f"{path}: run `make split` first")
     with np.load(path) as z:
         return {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 

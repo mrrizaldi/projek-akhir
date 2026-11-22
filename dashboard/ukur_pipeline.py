@@ -68,8 +68,8 @@ def measure_offset(n=5):
             for b in baris[tanda:]:
                 m = re.search(r"epoch_ms (\d+)", b)
                 if m:
-                    return_now = int(time.time() * 1000)
-                    beda.append(int(m.group(1)) - return_now)
+                    laptop_now_ms = int(time.time() * 1000)
+                    beda.append(int(m.group(1)) - laptop_now_ms)
                     tanda = len(baris)
                     break
             else:

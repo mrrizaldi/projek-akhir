@@ -31,11 +31,11 @@ def main() -> None:
 
     f1_max = max(r["f1"] for r in rows)
     kandidat = [r for r in rows if f1_max - r["f1"] < F1_TIE_MARGIN]
-    pilih = max(kandidat, key=lambda r: r["recall"])
+    best = max(kandidat, key=lambda r: r["recall"])
     print(f"\nmax F1 {f1_max:.4f}; candidates within margin {F1_TIE_MARGIN}: "
           f"{[round(r['threshold'], 2) for r in kandidat]}")
-    print(f"→ THRESHOLD = {pilih['threshold']:.2f}  "
-          f"(recall {pilih['recall']:.4f}, precision {pilih['precision']:.4f})")
+    print(f"→ THRESHOLD = {best['threshold']:.2f}  "
+          f"(recall {best['recall']:.4f}, precision {best['precision']:.4f})")
 
     out = os.path.join(METRICS_DIR, "fase5_threshold_sweep.csv")
     os.makedirs(METRICS_DIR, exist_ok=True)

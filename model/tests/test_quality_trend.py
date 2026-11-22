@@ -5,7 +5,7 @@ from scripts.quality_trend import FREQUENCY_MAINS_HZ, scores_per_second, quiet_p
 FS = 360
 
 
-def _ekg(detik, waktu_beat, dasar=2000):
+def _synthetic_ecg(detik, waktu_beat, dasar=2000):
     t = np.arange(int(detik * FS)) / FS
     x = np.full_like(t, dasar)
     for tb in waktu_beat:
@@ -21,11 +21,11 @@ def test_hum_50hz_measured_peak_to_peak():
 
 
 def test_quiet_rr_grows_and_resets_on_premature_beat():
-    teratur = _ekg(60, np.arange(0.5, 60, 1.0))
-    *_, tenang = quiet_per_second(teratur, 60)
-    assert tenang.max() >= 55
+    teratur = _synthetic_ecg(60, np.arange(0.5, 60, 1.0))
+    *_, quiet_run_s = quiet_per_second(teratur, 60)
+    assert quiet_run_s.max() >= 55
 
     prematur = np.sort(np.r_[np.arange(0.5, 60, 1.0), 30.85])
-    *_, tenang = quiet_per_second(_ekg(60, prematur), 60)
-    assert tenang[30] == 0 and tenang[31] == 0
-    assert tenang[59] >= 25
+    *_, quiet_run_s = quiet_per_second(_synthetic_ecg(60, prematur), 60)
+    assert quiet_run_s[30] == 0 and quiet_run_s[31] == 0
+    assert quiet_run_s[59] >= 25

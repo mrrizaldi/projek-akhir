@@ -24,7 +24,7 @@ METRIC_NAMES = ("accuracy", "precision", "recall", "f1", "specificity")
 def _load(nama: str) -> dict:
     path = os.path.join(PROCESSED_DIR, nama)
     if not os.path.exists(path):
-        raise FileNotFoundError(f"{path} — run `make split` first")
+        raise FileNotFoundError(f"{path}: run `make split` first")
     with np.load(path) as z:
         return {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 

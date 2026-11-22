@@ -50,11 +50,11 @@ def main() -> None:
 
     plan = [("mitdb", None), ("svdb", "ECG1"), ("svdb", "ECG2"),
                ("incartdb", None)]
-    ringkas = {}
+    digest = {}
     for db, lead in plan:
         recs = available_records(db)
         if not recs:
-            print(f"{db:10} {'-':6} no complete record yet — skipped")
+            print(f"{db:10} {'-':6} no complete record yet: skipped")
             continue
         asli = DATASETS[db]["leads"]
         nilai = []
@@ -75,12 +75,12 @@ def main() -> None:
         DATASETS[db]["leads"] = asli
         if nilai:
             a = np.asarray(nilai)
-            ringkas[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
+            digest[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
                                                  (a[:, 0] > 0).mean(), len(a))
 
-    print("\n── POLARITY verdict (from the RAW column — not from ALIGNED) ──")
-    acuan = ringkas.get("mitdb/MLII", (None,))[0]
-    for k, (mentah, selaras, konsisten, n) in ringkas.items():
+    print("\n── POLARITY verdict (from the RAW column, not from ALIGNED) ──")
+    acuan = digest.get("mitdb/MLII", (None,))[0]
+    for k, (mentah, selaras, konsisten, n) in digest.items():
         vonis = ""
         if acuan is not None and k != "mitdb/MLII":
             vonis = ("  <- COMPARABLE" if np.sign(mentah) == np.sign(acuan) and konsisten > 0.8
@@ -88,7 +88,7 @@ def main() -> None:
         print(f"  {k:18} raw {mentah:+7.3f}  ({100*konsisten:.0f}% records positive, "
               f"n={n}){vonis}")
     print("\n── ALIGNMENT verdict (from the ALIGNED column; peak must be 132) ──")
-    for k, (mentah, selaras, konsisten, n) in ringkas.items():
+    for k, (mentah, selaras, konsisten, n) in digest.items():
         print(f"  {k:18} aligned {selaras:+7.3f}")
 
 
