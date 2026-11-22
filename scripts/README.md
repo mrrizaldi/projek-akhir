@@ -19,7 +19,7 @@ berisi daftar grafik rekaman tambahan (data resmi = sesi 22 Okt 2026 siang, graf
 
 ## Indeks berkas lewat browser
 
-`sajikan.py` menyalakan server lokal (stdlib, tanpa dependency) yang
+`serve.py` menyalakan server lokal (stdlib, tanpa dependency) yang
 menyajikan seluruh repo. Halaman `/` mendaftar semua `.pdf`, `.docx`, dan
 `.pptx` di repo (kecuali `.git`, `.venv`, `node_modules`, `.pio`),
 dikelompokkan per folder. Folder dengan berkas paling baru tampil paling
@@ -30,8 +30,8 @@ terbuka di tab baru.
 1. Jalankan dari akar repo:
 
    ```bash
-   python3 scripts/sajikan.py          # port bawaan 8700
-   python3 scripts/sajikan.py 9000     # port lain
+   python3 scripts/serve.py          # port bawaan 8700
+   python3 scripts/serve.py 9000     # port lain
    ```
 
 2. Buka `http://127.0.0.1:8700/` di browser. PDF terbuka di viewer browser;
@@ -50,7 +50,7 @@ langsung lewat URL (`/model/artifacts/metrics/...png`).
 
 ## Pemeriksa
 
-`cek_komentar.py` menegakkan aturan TANPA KOMENTAR KODE (`CLAUDE.md` root,
+`check_comments.py` menegakkan aturan TANPA KOMENTAR KODE (`CLAUDE.md` root,
 Aturan keras 5). Memindai berkas tracked git dan keluar dengan kode 1 sambil
 mencetak `berkas:baris: isi` untuk tiap komentar yang ditemukan.
 
@@ -66,12 +66,12 @@ Dikecualikan: `laporan/`, `docs/`, `*.md`, `*.tex`, folder `arsip/`, dan berkas
 non-kode lain.
 
 ```bash
-python3 scripts/cek_komentar.py                       # seluruh repo
-python3 scripts/cek_komentar.py firmware/src model/x.py  # sebagian (folder/berkas)
-python3 scripts/cek_komentar.py --uji                 # uji mandiri pemeriksa
+python3 scripts/check_comments.py                       # seluruh repo
+python3 scripts/check_comments.py firmware/src model/x.py  # sebagian (folder/berkas)
+python3 scripts/check_comments.py --self-test             # uji mandiri pemeriksa
 ```
 
-CI menjalankannya di `.github/workflows/cek.yml` (job `komentar`), bersama
+CI menjalankannya di `.github/workflows/checks.yml` (job `comments`), bersama
 `pio test -e native` (job `firmware-native`). Pytest model tidak ikut karena
 butuh data MIT-BIH yang tidak di-commit.
 
@@ -123,16 +123,16 @@ python3 scripts/cek_tabel.py --uji                           # uji mandiri pemer
 
 ## Pengunduh daftar pustaka
 
-`unduh_pustaka.py` mengunduh PDF untuk entri `laporan/*/referensi.bib` ke
+`fetch_references.py` mengunduh PDF untuk entri `laporan/*/referensi.bib` ke
 `laporan/pustaka/<kunci-bib>.pdf` (folder di-ignore git: PDF penerbit tidak
 boleh masuk repo). Sumber: DOI → Unpaywall → URL PDF open access; entri
 `@misc` yang `url`-nya langsung `.pdf` diunduh apa adanya. Berkas yang sudah
 ada dilewati, jadi aman dijalankan berulang. Entri tanpa DOI di bib proposal
-(beku) diberi DOI lewat tabel `DOI_TAMBAHAN` di skrip, hasil pencarian judul
+(beku) diberi DOI lewat tabel `EXTRA_DOIS` di skrip, hasil pencarian judul
 di Scopus (15 Okt 2026).
 
 ```bash
-cd model && .venv/bin/python ../scripts/unduh_pustaka.py   # python3 biasa juga bisa, stdlib saja
+cd model && .venv/bin/python ../scripts/fetch_references.py   # python3 biasa juga bisa, stdlib saja
 ```
 
 Keluaran: baris `[unduh]`, `[ada]`, atau `[gagal]` per kunci, lalu rekap.
@@ -191,11 +191,10 @@ make cek-docx WORDCRAFT=/path/ke/wordcraft-cli # binary lain, mis. hasil build b
 
 ## Pemeriksa pola tulisan AI
 
-`cek_slop.py` adalah pembungkus tipis atas
+`check_slop.py` adalah pembungkus tipis atas
 `~/.claude/skills/indonesian-antislop-writing/scripts/check_slop.py`. Sumber
 pola, ambang, dan katalog ada di skill user itu (`references/catalog.md`);
-repo ini tidak menyimpan salinannya. Opsi lama dipetakan: `--ringkas` ke
-`--summary`, `--banding` ke `--compare`, `--uji` ke `--self-test`; argumen lain
+repo ini tidak menyimpan salinannya. Semua opsi
 diteruskan apa adanya dan kode keluarnya sama dengan pemeriksa asli. Bila skill
 user tidak terpasang, pembungkus mencetak pesan dan keluar dengan kode 2.
 Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingkat
@@ -204,15 +203,15 @@ Lingkungan tabel, gambar, persamaan, dan komentar `%` dilewati. Temuan bertingka
 
 ```bash
 cd laporan/progres-pa-1
-python3 ../../scripts/cek_slop.py --ringkas bab/bab2.tex bab/bab3.tex bab/bab4.tex
-python3 ../../scripts/cek_slop.py bab/bab3.tex
-python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
-python3 ../../scripts/cek_slop.py --uji
+python3 ../../scripts/check_slop.py --summary bab/bab2.tex bab/bab3.tex bab/bab4.tex
+python3 ../../scripts/check_slop.py bab/bab3.tex
+python3 ../../scripts/check_slop.py --compare /tmp/bab3.lama.tex bab/bab3.tex
+python3 ../../scripts/check_slop.py --self-test
 ```
 
-## cek_skill.py
+## check_skills.py
 
-`cek_skill.py` memeriksa struktur setiap skill di `.claude/skills/*/`
+`check_skills.py` memeriksa struktur setiap skill di `.claude/skills/*/`
 (`.claude/skills-arsip/` tidak diperiksa). Yang diperiksa:
 
 - `SKILL.md`: frontmatter hanya `name` dan `description`, `name` sama dengan
@@ -228,16 +227,16 @@ python3 ../../scripts/cek_slop.py --uji
   `eval.md`, dianggap galat. Opsi `--lewati-eval-lama` melewati pemeriksaan
   eval untuk skill yang masih memakai `eval.md` (masa transisi).
 
-Kode keluar 1 bila ada galat. CI menjalankan `--uji` dan pemeriksaan tanpa opsi.
+Kode keluar 1 bila ada galat. CI menjalankan `--self-test` dan pemeriksaan tanpa opsi.
 
 ```bash
-python3 scripts/cek_skill.py
-python3 scripts/cek_skill.py --uji
+python3 scripts/check_skills.py
+python3 scripts/check_skills.py --self-test
 ```
 
-## uji_pemicu.sh
+## trigger_eval.sh
 
-`uji_pemicu.sh` mengukur apakah deskripsi sebuah skill memicu pada kueri yang
+`trigger_eval.sh` mengukur apakah deskripsi sebuah skill memicu pada kueri yang
 tepat dan tidak pada kueri lain, memakai `run_eval.py` dari skill-creator dan
 `triggers/evals.json` milik skill. Jalannya terisolasi: konfigurasi Claude
 sementara (`CLAUDE_CONFIG_DIR`) hanya berisi salinan `~/.claude/.credentials.json`,
@@ -249,10 +248,10 @@ dan login aktif (`claude login`). Prasyarat yang kurang membuat skrip keluar
 dengan kode 2 dan pesan.
 
 ```bash
-scripts/uji_pemicu.sh .claude/skills/<skill> [.claude/skills/<skill2> ...]
+scripts/trigger_eval.sh .claude/skills/<skill> [.claude/skills/<skill2> ...]
 ```
 
-Keluaran per skill: `nama=<skill> benar=<n>/<total>` dan `json=<path>`; JSON
+Keluaran per skill: `name=<skill> passed=<n>/<total>` dan `json=<path>`; JSON
 lengkap dan log galat ada di folder sementara `$T/out/`. Satu kueri dijalankan
 satu kali (`--runs-per-query 1`), jadi hasilnya sampel kecil dan bisa
 bergeser antarjalan. Biaya: satu panggilan model per kueri, sekitar 20
@@ -281,11 +280,11 @@ cd laporan/<proyek> && make rilis CATATAN="..."
 python3 scripts/rilis.py <proyek> --rev <commit> --catatan "..."
 ```
 
-3. Keluaran: `versi=`, `rev=`, `pdf=`, `halaman=`, `galat_log=` (baris
-   `undefined` atau `Overfull` di log LaTeX), `banding=` atau `warn=`, dan
+3. Keluaran: `version=`, `rev=`, `pdf=`, `pages=`, `log_errors=` (baris
+   `undefined` atau `Overfull` di log LaTeX), `diff=` atau `warn=`, dan
    `tag=`.
 4. Hasil ada di `laporan/rilis/<proyek>/vN/`: `<proyek>-vN.pdf`,
-   `<proyek>-vN.docx`, `banding-vM-vN.pdf`. Folder ini terlihat di `sajikan.py`.
+   `<proyek>-vN.docx`, `banding-vM-vN.pdf`. Folder ini terlihat di `serve.py`.
 5. Folder rilis yang hilang dibangun ulang dari tag:
 
 ```bash

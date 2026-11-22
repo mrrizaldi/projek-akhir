@@ -24,7 +24,7 @@
     "should_trigger": true
   },
   {
-    "query": "cek_slop.py --ringkas bab4 berapa galatnya?",
+    "query": "check_slop.py --summary bab4 berapa galatnya?",
     "should_trigger": true
   },
   {

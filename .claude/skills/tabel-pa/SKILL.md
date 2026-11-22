@@ -10,7 +10,7 @@ Tabel yang benar secara format masih bisa buruk bila dipakai sebagai wadah parag
 ## Keputusan gaya
 
 - Tabel buku-pa memakai gaya tiga garis (`booktabs`), bukan grid penuh. Alasannya, tabel riset jarang berborder lengkap dan buku AFIB (pembimbing sama) memakai tiga garis.
-- Tabel Perbandingan Penelitian Terkait (`tab:perbandingan-penelitian`) satu-satunya pengecualian: grid tertutup polos. Daftar pengecualian ada di `TABEL_GRID_PENUH` pada `scripts/cek_tabel.py`.
+- Tabel Perbandingan Penelitian Terkait (`tab:perbandingan-penelitian`) satu-satunya pengecualian: grid tertutup polos. Daftar pengecualian ada di `FULL_GRID_TABLES` pada `scripts/cek_tabel.py`.
 - `laporan/proposal-pa` dibekukan dan tetap grid; jangan disunting.
 - Saran dari skill penulisan berbahasa Inggris yang tidak dipakai: menebalkan nilai terbaik di setiap kolom (Bab 4 menilai terhadap target, bukan lomba; tebal hanya untuk varian terpilih di tabel ablasi), baris "Ours" (diganti baris terakhir "Penelitian ini"), `table*` dua kolom (laporan satu kolom), dan `threeparttable` (diganti baris Keterangan tanpa paket baru).
 

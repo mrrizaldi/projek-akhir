@@ -51,7 +51,7 @@ firmware/include/wifi_secrets.h
 !.claude/skills/
 !.claude/skills-arsip/
 
-# PDF daftar pustaka (hak cipta penerbit) — unduh ulang: python3 scripts/unduh_pustaka.py
+# PDF daftar pustaka (hak cipta penerbit) — unduh ulang: python3 scripts/fetch_references.py
 laporan/pustaka/
 .playwright-mcp/
 
