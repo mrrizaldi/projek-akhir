@@ -1,15 +1,15 @@
-# Walkthrough `src/features_rr.py` — Fase 2
+# Walkthrough `src/features_rr.py`: Phase 2
 
-> **Ruang lingkup:** pemetaan simbol beat ke label biner dan tiga fitur ritme (RR_prev, RR_ratio, dRR) per detak.
-> **Kode terkait:** `src/features_rr.py`, `config.py` (`AAMI_MAP`, `ARRHYTHMIA_SYMBOLS`, `RR_LOCAL_WINDOW_BEATS`), `scripts/prep_beats.py`, `tests/test_features_rr.py`
-> **Prasyarat:** [`preprocessing-walkthrough.md`](preprocessing-walkthrough.md)
+> **Scope:** mapping beat symbols to a binary label and the three rhythm features (RR_prev, RR_ratio, dRR) per beat.
+> **Related code:** `src/features_rr.py`, `config.py` (`AAMI_MAP`, `ARRHYTHMIA_SYMBOLS`, `RR_LOCAL_WINDOW_BEATS`), `scripts/prep_beats.py`, `tests/test_features_rr.py`
+> **Prerequisite:** [`preprocessing-walkthrough.md`](preprocessing-walkthrough.md)
 
-Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 10–11. Lanjutan dari
-[`preprocessing-walkthrough.md`](preprocessing-walkthrough.md) (Fase 1).
+A study document, not a specification. The official specification remains
+`PRD_Model_Aritmia_TinyML.pdf` pp. 10–11. A continuation of
+[`preprocessing-walkthrough.md`](preprocessing-walkthrough.md) (Phase 1).
 
-Semua angka di sini dari **record 100 utuh** (2273 beat, `fs = 360 Hz`).
-Reproduksi:
+All numbers here are from **the whole of record 100** (2273 beats, `fs = 360 Hz`).
+Reproduction:
 
 ```
 cd model
@@ -23,16 +23,16 @@ print(compute_rr_features(r)[:5])
 "
 ```
 
-> File `src/features_rr.py` sengaja **tanpa komentar**. Penjelasannya ada di sini
-> — kode dijaga sependek mungkin supaya mudah dibaca sebagai persamaan dan
-> mudah dipadankan dengan port C-nya (`firmware/src/ecg_pipeline.cpp`).
+> The file `src/features_rr.py` is deliberately **without comments**. The explanation is here:
+> the code is kept as short as possible so it is easy to read as an equation and
+> easy to match against its C port (`firmware/src/ecg_pipeline.cpp`).
 
 ---
 
-## 0. Peta besar — di mana Fase 2 berdiri
+## 0. The big picture: where Phase 2 stands
 
-Fase 1 menghasilkan **bentuk** (morfologi) tiap detak. Fase 2 menambahkan
-**ritme**, lalu memberi tiap detak sebuah label.
+Phase 1 produces the **shape** (morphology) of each beat. Phase 2 adds
+**rhythm**, then gives each beat a label.
 
 ```
  load_record()  →  signal, r_locations, symbols
@@ -50,13 +50,13 @@ Fase 1 menghasilkan **bentuk** (morfologi) tiap detak. Fase 2 menambahkan
                     data/processed/per_record/<rec>.npz
 ```
 
-Model menerima **dua input**: window morfologi 256 sampel dan vektor
-ritme 3 angka. Dua-duanya wajib — PVC dan beat normal bisa mirip bentuknya,
-yang membedakan justru kedatangannya yang prematur.
+The model receives **two inputs**: a 256-sample morphology window and a
+3-number rhythm vector. Both are mandatory: a PVC and a normal beat can look similar in shape,
+and what distinguishes them is precisely its premature arrival.
 
 ---
 
-## 1. Dua tahap label — kenapa tidak langsung 0/1
+## 1. Two label stages: why not directly 0/1
 
 ```python
 def to_aami_class(symbol: str) -> str:
@@ -66,7 +66,7 @@ def to_binary_label(aami_class: str) -> int:
     return int(aami_class in ARRHYTHMIA_SYMBOLS)
 ```
 
-Tiga penyempitan berurutan:
+Three successive narrowings:
 
 ```
 anotasi wfdb   ~40 simbol   "N" "L" "V" "A" "+" "~" "|" ...
@@ -81,10 +81,10 @@ superclass AAMI  5 kelas   N  S  V  F  Q
 label biner      2 kelas   0 = Normal, 1 = Aritmia
 ```
 
-`to_aami_class` **tidak membuang apa pun**. Satu simbol masuk, satu kelas keluar.
-Penyaringan non-beat sudah selesai di `load_record`.
+`to_aami_class` **discards nothing**. One symbol in, one class out.
+The filtering of non-beats is already done in `load_record`.
 
-### `AAMI_MAP` itu tabel, bukan algoritma
+### `AAMI_MAP` is a table, not an algorithm
 
 ```python
 AAMI_MAP = {"N":"N", "L":"N", "R":"N", "e":"N", "j":"N",
@@ -93,21 +93,21 @@ AAMI_MAP = {"N":"N", "L":"N", "R":"N", "e":"N", "j":"N",
             "/":"Q", "f":"Q", "Q":"Q"}
 ```
 
-Aturannya hidup sebagai **data di `config.py`**, bukan sebagai rantai `if` di
-`src/`. Mengubah "L → S" cukup satu baris config, `src/` tak tersentuh.
+The rule lives as **data in `config.py`**, not as a chain of `if`s in
+`src/`. Changing "L → S" takes a single config line, `src/` is untouched.
 
-**L & R (bundle branch block) → N** adalah keputusan yang terasa salah secara
-klinis (LBBB jelas patologis) tapi benar secara metodologis: standar AAMI
-EC57 dan de Chazal 2004 menaruhnya di N, dan seluruh literatur inter-patient
-memakai konvensi itu. Kalau kita menyimpang, angka kita tidak bisa dibandingkan
-dengan siapa pun.
+**L & R (bundle branch block) → N** is a decision that feels wrong
+clinically (LBBB is clearly pathological) but is right methodologically: the AAMI
+EC57 standard and de Chazal 2004 put them in N, and the entire inter-patient literature
+uses that convention. If we deviate, our numbers cannot be compared
+with anyone's.
 
-### Kenapa `AAMI_MAP[symbol]`, bukan `.get(symbol, "Q")`
+### Why `AAMI_MAP[symbol]`, not `.get(symbol, "Q")`
 
-`.get` dengan default akan **diam-diam** melabeli simbol tak dikenal sebagai Q →
-Aritmia. Bracket melempar `KeyError`. Kalau whitelist di hulu bocor, kamu tahu
-saat itu juga — bukan di Fase 6 saat recall tiba-tiba aneh dan tidak ada
-petunjuk kenapa.
+`.get` with a default would **silently** label an unknown symbol as Q →
+Arrhythmia. The bracket raises `KeyError`. If the upstream whitelist leaks, you know
+right then, not in Phase 6 when recall is suddenly strange and there is no
+clue why.
 
 ### `int(... in ...)`
 
@@ -116,35 +116,35 @@ petunjuk kenapa.
 "N" in {"V","S","F","Q"}   →  False  →  int(False) = 0
 ```
 
-`bool` itu subclass `int` di Python, jadi cast-nya no-op secara nilai. Gunanya
-membuat `np.array(labels, dtype=np.int8)` di `prep_beats` tidak menghasilkan
-`dtype=bool` yang membuat class-weight Fase 5 bermasalah.
+`bool` is a subclass of `int` in Python, so the cast is a no-op in value. Its purpose is to
+make `np.array(labels, dtype=np.int8)` in `prep_beats` not produce
+`dtype=bool`, which would trouble the Phase 5 class weight.
 
-**Asimetri yang perlu disadari:** keanggotaan dicek di `ARRHYTHMIA_SYMBOLS`,
-jadi kelas tak dikenal jatuh ke 0 (Normal) diam-diam. Aman *hanya karena*
-`to_aami_class` sudah melempar `KeyError` di hulu — dua fungsi ini selalu
-dipanggil berpasangan.
+**An asymmetry to be aware of:** membership is checked in `ARRHYTHMIA_SYMBOLS`,
+so an unknown class silently falls to 0 (Normal). Safe *only because*
+`to_aami_class` already raises `KeyError` upstream: these two functions are always
+called as a pair.
 
 ---
 
-## 2. `compute_rr_features()` — tiga angka ritme per detak
+## 2. `compute_rr_features()`: three rhythm numbers per beat
 
-### 2.1 Kenapa RR, kenapa tiga
+### 2.1 Why RR, why three
 
-Interval RR = jarak waktu antar detak. Dari situ tiga fitur:
+The RR interval = the time distance between beats. From it, three features:
 
-| Fitur | Rumus | Menangkap |
+| Feature | Formula | Captures |
 |---|---|---|
-| `RR_prev` | $(r_i - r_{i-1}) / f_s$ | kecepatan absolut detak ini |
-| `RR_ratio` | $\text{RR}_{\text{prev}} / \overline{\text{RR}}_{\text{lokal}}$ | prematur/terlambat **relatif ritme orang itu** |
-| `dRR` | $\text{RR}_{\text{prev},i} - \text{RR}_{\text{prev},i-1}$ | perubahan — pola cepat-lalu-jeda khas PVC |
+| `RR_prev` | $(r_i - r_{i-1}) / f_s$ | the absolute speed of this beat |
+| `RR_ratio` | $\text{RR}_{\text{prev}} / \overline{\text{RR}}_{\text{lokal}}$ | premature/late **relative to that person's rhythm** |
+| `dRR` | $\text{RR}_{\text{prev},i} - \text{RR}_{\text{prev},i-1}$ | change: the fast-then-pause pattern typical of PVC |
 
-`RR_prev` sendirian tidak cukup: 0,6 detik itu normal untuk orang ber-HR 100,
-tapi prematur untuk orang ber-HR 60. `RR_ratio` yang menormalkan ke ritme
-pasien itu sendiri — **inilah fitur yang selamat menyeberangi split
-inter-patient**, karena tidak membawa bias detak-dasar pasien latih.
+`RR_prev` alone is not enough: 0.6 seconds is normal for a person with HR 100,
+but premature for a person with HR 60. `RR_ratio` normalizes to that
+patient's own rhythm, and **this is the feature that survives crossing the inter-patient
+split**, because it carries no baseline heart-rate bias of the training patients.
 
-### 2.2 Jalannya kode, baris per baris
+### 2.2 The code walk, line by line
 
 ```python
 r = np.asarray(r_locations, dtype=np.float64)
@@ -154,19 +154,19 @@ if m < 2:
     return out.astype(np.float32)
 ```
 
-Kanvas NaN duluan. Baris yang tak sempat terisi **tetap NaN** — itu kontrak,
-bukan kelalaian (§2.5). Record < 2 beat langsung pulang; tanpa guard ini
-`np.diff` menghasilkan array kosong dan pembagian di bawah meledak.
+The NaN canvas first. Rows that do not get filled **stay NaN**: that is the contract,
+not an oversight (§2.5). A record with < 2 beats returns immediately; without this guard
+`np.diff` produces an empty array and the division below blows up.
 
 ```python
 d = np.diff(r) / fs                      # [1.0, 2.0, 1.0]  detik
 ```
 
-$M$ beat → $M-1$ interval. Pergeseran indeks yang harus dipegang erat:
+$M$ beats → $M-1$ intervals. The index shift that must be held tightly:
 
 $$d[i-1] \ \text{adalah}\ \text{RR}_{\text{prev}}\ \text{milik beat}\ i$$
 
-Beat 0 tidak punya pendahulu — itu sebabnya `d` satu lebih pendek dari `r`.
+Beat 0 has no predecessor: that is why `d` is one shorter than `r`.
 
 ```python
 w = RR_LOCAL_WINDOW_BEATS                # 10
@@ -176,15 +176,15 @@ csum = np.concatenate(([0.0], np.cumsum(d)))
 local_avg = (csum[j + 1] - csum[start]) / (j + 1 - start)
 ```
 
-Rata-rata **kausal** atas paling banyak 10 interval terakhir, termasuk interval
-ini sendiri:
+A **causal** average over at most the last 10 intervals, including this
+interval itself:
 
 $$\overline{\text{RR}}_{\text{lokal}}[j] = \frac{1}{j - s + 1}\sum_{k=s}^{j} d[k],
 \qquad s = \max(0,\ j - 9)$$
 
-`np.cumsum` membuat **jumlah prefix**, jadi jumlah jendela berapa pun lebarnya
-selesai dalam dua operasi: `csum[j+1] - csum[start]`. Nol di depan (`[0.0]`)
-supaya `csum[0] = 0` dan rumusnya berlaku juga untuk `start = 0`.
+`np.cumsum` makes a **prefix sum**, so the sum of a window of any width
+finishes in two operations: `csum[j+1] - csum[start]`. The zero in front (`[0.0]`)
+makes `csum[0] = 0` so the formula also holds for `start = 0`.
 
 ```python
 out[1:, 0] = d                           # RR_prev  → baris 1..M-1
@@ -193,10 +193,10 @@ out[2:, 2] = np.diff(d)                  # dRR      → baris 2..M-1
 return out.astype(np.float32)
 ```
 
-`out[1:]` dan `out[2:]` itu penerjemahan langsung dari pergeseran indeks di
-atas: RR_prev mulai ada di beat 1, dRR baru ada di beat 2 (butuh dua RR).
+`out[1:]` and `out[2:]` are a direct translation of the index shift
+above: RR_prev starts to exist at beat 1, dRR only at beat 2 (it needs two RRs).
 
-### 2.3 Contoh angka
+### 2.3 Numerical example
 
 ```python
 r = [0, 360, 1080, 1440]        # fs = 360
@@ -204,137 +204,137 @@ d = [1.0, 2.0, 1.0]             # detik
 local_avg = [1.000, 1.500, 1.333]
 ```
 
-| beat | RR_prev | RR_ratio | dRR | tafsir |
+| beat | RR_prev | RR_ratio | dRR | interpretation |
 |---|---|---|---|---|
-| 0 | NaN | NaN | NaN | tak ada pendahulu |
-| 1 | 1.00 | 1.00 | NaN | belum ada RR pembanding |
-| 2 | 2.00 | 1.33 | +1.00 | **jeda** — 33% lebih lambat dari ritme lokal |
-| 3 | 1.00 | 0.75 | −1.00 | **prematur** — 25% lebih cepat |
+| 0 | NaN | NaN | NaN | no predecessor |
+| 1 | 1.00 | 1.00 | NaN | no comparison RR yet |
+| 2 | 2.00 | 1.33 | +1.00 | **pause**: 33% slower than the local rhythm |
+| 3 | 1.00 | 0.75 | −1.00 | **premature**: 25% faster |
 
-Beat 2 & 3 berpasangan: itu tanda tangan ekstrasistol — satu detak datang cepat,
-lalu jeda kompensasi.
+Beats 2 & 3 are a pair: that is the signature of an extrasystole: one beat comes early,
+then a compensatory pause.
 
-### 2.4 Keputusan: jendela KAUSAL, menyusut di tepi
+### 2.4 Decision: a CAUSAL window, shrinking at the edge
 
-PRD menandai ini DECISION POINT. Pilihannya dua:
+The PRD marks this as a DECISION POINT. There are two choices:
 
-| | simetris (5 kiri + 5 kanan) | **kausal (10 kiri)** ← dipilih |
+| | symmetric (5 left + 5 right) | **causal (10 left)** ← chosen |
 |---|---|---|
-| Butuh beat masa depan | ya | tidak |
-| Bisa jalan di ESP32 | harus tunda 5 beat (~4 detik) | langsung |
-| Konsisten dengan Fase 1 | tidak (`sosfilt` kausal) | ya |
-| Estimasi ritme | sedikit lebih halus | cukup |
+| Needs future beats | yes | no |
+| Can run on the ESP32 | must delay 5 beats (~4 seconds) | immediately |
+| Consistent with Phase 1 | no (causal `sosfilt`) | yes |
+| Rhythm estimate | slightly smoother | sufficient |
 
-Alasan yang menentukan sama dengan JEBAKAN #1 PRD: apa pun yang butuh masa depan
-mustahil di device yang menerima sampel satu per satu, dan train/deploy mismatch
-lebih mahal daripada rata-rata yang sedikit lebih kasar.
+The deciding reason is the same as PRD TRAP #1 (JEBAKAN #1): anything that needs the future
+is impossible on a device that receives samples one by one, and train/deploy mismatch
+is more expensive than a slightly coarser average.
 
-Di awal record jendela **menyusut**, bukan di-pad: beat ke-3 memakai rata-rata 3
-interval yang benar-benar ada. Padding nol akan menciptakan interval palsu 0
-detik yang menyeret `local_avg` ke bawah dan membuat `RR_ratio` meledak.
+At the start of a record the window **shrinks**, it is not padded: the 3rd beat uses the average of the 3
+intervals that really exist. Zero padding would create a false interval of 0
+seconds that drags `local_avg` down and makes `RR_ratio` blow up.
 
-Di firmware, `ecg_rr_features` (`firmware/src/ecg_pipeline.cpp`) menjumlahkan
-ulang paling banyak 10 interval dari riwayat indeks R untuk tiap beat: O(10) per
-beat, tanpa state tambahan di luar riwayat R yang memang sudah disimpan.
+In the firmware, `ecg_rr_features` (`firmware/src/ecg_pipeline.cpp`) re-sums
+at most 10 intervals from the R index history for each beat: O(10) per
+beat, with no additional state beyond the R history that is already stored.
 
-### 2.5 Keputusan: NaN, bukan 0
+### 2.5 Decision: NaN, not 0
 
-Beat 0 dan 1 tiap record tidak punya semua fitur. Diberi NaN, **bukan** 0.
+Beats 0 and 1 of each record do not have all the features. They are given NaN, **not** 0.
 
-`dRR = 0` itu nilai yang **sah dan sering** — artinya "ritme stabil", justru ciri
-khas beat Normal. Kalau 0 juga dipakai sebagai penanda "tidak diketahui", model
-belajar dari dua hal berbeda yang tampak identik. NaN tidak punya tafsir sah
-apa pun, jadi aman sebagai sentinel.
+`dRR = 0` is a **valid and frequent** value: it means "stable rhythm", precisely the hallmark
+of a Normal beat. If 0 is also used as the marker for "unknown", the model
+learns from two different things that look identical. NaN has no valid
+interpretation, so it is safe as a sentinel.
 
-Bonus: NaN adalah **detektor bug alignment gratis**. Kalau `loss = nan` muncul di
-Fase 5, itu bukti langsung `valid_beat_indices` tidak membuang beat 0 & 1 —
-bukan misteri yang harus diburu.
+A bonus: NaN is a **free alignment bug detector**. If `loss = nan` appears in
+Phase 5, it is direct proof that `valid_beat_indices` did not drop beats 0 & 1,
+not a mystery that has to be hunted.
 
-Biayanya: 2 beat per record × 44 record = **88 beat dari ~100.000**.
+The cost: 2 beats per record × 44 records = **88 beats out of ~100,000**.
 
-### 2.6 Yang sengaja TIDAK dilakukan
+### 2.6 What is deliberately NOT done
 
-**Tidak ada normalisasi mean/std.** JEBAKAN #2 PRD: menghitung $\mu,\sigma$ dari
-gabungan DS1+DS2 adalah kebocoran data — statistik test set merembes ke training.
-Skala RR sudah $O(1)$ apa adanya (0,5–1,2 detik), jadi tidak ada yang perlu
-diskalakan. Bandingkan dengan `zscore_per_window` di Fase 1: itu boleh karena
-statistiknya dari **dalam window itu sendiri**, tidak butuh apa pun dari dataset.
+**No mean/std normalization.** PRD TRAP #2 (JEBAKAN #2): computing $\mu,\sigma$ from the
+DS1+DS2 combination is data leakage: test set statistics seep into training.
+The RR scale is already $O(1)$ as is (0.5–1.2 seconds), so there is nothing that needs
+scaling. Compare with `zscore_per_window` in Phase 1: that is allowed because its
+statistics come from **inside the window itself**, needing nothing from the dataset.
 
-**Tidak menyaring apa pun.** Fungsi mengembalikan `[M, 3]` sepanjang
-`r_locations` utuh. Alasannya di §3.
+**No filtering of anything.** The function returns `[M, 3]` the full length of
+`r_locations`. The reason is in §3.
 
-### 2.7 Fitur opsional (nonaktif di konfigurasi terkunci)
+### 2.7 Optional features (inactive in the locked configuration)
 
-`src/features_rr.py` juga memuat `compute_rr_ratio_features` (bentuk rasio
-4 kolom, butuh RR beat berikutnya), `qrs_width_features` (QRSw2 & QRSw4), dan
-`hos_features` (kurtosis & skewness). Ketiganya dirakit oleh `assemble_rhythm_features`
-hanya bila knob `PA_RR_RATIO`, `PA_QRSW`, atau `PA_HOS` dinyalakan, dan dipakai
-untuk ablasi. Konfigurasi terkunci memakai tiga kolom di atas saja: di mitdb,
-fitur tambahan tidak memberi selisih F1 yang melampaui variasi antar-run.
+`src/features_rr.py` also contains `compute_rr_ratio_features` (the 4-column
+ratio form, needing the RR of the next beat), `qrs_width_features` (QRSw2 & QRSw4), and
+`hos_features` (kurtosis & skewness). All three are assembled by `assemble_rhythm_features`
+only if the knobs `PA_RR_RATIO`, `PA_QRSW`, or `PA_HOS` are turned on, and are used
+for ablation. The locked configuration uses the three columns above only: on mitdb,
+the extra features do not give an F1 difference that exceeds the run-to-run variation.
 
-`assemble_rhythm_features` adalah satu-satunya tempat yang menyusun `X_rr` untuk tiga
-pemanggil (`prep_beats`, `ablasi`, `sweep_jitter`), ditambah `export_golden`
-supaya golden menguji fitur yang benar-benar dipakai. Bila logika knob
-diduplikasi, ketiganya akan menyimpang diam-diam dan ablasi membandingkan hal
-yang berbeda.
+`assemble_rhythm_features` is the only place that builds `X_rr` for three
+callers (`prep_beats`, `ablasi`, `sweep_jitter`), plus `export_golden`
+so that the golden tests the features that are actually used. If the knob logic
+is duplicated, the three would silently diverge and the ablation would compare different
+things.
 
-- **HOS** (`PA_HOS=1`, Dias 2021 Pers. 12-13, `[K,2]`). Window masuk sudah
-  ter-z-score (mean 0, std 1), jadi penyebut kedua rumus tinggal 1 dan yang
-  tersisa momen mentah ke-4 dan ke-3; fitur ini nyaris gratis di MCU. Kurtosis
-  dilaporkan mentah (bukan excess) mengikuti Pers. 12, dan momen memakai pembagi
-  N, bukan N−1: panjang window tetap, jadi selisihnya konstan (~0,4%) dan
-  diserap bobot lapisan pertama. Menempel di cabang ritme karena berupa dua
-  skalar, bukan deret waktu.
-- **Lebar QRS** (`PA_QRSW=1`, `[K,2]`). P3 (Algorithms 13:75) memberi QRSw2 dan
-  QRSw4 peringkat 1-2 dari 85 fitur menurut mutual information: satu skalar yang
-  memisahkan V (QRS lebar > 120 ms) dari S (sempit, datang kepagian) dan N.
-  Lebar diukur dengan berjalan kiri-kanan dari puncak di `R_IN_WINDOW` (132)
-  sampai amplitudo turun di bawah `frac` × puncak; bila tak pernah turun, tepi
-  window dipakai. Pencarian puncak bertoleransi ±4 sampel (`ECG_QRSW_SEARCH`)
-  karena residu mitdb ±2. Normalisasi ke rerata kausal `RR_LOCAL_WINDOW_BEATS`
-  (10) beat terakhir, bukan 32 seperti P3, supaya satu konstanta jendela berlaku
-  untuk semua fitur dan konsisten dengan decision point "kausal, menyusut di
-  tepi"; 32 tersisa sebagai ablasi lanjutan (K5). Nol buffer tambahan di MCU.
-- **Rasio RR** (`PA_RR_RATIO=1`, `[m,4]`: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0;
-  peringkat P3 #3, #4, #10). Nilai absolut (detik) berbeda antar-orang, jadi
-  model bisa belajar identitas pasien; window sudah ternormalisasi tetapi fitur
-  RR bawaan masih detik absolut. `RR+1` butuh beat ke depan, jadi kolom terakhir
-  NaN dan `valid_beat_indices` membuang beat terakhir tiap record. Di firmware
-  ini berarti tunda 1 beat (gate G2); `export_golden` menandai beat terakhir
-  tidak teruji lewat `GOLDEN_RR_LAST`.
+- **HOS** (`PA_HOS=1`, Dias 2021 Eq. 12-13, `[K,2]`). The incoming window is already
+  z-scored (mean 0, std 1), so the second denominator of the formulas is just 1 and what
+  remains are the raw 4th and 3rd moments; this feature is nearly free on the MCU. Kurtosis
+  is reported raw (not excess) following Eq. 12, and the moments use the divisor
+  N, not N−1: the window length is fixed, so the difference is constant (~0.4%) and
+  absorbed by the first layer's weights. It attaches to the rhythm branch because it is two
+  scalars, not a time series.
+- **QRS width** (`PA_QRSW=1`, `[K,2]`). P3 (Algorithms 13:75) gives QRSw2 and
+  QRSw4 ranks 1-2 of 85 features by mutual information: one scalar that
+  separates V (wide QRS > 120 ms) from S (narrow, arriving early) and N.
+  The width is measured by walking left and right from the peak at `R_IN_WINDOW` (132)
+  until the amplitude drops below `frac` × peak; if it never drops, the window edge
+  is used. The peak search tolerates ±4 samples (`ECG_QRSW_SEARCH`)
+  because the mitdb residual is ±2. Normalization is to the causal mean of the last
+  `RR_LOCAL_WINDOW_BEATS` (10) beats, not 32 as in P3, so that one window constant applies
+  to all features and is consistent with the decision point "causal, shrinking at the
+  edge"; 32 remains as a further ablation (K5). Zero additional buffer on the MCU.
+- **RR ratios** (`PA_RR_RATIO=1`, `[m,4]`: RR0/avgRR, RR+1/RR0, RR-1/RR0, tRR0;
+  P3 ranks #3, #4, #10). Absolute values (seconds) differ between people, so the
+  model can learn patient identity; the window is already normalized but the default
+  RR features are still absolute seconds. `RR+1` needs the next beat, so the last column is
+  NaN and `valid_beat_indices` drops the last beat of each record. In the firmware
+  this means delaying 1 beat (gate G2); `export_golden` marks the last beat
+  as untested through `GOLDEN_RR_LAST`.
 
 ---
 
-## 3. Alignment — jebakan paling mahal di fase ini
+## 3. Alignment: the most expensive trap in this phase
 
-Kontrak: **indeks baris == indeks beat**, selamanya. Pemanggil menulis
+The contract: **row index == beat index**, forever. The caller writes
 
 ```python
 rr = compute_rr_features(r)[idx]        # BENAR
 rr = compute_rr_features(r[idx])        # SALAH
 ```
 
-Bedanya halus tapi fatal. `r[idx]` memotong daftar R-peak duluan, jadi beat
-pertama yang lolos kehilangan tetangga aslinya dan `RR_prev`-nya dihitung dari
-beat yang salah — diam-diam, tanpa error.
+The difference is subtle but fatal. `r[idx]` cuts the R-peak list first, so the first
+beat that passes loses its real neighbor and its `RR_prev` is computed from the
+wrong beat, silently, with no error.
 
-### Kenapa penyaringan bukan di sini
+### Why the filtering is not here
 
-Tiga syarat buang-beat berasal dari tiga tempat berbeda:
+The three beat-drop conditions come from three different places:
 
-1. window muat di sinyal → milik `segment_beats` (Fase 1)
-2. punya `RR_prev` → milik `compute_rr_features` (Fase 2)
-3. punya `dRR` → milik `compute_rr_features` (Fase 2)
+1. the window fits in the signal → belongs to `segment_beats` (Phase 1)
+2. has `RR_prev` → belongs to `compute_rr_features` (Phase 2)
+3. has `dRR` → belongs to `compute_rr_features` (Phase 2)
 
-Kalau tiap fungsi membuang sendiri-sendiri, hasilnya **tiga himpunan berbeda
-yang panjangnya bisa kebetulan sama**. `assert len(windows) == len(labels)`
-akan LOLOS, loss turun mulus, dan baru ketahuan di Fase 6 saat recall ~0.
+If each function drops on its own, the result is **three different sets
+whose lengths can coincidentally be the same**. `assert len(windows) == len(labels)`
+will PASS, the loss goes down smoothly, and it is only discovered in Phase 6 when recall is ~0.
 
-Simulasi record 100: 100% baris tergeser 1 beat, 68 label jadi salah simbol
-padahal aritmia asli cuma 34 — tiap 1 aritmia merusak 2 baris.
+A simulation of record 100: 100% of rows shifted by 1 beat, 68 labels get the wrong symbol
+even though there are only 34 real arrhythmias: each 1 arrhythmia damages 2 rows.
 
-Makanya semua kebijakan buang-beat dikumpulkan di satu fungsi,
-`valid_beat_indices` di `scripts/prep_beats.py`, dan `src/` tetap murni:
+That is why all beat-drop policy is gathered in a single function,
+`valid_beat_indices` in `scripts/prep_beats.py`, and `src/` stays pure:
 
 ```python
 r = np.asarray(r_locations)
@@ -343,12 +343,12 @@ fits = (r - WIN_PRE >= 0) & (r + WIN_POST <= signal_len)
 return i[fits & (i >= 2)]
 ```
 
-Irisan (`&`), bukan gabungan. `i >= 2` menutup syarat RR_prev sekaligus dRR —
-beat 2 pasti punya keduanya.
+An intersection (`&`), not a union. `i >= 2` covers the RR_prev and dRR conditions at once:
+beat 2 definitely has both.
 
 ---
 
-## 4. Angka record 100 (rujukan cepat)
+## 4. Record 100 numbers (quick reference)
 
 ```
 beat            = 2273        baris NaN = 2  (beat 0 & 1)
@@ -361,60 +361,60 @@ RR_ratio  0.9996   0.0502   0.6729   1.3967    tanpa satuan
 dRR      -0.0000   0.0632  -0.3444   0.5944    detik
 ```
 
-Dua pembacaan penting:
+Two important readings:
 
-**Fiturnya memang memisahkan.** Median `RR_ratio`: Normal **1,0003** vs Aritmia
-**0,7664**. Beat aritmia record 100 hampir semuanya `A` (atrial premature) —
-datang ~23% lebih cepat dari ritme lokal, persis yang diharapkan.
+**The features do separate.** Median `RR_ratio`: Normal **1.0003** vs Arrhythmia
+**0.7664**. The arrhythmia beats of record 100 are almost all `A` (atrial premature):
+arriving ~23% faster than the local rhythm, exactly what is expected.
 
-**`dRR` mean $\approx$ 0 itu benar, bukan bug.** Beda maju yang dijumlahkan
-sepanjang record selalu mendekati nol (teleskopik) — jantung tidak bisa terus
-melambat selamanya. Yang informatif simpangannya, bukan reratanya.
+**`dRR` mean $\approx$ 0 is correct, not a bug.** Forward differences summed
+over a record always approach zero (telescoping): a heart cannot keep
+slowing down forever. What is informative is the deviation, not the mean.
 
-**Ketimpangannya ekstrem (1,5%)** — dan itu wajar untuk MIT-BIH. Justru inilah
-alasan Fase 5 memakai class weighting. Kalau distribusinya tampak seimbang,
-mapping label yang salah.
+**The imbalance is extreme (1.5%)**, and that is normal for MIT-BIH. This is precisely the
+reason Phase 5 uses class weighting. If the distribution looks balanced,
+the label mapping is wrong.
 
-### Seluruh dataset (`make prep`)
+### The whole dataset (`make prep`)
 
-Data bersih, tanpa augmentasi (`python scripts/prep_beats.py --jitter none --db mitdb`):
+Clean data, no augmentation (`python scripts/prep_beats.py --jitter none --db mitdb`):
 
 ```
 44 record   100.624 beat   Normal 90.023 (89,5%)   Aritmia 10.601 (10,5%)
 dibuang     109 beat = 88 (beat 0 & 1 tiap record) + 21 (window tak muat di tepi)
 ```
 
-Bawaan `make prep` menambahkan dua salinan ber-jitter untuk record DS1
-(augmentasi, lihat [`jitter-walkthrough.md`](jitter-walkthrough.md)) sehingga
-totalnya 202.560 beat; DS2 tetap satu salinan bersih.
+The `make prep` default adds two jittered copies for the DS1 records
+(augmentation, see [`jitter-walkthrough.md`](jitter-walkthrough.md)) so that the
+total is 202,560 beats; DS2 stays one clean copy.
 
-Rasio global 10,5% jauh lebih ramah daripada record 100 (1,5%) — record 100
-kebetulan pasien yang tenang. Sebarannya sendiri liar: **212 → 0% aritmia**
-(tidak menyumbang satu pun contoh positif), **232 → 77,7%** (mayoritas justru
-aritmia). Inilah kenapa split harus per pasien: kalau 232 masuk train dan
-212 masuk test, angkamu bicara soal dua penyakit berbeda.
+The global ratio of 10.5% is far friendlier than record 100 (1.5%): record 100
+happens to be a calm patient. The distribution itself is wild: **212 → 0% arrhythmia**
+(contributes not a single positive example), **232 → 77.7%** (the majority is
+arrhythmia). This is why the split must be per patient: if 232 goes into train and
+212 into test, your numbers speak about two different diseases.
 
 ---
 
-## 5. Cek pemahaman
+## 5. Comprehension check
 
-1. `RR_LOCAL_WINDOW_BEATS` diubah 10 → 3. Apa yang terjadi pada `RR_ratio` beat
-   PVC yang muncul tepat setelah beat prematur lain? (Petunjuk: jendela pendek
-   ikut tercemar beat abnormal.)
-2. Kenapa `compute_rr_features` boleh dipanggil dengan `r` utuh yang mengandung
-   beat yang nanti dibuang, tapi `segment_beats` tidak boleh?
-3. Kalau NaN diganti 0 dan `valid_beat_indices` lupa membuang beat 0 & 1, gejala
-   apa yang muncul di Fase 5 — dan kenapa itu lebih berbahaya daripada `loss = nan`?
-4. Record 232 punya banyak beat `A` beruntun. Apa yang terjadi pada
-   `local_avg`-nya, dan apakah `RR_ratio` masih bisa dipercaya di situ?
+1. `RR_LOCAL_WINDOW_BEATS` is changed 10 → 3. What happens to the `RR_ratio` of a PVC
+   beat that appears right after another premature beat? (Hint: a short window
+   gets contaminated by abnormal beats too.)
+2. Why may `compute_rr_features` be called with a whole `r` that contains
+   beats that will later be dropped, but `segment_beats` may not?
+3. If NaN is replaced with 0 and `valid_beat_indices` forgets to drop beats 0 & 1, what symptom
+   appears in Phase 5, and why is that more dangerous than `loss = nan`?
+4. Record 232 has many consecutive `A` beats. What happens to its
+   `local_avg`, and can `RR_ratio` still be trusted there?
 
-## 6. Skrip pendukung
+## 6. Supporting scripts
 
-| Perintah | Melihat apa |
+| Command | What it shows |
 |---|---|
-| `make test` | Seluruh test; `tests/test_features_rr.py` mengunci perilaku `features_rr` |
-| `make prep` | Fase 2 end-to-end → 44 × `per_record/*.npz` + tabel distribusi |
+| `make test` | All tests; `tests/test_features_rr.py` locks the behavior of `features_rr` |
+| `make prep` | Phase 2 end-to-end → 44 × `per_record/*.npz` + a distribution table |
 
 ---
 
-**[← Fase 1 — preprocessing](preprocessing-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 2b — prep_beats →](prep-beats-walkthrough.md)**
+**[← Phase 1: preprocessing](preprocessing-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[Phase 2b: prep_beats →](prep-beats-walkthrough.md)**
