@@ -75,20 +75,20 @@ def muat(path: str):
     return [np.asarray(v, dtype=np.float32) for v in segmen if v], fs, lewat
 
 
-def pita_energi(x, fs, a, b):
+def band_energy(x, fs, a, b):
     sp = np.abs(np.fft.rfft(x * np.hanning(len(x))))
     fr = np.fft.rfftfreq(len(x), 1 / fs)
     return float(sp[(fr >= a) & (fr < b)].sum())
 
 
-def analisis_segmen(mentah, fs):
+def analyze_segment(mentah, fs):
     x = (mentah - mentah.mean()) / 1000.0
     filtered = apply_bandpass(x, design_bandpass_sos())
     r = pan_tompkins_detect(filtered, fs)
     return {
         "n": len(mentah), "x": x, "filtered": filtered, "r": r,
         "rr": np.diff(r) / fs if len(r) > 2 else np.array([]),
-        "pita": [pita_energi(x, fs, a, b) for a, b in
+        "pita": [band_energy(x, fs, a, b) for a, b in
                  ((0.5, 40), (49, 51), (60, fs / 2), (0.01, 0.5))],
         "ac": denyut_per_jendela(x, fs) if len(x) > int(1.5 * fs) + 1 else None,
     }
@@ -121,7 +121,7 @@ def main() -> None:
     n = len(mentah)
 
     clip, persen_clip, clip_ok = hitung_clipping(mentah)
-    hasil = [analisis_segmen(m, fs) for m in segmen]
+    hasil = [analyze_segment(m, fs) for m in segmen]
     x = np.concatenate([h["x"] for h in hasil])
     filtered = np.concatenate([h["filtered"] for h in hasil])
     r, rr, (ekg, hum, hf, drift), (kuat, bpm_ac, saingan), awal = gabung(hasil, fs)

@@ -1,7 +1,7 @@
 import numpy as np
 
 from scripts.analyze_recording import (
-    AMBANG_CLIPPING_PERSEN, JENDELA_AUTOKORELASI_S, analisis_segmen, hitung_clipping, denyut_autokorelasi, denyut_per_jendela, gabung, muat,
+    AMBANG_CLIPPING_PERSEN, JENDELA_AUTOKORELASI_S, analyze_segment, hitung_clipping, denyut_autokorelasi, denyut_per_jendela, gabung, muat,
 )
 
 FS = 360
@@ -25,7 +25,7 @@ def test_rr_does_not_cross_pause(tmp_path):
     segmen, fs, _ = muat(str(berkas))
     assert fs == FS and [len(s) for s in segmen] == [len(s1), len(s2)]
 
-    hasil = [analisis_segmen(s, fs) for s in segmen]
+    hasil = [analyze_segment(s, fs) for s in segmen]
     r, rr, *_ = gabung(hasil, fs)
     assert all(len(h["r"]) > 10 for h in hasil)
     assert len(rr) == len(r) - 2

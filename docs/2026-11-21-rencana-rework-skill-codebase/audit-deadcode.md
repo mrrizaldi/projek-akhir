@@ -57,7 +57,7 @@ Metode verifikasi tiga di atas: skrip memindai semua prototipe di `include/*.h` 
 
 Tidak ada temuan. Cek yang dijalankan:
 - Rujukan per berkas: untuk tiap `scripts/*`, `dashboard/*.py`, `model/scripts/*.py` dijalankan `git grep -l -w <nama> ... ':!laporan' ':!docs/arsip'`; semua punya rujukan di README/Makefile/skill/CI/dokumen aktif. Yang hanya dirujuk satu README: `check_fp`, `check_calibration`, `check_lead`, `summarize_ablation`, `plot_walkthrough`, `measure_jitter`, `second_stage_rules`, `cek_docx` (didokumentasikan sebagai alat yang dijalankan user, jadi dipertahankan).
-- Flag argparse tanpa pembaca: pemindai menandai `--mulai/--durasi` (plot_recording) dan `--kertas/--ketat/--hanya-galat/--tanpa-prosa/--uji` (cek_tabel); diperiksa manual, semuanya terbaca lewat nama variabel lain (`arg.kertas`, `mulai_s`, dst.). Positif palsu.
+- Flag argparse tanpa pembaca: pemindai menandai `--mulai/--durasi` (plot_recording) dan `--kertas/--ketat/--hanya-galat/--tanpa-prosa/--uji` (cek_tabel); diperiksa manual, semuanya terbaca lewat nama variabel lain (`arg.kertas`, `start_s`, dst.). Positif palsu.
 - Fungsi Python tak dipanggil (nama muncul hanya sekali di seluruh `*.py` yang ter-track): hanya `available_records`. Fungsi dengan dua kemunculan (def + satu panggilan) tidak dianggap mati.
 - `deck.js` (2 berkas): semua helper `const` dipakai > 1 kali.
 

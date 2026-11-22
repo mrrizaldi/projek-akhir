@@ -463,7 +463,7 @@ jendela 10 detik tanpa tumpang tindih dengan SQI Orphanidou dkk. 2015
    Rerata korelasi ≥ 0,66 (ambang paper: *sensitivity* 94%, *specificity* 97%
    terhadap anotasi manual).
 
-R-peak memakai rantai yang sama dengan grafik (`plot_recording.puncak_r`:
+R-peak memakai rantai yang sama dengan grafik (`plot_recording.r_peaks`:
 kompensasi `PT_DETECTOR_OFFSET`, penyelarasan `PT_REFINE_WIN`) pada sinyal
 *bandpass*. Potongan yang terpotong tepi jendela dibuang.
 

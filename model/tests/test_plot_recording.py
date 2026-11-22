@@ -1,7 +1,7 @@
 import numpy as np
 
-from scripts.analyze_recording import analisis_segmen
-from scripts.plot_recording import pilih_jendela
+from scripts.analyze_recording import analyze_segment
+from scripts.plot_recording import select_window
 
 FS = 360
 DETIK = 150
@@ -24,13 +24,13 @@ def _ekg_dengan_derau_otot():
 
 
 def test_best_window_avoids_muscle_noise():
-    hasil = [analisis_segmen(_ekg_dengan_derau_otot().astype(np.float32), FS)]
-    aneh, _, _, mulai, _ = pilih_jendela(hasil, FS, JENDELA_S * FS, None)
+    hasil = [analyze_segment(_ekg_dengan_derau_otot().astype(np.float32), FS)]
+    odd_rr, _, _, mulai, _ = select_window(hasil, FS, JENDELA_S * FS, None)
     assert mulai >= DERAU_SAMPAI_S * FS
-    assert aneh == 0
+    assert odd_rr == 0
 
 
 def test_explicit_start_used_as_is():
-    hasil = [analisis_segmen(_ekg_dengan_derau_otot().astype(np.float32), FS)]
-    _, _, _, mulai, _ = pilih_jendela(hasil, FS, JENDELA_S * FS, DERAU_DARI_S)
+    hasil = [analyze_segment(_ekg_dengan_derau_otot().astype(np.float32), FS)]
+    _, _, _, mulai, _ = select_window(hasil, FS, JENDELA_S * FS, DERAU_DARI_S)
     assert mulai == DERAU_DARI_S * FS

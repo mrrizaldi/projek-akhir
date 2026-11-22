@@ -6,8 +6,8 @@ import numpy as np
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from config import METRICS_DIR
-from scripts.analyze_recording import analisis_segmen, muat
-from scripts.plot_recording import puncak_r
+from scripts.analyze_recording import analyze_segment, muat
+from scripts.plot_recording import r_peaks
 
 JENDELA_SQI_S = 10
 HR_MIN_BPM, HR_MAKS_BPM = 40, 180
@@ -29,7 +29,7 @@ def korelasi_template(sinyal, r, lebar):
     return float(np.mean([np.corrcoef(k, template)[0, 1] for k in kompleks]))
 
 
-def nilai_jendela(sinyal, r, fs):
+def window_scores(sinyal, r, fs):
     rr = np.diff(r) / fs
     if len(rr) == 0:
         return {"hr": 0.0, "jeda_maks": 0.0, "rasio": 0.0, "korelasi": 0.0,
@@ -48,11 +48,11 @@ def jendela_rekaman(segmen, fs):
     n = JENDELA_SQI_S * fs
     hasil = []
     for mentah in segmen:
-        h = analisis_segmen(mentah, fs)
-        r = puncak_r(h)
+        h = analyze_segment(mentah, fs)
+        r = r_peaks(h)
         for mulai in range(0, len(mentah) - n + 1, n):
-            di_dalam = r[(r >= mulai) & (r < mulai + n)] - mulai
-            hasil.append(nilai_jendela(h["filtered"][mulai:mulai + n], di_dalam, fs))
+            inside = r[(r >= mulai) & (r < mulai + n)] - mulai
+            hasil.append(window_scores(h["filtered"][mulai:mulai + n], inside, fs))
     return hasil
 
 
