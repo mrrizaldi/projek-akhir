@@ -168,6 +168,16 @@ static void close_write(bool failed)
     display_sound(BEEP_SAVE_MS);
 }
 
+#ifdef RECORDER_FAIL_WRITE_PART
+static bool write_failure_injected;
+static bool inject_write_failure()
+{
+    if (write_failure_injected || writer.part + 1 != RECORDER_FAIL_WRITE_PART) return false;
+    write_failure_injected = true;
+    return true;
+}
+#endif
+
 static void write_step()
 {
     size_t len = 0;
@@ -179,7 +189,11 @@ static void write_step()
         }
         len += snprintf(write_block + len, sizeof write_block - len, "%u\n", writer.data[writer.i]);
     }
+#ifdef RECORDER_FAIL_WRITE_PART
+    const size_t written = inject_write_failure() ? 0 : writer.f.write((const uint8_t *)write_block, len);
+#else
     const size_t written = writer.f.write((const uint8_t *)write_block, len);
+#endif
     writer.byte += written;
     const bool failed = written != len;
     if (failed || writer.i >= writer.n) close_write(failed);
