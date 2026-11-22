@@ -241,3 +241,17 @@ jml_v	sum_v
 lewat0	missed0
 daya.h	power.h
 daya.cpp	power.cpp
+DIAGNOSA_H	DIAGNOSTICS_H
+diag_hasil_t	diag_result_t
+diag_layar	diag_screen
+diag_tombol	diag_button
+BACA_ADC_SATU_DETIK	READ_ADC_ONE_SECOND
+TUNGGU_RATA_INA219_MS	WAIT_AVERAGE_INA219_MS
+V_BUS_MAKS	V_BUS_MAX
+I_SKALA_PENUH_MA	I_SCALE_FULL_MA
+V_BUS_CATU_MIN	V_BUS_SUPPLY_MIN
+level_buzz	level_buzzer
+porsi_low	portion_low
+diagnosa.h	diagnostics.h
+diagnosa.cpp	diagnostics.cpp
+test_hw_integrasi.cpp	test_hw_integration.cpp

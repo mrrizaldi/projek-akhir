@@ -75,21 +75,21 @@ suite memiliki `setup()`/`loop()` sendiri.
 | `test_mqtt` | native | Payload JSON dan ring backlog MQTT |
 | `test_inference` | esp32-s3 | Inferensi TFLM INT8 sama dengan interpreter PC, latensi, arena |
 | `test_hw_buzzer` | esp32-s3 | `diag_buzzer()`: GPIO 13 tersambung ke LEDC setelah SPI dan TFT terpasang, diam = HIGH, bunyi = gelombang kotak; tiga bip untuk didengar |
-| `test_hw_tft` | esp32-s3 | Inisialisasi TFT, lalu `diag_layar()`: transfer SPI satu layar penuh; pola warna untuk dilihat |
+| `test_hw_tft` | esp32-s3 | Inisialisasi TFT, lalu `diag_screen()`: transfer SPI satu layar penuh; pola warna untuk dilihat |
 | `test_hw_adc` | esp32-s3 | `diag_adc()`: ADC GPIO 1 terbaca; timer menghasilkan 360 sampel per detik; nilai mentah dan LO dicetak |
 | `test_hw_ina219` | esp32-s3 | `diag_ina219()`: INA219 menjawab di I2C, bacaan dalam rentang fisik chip; nilai dan register mentah (shunt, bus, OVF) dicetak |
-| `test_hw_buttons` | esp32-s3 | Pin B1–B3 HIGH saat diam (tidak macet), `diag_tombol()` kembali tepat pada batas waktu; tombol tidak boleh ditekan selama suite ini. Uji tekan sungguhan lewat menu Tes perangkat |
-| `test_hw_integrasi` | esp32-s3 | Replay `golden_raw` lewat ISR 360 Hz → antrean → `ecg_live` → HR → inferensi, dengan TFT, INA219, dan buzzer aktif: tanpa sampel hilang, HR dan label sama dengan anotasi/PC |
+| `test_hw_buttons` | esp32-s3 | Pin B1–B3 HIGH saat diam (tidak macet), `diag_button()` kembali tepat pada batas waktu; tombol tidak boleh ditekan selama suite ini. Uji tekan sungguhan lewat menu Tes perangkat |
+| `test_hw_integration` | esp32-s3 | Replay `golden_raw` lewat ISR 360 Hz → antrean → `ecg_live` → HR → inferensi, dengan TFT, INA219, dan buzzer aktif: tanpa sampel hilang, HR dan label sama dengan anotasi/PC |
 
 Test perangkat hanya menjadikan syarat lulus hal yang dapat diukur tanpa
 manusia dan tanpa elektroda. Bunyi buzzer dan isi layar dinilai langsung
 (instruksi dicetak dengan `-v`); nilai ADC, LO, dan INA219 bergantung pada
 elektroda dan catu sehingga dicetak dan tidak dijadikan syarat lulus.
-Fungsi `diag_*` di `src/diagnosa.cpp` dipakai bersama oleh suite `test_hw_*`
+Fungsi `diag_*` di `src/diagnostics.cpp` dipakai bersama oleh suite `test_hw_*`
 dan menu Tes perangkat; tidak ada salinan logika uji.
 
 Jumlah test: native 23 (`test_preproc` 11, `test_ina219` 6, `test_mqtt` 6);
-board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
+board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integration` 5,
 `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_buttons` 2, `test_hw_buzzer` 1,
 `test_hw_ina219` 1).
 
@@ -104,7 +104,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | `src/tampilan.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
 | `src/buttons.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
 | `src/menu.cpp` | Pohon menu (array struct statis + pointer fungsi), navigasi tiga tombol, halaman teks diperbarui 1 Hz |
-| `src/diagnosa.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
+| `src/diagnostics.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
 | `src/recorder.cpp` | Rekaman mentah: buffer PSRAM, jeda/lanjut (batas segmen jadi baris `# jeda`), berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
 | `src/power.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
 | `src/konfig.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
@@ -166,7 +166,7 @@ pengukuran ada di walkthrough yang dirujuk.
   bagus. LED disetir ayunan bersih (akuisisi-walkthrough §2).
 - `neopixelWrite()` mematikan interrupt ±30 µs per panggilan; LED karena itu
   diperbarui paling sering tiap `PERIODE_LED_MS` (250 ms), bukan tiap loop.
-- Layar tidak dapat dibaca balik (CS ke GND, tanpa MISO). `diag_layar()`
+- Layar tidak dapat dibaca balik (CS ke GND, tanpa MISO). `diag_screen()`
   menilai SPI dari waktu `fillScreen` penuh (110 KB; pada 80 MHz pun ≥ 11 ms);
   di bawah `FILL_MIN_US` (5 ms) berarti tidak ada transfer.
 - INA219: modul yang tidak terpasang membalas `0x0000`/`0xFFFF` sehingga

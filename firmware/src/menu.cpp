@@ -12,7 +12,7 @@
 #include "konfig.h"
 #include "board.h"
 #include "recorder.h"
-#include "diagnosa.h"
+#include "diagnostics.h"
 #include "power.h"
 #include "tampilan.h"
 #include "buttons.h"
@@ -111,8 +111,8 @@ static const item_t I_KALIB[] = {
 static const halaman_t H_KALIB = DAFTAR("Kalibrasi", I_KALIB);
 
 static const char *tes_nama;
-static diag_hasil_t tes_hasil;
-static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
+static diag_result_t tes_hasil;
+static void tes_jalan(const char *nama, diag_result_t (*f)(void))
 {
     tes_nama = nama;
     acquisition_timer(false);
@@ -120,25 +120,25 @@ static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
     acquisition_timer(power_mode() != 0);
     int i;
     while (buttons_event(&i) != BUTTON_NONE) {}
-    Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.lulus ? "LULUS" : "GAGAL", tes_hasil.ringkas);
+    Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.pass ? "LULUS" : "GAGAL", tes_hasil.summary);
 }
-static diag_hasil_t tombol_10s()
+static diag_result_t tombol_10s()
 {
     tampilan_menu_bingkai("Tes tombol", "B2 yang masih ditahan: lepas dulu", "");
     tampilan_menu_baris(1, "Tekan B1, B2, B3", false);
     tampilan_menu_baris(2, "batas 10 detik", false);
-    return diag_tombol(10000);
+    return diag_button(10000);
 }
 static void tes_buzzer() { tes_jalan("Buzzer", diag_buzzer); }
-static void tes_layar() { tes_jalan("Layar", diag_layar); }
+static void tes_layar() { tes_jalan("Layar", diag_screen); }
 static void tes_adc() { tes_jalan("ADC & lead-off", diag_adc); }
 static void tes_ina() { tes_jalan("INA219", diag_ina219); }
 static void tes_tombol() { tes_jalan("Tombol", tombol_10s); }
 static void tes_isi(baris_t *b)
 {
     snprintf(b[0], sizeof *b, "%s", tes_nama ? tes_nama : "-");
-    snprintf(b[1], sizeof *b, "%s", tes_hasil.lulus ? "LULUS" : "GAGAL");
-    const char *r = tes_hasil.ringkas;
+    snprintf(b[1], sizeof *b, "%s", tes_hasil.pass ? "LULUS" : "GAGAL");
+    const char *r = tes_hasil.summary;
     for (int k = 2; k < TAMPILAN_BARIS && *r; k++, r += min<size_t>(strlen(r), TAMPILAN_KOLOM))
         snprintf(b[k], sizeof *b, "%.*s", TAMPILAN_KOLOM, r);
 }

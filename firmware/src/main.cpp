@@ -13,7 +13,7 @@
 #include "board.h"
 #include "recorder.h"
 #include "serial_cmd.h"
-#include "diagnosa.h"
+#include "diagnostics.h"
 #include "power.h"
 #include "tampilan.h"
 #include "buttons.h"

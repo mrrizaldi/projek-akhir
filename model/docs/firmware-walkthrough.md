@@ -792,7 +792,7 @@ pembahasan yang baik di laporan.
 | Perintah | Melihat apa |
 |---|---|
 | `pio test -e native` | 23 test di PC: `test_preproc` 11 (preprocessing, deteksi R, alur hidup), `test_ina219` 6, `test_mqtt` 6 |
-| `pio test -e esp32-s3` | 29 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_buttons` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
+| `pio test -e esp32-s3` | 29 test di board: `test_preproc` 11, `test_inference` 5, `test_hw_integration` 5, `test_hw_tft` 2, `test_hw_adc` 2, `test_hw_buttons` 2, `test_hw_buzzer` 1, `test_hw_ina219` 1 |
 | `pio test -e esp32-s3 -f test_hw_buzzer` | satu suite saja |
 | `pio test -e esp32-s3 -v` | plus keluaran `Serial.printf` (benchmark, DIAG, bacaan perangkat) |
 | `pio run` | build firmware utama (env `esp32-s3`), lihat RAM/Flash |

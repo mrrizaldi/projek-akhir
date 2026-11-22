@@ -1,13 +1,13 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "diagnosa.h"
+#include "diagnostics.h"
 #include "board.h"
 
 void test_diag_ina219(void)
 {
     for (int i = 0; i < 3; i++) {
-        const diag_hasil_t h = diag_ina219();
-        TEST_ASSERT_TRUE_MESSAGE(h.lulus, h.ringkas);
+        const diag_result_t h = diag_ina219();
+        TEST_ASSERT_TRUE_MESSAGE(h.pass, h.summary);
     }
 }
 

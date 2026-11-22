@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "diagnosa.h"
+#include "diagnostics.h"
 #include "board.h"
 #include "ecg_preproc.h"
 
@@ -13,8 +13,8 @@ static void IRAM_ATTR on_timer()
 
 void test_diag_adc(void)
 {
-    const diag_hasil_t h = diag_adc();
-    TEST_ASSERT_TRUE_MESSAGE(h.lulus, h.ringkas);
+    const diag_result_t h = diag_adc();
+    TEST_ASSERT_TRUE_MESSAGE(h.pass, h.summary);
 }
 
 void test_timer_360hz(void)

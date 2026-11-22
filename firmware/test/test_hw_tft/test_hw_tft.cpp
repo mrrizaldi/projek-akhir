@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "diagnosa.h"
+#include "diagnostics.h"
 #include "board.h"
 
 static uint32_t ms_mulai;
@@ -13,8 +13,8 @@ void test_init_selesai(void)
 
 void test_diag_layar(void)
 {
-    const diag_hasil_t h = diag_layar();
-    TEST_ASSERT_TRUE_MESSAGE(h.lulus, h.ringkas);
+    const diag_result_t h = diag_screen();
+    TEST_ASSERT_TRUE_MESSAGE(h.pass, h.summary);
 }
 
 void setUp(void) {}

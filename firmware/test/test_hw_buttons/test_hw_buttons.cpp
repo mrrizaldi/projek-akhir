@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "diagnosa.h"
+#include "diagnostics.h"
 #include "board.h"
 
 void test_pin_diam_high(void)
@@ -12,10 +12,10 @@ void test_pin_diam_high(void)
 void test_tidak_menggantung(void)
 {
     const uint32_t t0 = millis();
-    const diag_hasil_t h = diag_tombol(300);
+    const diag_result_t h = diag_button(300);
     const uint32_t ms = millis() - t0;
     TEST_ASSERT_UINT32_WITHIN(50, 300, ms);
-    TEST_ASSERT_FALSE_MESSAGE(h.lulus, h.ringkas);
+    TEST_ASSERT_FALSE_MESSAGE(h.pass, h.summary);
 }
 
 void setUp(void) {}
