@@ -28,7 +28,10 @@ A feature page links to these instead of copying them. `laporan/` is out of scop
 2. Change only what the code changed. Keep sections that are still true word for word, so the diff reviews quickly and nobody loses knowledge you could not re-derive.
 3. Re-verify every `file:line` pointer in the sections you touch (see below), and run the pointer audit on the whole page so stale ones elsewhere get reported.
 4. If a claim in a section you are touching can no longer be confirmed in the code, drop it from the page and list it in the final report. This includes runtime observations the code cannot prove (latencies such as "the upload usually finishes in 2 seconds", hit rates, typical counts) unless a constant in the code or a recorded measurement file states them. Keeping such a line untouched in an edited row still counts as asserting it. Do not leave "not verified" banners or TODOs in the page; they rot and readers cannot act on them.
-5. Never delete a page. If a feature was removed, say so in the report and let the user decide; other pages and `docs/README.md` may still link to it.
+5. A stale pointer in a section you are not otherwise changing is NOT edited: list it in the final report as `file:line -> actual line` from the grep you have, or as unchecked if you have no grep for it. Reason: touching untouched sections buries the real change in the diff and risks writing a guess.
+6. Never write placeholders (`[N]`, TODO, "unverified") into a page; they belong only in the final report. Reason: a placeholder in a page is read as fact or rots there.
+7. Frozen data-contract tokens (`SIMPAN`, `---MULAI---`, NVS keys, MQTT keys) in a touched row stay unless the code no longer has them. Reason: scripts and readers match on those exact strings.
+8. Never delete a page. If a feature was removed, say so in the report and let the user decide; other pages and `docs/README.md` may still link to it.
 
 **Create mode** (no page covers the feature and it is big enough to have its own data flow): write a new `docs/features/<kebab-name>.md` from the skeleton below, then register it. A small addition to an existing feature (one serial command, one NVS key, one menu entry) goes into that feature's page; a new page for it fragments the docs.
 
