@@ -155,7 +155,7 @@ Tiga keputusan di sembilan baris itu:
 **(a) Default `empiris`, bukan `seragam`.** Sebaran aslinya inti-tajam-ekor-berat;
 seragam ±18 akan menggeser 80% beat yang sebetulnya terkunci. Mengambil ulang
 dari kolam residu asli tidak memakai asumsi bentuk sama sekali — dan uji
-`test_empiris_meniru_sebaran_terukur` menjaga ragamnya tetap ~6 sampel.
+`test_empirical_mimics_measured_distribution` menjaga ragamnya tetap ~6 sampel.
 `seragam` tetap disediakan supaya sweep δ=0..18 bisa dibandingkan lurus dengan
 Tabel 3 paper.
 

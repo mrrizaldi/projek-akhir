@@ -77,7 +77,7 @@ $$n_0 w_0 = 109542 \times 0{,}556 \approx 60929 \approx 12315 \times 4{,}948 = n
 
 Kedua kelas menyumbang total loss yang sama besar. Satu beat Aritmia yang salah
 "berteriak" 8,9× lebih keras daripada satu beat Normal yang salah. Ini
-di-assert di `tests/test_train.py::test_kontribusi_dua_kelas_jadi_setara`.
+di-assert di `tests/test_train.py::test_two_class_contributions_equal`.
 
 ### Kenapa bukan oversampling
 

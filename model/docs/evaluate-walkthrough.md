@@ -127,7 +127,7 @@ $$\text{AUC} = \frac{\sum_{i \in \text{pos}} r_i - \frac{n_{+}(n_{+}+1)}{2}}{n_{
 dengan $r_i$ = peringkat probabilitas. Penanganan **nilai seri** (`ties`) diberi
 peringkat rata-rata — kalau tidak, model yang mengeluarkan probabilitas identik
 untuk semua sampel akan terlihat AUC 1,0 padahal seharusnya 0,5. Itu di-assert
-di `test_auc_sempurna_acak_dan_seri`.
+di `test_auc_perfect_random_and_ties`.
 
 Kenapa AUC dilaporkan bersama recall: **AUC tidak tergantung threshold**. Kalau
 threshold berubah, recall dan precision ikut berubah tapi AUC tidak —

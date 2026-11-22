@@ -15,7 +15,7 @@ def _ekg(detik, fase, dasar):
     return x.astype(int)
 
 
-def test_rr_tidak_melintasi_jeda(tmp_path):
+def test_rr_does_not_cross_pause(tmp_path):
     s1, s2 = _ekg(20, 0.5, 2000), _ekg(20, 0.3, 2600)
     berkas = tmp_path / "rekam.csv"
     berkas.write_text(f"# fs={FS} n={len(s1) + len(s2)}\n"
@@ -32,12 +32,12 @@ def test_rr_tidak_melintasi_jeda(tmp_path):
     assert np.all(np.abs(rr - 1.0) < 0.05)
 
 
-def test_autokorelasi_pendek_tetap_seluruh_segmen():
+def test_short_autocorrelation_keeps_whole_segment():
     x = (_ekg(50, 0.5, 2000) - 2000) / 1000.0
     assert denyut_per_jendela(x, FS) == denyut_autokorelasi(x, FS)
 
 
-def test_autokorelasi_panjang_median_per_jendela():
+def test_long_autocorrelation_median_per_window():
     x = (_ekg(95, 0.5, 2000) - 2000) / 1000.0
     n = JENDELA_AUTOKORELASI_S * FS
     tiap = [denyut_autokorelasi(x[i:i + n], FS) for i in range(0, len(x) - n + 1, n)]
@@ -47,7 +47,7 @@ def test_autokorelasi_panjang_median_per_jendela():
     assert bpm == float(np.median([b for _, b, _ in tiap]))
 
 
-def test_clipping_dinilai_dari_fraksi_sampel_di_rail_firmware():
+def test_clipping_judged_by_fraction_of_samples_at_firmware_rail():
     x = np.full(100000, 2000.0)
     x[:5] = 4093
     n, persen, ok = hitung_clipping(x)

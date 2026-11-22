@@ -23,14 +23,14 @@ def _ekg_dengan_derau_otot():
     return x.astype(int)
 
 
-def test_jendela_terbaik_menghindari_derau_otot():
+def test_best_window_avoids_muscle_noise():
     hasil = [analisis_segmen(_ekg_dengan_derau_otot().astype(np.float32), FS)]
     aneh, _, _, mulai, _ = pilih_jendela(hasil, FS, JENDELA_S * FS, None)
     assert mulai >= DERAU_SAMPAI_S * FS
     assert aneh == 0
 
 
-def test_mulai_eksplisit_dipakai_apa_adanya():
+def test_explicit_start_used_as_is():
     hasil = [analisis_segmen(_ekg_dengan_derau_otot().astype(np.float32), FS)]
     _, _, _, mulai, _ = pilih_jendela(hasil, FS, JENDELA_S * FS, DERAU_DARI_S)
     assert mulai == DERAU_DARI_S * FS

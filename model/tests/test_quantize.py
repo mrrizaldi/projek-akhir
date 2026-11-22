@@ -11,30 +11,30 @@ TFLITE = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
 butuh_artefak = pytest.mark.skipif(not os.path.exists(TFLITE), reason="jalankan `make quantize`")
 
 
-def test_kalibrasi_wajib_memuat_kedua_kelas():
+def test_calibration_must_contain_both_classes():
     y = np.array([0] * 900 + [1] * 100)
     idx = stratified_indices(y, n=300)
     assert (y[idx] == 0).sum() > 0 and (y[idx] == 1).sum() > 0
     assert len(idx) == len(set(idx.tolist()))
 
 
-def test_proporsi_kelas_terjaga():
+def test_class_proportion_preserved():
     y = np.array([0] * 900 + [1] * 100)
     idx = stratified_indices(y, n=300)
     assert np.isclose((y[idx] == 1).mean(), 0.1, atol=0.02)
 
 
-def test_deterministik_karena_seed():
+def test_deterministic_due_to_seed():
     y = np.array([0] * 900 + [1] * 100)
     assert np.array_equal(stratified_indices(y, 300), stratified_indices(y, 300))
 
 
-def test_kelas_hilang_error_bukan_diam():
+def test_missing_class_errors_not_silent():
     with pytest.raises(ValueError):
         stratified_indices(np.zeros(100, dtype=int), n=50)
 
 
-def test_generator_yield_dua_input_bernama():
+def test_generator_yields_two_named_inputs():
     n = 40
     y = np.array([0] * 36 + [1] * 4)
     gen = representative_dataset_gen(
@@ -48,12 +48,12 @@ def test_generator_yield_dua_input_bernama():
 
 
 @butuh_artefak
-def test_ukuran_model_di_bawah_batas():
+def test_model_size_below_limit():
     assert os.path.getsize(TFLITE) / 1024 < MAX_MODEL_KB
 
 
 @butuh_artefak
-def test_benar_benar_full_int8():
+def test_really_full_int8():
     import tensorflow as tf
     interp = tf.lite.Interpreter(model_path=TFLITE)
     interp.allocate_tensors()
@@ -64,7 +64,7 @@ def test_benar_benar_full_int8():
 
 
 @butuh_artefak
-def test_skala_ritme_artefak_wajar():
+def test_artifact_rhythm_scale_sane():
     from config import MAX_RHYTHM_SCALE
     with open(TFLITE, "rb") as f:
         skala = assert_rhythm_scale_sane(f.read())
@@ -73,7 +73,7 @@ def test_skala_ritme_artefak_wajar():
 
 
 @butuh_artefak
-def test_assert_skala_ritme_benar_benar_menyalak():
+def test_assert_rhythm_scale_really_fires():
     with open(TFLITE, "rb") as f:
         blob = f.read()
     with pytest.raises(ValueError, match="rhythm input quantization scale"):

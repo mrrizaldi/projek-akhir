@@ -20,7 +20,7 @@ def _jalankan(cb, riwayat):
     return float(m.get_weights()[0][0, 0])
 
 
-def test_bobot_inversely_proportional():
+def test_weights_inversely_proportional():
     y = np.array([0] * 90 + [1] * 10)
     w = make_class_weights(y)
     assert np.isclose(w[0], 100 / (2 * 90))
@@ -28,35 +28,35 @@ def test_bobot_inversely_proportional():
     assert w[1] > w[0]
 
 
-def test_kontribusi_dua_kelas_jadi_setara():
+def test_two_class_contributions_equal():
     y = np.array([0] * 90 + [1] * 10)
     w = make_class_weights(y)
     assert np.isclose(90 * w[0], 10 * w[1])
 
 
-def test_seimbang_berarti_bobot_satu():
+def test_balanced_means_weight_one():
     w = make_class_weights(np.array([0, 0, 1, 1]))
     assert np.isclose(w[0], 1.0) and np.isclose(w[1], 1.0)
 
 
-def test_kelas_kosong_error_bukan_pembagian_nol():
+def test_empty_class_errors_not_division_by_zero():
     with pytest.raises(ValueError):
         make_class_weights(np.zeros(10, dtype=int))
 
 
-def test_rata_bobot_merata_ratakan_n_terbaik_bukan_memungut_argmax():
+def test_weight_average_averages_best_n_not_picking_argmax():
     hasil = _jalankan(BestWeightAverage("val_auc", 3),
                       [(0.90, 4.0), (0.80, 50.0), (0.92, 3.0),
                        (0.50, 99.0), (0.91, 5.0)])
     assert np.isclose(hasil, 4.0)
 
 
-def test_epoch_buruk_tidak_ikut_rata_rata():
+def test_bad_epoch_excluded_from_average():
     hasil = _jalankan(BestWeightAverage("val_auc", 2),
                       [(0.9, 1.0), (0.1, 1000.0), (0.8, 3.0)])
     assert np.isclose(hasil, 2.0)
 
 
-def test_n_lebih_besar_dari_jumlah_epoch_pakai_semua():
+def test_n_larger_than_epoch_count_uses_all():
     hasil = _jalankan(BestWeightAverage("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
     assert np.isclose(hasil, 3.0)
