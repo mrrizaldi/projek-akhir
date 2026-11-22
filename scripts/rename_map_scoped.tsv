@@ -508,3 +508,4 @@ model/scripts/record_flow_check.py	perintah	command
 model/scripts/record_flow_check.py	pola	pattern
 model/scripts/record_flow_check.py	sisa	remainder
 model/scripts/record_flow_check.py	teks	text
+model/scripts/record_flow_check.py	sampel	samples

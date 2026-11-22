@@ -117,7 +117,7 @@ def main():
         file_number = int(m.group(1)) if m else None
         listing = b.kirim("l", 2.0)
         lines = b.kirim(f"d{file_number}\n", 30.0, r"---SELESAI---") if file_number else []
-        sampel = [x for x in lines if x.isdigit()]
+        samples = [x for x in lines if x.isdigit()]
         hdr = next((x for x in lines if x.startswith("# fs=")), "")
         n_hdr = int((re.search(r" n=(\d+)", hdr) or [0, -1])[1])
         st = b.status()
@@ -125,7 +125,7 @@ def main():
             (f"SIMPAN to /rekam/NNN.csv: {save_item!r}", file_number is not None),
             ("file listed by 'l'", file_number is not None and ada(listing, rf"^\s+{file_number}\s+\d+ B\s+# fs=")),
             ("file contains '# jeda'", "# jeda" in lines),
-            (f"sample count = header n ({len(sampel)} vs {n_hdr})", len(sampel) == n_hdr > 0),
+            (f"sample count = header n ({len(samples)} vs {n_hdr})", len(samples) == n_hdr > 0),
             ("header lewat=0", "lewat=0 " in hdr),
             (f"0 samples lost during recording {lost_during_recording}", all(h == 0 for h in lost_during_recording)),
             ("session closed (rec=0)", st["rekam"] == "0")])
