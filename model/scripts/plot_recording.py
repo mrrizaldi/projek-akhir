@@ -38,9 +38,9 @@ def window_scores(x, r, fs, mulai, n):
     return odd_rr, muscle
 
 
-def select_window(hasil, fs, n, start_s):
+def select_window(analyses, fs, n, start_s):
     calon = []
-    for k, h in enumerate(hasil):
+    for k, h in enumerate(analyses):
         if h["n"] < n:
             continue
         r = r_peaks(h)
@@ -58,9 +58,9 @@ def draw_rows(h, r, fs, mulai, n, judul, tujuan):
     fig, ax = plt.subplots(baris + 1, 1, figsize=(WIDTH_IN, ROW_HEIGHT_IN * (baris + 1)))
     y = h["filtered"]
     lim = np.percentile(np.abs(y[mulai:mulai + n]), 99.9) * 1.1
-    lebar = SECONDS_PER_ROW * fs
+    row_width = SECONDS_PER_ROW * fs
     for i in range(baris):
-        a, b = mulai + i * lebar, mulai + (i + 1) * lebar
+        a, b = mulai + i * row_width, mulai + (i + 1) * row_width
         t = np.arange(a, b) / fs
         ax[i].plot(t, y[a:b], lw=0.6, color="tab:blue")
         rr = r[(r >= a) & (r < b)]
@@ -90,9 +90,9 @@ def main() -> None:
     arg = p.parse_args()
 
     segmen, fs, _ = muat(arg.file)
-    hasil = [analyze_segment(m, fs) for m in segmen]
+    analyses = [analyze_segment(m, fs) for m in segmen]
     n = arg.duration * fs
-    odd_rr, muscle, k, mulai, r = select_window(hasil, fs, n, arg.start)
+    odd_rr, muscle, k, mulai, r = select_window(analyses, fs, n, arg.start)
 
     nama = os.path.splitext(os.path.basename(arg.file))[0]
     folder = os.path.join(METRICS_DIR, "akuisisi")
@@ -101,7 +101,7 @@ def main() -> None:
     segment_text = f", segmen {k + 1}" if len(segmen) > 1 else ""
     judul = (f"{nama}{segment_text}: detik {mulai // fs}-{(mulai + n) // fs} "
              f"(bandpass 0,5-40 Hz, ▼ = R terdeteksi)")
-    bpm = draw_rows(hasil[k], r, fs, mulai, n, judul, tujuan)
+    bpm = draw_rows(analyses[k], r, fs, mulai, n, judul, tujuan)
     print(f"window seconds {mulai // fs}-{(mulai + n) // fs}{segment_text}: "
           f"odd RR {odd_rr}, noise >{MUSCLE_BAND_MIN_HZ} Hz {100 * muscle:.1f}% of ECG band, "
           f"HR median {np.median(bpm):.0f} bpm ({bpm.min():.0f}-{bpm.max():.0f}), {len(bpm) + 1} R")

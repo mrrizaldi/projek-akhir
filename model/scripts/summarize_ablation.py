@@ -15,8 +15,8 @@ CROSS_DB_COLUMNS = [("f1", "F1"), ("recall_S", "recall S"),
                 ("auc", "AUC"), ("threshold", "thr")]
 
 
-def rerata_rentang(nilai: list) -> tuple:
-    return sum(nilai) / len(nilai), (max(nilai) - min(nilai)) / 2
+def rerata_rentang(values: list) -> tuple:
+    return sum(values) / len(values), (max(values) - min(values)) / 2
 
 
 def read_file(path: str) -> tuple:
@@ -34,8 +34,8 @@ def read_file(path: str) -> tuple:
 def digest(baris: list, COLUMNS) -> dict:
     out = {"n_seed": len(baris)}
     for kolom, _ in COLUMNS:
-        nilai = [float(b[kolom]) for b in baris if b.get(kolom) not in (None, "")]
-        out[kolom] = rerata_rentang(nilai) if nilai else None
+        values = [float(b[kolom]) for b in baris if b.get(kolom) not in (None, "")]
+        out[kolom] = rerata_rentang(values) if values else None
     return out
 
 
@@ -53,16 +53,16 @@ def main() -> None:
     if args.vs and args.vs not in tags:
         tags = [args.vs] + tags
 
-    hilang = [t for t in tags if t not in per_tag]
-    if hilang:
-        raise SystemExit(f"tag not in {args.csv}: {', '.join(hilang)}")
+    missing = [t for t in tags if t not in per_tag]
+    if missing:
+        raise SystemExit(f"tag not in {args.csv}: {', '.join(missing)}")
 
     judul = f"{'tag':<20}{'n':>3}  " + "  ".join(f"{n:>17}" for _, n in COLUMNS)
     print(judul)
     print("-" * len(judul))
-    hasil = {}
+    digests = {}
     for t in tags:
-        s = hasil[t] = digest(per_tag[t], COLUMNS)
+        s = digests[t] = digest(per_tag[t], COLUMNS)
         sel = []
         for kolom, _ in COLUMNS:
             sel.append("        -        " if s[kolom] is None
@@ -72,22 +72,22 @@ def main() -> None:
 
     if not args.vs:
         return
-    dasar = hasil[args.vs]
+    baseline = digests[args.vs]
     print(f"\nDelta against `{args.vs}` (F1 signal threshold {F1_SIGNAL_THRESHOLD}):")
     for t in tags:
         if t == args.vs:
             continue
         k_f1 = COLUMNS[0][0]
-        d_f1 = hasil[t][k_f1][0] - dasar[k_f1][0]
-        d_ren = hasil[t][k_f1][1] - dasar[k_f1][1]
+        d_f1 = digests[t][k_f1][0] - baseline[k_f1][0]
+        d_ren = digests[t][k_f1][1] - baseline[k_f1][1]
         vonis = "SIGNAL" if abs(d_f1) >= F1_SIGNAL_THRESHOLD else "not a signal"
         arah = "narrows" if d_ren < 0 else "widens"
         print(f"  {t:<20} dF1 {d_f1:+.4f} ({vonis})   "
               f"range F1 {arah} {abs(d_ren):.4f}")
         for kolom, nama in COLUMNS[1:]:
-            if hasil[t][kolom] and dasar[kolom]:
-                print(f"{'':>18} d{nama} {hasil[t][kolom][0] - dasar[kolom][0]:+.4f}   "
-                      f"range {dasar[kolom][1]:.4f} -> {hasil[t][kolom][1]:.4f}")
+            if digests[t][kolom] and baseline[kolom]:
+                print(f"{'':>18} d{nama} {digests[t][kolom][0] - baseline[kolom][0]:+.4f}   "
+                      f"range {baseline[kolom][1]:.4f} -> {digests[t][kolom][1]:.4f}")
 
 
 if __name__ == "__main__":

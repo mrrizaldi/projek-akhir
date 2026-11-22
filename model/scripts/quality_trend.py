@@ -50,21 +50,21 @@ def load_session(paths):
     return np.concatenate(excerpts)
 
 
-def scores_per_second(mentah):
-    n_seconds = len(mentah) // FS
-    blok = mentah[: n_seconds * FS].reshape(n_seconds, FS)
-    filtered_signal = apply_bandpass(mentah, design_bandpass_sos())[: n_seconds * FS].reshape(n_seconds, FS)
+def scores_per_second(raw):
+    n_seconds = len(raw) // FS
+    second_blocks = raw[: n_seconds * FS].reshape(n_seconds, FS)
+    filtered_signal = apply_bandpass(raw, design_bandpass_sos())[: n_seconds * FS].reshape(n_seconds, FS)
     ayun = filtered_signal.max(axis=1) - filtered_signal.min(axis=1)
     mains_bin = int(np.argmin(np.abs(np.fft.rfftfreq(FS, 1.0 / FS) - FREQUENCY_MAINS_HZ)))
-    amp50 = PEAK_TO_PEAK * np.abs(np.fft.rfft(blok, axis=1)[:, mains_bin]) / FS
+    amp50 = PEAK_TO_PEAK * np.abs(np.fft.rfft(second_blocks, axis=1)[:, mains_bin]) / FS
     hum50 = PEAK_TO_PEAK * amp50
     ayun_bersih = np.maximum(ayun - GAIN_50HZ * hum50, 0.0)
-    clipping = (blok.max(axis=1) >= ADC_UPPER) | (blok.min(axis=1) <= ADC_LOWER)
+    clipping = (second_blocks.max(axis=1) >= ADC_UPPER) | (second_blocks.min(axis=1) <= ADC_LOWER)
     return ayun, hum50, ayun_bersih, clipping
 
 
-def quiet_per_second(mentah, n_seconds):
-    x = (mentah - mentah.mean()) / DETECTOR_SCALE
+def quiet_per_second(raw, n_seconds):
+    x = (raw - raw.mean()) / DETECTOR_SCALE
     r = pan_tompkins_detect(apply_bandpass(x, design_bandpass_sos()), FS)
     rr = np.diff(r) / FS
     drr = np.abs(np.ediff1d(rr, to_begin=0.0))
@@ -91,10 +91,10 @@ def main() -> None:
     paths = sys.argv[1:]
     if not paths:
         sys.exit("usage: python scripts/quality_trend.py <session-1-file.csv> [<continuation-file.csv> ...]")
-    mentah = load_session(paths)
-    ayun, hum50, ayun_bersih, clipping = scores_per_second(mentah)
+    raw = load_session(paths)
+    ayun, hum50, ayun_bersih, clipping = scores_per_second(raw)
     n_seconds = len(ayun)
-    beat, plausible, beat_seconds, quiet_run_s = quiet_per_second(mentah, n_seconds)
+    beat, plausible, beat_seconds, quiet_run_s = quiet_per_second(raw, n_seconds)
     waktu = np.arange(n_seconds)
 
     print(f"session {len(paths)} files, {n_seconds} seconds ({n_seconds / SECONDS_PER_MINUTE:.1f} minutes)\n")

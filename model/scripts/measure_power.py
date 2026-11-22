@@ -17,13 +17,13 @@ MODE_NAMES = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ 
         4: "+ UI (TFT, beep, LED)", 5: "+ WiFi/MQTT"}
 
 
-def tunggu(s, isi, detik):
+def tunggu(s, expected_text, detik):
     akhir = time.time() + detik
     while time.time() < akhir:
         b = s.readline().decode("utf-8", "replace").rstrip()
         if b:
             print("  " + b)
-            if isi in b:
+            if expected_text in b:
                 return b
     return None
 
@@ -102,26 +102,26 @@ def main():
                        P=statistics.mean(float(x[6]) for x in r),
                        beat=sum(int(x[7]) for x in r), lewat=sum(int(x[8]) for x in r))
     print(f"{'mode':<26}{'I (mA)':>16}{'V':>8}{'P (mW)':>9}{'delta I':>9}{'beat':>6}{'missed':>6}")
-    gagal = []
+    failures = []
     lalu = None
     for m, r in ring.items():
         d = "" if lalu is None else f"{r['I'] - ring[lalu]['I']:+.2f}"
         print(f"p{m} {MODE_NAMES[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
               f"{d:>9}{r['beat']:>6}{r['lewat']:>6}")
         if m >= 1 and r["lewat"]:
-            gagal.append(f"p{m}: {r['lewat']} samples lost, load not representative")
+            failures.append(f"p{m}: {r['lewat']} samples lost, load not representative")
         if m >= 2 and not r["beat"]:
-            gagal.append(f"p{m}: no beats, replay not running")
+            failures.append(f"p{m}: no beats, replay not running")
         if lalu is not None:
             dI, sd = r["I"] - ring[lalu]["I"], max(r["sd"], ring[lalu]["sd"])
             if dI < 0:
-                gagal.append(f"p{lalu}->p{m}: current dropped {dI:+.2f} mA (not monotonic)")
+                failures.append(f"p{lalu}->p{m}: current dropped {dI:+.2f} mA (not monotonic)")
             elif dI <= 2 * sd:
-                gagal.append(f"p{lalu}->p{m}: difference {dI:+.2f} mA <= 2 x std {sd:.2f} "
+                failures.append(f"p{lalu}->p{m}: difference {dI:+.2f} mA <= 2 x std {sd:.2f} "
                              "(this stage is not yet measurable)")
         lalu = m
-    print("\nCheck: " + ("PASS" if not gagal else "FAIL\n  " + "\n  ".join(gagal)))
-    sys.exit(1 if gagal else 0)
+    print("\nCheck: " + ("PASS" if not failures else "FAIL\n  " + "\n  ".join(failures)))
+    sys.exit(1 if failures else 0)
 
 
 if __name__ == "__main__":
