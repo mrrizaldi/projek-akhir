@@ -209,7 +209,7 @@ dilewati dengan pesan `make data DB=<db>`), lalu untuk tiap record:
    residu empiris diukur dari detektor di mitdb 360 Hz sehingga tidak berlaku
    untuk sinyal yang di-resample.
 
-Opsi baris perintah: `--jitter {none,empiris,seragam,normal}`, `--salinan N`,
+Opsi baris perintah: `--jitter {none,empiris,seragam,normal}`, `--copies N`,
 `--delta` (untuk `seragam`/`normal`), dan `--db <nama...>`.
 
 `main()` mencetak tabel per record lalu total. Cetakan itu bukan hiasan: PRD

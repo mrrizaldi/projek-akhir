@@ -42,8 +42,8 @@ def catatan_latih(db_list) -> list:
         n_expected = DATASETS[db]["n_record"]
         if len(tersedia) != n_expected:
             raise ValueError(
-                f"{db}: {len(tersedia)}/{n_expected} record — held-out `[::4]` akan "
-                f"BEDA. Selesaikan download dulu (lihat n_record di config.py)."
+                f"{db}: {len(tersedia)}/{n_expected} records — held-out `[::4]` would "
+                f"DIFFER. Finish the download first (see n_record in config.py)."
             )
         pasangan += [(db, r) for r in split_train_test(tersedia)[0]]
     return pasangan
@@ -137,29 +137,29 @@ def main() -> None:
     ap.add_argument("--tag", required=True)
     ap.add_argument("--jitter", default="none", choices=["none", "empiris", "seragam"])
     ap.add_argument("--delta", type=int, default=0)
-    ap.add_argument("--salinan", type=int, default=0,
-                    help="jumlah tiruan ber-jitter di atas salinan bersih")
+    ap.add_argument("--copies", type=int, default=0,
+                    help="number of jittered copies on top of the clean copy")
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--seed", type=int, default=SEED,
-                    help="ulangi varian yang sama dgn seed lain — selisih F1 "
-                         "beberapa poin bisa cuma kebisingan inisialisasi")
-    ap.add_argument("--tanpa-class-weight", action="store_true",
-                    help="ablasi K1/T1: class_weight=None. Nilai terkunci "
-                         "(balanced) tidak diubah — ini flag ablasi saja.")
+                    help="repeat the same variant with another seed — an F1 difference "
+                         "of a few points can be initialization noise only")
+    ap.add_argument("--no-class-weight", action="store_true",
+                    help="ablation K1/T1: class_weight=None. The locked value "
+                         "(balanced) is unchanged — this is an ablation flag only.")
     ap.add_argument("--swa", type=int, default=0, metavar="N",
-                    help="ablasi T7: rata-ratakan bobot N epoch ber-val_auc "
-                         "terbaik, bukan memungut argmax-nya. 0 = jalur terkunci.")
+                    help="ablation T7: average the weights of the N epochs with the best "
+                         "val_auc instead of picking the argmax. 0 = locked path.")
     ap.add_argument("--lr", type=float, default=0.0,
-                    help="ablasi T12: learning rate Adam. 0 = bawaan 1e-3 = "
-                         "jalur terkunci. val_auc memuncak di epoch 0 dgn 1e-3.")
-    ap.add_argument("--lintas-db", action="store_true",
-                    help="T8: ukur juga di held-out svdb (TEST-B) & incartdb "
-                         "(TEST-C), 39 pasien. Threshold tetap dari VAL. Hasil "
-                         "ke lintas_db.csv terpisah — skema ablasi.csv tak bergeser.")
+                    help="ablation T12: Adam learning rate. 0 = default 1e-3 = "
+                         "locked path. val_auc peaks at epoch 0 with 1e-3.")
+    ap.add_argument("--cross-db", action="store_true",
+                    help="T8: also measure on held-out svdb (TEST-B) and incartdb "
+                         "(TEST-C), 39 patients. Threshold stays from VAL. Results "
+                         "go to a separate lintas_db.csv — the ablasi.csv schema does not shift.")
     ap.add_argument("--db", nargs="+", default=["mitdb"], choices=list(DATASETS),
-                    help="database LATIH. Bawaan mitdb saja = jalur terkunci, "
-                         "byte-identik dengan ablasi sebelum Fase A. DS2 tetap "
-                         "mitdb apa pun isinya.")
+                    help="TRAINING databases. Default mitdb only = locked path, "
+                         "byte-identical to the ablation before Phase A. DS2 stays "
+                         "mitdb whatever is given.")
     args = ap.parse_args()
 
     os.makedirs(OUT_DIR, exist_ok=True)
@@ -169,22 +169,22 @@ def main() -> None:
     t0 = time.time()
 
     sos = design_bandpass_sos()
-    ds1 = rakit_ds1(sos, args.jitter, args.delta, args.salinan, rng, args.db)
+    ds1 = rakit_ds1(sos, args.jitter, args.delta, args.copies, rng, args.db)
     tr, va = pisah_val(ds1)
     print(f"[{args.tag}] window {WIN_PRE}/{WIN_POST}={WIN_LEN}  n_rr={N_RR_FEATURES}  "
-          f"HOS={USE_HOS}  jitter={args.jitter} x{args.salinan}  db={'+'.join(args.db)}  "
-          f"class_weight={'OFF' if args.tanpa_class_weight else 'balanced'}  "
-          f"swa={args.swa or 'OFF'}  lr={args.lr or '1e-3 (bawaan)'}")
-    print(f"[{args.tag}] train {len(tr['y']):,} beat ({int(tr['y'].sum()):,} aritmia)  "
+          f"HOS={USE_HOS}  jitter={args.jitter} x{args.copies}  db={'+'.join(args.db)}  "
+          f"class_weight={'OFF' if args.no_class_weight else 'balanced'}  "
+          f"swa={args.swa or 'OFF'}  lr={args.lr or '1e-3 (default)'}")
+    print(f"[{args.tag}] train {len(tr['y']):,} beats ({int(tr['y'].sum()):,} arrhythmia)  "
           f"val {len(va['y']):,} ({int(va['y'].sum()):,})")
 
     model = build_hybrid_model()
     kw = {"epochs": args.epochs} if args.epochs else {}
-    train(model, tr, va, use_class_weight=not args.tanpa_class_weight,
+    train(model, tr, va, use_class_weight=not args.no_class_weight,
           swa_n=args.swa, lr=args.lr, **kw)
 
     thr = kalibrasi(model, va)
-    print(f"[{args.tag}] threshold dari VAL = {thr:.2f}")
+    print(f"[{args.tag}] threshold from VAL = {thr:.2f}")
 
     cache = muat_ds2(sos)
     bersih = ukur(model, cache, thr, None, 0)
@@ -196,7 +196,7 @@ def main() -> None:
 
     baris = {"tag": args.tag, "seed": args.seed,
              "win_pre": WIN_PRE, "win_post": WIN_POST,
-             "hos": int(USE_HOS), "jitter": args.jitter, "salinan": args.salinan,
+             "hos": int(USE_HOS), "jitter": args.jitter, "salinan": args.copies,
              "threshold": thr, "n_train": len(tr["y"]),
              "menit": round((time.time() - t0) / 60, 1)}
     baris.update({f"anot_{k}": v for k, v in bersih.items()})
@@ -210,13 +210,13 @@ def main() -> None:
         f.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v)
                          for v in baris.values()) + "\n")
 
-    print(f"[{args.tag}] DS2 anotasi : recall {bersih['recall']:.4f}  "
+    print(f"[{args.tag}] DS2 annotation: recall {bersih['recall']:.4f}  "
           f"prec {bersih['precision']:.4f}  F1 {bersih['f1']:.4f}  AUC {bersih['auc']:.4f}")
-    print(f"[{args.tag}] DS2 jitter  : recall {rerata['recall']:.4f}  "
+    print(f"[{args.tag}] DS2 jitter     : recall {rerata['recall']:.4f}  "
           f"prec {rerata['precision']:.4f}  F1 {rerata['f1']:.4f}  AUC {rerata['auc']:.4f}")
     print(out)
 
-    if args.lintas_db:
+    if args.cross_db:
         out2 = os.path.join(OUT_DIR, "lintas_db.csv")
         for db, nama in (("svdb", "TEST-B"), ("incartdb", "TEST-C")):
             d = rakit_heldout(sos, db)
@@ -232,7 +232,7 @@ def main() -> None:
                                  for v in r.values()) + "\n")
             print(f"[{args.tag}] {nama} {db:<9}: recall {m['recall']:.4f}  "
                   f"prec {m['precision']:.4f}  F1 {m['f1']:.4f}  AUC {m['auc']:.4f}  "
-                  f"({len(d['y']):,} beat)")
+                  f"({len(d['y']):,} beats)")
 
 
 if __name__ == "__main__":

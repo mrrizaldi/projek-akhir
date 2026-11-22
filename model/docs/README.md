@@ -239,7 +239,7 @@ berpindah bila tidak ada langkah adaptif di antara knob dan metrik.
 | `scripts/cek_fp.py` | Asal 2.302 FP: sebaran per record, panjang run TP vs FP, FP per simbol. Dasar gugurnya aturan k-dari-n |
 | `scripts/ringkas_ablasi.py` | Rerata ± setengah-rentang per tag + vonis ambang 0,04, sehingga §7 tidak dihitung tangan |
 | `scripts/ablasi.py --swa N` | Knob T7: rata-rata bobot N epoch ber-`val_auc` terbaik. Bawaan 0 = jalur terkunci |
-| `scripts/ablasi.py --lr`, `--lintas-db` | Knob T12 (learning rate) dan T8 (evaluasi TEST-B/TEST-C, 39 pasien held-out) |
+| `scripts/ablasi.py --lr`, `--cross-db` | Knob T12 (learning rate) dan T8 (evaluasi TEST-B/TEST-C, 39 pasien held-out) |
 | `scripts/cek_titik_operasi.py` | Verifikasi pertukaran recall S pada titik operasi setara |
 
 ---

@@ -161,7 +161,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Normalisasi | z-score per window | kebal beda amplitudo, nol kebocoran statistik |
 | Pooling | GlobalAveragePooling1D | param jauh lebih kecil dari Flatten |
 | Ukuran window | **128/128 = 256 sampel** | ablasi 3 seed (Fase 6c) terhadap baseline 90/160 = 250 sampel: F1 DS2 0,5660 → 0,6911. Mekanismenya terlihat per simbol: **recall S naik monoton dengan `WIN_PRE`** (90→0,268, 112→0,369, 128→0,42-0,49) karena beat supraventrikular dibedakan gelombang P & interval PR di sisi kiri window; recall V tak bergerak; **recall F turun** 0,308→0,15-0,20 (cakupan T dipangkas 160→128) — pertukaran yang disengaja, S 10× lebih banyak dari F di DS2. Varian PENENTU justru yang kalah: 112/144 juga 256 sampel, juga kelipatan 8, cakupan T lebih panjang → setara baseline. Jadi yang membayar **konteks 128 sampel sebelum R**, bukan panjang window. R di indeks **132** (128+4) |
-| Augmentasi jitter | **`empiris` × 2 salinan di DS1**, DS2 tidak pernah dijitter | F1 DS2 0,5660 → 0,6354 bahkan pada data BERSIH — jitter bekerja sebagai regularisasi, bukan cuma latihan kondisi deploy. `--salinan 3` lebih buruk (0,6099), jadi 2 |
+| Augmentasi jitter | **`empiris` × 2 salinan di DS1**, DS2 tidak pernah dijitter | F1 DS2 0,5660 → 0,6354 bahkan pada data BERSIH — jitter bekerja sebagai regularisasi, bukan cuma latihan kondisi deploy. `--copies 3` lebih buruk (0,6099), jadi 2 |
 | Threshold | **0,80** | kriteria: F1 maksimum di VAL, tie-break recall bila ΔF1 < 0,005. VAL ikut ber-jitter, jadi sebaran probabilitas dan titik operasinya berbeda dari model tanpa augmentasi. Kandidat {0,80; 0,85} → recall menang → 0,80. Threshold 0,35 (titik operasi model tanpa augmentasi) memberi precision 0,19 di model ini. Reproduksi: `scripts/calibrate_threshold.py` |
 | Agregasi metrik Fase 6 | **level beat** (per-record disimpan terpisah) | standar & sebanding literatur (PRD); `fase6_per_record_fp32.csv` untuk cerita sebarannya |
 | `sklearn.metrics` | **tidak dipakai** — numpy | rumus TP/FN/FP/TN + AUC Mann-Whitney beberapa baris; sekalian memaksa memutuskan pembagian-nol → 0,0 bukan NaN (NaN akan merusak tabel delta Fase 7) |
@@ -206,7 +206,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
 | Segmentasi on-device | **kompensasi 38 + penyelarasan puncak ±25 + kurangi group delay 4** | tanpa salah satunya R tidak mendarat di `WIN_PRE+4` (= **132**) dan precision jatuh 4× (0,479→0,124); offset dikalibrasi di DS1 |
 | Model jitter | **empiris** (ambil ulang dari `residu_ds1.npy`), bukan seragam ±18 paper | residu terukur inti-tajam-ekor-berat; seragam ±18 menggeser 80% beat yang sebetulnya terkunci. `seragam` tetap ada supaya sweep δ=0..18 sebanding Tabel 3 Dias 2021 |
 | Jitter per beat | **independen**, walau kenyataannya berkorelasi per record | korelasi sebagian saling meniadakan di RR (RR = selisih dua posisi); independen melebihkan ragam RR = arah pesimistis, aman |
-| Salinan bersih saat augmentasi | **selalu ikut** (`--salinan N` = N tiruan DI ATAS 1 salinan bersih) | 80% beat di alat meleset ≤1 sampel; kasus "tepat" itu mayoritas, bukan kasus pinggir |
+| Salinan bersih saat augmentasi | **selalu ikut** (`--copies N` = N tiruan DI ATAS 1 salinan bersih) | 80% beat di alat meleset ≤1 sampel; kasus "tepat" itu mayoritas, bukan kasus pinggir |
 | Knob ablasi | **environment** (`PA_WIN_PRE`, `PA_WIN_POST`, `PA_HOS`), bukan edit nilai final | tanpa env, `config.py` memberi nilai yang persis sama → ablasi tidak menyentuh gate point. Yang menang baru dikunci lewat bawaannya (tetap gate point) |
 | Fitur HOS (kurtosis+skewness) | **ditolak** | 3 seed: 0,6150±0,0509 vs 0,6354±0,0428 tanpa HOS — tumpang tindih penuh. Bukan "merusak", tapi "tidak ada bukti menolong"; fitur tanpa bukti tetap harus diport ke C & dijaga. Kode + knob `PA_HOS` ditinggal untuk ablasi ulang |
 | Record kanal anomali | 114 (MLII idx 1); 102 & 104 tanpa MLII → `raise` | 102/104 paced, dibuang di Fase 3 juga |
@@ -357,7 +357,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   F1 DS2 0,6911 vs 0,6535 (selisih 0,0376). Sebab: sama dengan jebakan oneDNN
   di atas, tapi tidak hilang hanya karena dirata-rata 3 seed. Konsekuensi:
   mengulang 3 seed **tidak** mengangkat selisih kecil jadi sinyal; yang
-  menaikkan daya pisah adalah set uji lebih besar (`ablasi.py --lintas-db`,
+  menaikkan daya pisah adalah set uji lebih besar (`ablasi.py --cross-db`,
   39 pasien held-out). Sebagian vonis "bukan sinyal" Fase A–F jadi lebih lemah,
   bukan lebih kuat.
 - **Menunggu jaringan di dalam loop yang menguras antrean ADC = sampel hilang.**

@@ -261,12 +261,12 @@ berwindow 90/160 wajib menyebut window-nya secara eksplisit:
 
 ```bash
 PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag bersih
-PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2
-PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128   --jitter empiris --salinan 2
-PA_WIN_PRE=112 PA_WIN_POST=144          python scripts/ablasi.py --tag w112   --jitter empiris --salinan 2
-PA_WIN_PRE=90  PA_WIN_POST=160 PA_HOS=1 python scripts/ablasi.py --tag hos    --jitter empiris --salinan 2
-                                        python scripts/ablasi.py --tag w128b  --jitter empiris --salinan 2
-PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128s3 --jitter empiris --salinan 3
+PA_WIN_PRE=90  PA_WIN_POST=160          python scripts/ablasi.py --tag jitter --jitter empiris --copies 2
+PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128   --jitter empiris --copies 2
+PA_WIN_PRE=112 PA_WIN_POST=144          python scripts/ablasi.py --tag w112   --jitter empiris --copies 2
+PA_WIN_PRE=90  PA_WIN_POST=160 PA_HOS=1 python scripts/ablasi.py --tag hos    --jitter empiris --copies 2
+                                        python scripts/ablasi.py --tag w128b  --jitter empiris --copies 2
+PA_WIN_PRE=128 PA_WIN_POST=127          python scripts/ablasi.py --tag w128s3 --jitter empiris --copies 3
 ```
 
 Tiap baris diulang dengan `--seed 42`, `--seed 7`, dan `--seed 13`.
@@ -275,7 +275,7 @@ Tanpa env, `config.py` memakai nilai bawaannya, jadi ablasi tidak mengubah
 nilai final dan tidak menyentuh gate point. Varian yang menang dikunci dengan
 mengubah bawaan di `config.py`, dan itu keputusan user.
 
-**Salinan bersih selalu ikut** (`--salinan N` = N tiruan ber-jitter DI ATAS satu
+**Salinan bersih selalu ikut** (`--copies N` = N tiruan ber-jitter DI ATAS satu
 salinan bersih). Alasannya ada di angka §2: 80% beat di alat meleset ≤1 sampel,
 jadi kasus "tepat" bukan kasus langka yang boleh dikorbankan.
 
@@ -305,7 +305,7 @@ pertama lima varian (`bersih`, `jitter`, `w128`, `w112`, `hos`), semuanya seed
 `ablasi.csv` menampung semua run bertanda seed; hapus berkas itu untuk mulai
 bersih. Kolom `menit` mencatat durasi satu proses dari rakit sampai ukur:
 0,6–0,8 menit tanpa augmentasi, 1,1–2,0 menit untuk varian mitdb dengan
-`--salinan 2` atau 3, 1,5–10,1 menit untuk varian multi-database (`fb_*` dan
+`--copies 2` atau 3, 1,5–10,1 menit untuk varian multi-database (`fb_*` dan
 `fd_*`), dan 1,5–4,2 menit untuk run mitdb lanjutan (`t8_*` dan `g_*`), semuanya
 CPU tanpa GPU.
 

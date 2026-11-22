@@ -63,7 +63,7 @@ def main() -> None:
     va = pisah_val(rakit_ds1(sos, "empiris", 0, 2,
                              np.random.default_rng(SEED), ["mitdb", "svdb"]))[1]
     thr = kalibrasi(model, va)
-    print(f"[{args.tag}] threshold tahap 1 dari VAL = {thr:.2f}")
+    print(f"[{args.tag}] stage 1 threshold from VAL = {thr:.2f}")
 
     from src.io_mitdb import load_record
     from src.preprocessing import apply_bandpass, segment_beats, zscore_per_window
@@ -84,11 +84,11 @@ def main() -> None:
     fv = fitur_aturan(Wv, RRv)
     amb = kalibrasi_ambang(fv, Av, prob_v >= thr)
     if amb["qrsw2_ms"] is None:
-        print(f"[{args.tag}] TIDAK ADA ambang yang lolos presisi {MIN_NAMED_PRECISION:.0%} "
-              f"di VAL -> nama V tidak ditampilkan. Diam lebih baik dari salah.")
+        print(f"[{args.tag}] NO threshold passes precision {MIN_NAMED_PRECISION:.0%} "
+              f"on VAL -> V name is not shown. Silence beats a wrong name.")
     else:
-        print(f"[{args.tag}] ambang QRSw2 dari VAL = {amb['qrsw2_ms']:.0f} ms "
-              f"(presisi V di VAL {amb['presisi_val']:.1%}, cakupan {amb['cakupan_val']:.1%})")
+        print(f"[{args.tag}] QRSw2 threshold from VAL = {amb['qrsw2_ms']:.0f} ms "
+              f"(V precision on VAL {amb['presisi_val']:.1%}, coverage {amb['cakupan_val']:.1%})")
 
     Xm, Xr, y, aami = rakit(muat_ds2(sos), None, 0, 0)
     prob = model.predict([Xm, Xr], verbose=0, batch_size=8192).ravel()
@@ -96,7 +96,7 @@ def main() -> None:
     f = fitur_aturan(Xm[:, :, 0], Xr)
     label = namai(f, ditandai, amb)
 
-    print(f"\n[{args.tag}] DS2 — apa yang alat TAMPILKAN vs kebenaran anotasi")
+    print(f"\n[{args.tag}] DS2 — what the device SHOWS vs the annotation truth")
     print(f"{'':14}" + "".join(f"{k:>10}" for k in ("N","S","V","F","Q")) + f"{'total':>8}")
     for nm in ("Normal", "V", "tak dinamai"):
         sel = label == nm
@@ -105,18 +105,18 @@ def main() -> None:
               + f"{int(sel.sum()):>8}")
     ditandai_n = int(ditandai.sum())
     v_lbl = label == "V"
-    print(f"\n  beat ditandai aritmia   : {ditandai_n}")
-    print(f"  dinamai V               : {int(v_lbl.sum())} "
-          f"({100*v_lbl.sum()/ditandai_n:.1f}% dari yang ditandai)")
+    print(f"\n  beats flagged arrhythmia: {ditandai_n}")
+    print(f"  named V                 : {int(v_lbl.sum())} "
+          f"({100*v_lbl.sum()/ditandai_n:.1f}% of the flagged)")
     tp_v = int((v_lbl & (aami == "V")).sum())
-    print(f"    benar V               : {tp_v}  -> presisi nama V {100*tp_v/max(int(v_lbl.sum()),1):.1f}%")
-    print(f"    sebenarnya F          : {int((v_lbl & (aami=='F')).sum())}  (F = separuh V, "
-          f"bisa dipertahankan)")
-    print(f"    sebenarnya N (FP t.1) : {int((v_lbl & (aami=='N')).sum())}")
-    print(f"  tak dinamai             : {int((label=='tak dinamai').sum())} "
+    print(f"    correct V             : {tp_v}  -> V name precision {100*tp_v/max(int(v_lbl.sum()),1):.1f}%")
+    print(f"    actually F          : {int((v_lbl & (aami=='F')).sum())}  (F = half of V, "
+          f"can be kept)")
+    print(f"    actually N (stage 1 FP): {int((v_lbl & (aami=='N')).sum())}")
+    print(f"  unnamed                 : {int((label=='tak dinamai').sum())} "
           f"({100*(label=='tak dinamai').sum()/ditandai_n:.1f}%)")
-    print(f"\n  recall V tahap 1 {100*(ditandai & (aami=='V')).sum()/max(int((aami=='V').sum()),1):.1f}% "
-          f"-> plafon keras untuk nama V")
+    print(f"\n  stage 1 recall V {100*(ditandai & (aami=='V')).sum()/max(int((aami=='V').sum()),1):.1f}% "
+          f"-> hard ceiling for the V name")
 
 
 if __name__ == "__main__":

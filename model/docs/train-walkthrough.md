@@ -337,7 +337,7 @@ selisih   0,0376
 **Rerata 3 seed pun bergoyang ~0,04 antar batch.** Konsekuensinya: selisih di
 bawah 0,04 tidak berubah jadi sinyal hanya karena diulang 3 seed. Yang benar-benar
 menaikkan daya pisah adalah **set uji yang lebih besar** — itulah gunanya
-TEST-B/TEST-C (39 pasien held-out, `ablasi.py --lintas-db`).
+TEST-B/TEST-C (39 pasien held-out, `ablasi.py --cross-db`).
 
 ---
 

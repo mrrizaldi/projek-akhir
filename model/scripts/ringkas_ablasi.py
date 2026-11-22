@@ -40,11 +40,11 @@ def ringkas(baris: list, KOLOM) -> dict:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Ringkas ablasi.csv jadi rerata +- setengah-rentang per tag, dengan vonis ambang sinyal F1 (minimal 3 seed).",
+    ap = argparse.ArgumentParser(description="Summarize ablasi.csv as mean +- half-range per tag, with a verdict against the F1 signal threshold (at least 3 seeds).",
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--tag", nargs="+",
-                    help="bawaan: semua. Untuk lintas_db.csv pakai 'tag|db'")
-    ap.add_argument("--vs", metavar="TAG", help="hitung delta terhadap tag ini")
+                    help="default: all. For lintas_db.csv use 'tag|db'")
+    ap.add_argument("--vs", metavar="TAG", help="compute the delta against this tag")
     ap.add_argument("--csv", default=os.path.join(METRICS_DIR, "ablasi", "ablasi.csv"))
     args = ap.parse_args()
 
@@ -55,7 +55,7 @@ def main() -> None:
 
     hilang = [t for t in tags if t not in per_tag]
     if hilang:
-        raise SystemExit(f"tag tidak ada di {args.csv}: {', '.join(hilang)}")
+        raise SystemExit(f"tag not in {args.csv}: {', '.join(hilang)}")
 
     judul = f"{'tag':<20}{'n':>3}  " + "  ".join(f"{n:>17}" for _, n in KOLOM)
     print(judul)
@@ -73,7 +73,7 @@ def main() -> None:
     if not args.vs:
         return
     dasar = hasil[args.vs]
-    print(f"\nDelta terhadap `{args.vs}` (ambang sinyal F1 {AMBANG}):")
+    print(f"\nDelta against `{args.vs}` (F1 signal threshold {AMBANG}):")
     for t in tags:
         if t == args.vs:
             continue
@@ -83,11 +83,11 @@ def main() -> None:
         vonis = "SINYAL" if abs(d_f1) >= AMBANG else "bukan sinyal"
         arah = "menyempit" if d_ren < 0 else "melebar"
         print(f"  {t:<20} dF1 {d_f1:+.4f} ({vonis})   "
-              f"rentang F1 {arah} {abs(d_ren):.4f}")
+              f"range F1 {arah} {abs(d_ren):.4f}")
         for kolom, nama in KOLOM[1:]:
             if hasil[t][kolom] and dasar[kolom]:
                 print(f"{'':>18} d{nama} {hasil[t][kolom][0] - dasar[kolom][0]:+.4f}   "
-                      f"rentang {dasar[kolom][1]:.4f} -> {hasil[t][kolom][1]:.4f}")
+                      f"range {dasar[kolom][1]:.4f} -> {hasil[t][kolom][1]:.4f}")
 
 
 if __name__ == "__main__":

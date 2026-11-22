@@ -99,7 +99,7 @@ def main() -> None:
     tot_palsu = tot_lewat = tot_beat = 0
     kelas = {}
 
-    print(f"{'rec':>5} {'beat':>7} {'cocok':>7} {'lewat':>6} {'palsu':>6} "
+    print(f"{'rec':>5} {'beat':>7} {'matched':>7} {'missed':>6} {'false':>6} "
           f"{'med':>5} {'std':>6} {'|p95|':>6}")
     for rec in DS1:
         residu, n_palsu, n_lewat, n_beat, kl = residu_record(str(rec), sos, toleransi)
@@ -121,15 +121,15 @@ def main() -> None:
     s = ringkas(residu)
 
     print("-" * 60)
-    print(f"DS1: {tot_beat:,} beat anotasi, {s['n']:,} terpasangkan, "
-          f"{tot_lewat:,} terlewat ({100 * tot_lewat / tot_beat:.2f}%), "
-          f"{tot_palsu:,} deteksi palsu")
-    print(f"residu: median {s['median']:.1f}  mean {s['mean']:.2f}  std {s['std']:.2f}  "
+    print(f"DS1: {tot_beat:,} annotated beats, {s['n']:,} paired, "
+          f"{tot_lewat:,} missed ({100 * tot_lewat / tot_beat:.2f}%), "
+          f"{tot_palsu:,} false detections")
+    print(f"residual: median {s['median']:.1f}  mean {s['mean']:.2f}  std {s['std']:.2f}  "
           f"p5 {s['p5']:.0f}  p95 {s['p95']:.0f}")
-    print(f"|residu|: p95 {s['abs_p95']:.0f}  p99 {s['abs_p99']:.0f}  "
-          f"maks {s['abs_maks']:.0f} sampel "
+    print(f"|residual|: p95 {s['abs_p95']:.0f}  p99 {s['abs_p99']:.0f}  "
+          f"max {s['abs_maks']:.0f} samples "
           f"({1000 * s['abs_p95'] / FS:.0f} / {1000 * s['abs_p99'] / FS:.0f} ms)")
-    print("beat terlewat per kelas AAMI: " + "  ".join(
+    print("missed beats per AAMI class: " + "  ".join(
         f"{k} {b}/{a} ({100 * b / a:.1f}%)" for k, (a, b) in sorted(kelas.items())))
 
     with open(os.path.join(OUT_DIR, "jitter_residu.csv"), "w") as f:

@@ -71,7 +71,7 @@ alur dan alasan ada di walkthrough yang disebut di kolom terakhir.
 | `kualitas_jendela.py` | `.venv/bin/python scripts/kualitas_jendela.py <rekaman.csv> ...` | SQI Orphanidou 2015 per jendela 10 detik → `artifacts/metrics/kualitas/jendela10s_<rekaman>.csv` ([akuisisi](docs/akuisisi-walkthrough.md) §6) |
 | `eval_detected_segmentation.py` | `python scripts/eval_detected_segmentation.py` | Biaya segmentasi Pan-Tompkins vs anotasi ([segmentasi-deteksi](docs/segmentasi-deteksi-walkthrough.md)). Angka pembanding dibaca dari keluaran `eval_fp32.py`, tidak dihafal |
 | `ukur_jitter.py`, `sweep_jitter.py` | `python scripts/ukur_jitter.py`, `python scripts/sweep_jitter.py [--tag dasar]` | Residu detektor DS1 dan metrik sebagai fungsi jitter ([jitter](docs/jitter-walkthrough.md)) |
-| `ablasi.py` | `python scripts/ablasi.py --tag <nama> [--jitter empiris --salinan 2]` | Satu varian ujung ke ujung, lihat di bawah |
+| `ablasi.py` | `python scripts/ablasi.py --tag <nama> [--jitter empiris --copies 2]` | Satu varian ujung ke ujung, lihat di bawah |
 | `ringkas_ablasi.py` | `python scripts/ringkas_ablasi.py [--tag A B] [--vs A]` | Rerata ± setengah-rentang per tag, vonis ambang F1 0,04, tag < 3 seed ditandai |
 | `cek_lead.py`, `cek_kalibrasi.py`, `cek_fp.py`, `cek_titik_operasi.py`, `tahap2.py` | lihat [docs/README.md](docs/README.md) §Alat analisis pendukung | Diagnosis eksperimen; DS2 hanya mendiagnosis, tidak memilih parameter |
 | `pull_recording.py` | `make pull [N=n]` | Tarik rekaman dari board ([akuisisi](docs/akuisisi-walkthrough.md)). Bila board masih merekam, skrip menghentikan & menyimpannya dulu. Port lain: `ECG_PORT=/dev/ttyACM1` |
@@ -88,9 +88,9 @@ jadi varian dipilih lewat environment, bukan argumen:
 
 ```bash
 python scripts/ablasi.py --tag bersih
-python scripts/ablasi.py --tag jitter --jitter empiris --salinan 2
-PA_WIN_PRE=128 PA_WIN_POST=127 python scripts/ablasi.py --tag w128 --jitter empiris --salinan 2
-PA_HOS=1 python scripts/ablasi.py --tag hos --jitter empiris --salinan 2
+python scripts/ablasi.py --tag jitter --jitter empiris --copies 2
+PA_WIN_PRE=128 PA_WIN_POST=127 python scripts/ablasi.py --tag w128 --jitter empiris --copies 2
+PA_HOS=1 python scripts/ablasi.py --tag hos --jitter empiris --copies 2
 ```
 
 Tiap varian menjalani rantai yang sama: rakit DS1 → split per pasien → latih →
@@ -107,12 +107,12 @@ tidak dirata-rata jadi satu. Setengah-rentang dipakai, bukan stdev, karena n=3
 terlalu kecil untuk stdev bermakna.
 
 Awalan tag di `ablasi.csv` menandai kelompok eksperimen: tanpa awalan =
-ablasi window/jitter/HOS (Fase 6c; `w128s3` = `--salinan 3`), `fb_` = database
+ablasi window/jitter/HOS (Fase 6c; `w128s3` = `--copies 3`), `fb_` = database
 latih (`fb_svdb`, `fb_incartdb`, `fb_multi`, `fb_svdb_nocw` = tanpa
 `class_weight`), `fd_` = tabel 2×2 dataset × fitur (`fd_mitdb_only`, `fd_both`,
 `fd_qrsw`, `fd_rr`), `g_` = regime latih (`g_swa3` = `--swa 3`, `g_lr1e4`,
 dan run diagnosis `g_diag`, `g_diagbase`, `g_lrdiag`), `t8_` = learning rate
-dengan `--lintas-db` (`t8_lr1e3`, `t8_lr3e4`, `t8_lr1e4`; baris TEST-B/C di
+dengan `--cross-db` (`t8_lr1e3`, `t8_lr3e4`, `t8_lr1e4`; baris TEST-B/C di
 `lintas_db.csv`).
 Vonis tiap kelompok ada di [docs/README.md](docs/README.md) §Eksperimen yang
 tidak diadopsi; `ablasi_seed42.csv` dijelaskan di
