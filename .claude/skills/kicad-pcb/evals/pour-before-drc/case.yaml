@@ -1,4 +1,4 @@
 schema_version: "1.1"
 name: pour-before-drc
 expected_outcome: |
-  From hardware/mainboard: `/usr/bin/python3 tata_letak.py bersih`, `solid`, `teks`, `ukiran`, then `/usr/bin/python3 tata_letak.py tuang` as its own step right before `kicad-cli pcb drc --schematic-parity --severity-all`; if there is `unconnected`, the connections are added to the `rute_*` functions and the sequence is repeated from `hapus`.
+  From hardware/mainboard: `/usr/bin/python3 layout.py bersih`, `solid`, `teks`, `ukiran`, then `/usr/bin/python3 layout.py tuang` as its own step right before `kicad-cli pcb drc --schematic-parity --severity-all`; if there is `unconnected`, the connections are added to the `rute_*` functions and the sequence is repeated from `hapus`.

@@ -1082,3 +1082,7 @@ return_now	laptop_now_ms
 2026-11-01-crosscheck-metrik-bab4.md	2026-11-01-bab4-metrics-crosscheck.md
 2026-11-21-pekerjaan-ditunda.md	2026-11-21-deferred-work.md
 2026-11-21-rencana-rework-skill-codebase.md	2026-11-21-skill-codebase-rework.md
+cek_board.py	check_board.py
+cek_tata_letak.py	check_layout.py
+tata_letak.py	layout.py
+ekspor_fab.sh	export_fab.sh

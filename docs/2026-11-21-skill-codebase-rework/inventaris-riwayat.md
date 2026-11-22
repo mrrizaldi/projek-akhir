@@ -130,7 +130,7 @@ Counted per file or group of files when written as one row (pola-laporan-pa = 9 
 10. `model/docs/README.md:13-15`, `README.md:56`, `acquisition-walkthrough.md:10-16,541-563`: follow the decision of item 1.
 11. Conversion of mA to mAh (daya-design §6, eta 0.85, 0.8 usable capacity, 12-hour target) contradicts `firmware-walkthrough.md` §5d ("tanpa konversi efisiensi"): choose one before moving, and decide whether the operating-hours target is still an open item.
 12. The pcb-rev2 §6 reference (battery circuit, PGA /4 `0x17FF`) already differs from the current state (PGA /8 `0x3FFF`, boost converter): do not copy blindly; determine which items still apply.
-13. The pcb-rev2 §7 factory checklist: part of it is already answered by `cek_board.py`; the rest (ERC, diagnostic B2, pin order) may already be in "Yang belum terverifikasi" of the mainboard README: confirm before dropping.
+13. The pcb-rev2 §7 factory checklist: part of it is already answered by `check_board.py`; the rest (ERC, diagnostic B2, pin order) may already be in "Yang belum terverifikasi" of the mainboard README: confirm before dropping.
 14. `model/docs/arsip/2026-09-19-fitur-design.md` (992 lines): the verdict summary per proposal (K1-K10, reopening prerequisites) needs a decision on how detailed it is in `model/docs/README.md`; recommendation one row per proposal.
 
 ## Estimated lines deleted

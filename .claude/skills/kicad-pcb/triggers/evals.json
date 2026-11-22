@@ -4,11 +4,11 @@
     "should_trigger": true
   },
   {
-    "query": "jalankan cek_board.py dan pastikan LULUS sebelum commit PCB",
+    "query": "jalankan check_board.py dan pastikan LULUS sebelum commit PCB",
     "should_trigger": true
   },
   {
-    "query": "rute ulang mainboard pakai tata_letak.py lalu autoroute sisa sinyalnya",
+    "query": "rute ulang mainboard pakai layout.py lalu autoroute sisa sinyalnya",
     "should_trigger": true
   },
   {
@@ -24,7 +24,7 @@
     "should_trigger": true
   },
   {
-    "query": "export gerber mainboard buat JLCPCB lewat ekspor_fab.sh",
+    "query": "export gerber mainboard buat JLCPCB lewat export_fab.sh",
     "should_trigger": true
   },
   {

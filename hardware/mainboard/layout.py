@@ -345,6 +345,6 @@ PERINTAH = {"hapus": hapus, "rute": rute, "bersih": bersih, "solid": solid, "tua
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in PERINTAH:
-        print("pakai: /usr/bin/python3 tata_letak.py {" + "|".join(PERINTAH) + "}")
+        print("pakai: /usr/bin/python3 layout.py {" + "|".join(PERINTAH) + "}")
         sys.exit(2)
     PERINTAH[sys.argv[1]]()

@@ -15,9 +15,9 @@ checked on the physical modules before the Gerbers are sent.
 |---|---|
 | `mainboard.kicad_pro`, `.kicad_sch`, `.kicad_pcb` | KiCad 9.0.2 project |
 | `lib/PA.kicad_sym`, `lib/PA.pretty/` | ESP32-S3-DevKitC-1 symbol and footprint (project library, referenced through `${KIPRJMOD}`) |
-| `cek_board.py` | netlist, ERC, DRC, and schematic–PCB parity checks; calls `cek_tata_letak.py` |
-| `cek_tata_letak.py` | pcbnew checks (`/usr/bin/python3`): trace width per netclass, courtyard spacing ≥ 1 mm, front and back text |
-| `tata_letak.py` | layout tool (`/usr/bin/python3`): locked positions, manual routing, cleanup after autoroute, solid GND pads, zone pour, text placer, engraving |
+| `check_board.py` | netlist, ERC, DRC, and schematic–PCB parity checks; calls `check_layout.py` |
+| `check_layout.py` | pcbnew checks (`/usr/bin/python3`): trace width per netclass, courtyard spacing ≥ 1 mm, front and back text |
+| `layout.py` | layout tool (`/usr/bin/python3`): locked positions, manual routing, cleanup after autoroute, solid GND pads, zone pour, text placer, engraving |
 
 The files are made with KiCad 9.0.2 and can be opened in KiCad 10. The reverse
 does not work: KiCad 10 files (for example the rev2 schematic authored with
@@ -90,7 +90,7 @@ channel; ADC2 cannot be used while WiFi is active. GPIO 12 is free.
 - The converter to 5 V is a boost (MT3608). A buck such as the Mini360 needs
   an input ≥ 4.75 V and does not work from a 3.0–4.2 V Li-ion cell.
 - +5V only powers power loads (the DevKit 5V pin and its capacitors);
-  `cek_board.py` rejects any other pin on the `+5V` net.
+  `check_board.py` rejects any other pin on the `+5V` net.
 
 ## Layout
 
@@ -221,7 +221,7 @@ to KiCad 9 format without changing pins.
 ## Checks
 
 ```bash
-python3 hardware/mainboard/cek_board.py
+python3 hardware/mainboard/check_board.py
 ```
 
 Expected result:
@@ -253,7 +253,7 @@ Back side silkscreen, mirrored so it reads from below, behind the holder area
 | 1 | Muhammad Rafi Rizaldi | 2.5 mm | (106; 125) |
 | 2 | 3123600001 | 2.0 mm | (106; 131) |
 
-The text is set in `UKIRAN` and `POSISI_UKIRAN` (`tata_letak.py`).
+The text is set in `UKIRAN` and `POSISI_UKIRAN` (`layout.py`).
 
 ## Changing the design
 
@@ -265,30 +265,30 @@ Circuit changes:
    F8, so that net names stay `/NAMA` (NAMA = the net name).
 
 Re-route the whole board (positions in `POSISI`, manual routes in the `rute_*`
-functions in `tata_letak.py`), run from `hardware/mainboard/`:
+functions in `layout.py`), run from `hardware/mainboard/`:
 
 ```bash
-/usr/bin/python3 tata_letak.py hapus
-/usr/bin/python3 tata_letak.py rute
-/usr/bin/python3 tata_letak.py tuang
+/usr/bin/python3 layout.py hapus
+/usr/bin/python3 layout.py rute
+/usr/bin/python3 layout.py tuang
 ```
 
 Then autoroute the remaining signals with Freerouting (kicad MCP server:
 `open_project`, `autoroute` with `maxPasses` 60), then:
 
 ```bash
-/usr/bin/python3 tata_letak.py bersih
-/usr/bin/python3 tata_letak.py solid
-/usr/bin/python3 tata_letak.py teks
-/usr/bin/python3 tata_letak.py ukiran
-/usr/bin/python3 tata_letak.py tuang
-python3 cek_board.py
+/usr/bin/python3 layout.py bersih
+/usr/bin/python3 layout.py solid
+/usr/bin/python3 layout.py teks
+/usr/bin/python3 layout.py ukiran
+/usr/bin/python3 layout.py tuang
+python3 check_board.py
 ```
 
-Expected result: the last line of `cek_board.py` is `LULUS` (PASS).
+Expected result: the last line of `check_board.py` is `LULUS` (PASS).
 Freerouting can report success while leaving connections; if DRC reports
 `unconnected`, add those connections to the `rute_*` functions in
-`tata_letak.py` and repeat the whole sequence from `hapus`.
+`layout.py` and repeat the whole sequence from `hapus`.
 
 ## Not yet verified
 
@@ -324,7 +324,7 @@ Protel extensions, silkscreen minus mask, vias *tented* (board setting
 decimal with absolute origin and PTH and NPTH separate plus a drill map.
 
 ```bash
-hardware/mainboard/ekspor_fab.sh
+hardware/mainboard/export_fab.sh
 ```
 
 Result: `hardware/mainboard/fab/mainboard-gerber-jlcpcb.zip` (14 files at the zip

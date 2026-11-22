@@ -89,7 +89,7 @@ def main():
           f"paritas skematik: {drc.get('Footprint errors')}")
     gagal += any(drc.get(k, 1) for k in ("DRC violations", "unconnected pads", "Footprint errors"))
 
-    tata = subprocess.run(["/usr/bin/python3", str(DIR / "cek_tata_letak.py")], capture_output=True, text=True)
+    tata = subprocess.run(["/usr/bin/python3", str(DIR / "check_layout.py")], capture_output=True, text=True)
     print("\n".join(b for b in tata.stdout.splitlines() if b.strip()))
     gagal += tata.returncode != 0
 
