@@ -13,6 +13,7 @@ jobs:
         with:
           python-version: "3.11"
       - run: python3 scripts/cek_komentar.py
+      - run: python3 scripts/check_docs.py
 
   firmware-native:
     runs-on: ubuntu-latest

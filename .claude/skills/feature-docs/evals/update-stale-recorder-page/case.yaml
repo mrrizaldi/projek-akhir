@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: update-stale-recorder-page
+expected_outcome: |
+  Update mode. The answer edits only the Limits and storage section of docs/features/recording.md: the maximum duration becomes 300 s (REKAM_DETIK), the pointers in the touched section are corrected from the pasted grep output (rekam.cpp REKAM_DETIK :31, REKAM_N :32, rekam_mulai :88, rekam_simpan :140), each still naming its symbol, the dated "Since 20 Okt 2026" note is rewritten as present-tense behaviour without the date, the unverifiable "the save usually takes about 2 seconds" claim is removed and reported as omitted, the Serial dump section and the Code footer are kept unchanged, no page is deleted, the frozen tokens SIMPAN and ---MULAI--- stay verbatim in inline code, the answer names python3 scripts/check_docs.py and the pointer audit (output as [N]), and it ends with the final report.
