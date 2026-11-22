@@ -1,6 +1,6 @@
 ---
 name: tulis-tanpa-slop
-description: Lapisan repo PA untuk menyunting atau menulis paragraf laporan PA (laporan/progres-pa-1, laporan/buku-pa) supaya tidak terbaca sebagai tulisan AI. Pakai saat user mengetik "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis", "sunting bab 3", "rapikan narasi", "perbaiki paragraf penjelas tabel", "review bab", "polish this chapter", atau meminta paragraf pengantar dan penjelas tabel hasil Bab 4. Memuat skill user indonesian-antislop-writing lebih dulu, lalu menambahkan aturan rumah laporan/CLAUDE.md, bentuk paragraf penjelas tabel (temuan, bukti, makna), klaim sebanding bukti, prosedur dari folder buku dengan make pdf-bersih, dan pembungkus scripts/cek_slop.py.
+description: Lapisan repo PA untuk menyunting atau menulis paragraf laporan PA (laporan/progres-pa-1, laporan/buku-pa) supaya tidak terbaca sebagai tulisan AI. Pakai saat user mengetik "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis", "sunting bab 3", "rapikan narasi", "perbaiki paragraf penjelas tabel", "review bab", "polish this chapter", atau meminta paragraf pengantar dan penjelas tabel hasil Bab 4. Memuat skill user indonesian-antislop-writing lebih dulu, lalu menambahkan aturan rumah laporan/CLAUDE.md, bentuk paragraf penjelas tabel (temuan, bukti, makna), klaim sebanding bukti, prosedur dari folder buku dengan make pdf-bersih, dan pembungkus scripts/check_slop.py.
 ---
 
 # Tulis tanpa slop (lapisan PA)
@@ -66,16 +66,16 @@ Satu konsep satu istilah di seluruh buku. Sebelum memperkenalkan istilah, cek `g
 
 ## Prosedur
 
-Jalankan dari folder buku yang disunting. Pembungkus `scripts/cek_slop.py` meneruskan ke pemeriksa skill user (`--ringkas` = `--summary`, `--banding` = `--compare`; `--self-test` diteruskan apa adanya) dan memberi pesan jelas bila skill user tidak terpasang.
+Jalankan dari folder buku yang disunting. Pembungkus `scripts/check_slop.py` meneruskan ke pemeriksa skill user (`--ringkas` = `--summary`, `--banding` = `--compare`; `--self-test` diteruskan apa adanya) dan memberi pesan jelas bila skill user tidak terpasang.
 
 ```bash
 cd laporan/progres-pa-1
 cp bab/bab3.tex /tmp/bab3.lama.tex
-python3 ../../scripts/cek_slop.py --ringkas bab/bab3.tex
-python3 ../../scripts/cek_slop.py bab/bab3.tex
-python3 ../../scripts/cek_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
+python3 ../../scripts/check_slop.py --ringkas bab/bab3.tex
+python3 ../../scripts/check_slop.py bab/bab3.tex
+python3 ../../scripts/check_slop.py --banding /tmp/bab3.lama.tex bab/bab3.tex
 python3 ../../scripts/cek_tabel.py bab/*.tex
-python3 ../../scripts/cek_slop.py --ringkas bab/bab3.tex
+python3 ../../scripts/check_slop.py --ringkas bab/bab3.tex
 make pdf-bersih
 grep -cE "undefined|Overfull" output/main.log
 ```

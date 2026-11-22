@@ -1,6 +1,6 @@
 ---
 name: tanpa-komentar-kode
-description: Menulis dan menyunting kode di repo PA (firmware C/C++ ESP32, skrip Python model dan dashboard, shell, platformio.ini, generator header) tanpa komentar dan tanpa docstring, memakai nama konstanta yang sudah ada di repo, menaruh penjelasan di dokumen komponen yang tepat, dan memeriksanya dengan scripts/cek_komentar.py. Pakai setiap kali user meminta menambah, mengubah, atau memperbaiki kode di repo ini, misalnya "tambah fitur bip tolak", "ubah ambang jadi 80", "tulis skrip analisis", "edit main.cpp", "buat generator header", "ganti pin buzzer", "add a function to firmware", "write a script in model/scripts", dan saat menulis prompt untuk subagen yang akan menulis kode di repo ini.
+description: Menulis dan menyunting kode di repo PA (firmware C/C++ ESP32, skrip Python model dan dashboard, shell, platformio.ini, generator header) tanpa komentar dan tanpa docstring, memakai nama konstanta yang sudah ada di repo, menaruh penjelasan di dokumen komponen yang tepat, dan memeriksanya dengan scripts/check_comments.py. Pakai setiap kali user meminta menambah, mengubah, atau memperbaiki kode di repo ini, misalnya "tambah fitur bip tolak", "ubah ambang jadi 80", "tulis skrip analisis", "edit main.cpp", "buat generator header", "ganti pin buzzer", "add a function to firmware", "write a script in model/scripts", dan saat menulis prompt untuk subagen yang akan menulis kode di repo ini.
 ---
 
 # Tanpa komentar kode (repo PA)
@@ -12,7 +12,7 @@ Muat skill user `no-code-comments` lebih dulu; skill ini hanya menambah hal khus
 Jalankan dari root repo pada berkas yang disentuh, dan serahkan hanya bila keluar 0. Alasannya: pemeriksa skill user tidak memindai C/C++, sedangkan pemeriksa repo memindainya.
 
 ```bash
-cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py <berkas>...
+cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py <berkas>...
 ```
 
 CI menjalankannya untuk seluruh repo lewat `.github/workflows/cek.yml`. Pelanggaran di berkas yang tidak kamu sentuh cukup dilaporkan; menyunting berkas di luar lingkup tugas bukan solusinya.
@@ -57,7 +57,7 @@ Setiap klaim yang kamu tulis ke dokumen dicek dulu ke kodenya (buka berkas, grep
 Salin aturan tanpa komentar secara eksplisit ke prompt, dan beri perintah pemeriksa yang berdiri sendiri:
 
 ```bash
-cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py <berkas-yang-disentuh>
+cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py <berkas-yang-disentuh>
 ```
 
 Tunjuk bagian dokumen tujuan dari tabel di atas, dan tandai klaim yang belum terukur di board sebagai "belum diverifikasi di board" di dalam prompt. Uji tiap perintah di prompt persis seperti tertulis sebelum menyerahkannya.

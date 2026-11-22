@@ -2,7 +2,7 @@ schema_version: "1.1"
 name: tugas-bip-tolak
 expected_outcome: |
   Prompt subagen memuat larangan komentar kode secara eksplisit, perintah
-  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py <berkas>`, menunjuk
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py <berkas>`, menunjuk
   firmware/README.md bagian Jebakan (sub-daftar Perangkat atau Akuisisi) sebagai tempat jebakan
   LEDC, melarang memakai ulang BIP_TOLAK_MS untuk arti lain, dan menandai hal yang belum
   terukur sebagai "belum diverifikasi di board".

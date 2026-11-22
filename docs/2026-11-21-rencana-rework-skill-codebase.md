@@ -48,8 +48,8 @@ paralel hanya untuk pekerjaan yang tidak berbagi berkas.
 | Berkas | Gelombang | Isi |
 |---|---|---|
 | `CLAUDE.md`, `laporan/CLAUDE.md`, `model/CLAUDE.md` | 0 | Aturan keras 8 (format eval), Dokumentasi (pangkas riwayat), tabel "Skill, muat sebelum mulai" |
-| `scripts/cek_skill.py` (baru), `.github/workflows/cek.yml`, `.gitignore` | 0 | validator struktur skill, pengecualian `triggers/evals.json` |
-| `scripts/uji_pemicu.sh` (baru) | 0 | runner uji pemicu terisolasi |
+| `scripts/check_skills.py` (baru), `.github/workflows/cek.yml`, `.gitignore` | 0 | validator struktur skill, pengecualian `triggers/evals.json` |
+| `scripts/trigger_eval.sh` (baru) | 0 | runner uji pemicu terisolasi |
 | `~/dev/{local-file-links,firmware-bounded-limits,indonesian-antislop-writing,kicad-mcp-pcb,wordcraft-latex-ingest}` (baru) | 1 | repo skill user |
 | `~/dev/no-code-comments` | 1 | aturan generik dari `tanpa-komentar-kode` yang belum ada |
 | `.claude/skills/*` | 2 | skill repo ditulis ulang, `eval.md` diganti `evals/` + `triggers/` |
@@ -94,25 +94,25 @@ paralel hanya untuk pekerjaan yang tidak berbagi berkas.
 ### Tugas 0.2: validator struktur skill
 
 - [ ] Port `~/dev/finance-project/scripts/check_skills.py` (163 baris,
-  stdlib) ke `scripts/cek_skill.py`: nama fungsi dan pesan bahasa
+  stdlib) ke `scripts/check_skills.py`: nama fungsi dan pesan bahasa
   Indonesia, perilaku sama (frontmatter `name` = nama folder, `description`
   ≤ 1.024 karakter tanpa baris baru, body < 500 baris, `evals/<kasus>/`
   berisi `prompt.md`, `case.yaml`, `graders/*.md`, `triggers/evals.json`
   berbentuk daftar `{query, should_trigger}` dengan dua kelas). Tambahan
   khusus PA: `.claude/skills/*/eval.md` tidak boleh ada lagi. Opsi
-  `--uji` untuk swauji seperti `cek_slop.py --uji`.
-- [ ] `.github/workflows/cek.yml`: langkah `python3 scripts/cek_skill.py`.
+  `--uji` untuk swauji seperti `check_slop.py --uji`.
+- [ ] `.github/workflows/cek.yml`: langkah `python3 scripts/check_skills.py`.
   Selama gelombang 2 belum selesai, validator dijalankan dengan
   `--lewati-eval-lama` supaya CI tetap hijau; opsi itu dihapus di akhir
   gelombang 2.
 - [ ] `.gitignore`: pastikan `.claude/skills/*/triggers/evals.json` tidak
   terabaikan (`git check-ignore -v` harus rc=1).
-- [ ] Periksa: `python3 scripts/cek_komentar.py scripts/cek_skill.py`,
-  `python3 scripts/cek_skill.py --uji`. Commit.
+- [ ] Periksa: `python3 scripts/check_comments.py scripts/check_skills.py`,
+  `python3 scripts/check_skills.py --uji`. Commit.
 
 ### Tugas 0.3: runner uji pemicu
 
-- [ ] `scripts/uji_pemicu.sh` dari pola runner finance-project (disalin di
+- [ ] `scripts/trigger_eval.sh` dari pola runner finance-project (disalin di
   `docs/2026-11-21-riset-rework-skill.md` (dihapus; isi di git `0fc2777`) §Temuan butir 4): argumen
   `<folder skill>...`; `T=$(mktemp -d)`; `config/` berisi salinan kredensial
   Claude Code saja (`~/.claude/.credentials.json`, tanyakan user bila
@@ -141,7 +141,7 @@ alasan usang".
 |---|---|---|---|
 | `~/dev/local-file-links` | `tautan-lokal` | seluruhnya | tidak ada (skill repo dihapus) |
 | `~/dev/firmware-bounded-limits` | `batas-tidak-diam` | batas buffer, antrean, durasi, kapasitas; operasi lambat di loop | modul PA (LittleFS, PSRAM, nama berkas firmware) |
-| `~/dev/indonesian-antislop-writing` | `tulis-tanpa-slop` + `scripts/cek_slop.py` | katalog pola, prinsip, prosedur, pemeriksa (nama skrip Inggris, pola tetap Indonesia) | aturan rumah `laporan/CLAUDE.md`, path buku |
+| `~/dev/indonesian-antislop-writing` | `tulis-tanpa-slop` + `scripts/check_slop.py` | katalog pola, prinsip, prosedur, pemeriksa (nama skrip Inggris, pola tetap Indonesia) | aturan rumah `laporan/CLAUDE.md`, path buku |
 | `~/dev/kicad-mcp-pcb` | `kicad-pcb-pa` | alur KiCad 9 MCP, Freerouting, baca pad, cek board | board PA, net, `cek_board.py` |
 | `~/dev/wordcraft-latex-ingest` | `ingest-word` | alur cadang → dry-run → konfirmasi → sync → rapikan → build | path buku, `make pdf-bersih`, binary branch lokal |
 
@@ -182,13 +182,13 @@ Bahasa Indonesia, konvensi skill-creator, tanpa riwayat di skill.
   "Skill, muat sebelum mulai" di `CLAUDE.md` diisi.
 - [ ] Peta invarian per skill oleh peninjau berbeda model; satu commit per
   skill; akhir gelombang: opsi `--lewati-eval-lama` validator dihapus,
-  `python3 scripts/cek_skill.py` hijau.
+  `python3 scripts/check_skills.py` hijau.
 
 ## Gelombang 3: eval (koordinator)
 
 - [ ] Eval perilaku satu putaran per skill (repo dan user) yang belum
   dinilai di gelombang 1–2; maksimal 3 putaran sesuai Aturan keras 8.
-- [ ] Uji pemicu baseline sekali per skill dengan `scripts/uji_pemicu.sh`
+- [ ] Uji pemicu baseline sekali per skill dengan `scripts/trigger_eval.sh`
   (sekitar 20 panggilan Opus per skill, 15 skill sekitar 300 panggilan;
   dijalankan bertahap supaya tidak menghabiskan kuota). Hasil di pesan
   commit; description hanya diubah bila skor naik di atas noise.
@@ -204,8 +204,8 @@ Bahasa Indonesia, konvensi skill-creator, tanpa riwayat di skill.
   `scripts/`, `dashboard/`, `presentasi/`: laporan saja, diserahkan ke
   user.
 - [ ] Sapuan pola tulisan AI di README dan docs berbahasa Indonesia dengan
-  `cek_slop.py` (aturan rumah berlaku); kode sudah nol komentar
-  (`cek_komentar.py`), jadi `antislop-code` hanya memeriksa teks bantuan
+  `check_slop.py` (aturan rumah berlaku); kode sudah nol komentar
+  (`check_comments.py`), jadi `antislop-code` hanya memeriksa teks bantuan
   CLI dan deskripsi Makefile.
 - [ ] `.agents/` dan `AGENTS.md`: usulan hapus (git menyimpan) atau
   bangkitkan ulang dari `.claude/skills/`; keputusan user.
@@ -252,9 +252,9 @@ dokumen kerja selesai dihapus; data uji coba `model/data/arsip/` dan
 `model/artifacts/arsip/` dipertahankan. Kode mati dihapus (`pio run`,
 `pio test -e native` 23/23, pytest 92 lulus), `.agents/` dan `AGENTS.md`
 dihapus, dan sapuan pola tulisan AI di 27 dokumen Markdown menurunkan galat
-`cek_slop` dari 160 ke 43 (sisa: daftar pertanyaan latihan di walkthrough,
+`check_slop` dari 160 ke 43 (sisa: daftar pertanyaan latihan di walkthrough,
 sengaja dibiarkan). Sisa pekerjaan di `docs/2026-11-21-pekerjaan-ditunda.md`.
-Uji pemicu baseline (`scripts/uji_pemicu.sh`, 1 run per kueri): semua skill
+Uji pemicu baseline (`scripts/trigger_eval.sh`, 1 run per kueri): semua skill
 menolak 10/10 kueri yang tidak boleh memicu; memicu benar 0–3/10 (repo:
 batas-tidak-diam 3, buku-ikut-proposal 3, tulis-tanpa-slop 3, deck-pa 2,
 kicad-pcb-pa 2, tabel-pa 2, struktur-pa 1, tanpa-komentar-kode 1,

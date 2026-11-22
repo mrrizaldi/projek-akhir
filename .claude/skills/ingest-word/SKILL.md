@@ -27,10 +27,10 @@ Muat skill user `wordcraft-latex-ingest` lebih dulu; skill ini hanya menambah ha
 
 ```bash
 python3 ../../scripts/cek_tabel.py bab/*.tex
-python3 ../../scripts/cek_slop.py bab/<berkas>.tex
+python3 ../../scripts/check_slop.py bab/<berkas>.tex
 ```
 
-  `cek_tabel` untuk semua bab, ambil temuan di baris hasil ingest. `cek_slop` untuk tiap `.tex` yang ditulis sync, ambil temuan `galat`. Tanpa `--ringkas`, karena hanya bentuk penuh yang mencetak `berkas:baris: KODE [galat]`; `--ringkas` cuma hitungan per kode. Keluaran `cek_tabel` sesudah perbaikan masuk pesan commit.
+  `cek_tabel` untuk semua bab, ambil temuan di baris hasil ingest. `check_slop` untuk tiap `.tex` yang ditulis sync, ambil temuan `galat`. Tanpa `--ringkas`, karena hanya bentuk penuh yang mencetak `berkas:baris: KODE [galat]`; `--ringkas` cuma hitungan per kode. Keluaran `cek_tabel` sesudah perbaikan masuk pesan commit.
 - **Aturan rumah ikut daftar format.** Selain daftar umum (titik dua, titik koma, em dash, istilah belum miring), periksa desimal titik (repo ini memakai desimal koma, ribuan titik) dan label internal repo yang tidak boleh tercetak (HW-n, Fase n, path berkas, nama skrip, `PA_*`, "walkthrough"). Kalimat user tetap tidak ditulis ulang; hanya diusulkan perbaikannya.
 - **Tabel, rumus, atau gambar baru yang tidak ditulis sync** dibuat di LaTeX mengikuti skill `tabel-pa` dan `laporan/CLAUDE.md`; gambar ilustrasi tetap placeholder, user yang menggambar.
 - **Butir `skipped` dan `% KOMENTAR`** ditangani seperti di skill user; sisa komentar dicek dengan `grep -n "% KOMENTAR" bab/*.tex` (diharapkan kosong).

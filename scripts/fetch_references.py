@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parent.parent
 BIBS = sorted((ROOT / "laporan").glob("*/referensi.bib"))
 OUT = ROOT / "laporan" / "pustaka"
 UA = "Mozilla/5.0 (X11; Linux x86_64) unduh_pustaka/1.0"
-DOI_TAMBAHAN = {
+EXTRA_DOIS = {
     "verma_2024": "10.1016/j.heliyon.2024.e40266",
     "xiang_2026": "10.1016/j.engappai.2025.113603",
     "khan_2025": "10.1016/j.compbiomed.2025.111345",
@@ -19,14 +19,14 @@ DOI_TAMBAHAN = {
 UNPAYWALL = "https://api.unpaywall.org/v2/{doi}?email=unpaywall@impactstory.org"
 
 
-def entri_bib():
+def bib_entries():
     seen = {}
     for bib in BIBS:
         for m in re.finditer(r"@\w+\{(\w+),(.*?)\n\}", bib.read_text(), re.S):
             key, body = m.group(1), m.group(2)
             doi = re.search(r"doi\s*=\s*\{([^}]+)\}", body)
             url = re.search(r"(?:url|howpublished)\s*=\s*\{.*?(https?://[^}\s]+)", body)
-            seen.setdefault(key, (doi.group(1).strip() if doi else DOI_TAMBAHAN.get(key), url.group(1) if url else None))
+            seen.setdefault(key, (doi.group(1).strip() if doi else EXTRA_DOIS.get(key), url.group(1) if url else None))
     return seen
 
 
@@ -37,7 +37,7 @@ def ambil(url):
     return r.stdout
 
 
-def url_pdf(doi):
+def pdf_urls(doi):
     j = json.loads(ambil(UNPAYWALL.format(doi=doi)))
     loc = j.get("best_oa_location") or {}
     cands = [loc.get("url_for_pdf")] + [l.get("url_for_pdf") for l in j.get("oa_locations", [])]
@@ -61,14 +61,14 @@ def unduh(key, cands):
 def main():
     OUT.mkdir(exist_ok=True)
     gagal = []
-    for key, (doi, url) in entri_bib().items():
+    for key, (doi, url) in bib_entries().items():
         if (OUT / f"{key}.pdf").exists():
             print(f"[exists] {key}")
             continue
         cands, is_oa = [], None
         if doi:
             try:
-                cands, is_oa = url_pdf(doi)
+                cands, is_oa = pdf_urls(doi)
             except Exception as e:
                 print(f"  unpaywall {doi}: {e}")
         if url and url.lower().endswith(".pdf"):

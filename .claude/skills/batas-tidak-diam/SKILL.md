@@ -43,4 +43,4 @@ Batas asli (300 detik) dilewati sekali di board. Board tercolok berarti Claude y
 - Blok opsi untuk user memuat satu rekomendasi beserta alasannya, karena keputusan tetap milik user.
 - Batas yang hanya membuang isyarat UI dicatat di `firmware/README.md` §Batasan yang disengaja.
 - Prosedur masuk bagian fitur di `firmware/README.md`; jebakan beserta angka ukurnya masuk §Jebakan subsistem yang tepat; flag uji ikut didokumentasikan di sana.
-- Kode tanpa komentar (skill `tanpa-komentar-kode`); `python3 scripts/cek_komentar.py` harus keluar 0.
+- Kode tanpa komentar (skill `tanpa-komentar-kode`); `python3 scripts/check_comments.py` harus keluar 0.

@@ -47,13 +47,13 @@ terpisah sesudahnya; diskusi kandidat di atas dilanjutkan nanti.
 Katalog riset (74 pola, profil dan lisensi sumber, konflik dengan aturan
 rumah, celah): `2026-11-21-skill-anti-slop/katalog.md`. Atas keputusan user,
 `narasi-pa` diabaikan untuk uji coba ini dan dibuat skill baru
-`tulis-tanpa-slop` beserta pemeriksa `scripts/cek_slop.py`. Uji coba hanya di
+`tulis-tanpa-slop` beserta pemeriksa `scripts/check_slop.py`. Uji coba hanya di
 `laporan/progres-pa-1` Bab 2 sampai Bab 4; Bab 1, bagian depan, dan Bab 5
 tidak disentuh. Cadangan sebelum uji coba: tag git
 `backup/pra-antislop-20261121-1127` dan arsip
 `~/backups/projek-akhir/progres-pa-1-20261121-1127.tar.gz`.
 
-Baseline `cek_slop.py --ringkas` sebelum penyuntingan:
+Baseline `check_slop.py --ringkas` sebelum penyuntingan:
 
 | Bab | Kata | Rerata kalimat (sb) | galat | tinjau | karena itu sisipan | paragraf yaitu ≥ 2 |
 |---|---|---|---|---|---|---|

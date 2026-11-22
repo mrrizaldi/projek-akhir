@@ -80,4 +80,4 @@ Catatan: `model/artifacts/metrics/akuisisi/akuisisi_device.png` (untracked pada 
 4. `available_records` (model/scripts/prep_beats.py:72): nol pemanggil, parameter diabaikan.
 5. Impor mati: `model/scripts/export_golden.py` (`ALIGN_WIN`, `BANDPASS_LOW/HIGH/ORDER`) dan `model/src/io_mitdb.py` (`CHANNEL`, `RAW_DIR`), hanya baris import.
 
-Setiap penghapusan harus dikonfirmasi user (gate skill deadcode), diikuti `pio test -e native`, `pio run`, `make test`/pytest di `model/`, dan `python3 scripts/cek_komentar.py` sebelum commit.
+Setiap penghapusan harus dikonfirmasi user (gate skill deadcode), diikuti `pio test -e native`, `pio run`, `make test`/pytest di `model/`, dan `python3 scripts/check_comments.py` sebelum commit.

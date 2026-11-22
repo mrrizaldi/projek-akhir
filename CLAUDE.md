@@ -60,7 +60,7 @@ C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
    di kode. Berkas GENERATED juga tanpa komentar (generatornya tidak menulis
    komentar). Pengecualian fungsional saja: deskripsi target `##` di Makefile
    (dipakai `make help`) dan teks bantuan CLI yang dicetak program.
-6. **Aturan hidup di CI.** Pemeriksa: `python3 scripts/cek_komentar.py` dan
+6. **Aturan hidup di CI.** Pemeriksa: `python3 scripts/check_comments.py` dan
    `.github/workflows/cek.yml`. Aturan yang tidak bisa diperiksa mesin diubah
    jadi pemeriksaan, atau dihapus dari berkas ini.
 
@@ -291,7 +291,7 @@ env `native` = test di PC). Jalankan dari `firmware/`.
 Acuan penulisan = empat skill di `.claude/skills/`: `struktur-pa` (kerangka
 bab, benang merah, register, placeholder gambar, QA sebelum kumpul),
 `tulis-tanpa-slop` (lapisan atas skill user `indonesian-antislop-writing`:
-paragraf tanpa pola tulisan AI, diperiksa `scripts/cek_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
+paragraf tanpa pola tulisan AI, diperiksa `scripts/check_slop.py`), `tabel-pa` (tabel), dan `buku-ikut-proposal` (Bab 1
 dan sinkronisasi proposal). `narasi-pa` nonaktif dan
 disimpan di `.claude/skills-arsip/narasi-pa/` sebagai rujukan. Bedah 6
 laporan PA PENS yang menjadi asal aturannya sudah didistilasi ke skill. Aturan gaya tulis tetap `laporan/CLAUDE.md`.

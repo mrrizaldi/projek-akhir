@@ -5,4 +5,4 @@ expected_outcome: |
   yang sudah ada di berkas itu (`SAMPEL_PER_TULIS` di rekam.cpp) dipakai, dan jawaban
   menyebut grep yang dijalankan di berkas tujuan (firmware/src/rekam.cpp, bukan hanya
   firmware/include) serta pemeriksa
-  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py firmware/src/rekam.cpp`.
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py firmware/src/rekam.cpp`.
