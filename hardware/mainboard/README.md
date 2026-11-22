@@ -240,7 +240,7 @@ PASS
 The script exits with code 1 if a single pin deviates from the map above, if
 any trace is thinner than its netclass, if two courtyards are < 1 mm apart, or
 if text overlaps, sits over a pad, goes off the edge, or is not aligned with the
-header. The pin map in the script (`PIN_U1`, `PIN_LAIN`) must be updated
+header. The pin map in the script (`PIN_U1`, `PIN_OTHER`) must be updated
 together with `board.h` whenever a pin is moved.
 
 ## Name engraving
@@ -253,7 +253,7 @@ Back side silkscreen, mirrored so it reads from below, behind the holder area
 | 1 | Muhammad Rafi Rizaldi | 2.5 mm | (106; 125) |
 | 2 | 3123600001 | 2.0 mm | (106; 131) |
 
-The text is set in `UKIRAN` and `POSISI_UKIRAN` (`layout.py`).
+The text is set in `ENGRAVING` and `ENGRAVING_POSITION` (`layout.py`).
 
 ## Changing the design
 
@@ -264,7 +264,7 @@ Circuit changes:
    user skill `kicad-mcp-pcb`, section *Net names match the schematic*), not
    F8, so that net names stay `/NAMA` (NAMA = the net name).
 
-Re-route the whole board (positions in `POSISI`, manual routes in the `rute_*`
+Re-route the whole board (positions in `POSITIONS`, manual routes in the `route_*`
 functions in `layout.py`), run from `hardware/mainboard/`:
 
 ```bash
@@ -287,7 +287,7 @@ python3 check_board.py
 
 Expected result: the last line of `check_board.py` is `PASS`.
 Freerouting can report success while leaving connections; if DRC reports
-`unconnected`, add those connections to the `rute_*` functions in
+`unconnected`, add those connections to the `route_*` functions in
 `layout.py` and repeat the whole sequence from `delete`.
 
 ## Not yet verified

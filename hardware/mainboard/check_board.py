@@ -19,7 +19,7 @@ PIN_U1 = {
     "22": "GND", "23": "GND", "24": "GND", "44": "GND",
 }
 
-PIN_LAIN = {
+PIN_OTHER = {
     "J3": ["GND", "+3V3", "ECG_OUT", "ECG_LON", "ECG_LOP", "+3V3"],
     "J2": ["GND", "+3V3", "TFT_SCK", "TFT_MOSI", "TFT_RST", "TFT_DC", "GND", "+3V3"],
     "J9": ["GND", "BUZZ", "+3V3"],
@@ -35,7 +35,7 @@ PIN_LAIN = {
     "C3": ["+3V3", "GND"], "C4": ["+3V3", "GND"], "C5": ["+3V3", "GND"], "C6": ["+3V3", "GND"],
 }
 
-BOLEH_5V = {"U1", "C1", "C2", "D2"}
+ALLOWED_5V = {"U1", "C1", "C2", "D2"}
 
 
 def netlist(tmp):
@@ -49,32 +49,32 @@ def netlist(tmp):
     return pin
 
 
-def harapan():
+def expected_pins():
     hasil = {("U1", p): n for p, n in PIN_U1.items()}
-    for ref, nets in PIN_LAIN.items():
+    for ref, nets in PIN_OTHER.items():
         hasil.update({(ref, str(i + 1)): n for i, n in enumerate(nets)})
     return hasil
 
 
 def laporan(perintah):
     with tempfile.TemporaryDirectory() as tmp:
-        lapor = Path(tmp) / "r.rpt"
-        subprocess.run(perintah + ["-o", str(lapor)], check=True, capture_output=True)
-        return lapor.read_text()
+        report_file = Path(tmp) / "r.rpt"
+        subprocess.run(perintah + ["-o", str(report_file)], check=True, capture_output=True)
+        return report_file.read_text()
 
 
 def main():
     gagal = 0
     with tempfile.TemporaryDirectory() as tmp:
         pin = netlist(tmp)
-    exp = harapan()
+    exp = expected_pins()
     salah = [(k, v, pin.get(k)) for k, v in sorted(exp.items()) if pin.get(k) != v]
     for (ref, p), v, ada in salah:
         print(f"WRONG {ref}.{p}: expected {v}, found {ada}")
     print(f"netlist: {len(exp) - len(salah)}/{len(exp)} pins match the map")
     gagal += bool(salah)
 
-    bocor = sorted(k for k, v in pin.items() if v == "+5V" and k[0] not in BOLEH_5V and not k[0].startswith("#"))
+    bocor = sorted(k for k, v in pin.items() if v == "+5V" and k[0] not in ALLOWED_5V and not k[0].startswith("#"))
     print(f"+5V outside the power path: {bocor or 'none'}")
     gagal += bool(bocor)
 
@@ -89,9 +89,9 @@ def main():
           f"schematic parity: {drc.get('Footprint errors')}")
     gagal += any(drc.get(k, 1) for k in ("DRC violations", "unconnected pads", "Footprint errors"))
 
-    tata = subprocess.run(["/usr/bin/python3", str(DIR / "check_layout.py")], capture_output=True, text=True)
-    print("\n".join(b for b in tata.stdout.splitlines() if b.strip()))
-    gagal += tata.returncode != 0
+    layout_run = subprocess.run(["/usr/bin/python3", str(DIR / "check_layout.py")], capture_output=True, text=True)
+    print("\n".join(b for b in layout_run.stdout.splitlines() if b.strip()))
+    gagal += layout_run.returncode != 0
 
     print("PASS" if not gagal else "FAIL")
     return 1 if gagal else 0

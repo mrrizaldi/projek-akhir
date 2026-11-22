@@ -1,4 +1,4 @@
 schema_version: "1.1"
 name: pour-before-drc
 expected_outcome: |
-  From hardware/mainboard: `/usr/bin/python3 layout.py clean`, `solid`, `text`, `engrave`, then `/usr/bin/python3 layout.py pour` as its own step right before `kicad-cli pcb drc --schematic-parity --severity-all`; if there is `unconnected`, the connections are added to the `rute_*` functions and the sequence is repeated from `delete`.
+  From hardware/mainboard: `/usr/bin/python3 layout.py clean`, `solid`, `text`, `engrave`, then `/usr/bin/python3 layout.py pour` as its own step right before `kicad-cli pcb drc --schematic-parity --severity-all`; if there is `unconnected`, the connections are added to the `route_*` functions and the sequence is repeated from `delete`.
