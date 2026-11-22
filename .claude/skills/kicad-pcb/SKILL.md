@@ -9,7 +9,7 @@ Load the user-scope skill `kicad-mcp-pcb` first; this skill adds only what is sp
 
 ## Documents to read before asking the user
 
-Read `hardware/mainboard/README.md` (pin map, header pin order, power supply, layout, netclasses, footprint, the "Not yet verified" list) and `firmware/include/board.h` (the single firmware pin map). Ask the user only about choices neither of them settles, because design decisions belong to the user. The question carries one recommendation that is chosen now; missing data is written as "changes to X if ...", not as a postponed choice, because postponing the choice repeatedly stalls the work.
+Read `hardware/mainboard/README.md` (pin map, header pin order, power supply, layout, netclasses, footprint, the "Not yet verified" list) and `firmware/include/board.h` (the single firmware pin map). Ask the user only about choices neither of them settles, because design decisions belong to the user. The question carries one recommendation that is chosen now; missing data is written as "changes to X if ...", not as a postponed choice, because postponing the choice repeatedly stalls the work. Any fact the answer relies on that nobody has measured (LED forward voltage, module dimensions) is named as going into README §Not yet verified, because an unrecorded assumption is lost after the session.
 
 ## Locations
 
@@ -29,7 +29,7 @@ KiCad 10 files from a friend are read as text only. The friend's rev2 schematic 
 
 ## `tata_letak.py` commands
 
-The commands are `hapus`, `rute`, `bersih`, `solid`, `tuang`, `teks`, `ukiran`; the full re-route sequence is in the README §Changing the design.
+The full re-route sequence (README §Changing the design), run from `hardware/mainboard/`: `hapus`, `rute`, `tuang`, then Freerouting through the kicad MCP server (`open_project`, `autoroute`), then `bersih`, `solid`, `teks`, `ukiran`, `tuang`, then `python3 cek_board.py`. The order matters because the cleanup, solid pads, text and engraving all change copper that the final pour and DRC must see.
 
 Run `tuang` as its own step right before every `kicad-cli pcb drc`, because `kicad-cli` does not pour zones:
 
@@ -68,7 +68,7 @@ This profile is the user's choice: width from the IPC-2221 current requirement, 
 | `ECG` | `/ECG_*` | 0.4 mm | 0.35 mm | 0.9/0.4 mm |
 | `Power` | power nets below | 1.0 mm | 0.35 mm | 1.2/0.6 mm |
 
-Power nets (netclass `Power`): `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-`. Gate branches and stubs on these nets follow 1.0 mm. `+3V3` (the DevKit regulator output, low current) belongs to `Default`, so 0.3 mm.
+Power nets (netclass `Power`): `/+5V /VBOOST /VSYS /VSW /VCHG /VBAT_OUT /VBAT_SENSE /BAT+ /BAT-`. Gate branches and stubs on these nets follow 1.0 mm. The Q1 gate branch carries `/VCHG` (J4 IN+), so it is a Power trace at 1.0 mm, because a charger current path routed thin is the failure this rule prevents. `+3V3` (the DevKit regulator output, low current) belongs to `Default`, so 0.3 mm.
 
 PTH ring at least 0.25 mm, courtyard spacing at least 1.0 mm, silkscreen reference at least 1.0 mm. Between two pins in one U1 column (pitch 2.54 mm) a `+3V3` trace needs a gap of 0.3 + 2 x 0.35 = 1.0 mm; an oval U1 pad of 2.0 x 1.5 mm leaves 1.04 mm.
 
