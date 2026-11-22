@@ -32,7 +32,7 @@ Table content stays Indonesian (headers, status words, captions, decimal comma).
 
 4. **One table answers one question, and every row is an object of the same kind.** Write the question in one sentence before laying out columns, for example "Apakah setiap target *pipeline* terpenuhi?". A row that answers another question moves to another table or into a sentence. Violation examples: TP/FN/FP/TN listed beside Recall/Precision (split into a 2×2 *confusion matrix* and a metrics table, templates C and B in `references/templates.md`), or a row "Ukuran model (KB)" in a metric-difference table (move to a resource table or a sentence).
 
-5. **Short cells.** At most 20 words per cell, ideally under 12, because a long cell means a reason or condition is riding along. Move it to the explanatory paragraph or the Keterangan line, do not drop it. A column "Alasan" or "Justifikasi" is kept only when every cell fits one phrase.
+5. **Short cells.** At most 20 words per cell, ideally under 12, because a long cell means a reason or condition is riding along. Move it to the explanatory paragraph or the Keterangan line, do not drop it. A column "Alasan" or "Justifikasi" is kept only when every cell fits one phrase. A citation inside a cell or a paragraph is written `teks~\cite{key}` with a tie, never a plain space, so the citation never starts a new line on its own.
 
 6. **Numbers.**
    - Write the unit once: in the column header when one column is one quantity (`\textbf{Latensi (ms)}`), or in the row label when the quantity differs per row. Do not write `939~ms` in every cell.
