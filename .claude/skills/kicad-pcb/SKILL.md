@@ -29,17 +29,17 @@ KiCad 10 files from a friend are read as text only. The friend's rev2 schematic 
 
 ## `layout.py` commands
 
-The full re-route sequence (README §Changing the design), run from `hardware/mainboard/`: `hapus`, `rute`, `tuang`, then Freerouting through the kicad MCP server (`open_project`, `autoroute`), then `bersih`, `solid`, `teks`, `ukiran`, `tuang`, then `python3 check_board.py`. The order matters because the cleanup, solid pads, text and engraving all change copper that the final pour and DRC must see.
+The full re-route sequence (README §Changing the design), run from `hardware/mainboard/`: `delete`, `route`, `pour`, then Freerouting through the kicad MCP server (`open_project`, `autoroute`), then `clean`, `solid`, `text`, `engrave`, `pour`, then `python3 check_board.py`. The order matters because the cleanup, solid pads, text and engraving all change copper that the final pour and DRC must see.
 
-Run `tuang` as its own step right before every `kicad-cli pcb drc`, because `kicad-cli` does not pour zones:
+Run `pour` as its own step right before every `kicad-cli pcb drc`, because `kicad-cli` does not pour zones:
 
 ```bash
 cd hardware/mainboard
-/usr/bin/python3 layout.py tuang
+/usr/bin/python3 layout.py pour
 kicad-cli pcb drc --schematic-parity --severity-all -o /tmp/drc.rpt mainboard.kicad_pcb
 ```
 
-When DRC reports `unconnected`, add the remaining connections to the `rute_*` functions in `layout.py` and repeat the sequence from `hapus` (README §Changing the design), because Freerouting can report success while leaving connections open.
+When DRC reports `unconnected`, add the remaining connections to the `rute_*` functions in `layout.py` and repeat the sequence from `delete` (README §Changing the design), because Freerouting can report success while leaving connections open.
 
 Apply schematic changes to the board with a pcbnew script as the user skill describes ("Net names match the schematic"), not F8 and not `sync_schematic_to_board`, so net names stay `/NAME`.
 
@@ -47,14 +47,14 @@ Apply schematic changes to the board with a pcbnew script as the user skill desc
 
 ```bash
 cd hardware/mainboard
-/usr/bin/python3 layout.py tuang
+/usr/bin/python3 layout.py pour
 cd ../..
 python3 hardware/mainboard/check_board.py
 ```
 
-`tuang` runs first because `check_board.py` calls `kicad-cli pcb drc` (`check_board.py` line 86), and `kicad-cli` does not pour zones, so DRC over empty zones gives a false result.
+`pour` runs first because `check_board.py` calls `kicad-cli pcb drc` (`check_board.py` line 86), and `kicad-cli` does not pour zones, so DRC over empty zones gives a false result.
 
-What it checks: the pin map against the netlist (`PIN_U1` and `PIN_LAIN` in the script), `+5V` touching only `U1`, `C1`, `C2`, `D2` (`BOLEH_5V`), ERC, DRC errors, unconnected, schematic parity, then `check_layout.py` (width per netclass, courtyard at least 1 mm, text). The expected last line is `LULUS` (pass); paste its output into the commit message.
+What it checks: the pin map against the netlist (`PIN_U1` and `PIN_LAIN` in the script), `+5V` touching only `U1`, `C1`, `C2`, `D2` (`BOLEH_5V`), ERC, DRC errors, unconnected, schematic parity, then `check_layout.py` (width per netclass, courtyard at least 1 mm, text). The expected last line is `PASS`; paste its output into the commit message.
 
 Update `PIN_U1` and `PIN_LAIN` together with `firmware/include/board.h` and the pin map table in the README (§Pin map) whenever a pin moves, because the script exits with code 1 if even one pin deviates from the map. When `check_board.py` or `check_layout.py` changes, add one negative test (a deliberately broken board must fail).
 

@@ -70,30 +70,30 @@ def main():
     exp = harapan()
     salah = [(k, v, pin.get(k)) for k, v in sorted(exp.items()) if pin.get(k) != v]
     for (ref, p), v, ada in salah:
-        print(f"SALAH {ref}.{p}: harus {v}, tertulis {ada}")
-    print(f"netlist: {len(exp) - len(salah)}/{len(exp)} pin sesuai peta")
+        print(f"WRONG {ref}.{p}: expected {v}, found {ada}")
+    print(f"netlist: {len(exp) - len(salah)}/{len(exp)} pins match the map")
     gagal += bool(salah)
 
     bocor = sorted(k for k, v in pin.items() if v == "+5V" and k[0] not in BOLEH_5V and not k[0].startswith("#"))
-    print(f"+5V di luar jalur daya: {bocor or 'tidak ada'}")
+    print(f"+5V outside the power path: {bocor or 'none'}")
     gagal += bool(bocor)
 
     teks = laporan(["kicad-cli", "sch", "erc", "--severity-all", str(SCH)])
     erc = {k: int(v) for k, v in re.findall(r"(Errors|Warnings) (\d+)", teks)}
-    print(f"ERC: error {erc.get('Errors')} warning {erc.get('Warnings')}")
+    print(f"ERC: errors {erc.get('Errors')} warnings {erc.get('Warnings')}")
     gagal += erc.get("Errors", 1) > 0
 
     teks = laporan(["kicad-cli", "pcb", "drc", "--severity-error", "--schematic-parity", str(PCB)])
     drc = {v: int(k) for k, v in re.findall(r"Found (\d+) (DRC violations|unconnected pads|Footprint errors)", teks)}
-    print(f"DRC error: {drc.get('DRC violations')}, unconnected: {drc.get('unconnected pads')}, "
-          f"paritas skematik: {drc.get('Footprint errors')}")
+    print(f"DRC errors: {drc.get('DRC violations')}, unconnected: {drc.get('unconnected pads')}, "
+          f"schematic parity: {drc.get('Footprint errors')}")
     gagal += any(drc.get(k, 1) for k in ("DRC violations", "unconnected pads", "Footprint errors"))
 
     tata = subprocess.run(["/usr/bin/python3", str(DIR / "check_layout.py")], capture_output=True, text=True)
     print("\n".join(b for b in tata.stdout.splitlines() if b.strip()))
     gagal += tata.returncode != 0
 
-    print("LULUS" if not gagal else "GAGAL")
+    print("PASS" if not gagal else "FAIL")
     return 1 if gagal else 0
 
 

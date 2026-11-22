@@ -76,7 +76,7 @@ def hapus():
     for t in jalur:
         p.b.Delete(t)
     p.save_item()
-    print(f"hapus: {len(jalur)} jalur/via")
+    print(f"delete: {len(jalur)} tracks/vias")
 
 
 def tempatkan(p):
@@ -179,7 +179,7 @@ def bersih():
     for t in buang:
         p.b.Delete(t)
     p.save_item()
-    print(f"bersih: {len(buang)} segmen")
+    print(f"clean: {len(buang)} segments")
 
 
 def solid():
@@ -190,14 +190,14 @@ def solid():
                 else pcbnew.ZONE_CONNECTION_INHERITED
             q.SetLocalZoneConnection(sambung)
     p.save_item()
-    print(f"solid: {len(PAD_GND_SOLID)} pad solid, sisanya thermal")
+    print(f"solid: {len(PAD_GND_SOLID)} solid pads, the rest thermal")
 
 
 def tuang():
     p = Papan()
     pcbnew.ZONE_FILLER(p.b).Fill(p.b.Zones())
     p.save_item()
-    print("tuang: selesai")
+    print("pour: done")
 
 
 def kotak(bb, m=0.0):
@@ -283,7 +283,7 @@ class PenempatTeks:
                         return f"{u} mm {sudut} deg"
         if t.IsValue():
             self.atur(t, 0.6, 0, mm(f.GetPosition().x), mm(f.GetPosition().y))
-            return "tengah"
+            return "center"
         return None
 
 
@@ -306,7 +306,7 @@ def teks():
         v.SetVisible(True)
         if f.GetReference().startswith("H"):
             penempat.atur(v, 0.6, 0, mm(f.GetPosition().x), mm(f.GetPosition().y))
-            hasil[f.GetReference()].append("tengah")
+            hasil[f.GetReference()].append("center")
         else:
             hasil[f.GetReference()].append(penempat.taruh(f, v, [0.8, 0.6, 0.5, 0.4], 1))
     u1 = p.fp("U1").Value()
@@ -315,7 +315,7 @@ def teks():
     gagal = [r for r, h in hasil.items() if None in h]
     for r, h in sorted(hasil.items()):
         print(r, h)
-    print(f"teks: gagal {gagal}")
+    print(f"text: failed {gagal}")
 
 
 def ukiran():
@@ -323,7 +323,7 @@ def ukiran():
     lama = [d for d in p.b.GetDrawings() if isinstance(d, pcbnew.PCB_TEXT) and d.GetLayer() == pcbnew.B_SilkS
             and d.GetText().splitlines()[0] == UKIRAN[0]]
     if lama:
-        print("ukiran: sudah ada, tidak ditambah")
+        print("engrave: already present, not added")
         return
     x, y1, y2 = POSISI_UKIRAN
     for teks_baris, y, u in ((UKIRAN[0], y1, 2.5), (UKIRAN[1], y2, 2.0)):
@@ -337,14 +337,14 @@ def ukiran():
         t.SetPosition(titik(x, y))
         p.b.Add(t)
     p.save_item()
-    print(f"ukiran: {UKIRAN[0]} / {UKIRAN[1]} di B.SilkS ({x}; {y1}/{y2})")
+    print(f"engrave: {UKIRAN[0]} / {UKIRAN[1]} on B.SilkS ({x}; {y1}/{y2})")
 
 
-PERINTAH = {"hapus": hapus, "rute": rute, "bersih": bersih, "solid": solid, "tuang": tuang,
-            "teks": teks, "ukiran": ukiran}
+PERINTAH = {"delete": hapus, "route": rute, "clean": bersih, "solid": solid, "pour": tuang,
+            "text": teks, "engrave": ukiran}
 
 if __name__ == "__main__":
     if len(sys.argv) != 2 or sys.argv[1] not in PERINTAH:
-        print("pakai: /usr/bin/python3 layout.py {" + "|".join(PERINTAH) + "}")
+        print("usage: /usr/bin/python3 layout.py {" + "|".join(PERINTAH) + "}")
         sys.exit(2)
     PERINTAH[sys.argv[1]]()

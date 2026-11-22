@@ -227,14 +227,14 @@ python3 hardware/mainboard/check_board.py
 Expected result:
 
 ```
-netlist: 87/87 pin sesuai peta
-+5V di luar jalur daya: tidak ada
-ERC: error 0 warning 0
-DRC error: 0, unconnected: 0, paritas skematik: 0
-lebar jalur: 0 temuan
-jarak courtyard: 0 temuan
-teks: 0 temuan
-LULUS
+netlist: 87/87 pins match the map
++5V outside the power path: none
+ERC: errors 0 warnings 0
+DRC errors: 0, unconnected: 0, schematic parity: 0
+track width: 0 findings
+courtyard gap: 0 findings
+text: 0 findings
+PASS
 ```
 
 The script exits with code 1 if a single pin deviates from the map above, if
@@ -268,27 +268,27 @@ Re-route the whole board (positions in `POSISI`, manual routes in the `rute_*`
 functions in `layout.py`), run from `hardware/mainboard/`:
 
 ```bash
-/usr/bin/python3 layout.py hapus
-/usr/bin/python3 layout.py rute
-/usr/bin/python3 layout.py tuang
+/usr/bin/python3 layout.py delete
+/usr/bin/python3 layout.py route
+/usr/bin/python3 layout.py pour
 ```
 
 Then autoroute the remaining signals with Freerouting (kicad MCP server:
 `open_project`, `autoroute` with `maxPasses` 60), then:
 
 ```bash
-/usr/bin/python3 layout.py bersih
+/usr/bin/python3 layout.py clean
 /usr/bin/python3 layout.py solid
-/usr/bin/python3 layout.py teks
-/usr/bin/python3 layout.py ukiran
-/usr/bin/python3 layout.py tuang
+/usr/bin/python3 layout.py text
+/usr/bin/python3 layout.py engrave
+/usr/bin/python3 layout.py pour
 python3 check_board.py
 ```
 
-Expected result: the last line of `check_board.py` is `LULUS` (PASS).
+Expected result: the last line of `check_board.py` is `PASS`.
 Freerouting can report success while leaving connections; if DRC reports
 `unconnected`, add those connections to the `rute_*` functions in
-`layout.py` and repeat the whole sequence from `hapus`.
+`layout.py` and repeat the whole sequence from `delete`.
 
 ## Not yet verified
 

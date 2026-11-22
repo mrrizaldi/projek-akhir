@@ -97,19 +97,19 @@ def cek_teks(b):
             j, k = jenis_teks(t), kotak(t.GetBoundingBox())
             teks.append((r, j, t.GetLayer(), k))
             if t.GetLayer() == pcbnew.F_SilkS and mm(t.GetTextHeight()) < TINGGI_SILK_MIN - 1e-6:
-                temuan.append(f"{r} {j}: tinggi silk {mm(t.GetTextHeight()):.2f} mm")
+                temuan.append(f"{r} {j}: silk height {mm(t.GetTextHeight()):.2f} mm")
             sudut = round(t.GetDrawRotation().AsDegrees()) % 180
             if j in ("ref", "val") and arah != "-" and (arah == "H") != (sudut == 0) and (r, j) not in TEKS_BOLEH_MELINTANG:
-                temuan.append(f"{r} {j}: tidak searah header")
+                temuan.append(f"{r} {j}: not aligned with header")
             if not (k[0] >= tepi[0] and k[1] >= tepi[1] and k[2] <= tepi[2] and k[3] <= tepi[3]):
-                temuan.append(f"{r} {j}: keluar tepi papan")
+                temuan.append(f"{r} {j}: outside board edge")
         pads += [(r, kotak(p.GetBoundingBox())) for p in f.Pads()]
     for i, a in enumerate(teks):
         for c in teks[i + 1:]:
             satu_milik_fab = a[0] == c[0] and a[2] == c[2] == pcbnew.F_Fab and "val" in (a[1], c[1])
             if iris(a[3], c[3]) and not satu_milik_fab:
-                temuan.append(f"{a[0]} {a[1]} menumpuk {c[0]} {c[1]}")
-    temuan += [f"{a[0]} {a[1]} di atas pad {p[0]}" for a in teks if a[2] == pcbnew.F_SilkS
+                temuan.append(f"{a[0]} {a[1]} overlaps {c[0]} {c[1]}")
+    temuan += [f"{a[0]} {a[1]} over pad {p[0]}" for a in teks if a[2] == pcbnew.F_SilkS
                for p in pads if iris(a[3], p[1], 0)]
     vias = [kotak(v.GetBoundingBox()) for v in b.GetTracks() if v.Type() == pcbnew.PCB_VIA_T]
     for d in b.GetDrawings():
@@ -117,18 +117,18 @@ def cek_teks(b):
             k = kotak(d.GetBoundingBox())
             nama = d.GetText().splitlines()[0][:20]
             if not (k[0] >= tepi[0] and k[1] >= tepi[1] and k[2] <= tepi[2] and k[3] <= tepi[3]):
-                temuan.append(f"teks belakang '{nama}': keluar tepi papan")
-            temuan += [f"teks belakang '{nama}' di atas pad {p[0]}" for p in pads if iris(k, p[1], 0)]
-            temuan += [f"teks belakang '{nama}' di atas via" for v in vias if iris(k, v, 0)]
+                temuan.append(f"back text '{nama}': outside board edge")
+            temuan += [f"back text '{nama}' over pad {p[0]}" for p in pads if iris(k, p[1], 0)]
+            temuan += [f"back text '{nama}' over via" for v in vias if iris(k, v, 0)]
     return temuan
 
 
 def main():
     b = pcbnew.LoadBoard(str(PCB))
     gagal = 0
-    for nama, fungsi in (("lebar jalur", cek_lebar), ("jarak courtyard", cek_courtyard), ("teks", cek_teks)):
+    for nama, fungsi in (("track width", cek_lebar), ("courtyard gap", cek_courtyard), ("text", cek_teks)):
         temuan = fungsi(b)
-        print(f"{nama}: {len(temuan)} temuan")
+        print(f"{nama}: {len(temuan)} findings")
         for t in temuan[:20]:
             print(f"  {t}")
         gagal += bool(temuan)

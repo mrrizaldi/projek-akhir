@@ -4,7 +4,7 @@
     "should_trigger": true
   },
   {
-    "query": "jalankan check_board.py dan pastikan LULUS sebelum commit PCB",
+    "query": "jalankan check_board.py dan pastikan PASS sebelum commit PCB",
     "should_trigger": true
   },
   {
