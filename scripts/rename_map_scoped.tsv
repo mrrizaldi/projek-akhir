@@ -492,3 +492,8 @@ scripts/cek_docx.py	sambung	joined
 scripts/cek_docx.py	selisih	offset
 scripts/cek_docx.py	tanda	signature
 scripts/cek_docx.py	teks	page_text
+dashboard/ukur_pipeline.py	akhir	deadline
+dashboard/ukur_pipeline.py	beda	offsets_ms
+dashboard/ukur_pipeline.py	tanda	mark_index
+dashboard/ukur_pipeline.py	ts_koreksi	ts_corrected
+dashboard/probe_rtt.py	TOPIK	TOPIC

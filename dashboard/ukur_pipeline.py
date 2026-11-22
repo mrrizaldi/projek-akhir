@@ -38,46 +38,46 @@ time.sleep(14)
 
 
 def wait_for_line(expected_text, detik=3.0, start_index=None):
-    tanda = len(baris) if start_index is None else start_index
-    akhir = time.time() + detik
-    while time.time() < akhir:
-        for b in baris[tanda:]:
+    mark_index = len(baris) if start_index is None else start_index
+    deadline = time.time() + detik
+    while time.time() < deadline:
+        for b in baris[mark_index:]:
             if expected_text in b:
                 return b
         time.sleep(0.05)
     return None
 
 
-tanda = len(baris); s.write(b"s"); s.flush()
-st = wait_for_line("replay=", start_index=tanda)
+mark_index = len(baris); s.write(b"s"); s.flush()
+st = wait_for_line("replay=", start_index=mark_index)
 if st is None:
     sys.exit("board tidak menjawab 's'")
 if "replay=1" not in st:
-    tanda = len(baris); s.write(b"y"); s.flush()
-    if not wait_for_line("replay ON", start_index=tanda):
+    mark_index = len(baris); s.write(b"y"); s.flush()
+    if not wait_for_line("replay ON", start_index=mark_index):
         sys.exit("replay gagal dinyalakan")
 print("== replay ON ==")
 time.sleep(1.5)
 def measure_offset(n=5):
-    beda = []
+    offsets_ms = []
     for _ in range(n):
-        tanda = len(baris)
+        mark_index = len(baris)
         s.write(b"s"); s.flush()
         t0 = time.time()
         while time.time() - t0 < 3:
-            for b in baris[tanda:]:
+            for b in baris[mark_index:]:
                 m = re.search(r"epoch_ms (\d+)", b)
                 if m:
                     laptop_now_ms = int(time.time() * 1000)
-                    beda.append(int(m.group(1)) - laptop_now_ms)
-                    tanda = len(baris)
+                    offsets_ms.append(int(m.group(1)) - laptop_now_ms)
+                    mark_index = len(baris)
                     break
             else:
                 time.sleep(0.05)
                 continue
             break
         time.sleep(0.6)
-    return statistics.median(beda) if beda else None
+    return statistics.median(offsets_ms) if offsets_ms else None
 
 offset = measure_offset()
 print(f"== selisih jam board - laptop: {offset} ms "
@@ -100,9 +100,9 @@ while time.time() - t0 < DURATION_S:
     for r in rows:
         if r["ts"] not in seen_ts:
             seen_ts.add(r["ts"])
-            ts_koreksi = r["ts"] - (offset or 0)
-            latency_lower.append(sebelum - ts_koreksi)
-            latency_upper.append(sesudah - ts_koreksi)
+            ts_corrected = r["ts"] - (offset or 0)
+            latency_lower.append(sebelum - ts_corrected)
+            latency_upper.append(sesudah - ts_corrected)
     time.sleep(0.1)
 
 s.write(b"s"); s.flush(); time.sleep(2.5)

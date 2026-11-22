@@ -35,11 +35,11 @@ sock.sendall(b"\x10" + varlen(len(var + pay)) + var + pay)
 assert sock.recv(4)[3] == 0, "CONNACK ditolak"
 
 N = int(sys.argv[1]) if len(sys.argv) > 1 else 60
-TOPIK = b"v1/devices/me/telemetry"
+TOPIC = b"v1/devices/me/telemetry"
 rtt = []
 for i in range(N):
     body = json.dumps({"ts": int(time.time()*1000), "values": {"probe": i}}).encode()
-    v = struct.pack("!H", len(TOPIK)) + TOPIK + struct.pack("!H", (i % 65535) + 1)
+    v = struct.pack("!H", len(TOPIC)) + TOPIC + struct.pack("!H", (i % 65535) + 1)
     t0 = time.time()
     sock.sendall(b"\x32" + varlen(len(v + body)) + v + body)
     ack = sock.recv(4)
