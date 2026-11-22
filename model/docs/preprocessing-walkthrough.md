@@ -25,18 +25,18 @@ cd model
 ## 0. The big picture: there are TWO paths, do not mix them up
 
 ```
-                      load_record()  →  signal mentah + r_locations (ANOTASI)
+                      load_record()  →  raw signal + r_locations (ANNOTATION)
                              │
                              ▼
         ┌──── apply_bandpass(signal, design_bandpass_sos())   ◄── 0.5–40 Hz
         │                    │
-        │  JALUR TRAINING    ├──► segment_beats(filtered, r_locations)   ◄── R dari anotasi
+        │  TRAINING PATH     ├──► segment_beats(filtered, r_locations)   ◄── R from the annotation
         │                    │            │
         │                    │            ▼
-        │                    │      zscore_per_window(...)  ──► (N, 256) float32 → Fase 2
+        │                    │      zscore_per_window(...)  ──► (N, 256) float32 → Phase 2
         │                    │
-        └──── JALUR BENCHMARK└──► pan_tompkins_detect(filtered)  ──► indeks R hasil deteksi
-                                        (dibandingkan dengan anotasi, TIDAK masuk training)
+        └──── BENCHMARK PATH └──► pan_tompkins_detect(filtered)  ──► detected R indices
+                                        (compared with the annotation, NOT used in training)
 ```
 
 Why they are separate: training segmentation uses the **cardiologist-annotated** R-peaks so that
@@ -121,7 +121,7 @@ important in Pan-Tompkins; see §3.6.
 ### Quick check
 
 ```python
-np.allclose(sosfilt(sos, x)[:100], sosfilt(sos, x[:100]))   # True — kausal
+np.allclose(sosfilt(sos, x)[:100], sosfilt(sos, x[:100]))   # True — causal
 ```
 If the early part of the filter result changes when the signal is extended, it means it leaks
 into the future (a bug).
@@ -159,7 +159,7 @@ That is **non-causal** (it has $x[n+1]$, $x[n+2]$). The trick in the code: shift
 it becomes causal:
 
 ```python
-b = np.array([1, 2, 0, -2, -1]) / (8 * T)
+b = np.array([1, 2, 0, -2, -1], dtype=np.float64) / (8 * T)
 lfilter(b, [1.0], signal)
 ```
 
@@ -185,8 +185,8 @@ The QRS : noise ratio grows quadratically as well. Panel (d): $\pm 45$ becomes $
 ### 3.4 `_pt_moving_window_integration`: smoothing over 150 ms
 
 ```python
-n = round(PT_MWI_WINDOW_MS / 1000 * fs)   # 150 ms * 360 Hz = 54 sampel
-b = np.ones(n) / n
+n = max(1, round(PT_MWI_WINDOW_MS / 1000 * fs))   # 150 ms * 360 Hz = 54 samples
+b = np.ones(n, dtype=np.float64) / n
 lfilter(b, [1.0], signal)
 ```
 
@@ -235,8 +235,9 @@ peaks nor double peaks. `+ 1` restores the offset caused by the `[1:-1]` slicing
 Initialization from the first 2 seconds:
 
 ```python
-spki = max(integrated[:2*fs])      # asumsi ada minimal 1 QRS di 2 detik
-npki = mean(integrated[:2*fs])
+init_n = min(n, 2 * fs)            # assumes at least 1 QRS within 2 seconds
+spki = float(np.max(integrated[:init_n]))
+npki = float(np.mean(integrated[:init_n]))
 ```
 
 **Refractory period**, the physiological period when the heart cannot depolarize again:
@@ -268,7 +269,7 @@ precision 0.996.
 ## 4. `segment_beats()`: cutting per beat
 
 ```python
-start, end = r - WIN_PRE, r + WIN_POST      # 128 sebelum, 128 sesudah
+start, end = r - WIN_PRE, r + WIN_POST      # 128 before, 128 after
 if start < 0 or end > len(signal): continue
 ```
 

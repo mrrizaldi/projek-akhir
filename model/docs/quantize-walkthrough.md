@@ -22,13 +22,13 @@ make quantize     # → artifacts/model_int8.tflite + artifacts/metrics/fase7_de
 model_fp32.keras (6.417 param, 25,07 KB float32)
         │
         │  PTQ — Post-Training Quantization
-        │  butuh: representative dataset (300 sampel DS1, stratified)
+        │  needs: representative dataset (300 DS1 samples, stratified)
         ▼
-model_int8.tflite   22,94 KB   ← di bawah batas 25 KB  (varian deploy, §4b)
+model_int8.tflite   22,94 KB   ← under the 25 KB limit  (deploy variant, §4b)
         │
-        │  evaluasi ULANG di DS2 yang SAMA, threshold yang SAMA (0,80)
+        │  RE-evaluation on the SAME DS2, the SAME threshold (0,80)
         ▼
-tabel delta float32 vs INT8   ← deliverable akhir PA
+float32 vs INT8 delta table   ← final PA deliverable
 ```
 
 Why this phase exists: the device runs INT8, not float32. The claim
@@ -69,8 +69,8 @@ flows through, which is why a *representative dataset* is needed.
 for kelas in (0, 1):
     pool = np.flatnonzero(y == kelas)
     if len(pool) == 0:
-        raise ValueError(f"kelas {kelas} tidak ada di data kalibrasi (JEBAKAN #4)")
-    ambil = max(1, round(n * len(pool) / len(y)))
+        raise ValueError(f"class {kelas} is missing from the calibration data (PITFALL #4)")
+    pull = max(1, round(n * len(pool) / len(y)))
 ```
 
 If the 300 calibration samples are drawn randomly from DS1 without stratification, statistically
@@ -117,9 +117,10 @@ The error message mentions `conv.cc` and the number of dimensions, and says noth
 The correct form: a **named dict**.
 
 ```python
+rr = X_rr[i:i + 1].astype(np.float32)
 yield {
-    "morphology": X_morph[i:i+1].astype(np.float32),
-    "rhythm":     X_rr[i:i+1].astype(np.float32),
+    "morphology": X_morph[i:i + 1].astype(np.float32),
+    "rhythm": rr.reshape(target_shape) if target_shape else rr,
 }
 ```
 
@@ -138,8 +139,9 @@ That is why `scripts/quantize_int8.py` calls the generator with
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
 converter.representative_dataset = rep_gen
 converter.target_spec.supported_ops = [tf.lite.OpsSet.TFLITE_BUILTINS_INT8]
-converter.inference_input_type = tf.int8
-converter.inference_output_type = tf.int8
+if int8_io:
+    converter.inference_input_type = tf.int8
+    converter.inference_output_type = tf.int8
 ```
 
 | Line | If omitted |
@@ -179,10 +181,10 @@ was measured on 19 Sep: 4.6% (mitdb only), 1.8% (three databases).
 ### Consequences for the firmware
 
 ```c
-// masuk: hasil z-score (float) → int8
-in[i] = (int8_t)lroundf(x[i] / ECG_IN_MORPH_SCALE + ECG_IN_MORPH_ZERO);
-// keluar: int8 → probabilitas
-float p = (out[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
+// input: z-score result (float) → int8
+in_morph->data.int8[i] = to_int8(beat.window[i], ECG_IN_MORPH_SCALE, ECG_IN_MORPH_ZERO);
+// output: int8 → probability
+return (output_tensor->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 ```
 
 The `scale` and `zero_point` values are *generate*d into `model_int8.h` as the
@@ -238,8 +240,8 @@ This method depends on neither name nor order.
 Then manual quantization on the way in, manual dequantization on the way out:
 
 ```python
-np.clip(np.round(x / scale) + zero, -128, 127)     # masuk
-(q.astype(np.float32) - zero) * scale              # keluar
+np.clip(np.round(x / scale) + zero, -128, 127)     # input
+(q.astype(np.float32) - zero) * scale              # output
 ```
 
 The `clip` is mandatory: z-score values can exceed the range seen during calibration,

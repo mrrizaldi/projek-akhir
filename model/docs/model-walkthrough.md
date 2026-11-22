@@ -36,7 +36,7 @@ build_hybrid_model().summary()
                       [N,35]
                    Dense(16, ReLU)
                           │
-                Dense(1, sigmoid) → p(Aritmia)
+                Dense(1, sigmoid) → p(Arrhythmia)
 ```
 
 There are two branches because arrhythmia has **two signatures that do not replace
@@ -137,7 +137,7 @@ sneaked in.
 ```python
 merged = layers.Concatenate()([x, rr_in])          # 32 + 3 = 35
 merged = layers.Dense(DENSE_UNITS, activation="relu")(merged)   # 576 param
-out = layers.Dense(1, activation="sigmoid")(merged)             # 17 param
+out = layers.Dense(1, activation="sigmoid", name="arrhythmia")(merged)   # 17 param
 ```
 
 `Dense(16)` is where the two sources of information really interact: here

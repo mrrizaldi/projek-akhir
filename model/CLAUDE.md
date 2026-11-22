@@ -25,17 +25,17 @@ Read the relevant phase before touching any file. No vibe-coding.
 ## Commands
 
 ```
-make data      # download MIT-BIH (sekali)      make train     # Fase 5
-make check     # cek kelengkapan dataset        make eval      # Fase 6
-make plot0     # verifikasi Fase 0 (R-peak)     make quantize  # Fase 7
-make plot1     # verifikasi Fase 1a (filter)    make export    # .h ke firmware
-make plot1seg  # verifikasi Fase 1b (segmentasi)
-make prep      # Fase 2 → per_record/*.npz      make test      # pytest
-make split     # Fase 3 → train/test.npz         make poc       # Fase 8 checklist
-make pull      # tarik rekaman dari board
-make analyze FILE=data/recordings/<nama>.csv   # analisis + grafik rekaman
-make pull-power [N=<n>]   # tarik hasil tangga daya mandiri /daya/NNN.csv dari board
-make broker-info         # SSID, IP LAN, port 1883/8080, saran entri wifi_secrets.h
+make data      # download MIT-BIH (once)        make train     # Phase 5
+make check     # check dataset completeness     make eval      # Phase 6
+make plot0     # verify Phase 0 (R-peak)        make quantize  # Phase 7
+make plot1     # verify Phase 1a (filter)       make export    # .h to firmware
+make plot1seg  # verify Phase 1b (segmentation)
+make prep      # Phase 2 → per_record/*.npz     make test      # pytest
+make split     # Phase 3 → train/test.npz        make poc       # Phase 8 checklist
+make pull      # pull a recording from the board
+make analyze FILE=data/recordings/<name>.csv   # recording analysis + plot
+make pull-power [N=<n>]   # pull the standalone power sweep result /daya/NNN.csv from the board
+make broker-info         # SSID, LAN IP, ports 1883/8080, suggested wifi_secrets.h entry
 ```
 
 `make help` lists all targets (including `data-all`, `split-multi`, `clean`).
