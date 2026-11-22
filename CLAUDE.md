@@ -86,9 +86,12 @@ C. **If it cannot be verified, stop and say so.** State exactly what is not yet
 12. **Area without tests: stop and ask.** If the area lacks test coverage, stop and
     ask before refactoring. A rename-only
     commit (only identifiers and file names change, every string literal stays) counts
-    as covered when `python3 scripts/renames.py firmware <rev-a> <rev-b>` (C/C++) or
-    `python3 scripts/renames.py python <rev-a> <rev-b>` (Python) passes. A commit that
-    changes a string literal, CLI flag, make target or printed text is not a refactor.
+    as covered when an equivalence proof passes: compiled objects of both revisions
+    identical after applying the rename map (C/C++), or ASTs identical after applying it
+    (Python). The tool that did this for the English refactor is kept in git, not in the
+    tree: `git show 8df29db:scripts/renames.py > /tmp/renames.py` (with its maps from the
+    same commit). A commit that changes a string literal, CLI flag, make target or
+    printed text is not a refactor.
 
 ## Skills, load before starting
 
@@ -221,11 +224,27 @@ proven from freezing into dogma.
 - **Language:** English for everything developers and agents read: docs, README,
   `CLAUDE.md` files, skills, commit messages, identifiers, file names, script output,
   serial log text. Indonesian stays for `laporan/` text, `presentasi/`, TFT strings
-  and the data contracts frozen in `docs/2026-11-22-english-codebase.md`. English docs
+  and the frozen data contracts below. English docs
   use decimal point and comma thousands; laporan keeps decimal comma (0,6594) and dot
   thousands (85.812). Things that are run (build, record, flash, calibrate) are
   written as procedures: numbered steps, commands in code blocks, expected result.
-  Files not yet migrated stay as they are until their task in that plan runs.
+- **Frozen data contracts (stay Indonesian or unchanged, never renamed or translated):**
+
+  | What | Where | Why |
+  |---|---|---|
+  | Serial protocol tokens `SIMPAN`, `---MULAI---`, `---SELESAI---` | `firmware/src/recorder.cpp`, `power.cpp`; parsed by `model/scripts/pull_recording.py`, `pull_power.py`, `record_flow_check.py` | wire protocol |
+  | Power line `DAYA p<n> n= I= sd= mA V= P= mW beat= lewat= replay=` | `firmware/src/power.cpp`; regex in `model/scripts/measure_power.py` | wire protocol |
+  | Recording header `# fs= n= lewat= lepas= [lanjutan= celah=]`, `# jeda`, CSV columns | `firmware/src/recorder.cpp`; read by `model/scripts/analyze_recording.py` and the official 22 Oct 2026 recordings | old data must keep parsing |
+  | Serial command letters (`r j d l h y p k m q s v V w t T b`) | `firmware/src/serial_cmd.cpp` | documented interface |
+  | LittleFS paths `/rekaman.csv`, `/daya/NNN.csv`, recording names `*-rekam-NNN` | `firmware/src/recorder.cpp`, `power.cpp` | files on the board and in `model/data/recordings/` |
+  | NVS namespace and keys | `firmware/src/app_settings.cpp` | settings stored on the board |
+  | MQTT topics and JSON keys | `firmware/src/ecg_mqtt.cpp`, `dashboard/` | ThingsBoard keys |
+  | All TFT strings | `firmware/src/menu.cpp`, `display.cpp`, `gate.cpp` | the book quotes them |
+  | `WIFI_DAFTAR`, `BROKER_DAFTAR` | untracked `firmware/include/wifi_secrets.h`, `wifi_secrets.example.h` | private local file on every machine |
+  | Paths and file names under `model/artifacts/`, `model/data/` and the names scripts write there | `scripts/export_artifacts.sh` → `laporan/*/gambar/` | laporan figures |
+  | Indonesian pattern lists in `scripts/check_slop.py` | | the data it checks |
+  | File names and CLI flags of `scripts/cek_docx.py`, `scripts/rilis.py` (incl. `--catatan`, and its tag body `halaman= galat_log=`), `scripts/cek_tabel.py`, `dashboard/ukur_pipeline.py` | `laporan/shared/Makefile.inc` runs the first two; `laporan/CLAUDE.md` names the last two | renaming them breaks the laporan build or its instructions |
+  | Everything under `laporan/` and `presentasi/`, KiCad files, git tags `rilis/*` and `pra-bersih` | | thesis text, hardware data, history |
 - **Result files** (recordings, plots) are named with a timestamp and grouped in
   one folder per category, not a generic name such as "percobaan".
 
@@ -335,5 +354,5 @@ AFIB book (user decision 19 Oct 2026, skill `report-structure` rule 2).
 - Changing a final value in `model/config.py` (FS, bandpass, window, label map)
   → belongs to the user, confirm first.
 - Push to the remote → only on explicit request.
-- Refactor in an area without tests that cannot be proven equivalent with
-  `scripts/renames.py` → ask first (Hard rule 12).
+- Refactor in an area without tests that cannot be proven equivalent (Hard rule 12)
+  → ask first.

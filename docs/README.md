@@ -39,7 +39,6 @@ the parents of commits `0c87f78` (`docs/arsip/`) and `830bd3e`
 | 2026-11-21 | [skill-anti-slop](2026-11-21-skill-anti-slop.md) | Candidate external skills for report writing without AI writing patterns, their conflicts with repo rules, and the plan to distil them into `narasi-pa` | progres-pa-1 Chapter 2 to 4 trial done, skill eval 10/10; awaiting user review, remainder in §Remaining work |
 | 2026-11-21 | [deferred-work](2026-11-21-deferred-work.md) | Single list of work not yet executed from the Word pipeline, anti-slop, release and skill sessions | In progress |
 | 2026-11-21 | [skill-codebase-rework](2026-11-21-skill-codebase-rework.md) | Skill rework (extraction to the user skill repo, skill-creator eval format, CI validator) and cleanup of docs and code | Waves 0 to 4 done; remainder in deferred-work |
-| 2026-11-22 | [english-codebase](2026-11-22-english-codebase.md) | Codebase, docs, and skills to English with equivalence-proven renames; per-feature docs via `feature-docs` | Phases 0-3, 5 and the hardware scripts done and on `main`; open: 4.1 English serial log (needs the board), firmware-limits 711 ms rule, Phase 7 cleanup (delete `scripts/renames.py`, maps, glossary and this plan after 4.1) |
 
 ## When a working document is finished
 
