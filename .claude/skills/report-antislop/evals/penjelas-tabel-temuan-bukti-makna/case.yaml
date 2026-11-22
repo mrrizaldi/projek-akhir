@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: penjelas-tabel-temuan-bukti-makna
+expected_outcome: |
+  The rewritten paragraph opens with the finding, holds at most five numbers that are each compared or explained, closes with the meaning, has no colon, and is not opened with 'Berdasarkan Tabel'.
