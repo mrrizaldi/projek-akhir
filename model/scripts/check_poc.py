@@ -33,20 +33,20 @@ def reproducible():
     paket = open(req).read() if os.path.exists(req) else ""
     kurang = [p for p in ("tensorflow", "wfdb", "numpy", "scipy") if p not in paket]
     if kurang:
-        return False, f"requirements.txt kurang: {kurang}"
+        return False, f"requirements.txt is missing: {kurang}"
     src = open(os.path.join(ROOT, "scripts", "train_model.py")).read()
     if "np.random.seed(SEED)" not in src or "tf.random.set_seed(SEED)" not in src:
-        return False, "seed tidak dikunci di train_model.py"
-    return True, f"requirements.txt lengkap, SEED={SEED} dikunci di training & PTQ"
+        return False, "seed is not locked in train_model.py"
+    return True, f"requirements.txt complete, SEED={SEED} locked in training and PTQ"
 
 
 def preprocessing_kausal():
     src = open(os.path.join(ROOT, "src", "preprocessing.py")).read()
     if "filtfilt" in src:
-        return False, "filtfilt ditemukan — JEBAKAN #1 PRD"
+        return False, "filtfilt found — PRD PITFALL #1"
     if "sosfilt" not in src:
-        return False, "sosfilt tidak dipakai"
-    return True, "sosfilt (kausal), nol pemakaian filtfilt"
+        return False, "sosfilt is not used"
+    return True, "sosfilt (causal), zero uses of filtfilt"
 
 
 def split_terverifikasi():
@@ -54,7 +54,7 @@ def split_terverifikasi():
     assert_split_valid()
     for r in DS1 + DS2:
         if not os.path.exists(os.path.join(PER_RECORD_DIR, f"{r}.npz")):
-            return False, f"per_record/{r}.npz hilang — jalankan `make prep`"
+            return False, f"per_record/{r}.npz missing — run `make prep`"
     return True, f"DS1 {len(DS1)} + DS2 {len(DS2)} + paced {len(PACED_EXCLUDED)} = 48, disjoint"
 
 
@@ -63,23 +63,23 @@ def model_hybrid():
     m = build_hybrid_model()
     n = m.count_params()
     if not 5000 <= n <= 7000:
-        return False, f"count_params()={n}, di luar ~6.000"
+        return False, f"count_params()={n}, outside ~6,000"
     if len(m.inputs) != 2:
-        return False, f"{len(m.inputs)} input, harus 2"
-    return True, f"{n:,} param, 2 input, output {tuple(m.output.shape)}"
+        return False, f"{len(m.inputs)} inputs, must be 2"
+    return True, f"{n:,} params, 2 inputs, output {tuple(m.output.shape)}"
 
 
 def metrik_fp32():
     path = os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")
     if not os.path.exists(path):
-        return False, "fase6_metrics_fp32.csv belum ada — jalankan `make eval`"
+        return False, "fase6_metrics_fp32.csv does not exist yet — run `make eval`"
     row = _baca_csv(path)
     recall = float(row["recall"])
     if recall <= 0.05:
-        return False, f"recall Aritmia {recall:.4f} ~ 0 — ada bug, cek class_weight"
+        return False, f"Arrhythmia recall {recall:.4f} ~ 0 — bug, check class_weight"
     png = os.path.join(METRICS_DIR, "fase6_confusion_fp32.png")
     if not os.path.exists(png):
-        return False, "confusion matrix PNG belum ada"
+        return False, "confusion matrix PNG does not exist yet"
     return True, (f"recall {recall:.4f}, precision {float(row['precision']):.4f}, "
                   f"AUC {float(row['auc']):.4f} @ threshold {row['threshold']}")
 
@@ -87,23 +87,23 @@ def metrik_fp32():
 def model_int8():
     path = os.path.join(ARTIFACT_DIR, "model_int8.tflite")
     if not os.path.exists(path):
-        return False, "model_int8.tflite belum ada — jalankan `make quantize`"
+        return False, "model_int8.tflite does not exist yet — run `make quantize`"
     kb = os.path.getsize(path) / 1024
     if kb >= MAX_MODEL_KB:
-        return False, f"{kb:.2f} KB >= batas {MAX_MODEL_KB} KB"
+        return False, f"{kb:.2f} KB >= limit {MAX_MODEL_KB} KB"
     import tensorflow as tf
     interp = tf.lite.Interpreter(model_path=path)
     interp.allocate_tensors()
     dtypes = {t["dtype"].__name__ for t in interp.get_tensor_details()}
     if "float32" in dtypes:
-        return False, f"masih ada tensor float32: {dtypes}"
+        return False, f"float32 tensors remain: {dtypes}"
     return True, f"{kb:.2f} KB < {MAX_MODEL_KB} KB, full-INT8 (dtype: {sorted(dtypes)})"
 
 
 def tabel_delta():
     path = os.path.join(METRICS_DIR, "fase7_delta.csv")
     if not os.path.exists(path):
-        return False, "fase7_delta.csv belum ada — jalankan `make quantize`"
+        return False, "fase7_delta.csv does not exist yet — run `make quantize`"
     baris = {}
     with open(path) as f:
         f.readline()
@@ -113,36 +113,36 @@ def tabel_delta():
     wajib = ["accuracy", "precision", "recall", "f1", "specificity", "auc", "ukuran_kb"]
     kurang = [k for k in wajib if k not in baris]
     if kurang:
-        return False, f"baris kurang: {kurang}"
+        return False, f"missing rows: {kurang}"
     d_recall = float(baris["recall"][2])
-    catatan = "layak" if abs(d_recall) < 0.02 else "PERIKSA representative dataset"
-    return True, f"lengkap; delta recall {d_recall:+.4f} ({catatan})"
+    catatan = "acceptable" if abs(d_recall) < 0.02 else "CHECK representative dataset"
+    return True, f"complete; recall delta {d_recall:+.4f} ({catatan})"
 
 
 def decision_tercatat():
     md = open(os.path.join(ROOT, "CLAUDE.md")).read()
     seksi = re.search(r"## Decision point yang sudah di-lock(.*?)(?=\n## )", md, flags=re.S)
     if seksi is None:
-        return False, "seksi 'Decision point yang sudah di-lock' tidak ditemukan"
+        return False, "section 'Decision point yang sudah di-lock' not found"
     tabel = re.findall(r"^\|.*\*\(belum\)\*.*$", seksi.group(1), flags=re.M)
     if tabel:
-        return False, f"{len(tabel)} decision point masih *(belum)*"
+        return False, f"{len(tabel)} decision points still *(belum)*"
     for kunci in ("Orde Butterworth", "Beat tanpa `dRR`", "Strategi imbalance",
                   "Tipe I/O INT8", "Threshold"):
         if kunci not in md:
-            return False, f"decision point '{kunci}' tidak tercatat"
-    return True, "semua decision point terisi di tabel CLAUDE.md"
+            return False, f"decision point '{kunci}' not recorded"
+    return True, "all decision points filled in the CLAUDE.md table"
 
 
 def main() -> None:
     cek("Reproducible (requirements + seed lock)", reproducible)
-    cek("Preprocessing kausal (sosfilt, bukan filtfilt)", preprocessing_kausal)
-    cek("Split inter-patient disjoint + paced dibuang", split_terverifikasi)
-    cek("Model hybrid ~6.000 param, 2 input", model_hybrid)
-    cek("Metrik float32 DS2 ada & recall tidak ~0", metrik_fp32)
-    cek(f"Model INT8 < {MAX_MODEL_KB} KB, full-INT8", model_int8)
-    cek("Tabel delta float32 vs INT8 lengkap", tabel_delta)
-    cek("Semua decision point tercatat", decision_tercatat)
+    cek("Causal preprocessing (sosfilt, not filtfilt)", preprocessing_kausal)
+    cek("Inter-patient split disjoint + paced dropped", split_terverifikasi)
+    cek("Hybrid model ~6,000 params, 2 inputs", model_hybrid)
+    cek("DS2 float32 metrics exist and recall is not ~0", metrik_fp32)
+    cek(f"INT8 model < {MAX_MODEL_KB} KB, full-INT8", model_int8)
+    cek("float32 vs INT8 delta table complete", tabel_delta)
+    cek("All decision points recorded", decision_tercatat)
 
     print(f"\n{'':2} {'Checklist PoC (PRD Fase 8)':<46} Detail")
     print("-" * 100)
@@ -151,9 +151,9 @@ def main() -> None:
     gagal = [n for ok, n, _ in hasil if not ok]
     print("-" * 100)
     if gagal:
-        print(f"{len(gagal)} item BELUM beres: {gagal}")
+        print(f"{len(gagal)} items NOT done: {gagal}")
         sys.exit(1)
-    print(f"PoC LENGKAP — {len(hasil)}/{len(hasil)} item terverifikasi.")
+    print(f"PoC COMPLETE — {len(hasil)}/{len(hasil)} items verified.")
 
 
 if __name__ == "__main__":

@@ -23,8 +23,8 @@ def pada_recall(p, target):
                    (y[pred == 1].mean() if pred.sum() else 0.0)
     return None
 
-print("Recall S pada RECALL TOTAL yang disamakan (DS2, seed 42)\n")
-print(f"{'recall total':>13} | " + " | ".join(f"{t:>21}" for t in prob))
+print("Recall S at EQUALIZED TOTAL RECALL (DS2, seed 42)\n")
+print(f"{'total recall':>13} | " + " | ".join(f"{t:>21}" for t in prob))
 print("-" * 80)
 for target in (0.55, 0.60, 0.65, 0.70, 0.75, 0.80):
     sel = []

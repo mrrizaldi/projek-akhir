@@ -42,7 +42,7 @@ def main() -> None:
     sos = design_bandpass_sos()
     SET = set_kalibrasi(sos)
     for nm, d in SET.items():
-        print(f"  {nm:18} {len(np.unique(d['records'])):>3} pasien, {len(d['y']):>7,} baris")
+        print(f"  {nm:18} {len(np.unique(d['records'])):>3} patients, {len(d['y']):>7,} rows")
 
     Xm, Xr, y, _ = rakit(muat_ds2(sos), None, 0, 0)
     pos = int(y.sum())
@@ -53,7 +53,7 @@ def main() -> None:
     for tag in args.tag:
         path = os.path.join(ARTIFACT_DIR, f"model_fp32_{tag}.keras")
         if not os.path.exists(path):
-            print(f"{tag:16} (model belum tersimpan)")
+            print(f"{tag:16} (model not saved yet)")
             continue
         prob = tf.keras.models.load_model(path).predict(
             [Xm, Xr], verbose=0, batch_size=8192).ravel()

@@ -9,7 +9,7 @@ DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "raw", "mitdb")
 SAMPLE_RECORD = "100"
 
 print("=" * 55)
-print("  CEK DATASET MIT-BIH ARRHYTHMIA")
+print("  MIT-BIH ARRHYTHMIA DATASET CHECK")
 print("=" * 55)
 
 required_extensions = [".hea", ".dat", ".atr"]
@@ -25,34 +25,34 @@ for f in sorted(os.listdir(DATA_DIR)):
         if has_all:
             records_found.append(rec_id)
 
-print(f"\n✅ Rekaman lengkap (.hea + .dat + .atr): {len(records_found)}")
+print(f"\n✅ Complete records (.hea + .dat + .atr): {len(records_found)}")
 print(f"   {records_found}\n")
 
 if len(records_found) == 0:
-    print("❌ Tidak ada rekaman yang ditemukan! Cek path DATA_DIR.")
+    print("❌ No records found! Check the DATA_DIR path.")
     sys.exit(1)
 
 if len(records_found) < 48:
-    print(f"⚠️  MIT-BIH seharusnya punya 48 rekaman, tapi hanya ada {len(records_found)}.")
+    print(f"⚠️  MIT-BIH should have 48 records, but only {len(records_found)} found.")
 else:
-    print("✅ Jumlah rekaman sesuai (48 rekaman).")
+    print("✅ Record count matches (48 records).")
 
-print(f"\n── Membaca rekaman sampel: {SAMPLE_RECORD} ──")
+print(f"\n── Reading sample record: {SAMPLE_RECORD} ──")
 record_path = os.path.join(DATA_DIR, SAMPLE_RECORD)
 
 record = wfdb.rdrecord(record_path)
 annotation = wfdb.rdann(record_path, "atr")
 
-print(f"   Nama           : {record.record_name}")
-print(f"   Jumlah kanal   : {record.n_sig}  → {record.sig_name}")
+print(f"   Name           : {record.record_name}")
+print(f"   Channel count  : {record.n_sig}  → {record.sig_name}")
 print(f"   Sampling rate  : {record.fs} Hz")
-print(f"   Durasi         : {record.sig_len / record.fs:.1f} detik "
-      f"({record.sig_len / record.fs / 60:.1f} menit)")
-print(f"   Shape sinyal   : {record.p_signal.shape}")
-print(f"   Jumlah anotasi : {len(annotation.symbol)}")
+print(f"   Duration       : {record.sig_len / record.fs:.1f} seconds "
+      f"({record.sig_len / record.fs / 60:.1f} min)")
+print(f"   Signal shape   : {record.p_signal.shape}")
+print(f"   Annotation count: {len(annotation.symbol)}")
 
 label_counts = Counter(annotation.symbol)
-print(f"\n── Distribusi label di rekaman {SAMPLE_RECORD} ──")
+print(f"\n── Label distribution in record {SAMPLE_RECORD} ──")
 for label, count in sorted(label_counts.items(), key=lambda x: -x[1]):
     print(f"   '{label}' : {count}")
 
@@ -85,5 +85,5 @@ plt.tight_layout()
 
 out_path = os.path.join(os.path.dirname(__file__), "ecg_sample.png")
 plt.savefig(out_path, dpi=120)
-print(f"\n✅ Plot disimpan ke: scripts/ecg_sample.png")
-print("\n🎉 Dataset OK! Siap diproses.\n")
+print(f"\n✅ Plot saved to: scripts/ecg_sample.png")
+print("\n🎉 Dataset OK! Ready to process.\n")

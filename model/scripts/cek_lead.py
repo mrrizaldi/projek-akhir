@@ -42,10 +42,10 @@ def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
 
 def main() -> None:
     sos = design_bandpass_sos()
-    print(f"nilai window ter-z-score di indeks R={R_IDX}, beat NORMAL saja\n")
+    print(f"z-scored window value at index R={R_IDX}, NORMAL beats only\n")
     print(f"{'db':10} {'lead':6} {'rec':6} {'n':>6} | "
-          f"{'MENTAH: mean':>12} {'%pos':>5} {'pk':>4} | "
-          f"{'SELARAS: mean':>13} {'%pos':>5} {'pk':>4}")
+          f"{'RAW: mean':>12} {'%pos':>5} {'pk':>4} | "
+          f"{'ALIGNED: mean':>13} {'%pos':>5} {'pk':>4}")
     print("-" * 82)
 
     rencana = [("mitdb", None), ("svdb", "ECG1"), ("svdb", "ECG2"),
@@ -54,7 +54,7 @@ def main() -> None:
     for db, lead in rencana:
         recs = available_records(db)
         if not recs:
-            print(f"{db:10} {'-':6} belum ada record lengkap — lewati")
+            print(f"{db:10} {'-':6} no complete record yet — skipped")
             continue
         asli = DATASETS[db]["leads"]
         nilai = []
@@ -78,18 +78,18 @@ def main() -> None:
             ringkas[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
                                                  (a[:, 0] > 0).mean(), len(a))
 
-    print("\n── vonis POLARITAS (dari kolom MENTAH — jangan dari SELARAS) ──")
+    print("\n── POLARITY verdict (from the RAW column — not from ALIGNED) ──")
     acuan = ringkas.get("mitdb/MLII", (None,))[0]
     for k, (mentah, selaras, konsisten, n) in ringkas.items():
         vonis = ""
         if acuan is not None and k != "mitdb/MLII":
-            vonis = ("  <- SEBANDING" if np.sign(mentah) == np.sign(acuan) and konsisten > 0.8
-                     else "  <- CURIGA / TERBALIK")
-        print(f"  {k:18} mentah {mentah:+7.3f}  ({100*konsisten:.0f}% record positif, "
+            vonis = ("  <- COMPARABLE" if np.sign(mentah) == np.sign(acuan) and konsisten > 0.8
+                     else "  <- SUSPICIOUS / INVERTED")
+        print(f"  {k:18} raw {mentah:+7.3f}  ({100*konsisten:.0f}% records positive, "
               f"n={n}){vonis}")
-    print("\n── vonis ALIGNMENT (dari kolom SELARAS; puncak harus 132) ──")
+    print("\n── ALIGNMENT verdict (from the ALIGNED column; peak must be 132) ──")
     for k, (mentah, selaras, konsisten, n) in ringkas.items():
-        print(f"  {k:18} selaras {selaras:+7.3f}")
+        print(f"  {k:18} aligned {selaras:+7.3f}")
 
 
 if __name__ == "__main__":
