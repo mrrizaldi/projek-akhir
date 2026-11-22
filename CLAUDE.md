@@ -89,7 +89,7 @@ C. **If it cannot be verified, stop and say so.** State exactly what is not yet
     as covered when an equivalence proof passes: compiled objects of both revisions
     identical after applying the rename map (C/C++), or ASTs identical after applying it
     (Python). The tool that did this for the English refactor is kept in git, not in the
-    tree: `git show 8df29db:scripts/renames.py > /tmp/renames.py` (with its maps from the
+    tree: `git show a0754a6:scripts/renames.py > /tmp/renames.py` (its maps are at that
     same commit). A commit that changes a string literal, CLI flag, make target or
     printed text is not a refactor.
 
