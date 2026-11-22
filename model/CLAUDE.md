@@ -83,16 +83,6 @@ Long write-ups go in a walkthrough or Bab 4 of the laporan, not here.
 List of things that are NOT finished and easy to forget. Items are dated; delete an item
 only after it is truly closed (record the closure in the related walkthrough).
 
-- **(22 Nov 2026) A failed save can lose the unsaved parts of a session.** In
-  `firmware/src/recorder.cpp`, a failed open (`open_part`, `:121-127`) sets
-  `held_back = true`, so the next `r` retries the same part (`recorder_toggle`,
-  `:237`). A failed write (`close_write(true)`, LittleFS full, `:149-168`) stops
-  without opening the next part and leaves `held_back` false, so the next `r`
-  starts a new session over the parts still in PSRAM. Found while evaluating the
-  `firmware-limits` skill, confirmed by reading the code, not yet reproduced on the
-  board. Fix candidate: set `held_back` on the failed-write path and print the same
-  "tetap di PSRAM, ulangi simpan" message; verify on the board with a nearly full
-  LittleFS (procedure in skill `firmware-limits`, failure-path test).
 - **(23 Oct 2026) A recording starts by itself shortly after the board is plugged into USB.**
   Observed twice: 22 Oct (`rekam=1 n=417` in the first status) and 23 Oct
   (a 30.5 s recording without electrodes, starting ±1 s before the first port was opened).

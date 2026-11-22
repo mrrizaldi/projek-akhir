@@ -34,6 +34,8 @@ Make the limit small through a build flag, run from `firmware/`, one literal com
 PLATFORMIO_BUILD_FLAGS="-DRECORDER_SECONDS=10" pio run -t upload
 ```
 
+The failed-write path is tested with `-DRECORDER_FAIL_WRITE_PART=<k>`, which makes the first write of part k return 0 bytes once per boot, like a full LittleFS: `PLATFORMIO_BUILD_FLAGS="-DRECORDER_SECONDS=10 -DRECORDER_FAIL_WRITE_PART=1" pio run -t upload`. The procedure and its expected lines are in `docs/features/recording.md` (Writing, failed-write test).
+
 Limits in PA files are found with `grep -nE "(>=|==|>) *[A-Z_]*(_MAX|_N)" firmware/src/*.cpp`, because PA limit constants end in `_MAX` or `_N`. A pause test reads the exact sample count from the counter (`n=` in the `s` line) before and after the pause, and the expected line uses the difference.
 
 The real limit (300 seconds) is crossed once on the board. When a board is attached, Claude runs the test and reads the serial output; a result not yet run is written as an expectation and its checklist item stays `[ ]` (strict rule C in `CLAUDE.md`).

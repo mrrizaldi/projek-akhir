@@ -46,7 +46,7 @@ flowchart LR
 |---|---|---|
 | `service_buttons` (`main.cpp:23`) | `CLICK_MS` 20 ms, `BEEP_LONG_MS` 60 ms | Press click, long-press confirmation |
 | `display_message` (`display.cpp:172`) | `BEEP_REJECT_MS` 150 ms | Rejection |
-| `close_write` (`recorder.cpp:149`) | `BEEP_SAVE_MS` 400 ms | Recording file written |
+| `close_write` (`recorder.cpp:154`) | `BEEP_SAVE_MS` 400 ms | Recording file written |
 | `BEEP_CALIBRATION_MS` (`gate.cpp:15`) | 600 ms | Calibration phase change |
 
 ### NeoPixel
@@ -61,7 +61,7 @@ flowchart LR
 - **Right** (`display.cpp:228`, `draw_right`) shows one status, chosen by priority: a pending `display_message`, `HILANG` (lost, with the missed-sample count) while recording with missed samples, `RECmm:ss` (REC) while recording with "bagian k" (part k) from the second part on, `JEDA` (paused), `SIMPAN..` (saving), `SIMPAN` (saved) with the file name for 3 s, `RP#NNN` for a replayed recording, `RP 208` for the reference replay. It redraws only when the text, sub-text or colour changed.
 - **Captions** (`display.cpp:122`, `display_draw_button`): "B1 BUNYI" (B1 sound) or "B1 BISU" (mute), "B2 JALAN" (B2 run) or "B2 BEKU" (freeze), and for B3 "B3 REC", "B3 JEDA" (pause), "B3 LANJUT" (resume) with "tahan=SIMPAN" (hold = save). A pressed button is drawn black on yellow.
 
-`display_message(large, small)` (`display.cpp:172`) takes at most 8 and 16 characters, shows them in the right area for `MESSAGE_MS` (2 s) and sounds the reject beep. Callers: `menu_open` ("TERKUNCI", locked), `recorder_toggle` ("TOLAK" rejected, "PENUH" full, "TUNGGU" wait), `recorder_service` ("RUANG PENUH" storage full, "BATAS SESI" session limit) and `open_part` ("GAGAL SIMPAN", save failed).
+`display_message(large, small)` (`display.cpp:172`) takes at most 8 and 16 characters, shows them in the right area for `MESSAGE_MS` (2 s) and sounds the reject beep. Callers: `menu_open` ("TERKUNCI", locked), `recorder_toggle` ("TOLAK" rejected, "PENUH" full, "TUNGGU" wait), `recorder_service` ("RUANG PENUH" storage full, "BATAS SESI" session limit) and `keep_in_psram` ("GAGAL SIMPAN", save failed, after a failed open or write).
 
 ### Menu screen
 

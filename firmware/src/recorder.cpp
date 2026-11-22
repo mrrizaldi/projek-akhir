@@ -112,6 +112,15 @@ static unsigned missed_part(int k)
     return missed_start[k + 1 < n_parts ? k + 1 : RECORDER_PART_MAX] - missed_start[k];
 }
 
+static void keep_in_psram(const char *failed_action)
+{
+    writing = false;
+    held_back = true;
+    Serial.printf("FAILED %s %s: parts %d-%d kept in PSRAM, retry the save with r / hold B3\n",
+                  failed_action, writer.path, writer.part + 1, writer.n_parts);
+    display_message("GAGAL SIMPAN", "tekan r ulangi");
+}
+
 static bool open_part(int k)
 {
     const int number = writer.first_number + k;
@@ -119,11 +128,7 @@ static bool open_part(int k)
     file_name(number, writer.path, sizeof writer.path);
     writer.f = LittleFS.open(writer.path, "w");
     if (!writer.f) {
-        writing = false;
-        held_back = true;
-        Serial.printf("FAILED to open %s: parts %d-%d kept in PSRAM, retry the save with r / hold B3\n",
-                      writer.path, k + 1, writer.n_parts);
-        display_message("GAGAL SIMPAN", "tekan r ulangi");
+        keep_in_psram("to open");
         return false;
     }
     const size_t start = (size_t)k * RECORDER_N;
@@ -149,10 +154,13 @@ static bool open_part(int k)
 static void close_write(bool failed)
 {
     writer.f.close();
+    if (failed) {
+        Serial.printf("FAILED: LittleFS full after %u samples, %s truncated\n", (unsigned)writer.i, writer.path);
+        keep_in_psram("to write");
+        return;
+    }
     const size_t file_size = LittleFS.open(writer.path, "r").size();
     const float percent = writer.n ? 100.0f * writer.leadoff / writer.n : 0.0f;
-    if (failed) Serial.printf("FAILED: LittleFS full after %u samples, %s truncated\n",
-                             (unsigned)writer.i, writer.path);
     if (file_size != writer.byte)
         Serial.printf("WARNING: %s is %u B on flash, %u B written\n", writer.path, (unsigned)file_size,
                       (unsigned)writer.byte);
@@ -164,7 +172,7 @@ static void close_write(bool failed)
     saved_number = writer.first_number + writer.part;
     t_saved = millis();
     writing = false;
-    if (!failed && writer.part + 1 < writer.n_parts) { open_part(writer.part + 1); return; }
+    if (writer.part + 1 < writer.n_parts) { open_part(writer.part + 1); return; }
     display_sound(BEEP_SAVE_MS);
 }
 
