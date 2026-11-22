@@ -726,7 +726,7 @@ latensi median        ~1.000 ms
 ```
 
 Sisi alat itu **arsitektural**: `ecg_live.h` menjalankan deteksi tiap
-`ECG_LIVE_TIAP` = 1 detik atas ring 4 detik, dan beat baru boleh keluar setelah
+`ECG_LIVE_EVERY` = 1 detik atas ring 4 detik, dan beat baru boleh keluar setelah
 `ECG_WIN_POST` = 128 sampel (356 ms) sesudah R. Batas bawah teoretisnya
 356–1.356 ms, dan minimum terukur **429 ms** jatuh di rentang itu.
 
@@ -828,9 +828,9 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
   MQTT (§3.1c).
 - **Latensi p95.** Ekor p95 bergantung pada kanal WiFi (§7c). Pengukuran ulang
   yang bersih memerlukan AP yang tidak padat dan laporan n run. Kadens deteksi
-  firmware utama adalah bawaan `ECG_LIVE_TIAP` = `ECG_FS` (1 detik) sehingga
+  firmware utama adalah bawaan `ECG_LIVE_EVERY` = `ECG_FS` (1 detik) sehingga
   bip dan gelombang di TFT tertunda 1,46 detik dari R. Build flag
-  `-D ECG_LIVE_TIAP=90` menjalankan deteksi tiap 250 ms (tunda bip 0,7 detik)
+  `-D ECG_LIVE_EVERY=90` menjalankan deteksi tiap 250 ms (tunda bip 0,7 detik)
   dengan akurasi deteksi DS1 setara (Se 0,9881 vs 0,9867, PPV 0,9870 vs
   0,9880) dan burst deteksi 7,2 ms per putaran (2,9% CPU). Mengubah bawaan
   firmware utama adalah gate point.

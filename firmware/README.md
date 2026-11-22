@@ -25,8 +25,8 @@ Penjelasan rinci: [`firmware-walkthrough`](../model/docs/firmware-walkthrough.md
 | `native` | Test unit di PC tanpa board | `ecg_pipeline.cpp`, `ecg_live.cpp`, `ina219.cpp`, `ecg_mqtt.cpp` | — |
 
 `esp32-s3` memakai `-I test` karena `test/golden_ref.h` menjadi sumber sinyal
-replay. Kadens deteksi memakai nilai bawaan `ECG_LIVE_TIAP = ECG_FS` (deteksi
-tiap 1 detik); `-D ECG_LIVE_TIAP=90` tersedia sebagai knob ablasi.
+replay. Kadens deteksi memakai nilai bawaan `ECG_LIVE_EVERY = ECG_FS` (deteksi
+tiap 1 detik); `-D ECG_LIVE_EVERY=90` tersedia sebagai knob ablasi.
 
 Hal penting di `platformio.ini`:
 

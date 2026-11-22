@@ -14,7 +14,7 @@ void ecg_bandpass(const float *in, float *out, size_t n, float *state);
 
 int ecg_window_zscore(const float *filtered, size_t n, int r, float *out);
 
-int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_DASAR]);
+int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_BASE]);
 
 #if ECG_QRSW
 float ecg_qrs_width(const float *window, float frac);

@@ -1222,8 +1222,8 @@ const float golden_rr[27] = {
   5.11111140e-01f, 8.36839139e-01f, -3.88888903e-02f
 };
 
-#define GOLDEN_N_DETEKSI 11
-const int golden_r_deteksi[GOLDEN_N_DETEKSI] = {100, 260, 505, 718, 907, 1203, 1432, 1635, 1882, 2115, 2301};
+#define GOLDEN_N_DETECTION 11
+const int golden_r_detection[GOLDEN_N_DETECTION] = {100, 260, 505, 718, 907, 1203, 1432, 1635, 1882, 2115, 2301};
 
 const float golden_prob_fp32[9] = {
   0.00000000e+00f, 0.00000000e+00f, 9.97680843e-01f, 1.88888833e-02f,

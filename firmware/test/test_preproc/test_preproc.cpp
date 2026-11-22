@@ -114,12 +114,12 @@ void test_detect_r(void)
 {
     const int n = ecg_detect_r(golden_filtered, GOLDEN_N, buf_scratch, buf_r, 64);
     char message[96];
-    snprintf(message, sizeof(message), "dapat %d R-peak, harus %d", n, GOLDEN_N_DETEKSI);
-    TEST_ASSERT_EQUAL_MESSAGE(GOLDEN_N_DETEKSI, n, message);
+    snprintf(message, sizeof(message), "dapat %d R-peak, harus %d", n, GOLDEN_N_DETECTION);
+    TEST_ASSERT_EQUAL_MESSAGE(GOLDEN_N_DETECTION, n, message);
     for (int i = 0; i < n; i++) {
         snprintf(message, sizeof(message), "peak %d: dapat %d, harus %d",
-                 i, buf_r[i], golden_r_deteksi[i]);
-        TEST_ASSERT_INT_WITHIN_MESSAGE(1, golden_r_deteksi[i], buf_r[i], message);
+                 i, buf_r[i], golden_r_detection[i]);
+        TEST_ASSERT_INT_WITHIN_MESSAGE(1, golden_r_detection[i], buf_r[i], message);
     }
 }
 
@@ -184,7 +184,7 @@ void test_live_drops_first_two_beats(void)
                                      "RR_prev di luar rentang fisiologis");
         }
     }
-    TEST_ASSERT_TRUE(emitted < GOLDEN_N_DETEKSI);
+    TEST_ASSERT_TRUE(emitted < GOLDEN_N_DETECTION);
 }
 
 static void run_all(void)

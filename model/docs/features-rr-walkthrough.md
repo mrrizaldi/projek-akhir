@@ -290,7 +290,7 @@ yang berbeda.
   memisahkan V (QRS lebar > 120 ms) dari S (sempit, datang kepagian) dan N.
   Lebar diukur dengan berjalan kiri-kanan dari puncak di `R_IN_WINDOW` (132)
   sampai amplitudo turun di bawah `frac` × puncak; bila tak pernah turun, tepi
-  window dipakai. Pencarian puncak bertoleransi ±4 sampel (`ECG_QRSW_CARI`)
+  window dipakai. Pencarian puncak bertoleransi ±4 sampel (`ECG_QRSW_SEARCH`)
   karena residu mitdb ±2. Normalisasi ke rerata kausal `RR_LOCAL_WINDOW_BEATS`
   (10) beat terakhir, bukan 32 seperti P3, supaya satu konstanta jendela berlaku
   untuk semua fitur dan konsisten dengan decision point "kausal, menyusut di

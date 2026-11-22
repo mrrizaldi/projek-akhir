@@ -9,8 +9,8 @@ extern "C" {
 #endif
 
 #define ECG_LIVE_RING (4 * ECG_FS)
-#ifndef ECG_LIVE_TIAP
-#define ECG_LIVE_TIAP ECG_FS
+#ifndef ECG_LIVE_EVERY
+#define ECG_LIVE_EVERY ECG_FS
 #endif
 #define ECG_LIVE_HIST 16
 #define ECG_LIVE_TIMEOUT (3 * ECG_FS)

@@ -101,11 +101,11 @@ def main() -> None:
 #define ECG_N_RR {N_RR_FEATURES}
 #endif
 #define ECG_RR_LOCAL_WINDOW {RR_LOCAL_WINDOW_BEATS}
-#define ECG_N_RR_DASAR {N_RR_BASE}
+#define ECG_N_RR_BASE {N_RR_BASE}
 #define ECG_RR_RATIO {int(USE_RR_RATIO)}
 #define ECG_QRSW {int(USE_QRSW)}
 #define ECG_R_IN_WINDOW {R_IN_WINDOW}
-#define ECG_QRSW_CARI {QRSW_CARI}
+#define ECG_QRSW_SEARCH {QRSW_CARI}
 
 #define ECG_PT_MWI_LEN {mwi_len}
 #define ECG_PT_REFRACTORY {refraktori}
@@ -147,8 +147,8 @@ const int golden_label[GOLDEN_N_BEAT] = {{{", ".join(str(v) for v in label)}}};
 
 {_larik("golden_window", windows)}
 {_larik("golden_rr", rr_bersih, 3)}
-#define GOLDEN_N_DETEKSI {n_deteksi}
-const int golden_r_deteksi[GOLDEN_N_DETEKSI] = {{{isi_deteksi}}};
+#define GOLDEN_N_DETECTION {n_deteksi}
+const int golden_r_detection[GOLDEN_N_DETECTION] = {{{isi_deteksi}}};
 
 {_larik("golden_prob_fp32", p_fp32, 4)}
 {_larik("golden_prob_int8", p_int8, 4)}

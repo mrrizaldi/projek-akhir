@@ -73,7 +73,7 @@ static int emit_beat(int idx, const int *r, size_t n_r, int sentinel,
     }
 #if ECG_QRSW
     ecg_qrs_width_features(beat->window, qrsw_history, n_qrsw,
-                           beat->rr + ECG_N_RR_DASAR);
+                           beat->rr + ECG_N_RR_BASE);
     n_qrsw++;
 #endif
     beat->r_abs = r_value;
@@ -119,7 +119,7 @@ int ecg_live_push(float sample_raw, ecg_beat_t *beat)
     ring[n_total % ECG_LIVE_RING] = filtered_value;
     n_total++;
 
-    if (++since_detection >= ECG_LIVE_TIAP) {
+    if (++since_detection >= ECG_LIVE_EVERY) {
         since_detection = 0;
         n_queue = i_queue = 0;
         run_detection();

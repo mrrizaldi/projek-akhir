@@ -40,7 +40,7 @@ void display_sound(uint32_t ms)
     buzz_until = millis() + ms;
 }
 
-constexpr uint32_t BEEP_DELAY = ECG_LIVE_TIAP + ECG_WIN_POST + ECG_FS / 10;
+constexpr uint32_t BEEP_DELAY = ECG_LIVE_EVERY + ECG_WIN_POST + ECG_FS / 10;
 constexpr int SCHEDULE_N = 8;
 static struct { uint32_t sample; uint16_t ms; } schedule[SCHEDULE_N];
 static int j_head, j_fill;

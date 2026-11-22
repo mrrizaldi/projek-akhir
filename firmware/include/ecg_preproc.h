@@ -10,11 +10,11 @@
 #define ECG_N_RR 3
 #endif
 #define ECG_RR_LOCAL_WINDOW 10
-#define ECG_N_RR_DASAR 3
+#define ECG_N_RR_BASE 3
 #define ECG_RR_RATIO 0
 #define ECG_QRSW 0
 #define ECG_R_IN_WINDOW 132
-#define ECG_QRSW_CARI 4
+#define ECG_QRSW_SEARCH 4
 
 #define ECG_PT_MWI_LEN 54
 #define ECG_PT_REFRACTORY 72

@@ -47,7 +47,7 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out)
     return 1;
 }
 
-int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_DASAR])
+int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_BASE])
 {
 #if ECG_RR_RATIO
     if (i < 2 || i + 1 >= n_r) {
@@ -103,8 +103,8 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_
 #if ECG_QRSW
 float ecg_qrs_width(const float *window, float frac)
 {
-    int lo = ECG_R_IN_WINDOW - ECG_QRSW_CARI;
-    int hi = ECG_R_IN_WINDOW + ECG_QRSW_CARI;
+    int lo = ECG_R_IN_WINDOW - ECG_QRSW_SEARCH;
+    int hi = ECG_R_IN_WINDOW + ECG_QRSW_SEARCH;
     if (lo < 0) lo = 0;
     if (hi > ECG_WIN_LEN_ - 1) hi = ECG_WIN_LEN_ - 1;
 
