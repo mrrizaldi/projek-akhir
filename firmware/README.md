@@ -169,7 +169,7 @@ page.
 | Limit | Effect | If it must change |
 |---|---|---|
 | The recording session lives only in PSRAM until it stops | Power loss or reset mid-session loses the whole session, not just the last part | Saving to flash mid-session needs an IRAM-safe acquisition ISR (ADC read without `adc1_get_raw`, replay from internal RAM) |
-| Writing files after a session holds the acquisition ISR | The live path loses samples while each part is written (counted in `sampel hilang`, see Measurements); RR and beat classification in that window are not valid | Same as the row above |
+| Writing files after a session holds the acquisition ISR | The live path loses samples while each part is written (counted in `missed` on the `s` status line, see Measurements); RR and beat classification in that window are not valid | Same as the row above |
 | The beep schedule uses the sample clock already processed by `ecg_live` | During a detection burst a beep is late by at most the burst length (about 33 ms) | Use the index of the sample entering the queue |
 | The menu recording list holds 64 entries (`recorder_list(rec_no, 64)`, serial `LIST_MAX`) | Display limit only; a new file number still comes from a full scan | none needed |
 | Choosing a WiFi entry during power modes `p0` to `p4` | `settings_choose_wifi` calls `ecg_mqtt_begin()`, so the radio comes back on | Choose the network in normal operation |

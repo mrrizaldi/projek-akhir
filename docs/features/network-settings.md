@@ -57,15 +57,15 @@ Entry points: menu "Jaringan" (network) with "WiFi aktif" (WiFi on), "WiFi", "Br
 
 ### MQTT status
 
-`ecg_mqtt_status` (`ecg_mqtt.cpp:361`, `ecg_mqtt_status`) returns the state shown by serial `s` and the menu status page:
+`ecg_mqtt_status` (`ecg_mqtt.cpp:370`, `ecg_mqtt_status`) returns the state shown on the menu status page, `ecg_mqtt_status_serial` (`ecg_mqtt.cpp:371`, `ecg_mqtt_status_serial`) the same state for serial `s`:
 
-| Status | Meaning |
-|---|---|
-| `mati` | MQTT is deactivated |
-| `no-wifi` | WiFi is not connected |
-| `no-broker` | WiFi is connected, the broker is not |
-| `tunggu-jam` | Connected, waiting for clock sync |
-| `online` | Normal |
+| Menu | Serial `s` | Meaning |
+|---|---|---|
+| `mati` | `off` | MQTT is deactivated |
+| `no-wifi` | `no-wifi` | WiFi is not connected |
+| `no-broker` | `no-broker` | WiFi is connected, the broker is not |
+| `tunggu-jam` | `no-clock` | Connected, waiting for clock sync |
+| `online` | `online` | Normal |
 
 ## Procedure: configure and switch the server
 

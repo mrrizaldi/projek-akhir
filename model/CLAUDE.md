@@ -333,7 +333,7 @@ This table = the living version of PRD APPENDIX B. Fill it in the moment the gav
   safe. The DTR/RTS False pattern is used only when a clean boot is actually wanted
   (`measure_power.py` waits for `ARRHYTHMIA MONITOR READY`; `pull_power.py` and
   `record_flow_check.py` wait for the board to answer). After opening the port,
-  **verify the state** from the board's reply (`replay ON`, `rekam=1`, swing in
+  **verify the state** from the board's reply (`replay ON`, `rec=1`, swing in
   `s`), do not assume it.
 - **Without electrodes, the device invents arrhythmia: ~2 beats/second, 57% "ARRHYTHMIA".**
   Cause: the adaptive Pan-Tompkins threshold is relative to the signal that is present, so

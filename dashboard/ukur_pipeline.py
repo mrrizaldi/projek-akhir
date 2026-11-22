@@ -130,15 +130,15 @@ else:
     print("  TIDAK ADA DATA")
 
 print(f"\nPDSR (dari pencacah firmware)")
-st = [b for b in baris if "paket" in b and "PDSR" in b]
+st = [b for b in baris if "packets" in b and "PDSR" in b]
 if st:
     print("  " + st[-1].strip())
-m = re.search(r"paket (\d+)/(\d+) PDSR ([\d.]+)%", st[-1]) if st else None
+m = re.search(r"packets (\d+)/(\d+) PDSR ([\d.]+)%", st[-1]) if st else None
 if m:
     ack, kirim, pdsr = int(m.group(1)), int(m.group(2)), float(m.group(3))
     print(f"  paket ber-PUBACK   : {ack} / {kirim}")
     print(f"  PDSR               : {pdsr:.1f}%")
     print(f"  target bab3        : >= 95%  ->  {'LULUS' if pdsr >= 95 else 'GAGAL'}")
 for b in baris:
-    if "backlog:" in b or "kualitas:" in b or "calibrating" in b:
+    if "backlog:" in b or "quality:" in b or "calibrating" in b:
         print("  [serial] " + b.strip())

@@ -45,11 +45,19 @@ A selection that does not exist prints a hint (unless a recording session caused
 
 `status` (`serial_cmd.cpp:36`, `status`) prints three lines:
 
-1. Signal: recording flag (`rekam=<0|1>`) and sample count, replay flag, gate phase name, beat totals (arrhythmia, withheld), acquisition queue fill, missed samples with the part lost to a held ISR tick, lead-off pin levels, raw minimum and maximum, clean swing and clipping.
-2. Network: MQTT status, sent count, backlog against its capacity, lost and failed counts, packets acknowledged against sent with the delivery ratio (PDSR), mean and maximum device delay, maximum round-trip time and the count of slow ones, RSSI and the epoch in milliseconds.
-3. Device: INA219 state, mute, freeze, skip, power mode, source name (`adc`, `acuan` for the reference replay, `rekaman`) with the recording number, menu open, paused.
+1. Signal: recording flag (`rec=<0|1>`) and sample count, replay flag, gate phase name, beat totals (arrhythmia, withheld), acquisition queue fill, missed samples with the part lost to a held ISR tick, lead-off pin levels, raw minimum and maximum, clean swing and clipping.
+2. Network: MQTT status (`ecg_mqtt_status_serial`, see [MQTT telemetry](mqtt-telemetry.md)), sent count, backlog against its capacity, lost and failed counts, packets acknowledged against sent with the delivery ratio (PDSR), mean and maximum device delay, maximum round-trip time and the count of slow ones, RSSI and the epoch in milliseconds.
+3. Device: INA219 state, mute, freeze, skip, power mode, source name (`adc`, `reference` for the reference replay, `recording`) with the recording number, menu open, paused.
 
-`pull_recording.py` reads the status line and looks for `rekam=1` to stop a running recording before it dumps.
+Example with the reference replay running and no INA219 fitted:
+
+```text
+status: rec=0 n=0 | replay=1 | quality good | beat 16 (11 arrhythmia, 0 withheld) | queue 12 | missed 0 (tick 0) | LO 1 1 | raw 1113..3738 swing 2836 clipping 0
+        mqtt off | sent 0 | backlog 0/27000 | lost 0 | failed 0 | packets 0/0 PDSR 0.0% | device delay avg 0 ms max 0 ms | RTT max 0 ms (slow 0) | RSSI 0 dBm | epoch_ms 0
+        INA219 not responding | mute 0 | freeze 0 | skip 0 | power -1 | source reference 0 | menu 0 | pause 0
+```
+
+`pull_recording.py` reads the status line and looks for `rec=1` to stop a running recording before it dumps.
 
 ### Session lock
 
@@ -58,7 +66,7 @@ During a recording session (recording or paused) `y`, `p0`-`p5`, `V`, `k`, `w<n>
 ## Limits and out of scope
 
 - `read_number` blocks the loop for at most 1.5 s (three digits at 500 ms each) while waiting for digits; `p` waits up to 500 ms for its one character.
-- The text each command prints is English diagnostic output, not an interface, except the tokens scripts parse, which stay byte for byte: `---MULAI---`, `---SELESAI---`, `SIMPAN` and the `DAYA` line (wire protocol); the three status lines, whose fields `pull_recording.py` (`rekam=1`), `record_flow_check.py`, `measure_power.py` and `dashboard/ukur_pipeline.py` read; and `replay ON`, `kualitas:`, `backlog:` and `epoch_ms`, which `dashboard/ukur_pipeline.py` matches. `record_flow_check.py` matches English lines (`REC start`, `REJECTED: <what>`, `menu: close`), so changing one of them changes the script in the same commit.
+- The text each command prints is English diagnostic output, not an interface, except the tokens scripts parse, which stay byte for byte: `---MULAI---`, `---SELESAI---`, `SIMPAN` and the `DAYA` line (wire protocol); the three status lines, whose fields `pull_recording.py` (`rec=1`), `record_flow_check.py` (`rec=`, `n=`, `missed`, `skip`, `power`, `source`, `menu`, `pause`), `measure_power.py` and `dashboard/ukur_pipeline.py` read; and `replay ON`, `quality:`, `backlog:`, `epoch_ms` and `packets <ack>/<sent> PDSR`, which `dashboard/ukur_pipeline.py` matches. `record_flow_check.py` matches English lines (`REC start`, `REJECTED: <what>`, `menu: close`), so changing one of them changes the script in the same commit.
 - A reply can stay in the board's USB Serial/JTAG transmit buffer until the board prints something else. `record_flow_check.py` therefore sends `h` and a newline (it prints a usage hint and changes nothing) when the expected line has not arrived after 0.5 s.
 - The startup banner lists the available letters.
 

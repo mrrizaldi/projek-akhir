@@ -54,6 +54,7 @@ uint32_t ecg_mqtt_rtt_slow(void);
 uint64_t ecg_mqtt_epoch_ms(void);
 int ecg_mqtt_rssi(void);
 const char *ecg_mqtt_status(void);
+const char *ecg_mqtt_status_serial(void);
 #endif
 
 #ifdef __cplusplus

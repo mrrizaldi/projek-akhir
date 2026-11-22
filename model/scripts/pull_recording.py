@@ -33,7 +33,7 @@ def main() -> None:
     status = s.readline().decode(errors="replace").strip()
     print(status or "(no status reply)")
 
-    if "rekam=1" in status:
+    if "rec=1" in status:
         print("Board is still recording: stopping and saving first.")
         s.write(b"r")
         s.flush()

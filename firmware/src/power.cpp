@@ -224,7 +224,7 @@ static void finish(const char *cancel)
         for (int a = 0; a < n_reasons; a++) Serial.printf("sweep: INVALID p%d: %s\n", m, reasons[a]);
         if (n_reasons) { valid[m] = false; failed++; }
         snprintf(h.mode, sizeof h.mode, valid[m] ? "p%d" : "p%d!", m);
-        Serial.printf("tangga: p%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW %s\n", m, h.i_ma, h.sd_ma,
+        Serial.printf("ladder: p%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW %s\n", m, h.i_ma, h.sd_ma,
                       h.v, h.p_mw, valid[m] ? "valid" : "INVALID");
     }
     if (!windows_n) return;

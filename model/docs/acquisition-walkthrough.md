@@ -222,8 +222,8 @@ To change the source, run tests, measure power, or change networks,
 (freeze), and the read commands `s`, `l`, `q`, `v` remain valid during the session.
 
 Serial equivalents: `r` = start, or stop and save (also while paused);
-`j` = pause / resume. Serial `s` shows `rekam 1` while a recording session is
-open (including while paused) and `jeda 0/1`.
+`j` = pause / resume. Serial `s` shows `rec=1` while a recording session is
+open (including while paused) and `pause 0/1`.
 
 The whole session is buffered in PSRAM while recording and only written to LittleFS
 after stopping; files already written survive a board power-off, whereas a

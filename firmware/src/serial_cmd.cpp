@@ -37,20 +37,20 @@ static void status()
 {
     const gate_quality_t &q = gate_quality();
     const classifier_stats_t &h = classifier_stats();
-    Serial.printf("status: rekam=%d n=%u | replay=%d | kualitas %s | beat %d "
-                  "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u (tick %u) | "
-                  "LO %d %d | mentah %d..%d ayun %d clipping %d\n"
-                  "        mqtt %s | terkirim %u | backlog %u/%u | hilang %u | "
-                  "gagal %u | paket %u/%u PDSR %.1f%% | tunda alat rata %u ms "
-                  "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
-                  "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
-                  "sumber %s %d | menu %d | jeda %d\n",
+    Serial.printf("status: rec=%d n=%u | replay=%d | quality %s | beat %d "
+                  "(%d arrhythmia, %d withheld) | queue %u | missed %u (tick %u) | "
+                  "LO %d %d | raw %d..%d swing %d clipping %d\n"
+                  "        mqtt %s | sent %u | backlog %u/%u | lost %u | "
+                  "failed %u | packets %u/%u PDSR %.1f%% | device delay avg %u ms "
+                  "max %u ms | RTT max %u ms (slow %u) | RSSI %d dBm | epoch_ms %llu\n"
+                  "        INA219 %s | mute %d | freeze %d | skip %d | power %d | "
+                  "source %s %d | menu %d | pause %d\n",
                   (int)recorder_active(), (unsigned)recorder_n(), (int)acquisition_replay(),
                   gate_phase_name(), h.total, h.arrhythmia, h.withheld,
                   (unsigned)acquisition_fill(), (unsigned)acquisition_missed(), (unsigned)acquisition_tick_lost(),
                   digitalRead(PIN_LOP), digitalRead(PIN_LON),
                   q.raw_min, q.raw_max, q.swing_clean, (int)q.clipping,
-                  ecg_mqtt_status(), (unsigned)ecg_mqtt_sent(),
+                  ecg_mqtt_status_serial(), (unsigned)ecg_mqtt_sent(),
                   (unsigned)ecg_mqtt_queue_n(), (unsigned)ecg_mqtt_queue_capacity(),
                   (unsigned)ecg_mqtt_queue_lost(), (unsigned)ecg_mqtt_failed(),
                   (unsigned)ecg_mqtt_packet_ack(), (unsigned)ecg_mqtt_packet_send(),
@@ -62,7 +62,7 @@ static void status()
                   power_ina_text(), (int)display_mute(), (int)display_freeze(),
                   (int)gate_skip(), power_mode(),
                   acquisition_source() == SOURCE_ADC ? "adc"
-                  : acquisition_source() == SOURCE_REFERENCE ? "acuan" : "rekaman",
+                  : acquisition_source() == SOURCE_REFERENCE ? "reference" : "recording",
                   acquisition_source_recording(), (int)menu_is_open(), (int)recorder_paused());
 }
 

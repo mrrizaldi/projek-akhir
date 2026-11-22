@@ -26,14 +26,14 @@ flowchart LR
 
 | Step | Behavior |
 |---|---|
-| Clock | `sync_clock` (`ecg_mqtt.cpp:279`) sets `ts_base_ms` from `gettimeofday()` once the epoch is at least `EPOCH_SNTP_MIN`. The status stays `tunggu-jam` and nothing is sent until then. `configTzTime("WIB-7", ...)` keeps the display clock in local time after WiFi reconnects. |
+| Clock | `sync_clock` (`ecg_mqtt.cpp:279`) sets `ts_base_ms` from `gettimeofday()` once the epoch is at least `EPOCH_SNTP_MIN`. The status stays `tunggu-jam` (serial `no-clock`) and nothing is sent until then. `configTzTime("WIB-7", ...)` keeps the display clock in local time after WiFi reconnects. |
 | Connect | The broker host must be an IPv4 literal (`IPAddress::fromString`); DNS would block past the time budget. Retries wait `RETRY_PAUSE_MS` (5 s). TCP connect times out at `CONNECT_TIMEOUT_MS` (300 ms), writes at `WRITE_LIMIT_MS` (200 ms). `setNoDelay(true)` and `WiFi.setSleep(false)` avoid delayed acknowledgements. |
 | Auth | `send_connect` (`ecg_mqtt.cpp:150`) uses client id `esp32-ecg`, username = device access token, no password, keep-alive `MQTT_KEEPALIVE_S` (60 s). `poll_connack` (`ecg_mqtt.cpp:176`) gives up after 2 s. |
 | Publish | `send_batch` (`ecg_mqtt.cpp:195`) sends up to `ECG_MQTT_BATCH_N` (50) beats as one QoS 1 PUBLISH (`MQTT_PUBLISH_QOS1`) to topic `v1/devices/me/telemetry`, with one packet in flight. |
 | Acknowledge | `poll_incoming` (`ecg_mqtt.cpp:224`) matches PUBACK by packet id, then `ecg_mqtt_queue_drop` removes the batch from the ring. No PUBACK within 5 s disconnects and counts a failure; the batch stays in the ring and is sent again after reconnect. |
 | Keep-alive | A PINGREQ goes out after `PERIOD_PING_MS` (30 s) of silence. |
 
-**Status string** (`ecg_mqtt_status`, `ecg_mqtt.cpp:361`): `mati` (inactive), `no-wifi`, `no-broker`, `tunggu-jam` (waiting for the clock), `online`. The serial status command prints it with the sent count (`status`, `serial_cmd.cpp:36`).
+**Status string** (`status_name`, `ecg_mqtt.cpp:361`): inactive, `no-wifi`, `no-broker`, waiting for the clock, `online`. `ecg_mqtt_status` (`ecg_mqtt.cpp:370`) names the two Indonesian states `mati` and `tunggu-jam` for the menu status page, whose text is frozen; `ecg_mqtt_status_serial` (`ecg_mqtt.cpp:371`) names them `off` and `no-clock` for the serial status command, which prints it with the sent count (`status`, `serial_cmd.cpp:36`).
 
 **Counters.** `ecg_mqtt_sent` (beats acknowledged), `ecg_mqtt_failed`, `ecg_mqtt_packet_send` and `ecg_mqtt_packet_ack` (packets, the basis of the packet delivery ratio), `ecg_mqtt_rtt_max`, `ecg_mqtt_rtt_slow` (PUBACK slower than 1000 ms).
 

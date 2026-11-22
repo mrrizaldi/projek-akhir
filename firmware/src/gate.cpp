@@ -72,7 +72,7 @@ void gate_assess_phase(const ecg_beat_t &beat)
     if ((skip_calibration || replay || (warm && rr_quiet)) && q.contact) {
         phase = PHASE_GOOD;
         display_sound(BEEP_CALIBRATION_MS);
-        Serial.printf("kualitas: calibrating -> good (%s, contact %lu s, calm RR %lu s, swing %d, hum %d)\n",
+        Serial.printf("quality: calibrating -> good (%s, contact %lu s, calm RR %lu s, swing %d, hum %d)\n",
                       replay ? "GATE SKIPPED (replay)"
                       : skip_calibration ? "GATE SKIPPED (bench)" : "full gate",
                       (unsigned long)(gate_contact_ms() / 1000),
@@ -89,7 +89,7 @@ static void assess_contact(void)
     if (phase == PHASE_CALIBRATION) return;
     const int next_phase = good ? PHASE_GOOD : PHASE_BAD;
     if (next_phase != phase)
-        Serial.printf("kualitas: %s -> %s (leadoff %d, swing %d, hum %d)\n", gate_phase_name(),
+        Serial.printf("quality: %s -> %s (leadoff %d, swing %d, hum %d)\n", gate_phase_name(),
                       good ? "good" : "poor", (int)q.leadoff, q.swing_clean, q.hum50);
     phase = next_phase;
 }

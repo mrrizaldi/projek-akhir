@@ -39,13 +39,13 @@ class Board:
         return received_lines
 
     def status(self):
-        text = "\n".join(self.kirim("s", 1.0, r"sumber \w+ -?\d+ \| menu"))
+        text = "\n".join(self.kirim("s", 1.0, r"source \w+ -?\d+ \| menu"))
         def m(pattern):
             return (re.search(pattern, text) or [None, None])[1]
-        return {"rekam": m(r"rekam=(\d)"), "n": int(m(r"rekam=\d n=(\d+)") or -1),
-                "hilang": int(m(r"sampel hilang (\d+)") or -1), "lewati": m(r"lewati (\d)"),
-                "daya": m(r"daya (-?\d)"), "sumber": m(r"sumber (\w+)"),
-                "menu": m(r"menu (\d)"), "jeda": m(r"jeda (\d)")}
+        return {"rekam": m(r"rec=(\d)"), "n": int(m(r"rec=\d n=(\d+)") or -1),
+                "hilang": int(m(r"missed (\d+)") or -1), "lewati": m(r"skip (\d)"),
+                "daya": m(r"power (-?\d)"), "sumber": m(r"source (\w+)"),
+                "menu": m(r"menu (\d)"), "jeda": m(r"pause (\d)")}
 
 
 def ada(received_lines, pattern):
@@ -83,14 +83,14 @@ def main():
             ("REC start printed", ada(o, r"^REC start")),
             ("message 'REJECTED: menu'", ada(o, r"REJECTED: menu")),
             ("menu not opened", not ada(o, r"^menu: MENU")),
-            ("status menu 0, rekam=1", st["menu"] == "0" and st["rekam"] == "1")])
+            ("status menu 0, rec=1", st["menu"] == "0" and st["rekam"] == "1")])
 
         o = b.kirim("j", 1.0) + b.kirim("T2", 1.5)
         st = b.status(); lost_during_recording.append(st["hilang"])
         periksa("b. pause -> T2: menu stays locked", [
             ("REC pause printed", ada(o, r"^REC pause")),
             ("message 'REJECTED: menu'", ada(o, r"REJECTED: menu")),
-            ("status menu 0, jeda 1", st["menu"] == "0" and st["jeda"] == "1")])
+            ("status menu 0, pause 1", st["menu"] == "0" and st["jeda"] == "1")])
         b.kirim("j", 1.0)
 
         n0 = b.status()["n"]
@@ -104,9 +104,9 @@ def main():
                                                                 r"^power: mode|not found, see|^wifi (ON|OFF)")))
         st = b.status(); lost_during_recording.append(st["hilang"])
         periksa("c. recording -> y/V/p3/k/w0/b0/m rejected", conditions + [
-            ("sumber adc", st["sumber"] == "adc"), ("daya -1", st["daya"] == "-1"),
-            ("lewati unchanged", st["lewati"] == skip_before),
-            ("rekam=1, jeda 0", st["rekam"] == "1" and st["jeda"] == "0"),
+            ("source adc", st["sumber"] == "adc"), ("power -1", st["daya"] == "-1"),
+            ("skip unchanged", st["lewati"] == skip_before),
+            ("rec=1, pause 0", st["rekam"] == "1" and st["jeda"] == "0"),
             (f"recording grew ({n0} -> {st['n']})", st["n"] > n0 > 0)])
 
         b.kirim("j", 1.0); b.kirim("j", 2.0)
@@ -128,7 +128,7 @@ def main():
             (f"sample count = header n ({len(sampel)} vs {n_hdr})", len(sampel) == n_hdr > 0),
             ("header lewat=0", "lewat=0 " in hdr),
             (f"0 samples lost during recording {lost_during_recording}", all(h == 0 for h in lost_during_recording)),
-            ("session closed (rekam=0)", st["rekam"] == "0")])
+            ("session closed (rec=0)", st["rekam"] == "0")])
 
         o = b.kirim("T2", 1.5); m1 = b.status()["menu"]
         o2 = b.kirim("T3", 1.5); m0 = b.status()["menu"]
@@ -144,15 +144,15 @@ def main():
             ("replay ON (golden_raw)", ada(o, r"replay ON \(golden_raw\)")),
             ("t3 -> 'REC only from the sensor'", ada(o3, r"REC only from the sensor")),
             ("r -> 'REC only from the sensor'", ada(o_r, r"REC only from the sensor")),
-            ("rekam=0", st["rekam"] == "0"),
-            ("back to ADC (status sumber adc)", final_source == "adc")])
+            ("rec=0", st["rekam"] == "0"),
+            ("back to ADC (status source adc)", final_source == "adc")])
 
         b.kirim("T2", 1.5)
         o = b.kirim("r", 1.0); st = b.status()
         b.kirim("T3", 1.5); m0 = b.status()["menu"]
         periksa("e. menu open -> r rejected", [
             ("'REC rejected: close the menu first'", ada(o, r"REC rejected: close the menu first")),
-            ("rekam=0, menu 1", st["rekam"] == "0" and st["menu"] == "1"),
+            ("rec=0, menu 1", st["rekam"] == "0" and st["menu"] == "1"),
             ("menu closed again", m0 == "0")])
     finally:
         st = b.status()

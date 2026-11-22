@@ -358,12 +358,15 @@ uint32_t ecg_mqtt_rtt_slow(void) { return rtt_slow; }
 
 int ecg_mqtt_rssi(void) { return WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0; }
 
-const char *ecg_mqtt_status(void)
+static const char *status_name(const char *off, const char *no_clock)
 {
-    if (!active) return "mati";
+    if (!active) return off;
     if (WiFi.status() != WL_CONNECTED) return "no-wifi";
     if (!is_connected) return "no-broker";
-    if (!ts_base_ms) return "tunggu-jam";
+    if (!ts_base_ms) return no_clock;
     return "online";
 }
+
+const char *ecg_mqtt_status(void) { return status_name("mati", "tunggu-jam"); }
+const char *ecg_mqtt_status_serial(void) { return status_name("off", "no-clock"); }
 #endif

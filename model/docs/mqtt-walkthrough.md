@@ -100,7 +100,7 @@ contact …/60 s` every 5 seconds.
 
 After the monitoring phase begins, the phase alternates between `good` and `poor` every
 second according to contact (LO±, swing, hum), without waiting for a beat and without
-repeating the warm-up; serial prints `kualitas: good -> poor (leadoff …, swing …,
+repeating the warm-up; serial prints `quality: good -> poor (leadoff …, swing …,
 hum …)` and the reverse. Swing alone is not enough: in the morning session of 22 Oct 2026
 swing stayed ≥ 1,400 and 97–100% of RR was plausible while hum spiked to 2,800
 and LO recorded the electrode as detached 41–62% per file. The hum threshold of 500 sits
@@ -158,7 +158,7 @@ ADC path (`GATE SKIPPED (bench)`), but does not skip contact (LO±,
 swing, hum). Without electrodes LO is 1, so `k` no longer opens the
 gate for ADC noise; bench tests without electrodes use replay. `k` OFF calls `gate_begin_session()` so that the phase returns to `calibrating` with the full
 gate, including when the phase is already `good`. The `k` status is read in the status line
-(`lewati 0/1`, §4.4).
+(`skip 0/1`, §4.4).
 
 The gate tests in force (replay, bad contact, good contact) are in §3.1c.
 
@@ -245,7 +245,7 @@ Detection runs every 1 second over a 4-second ring, so several beats come out
 bunched in the same millisecond; `millis()` at output makes the dashboard
 show beats crowded together and then idle (measured: minimum gap between `ts` values
 28 ms, while the shortest RR is ~200 ms). As a consequence, samples lost in
-the queue shift `ts` by the lost duration, which is why `sampel hilang`
+the queue shift `ts` by the lost duration, which is why `missed`
 is also reported in the `s` line.
 If `ts` were taken at send time, the whole backlog would pile up in one second and the
 dashboard graph would lie, and worse, the `smoke_test.py` dedup test
@@ -313,7 +313,7 @@ The epoch ms when `millis() == 0`, computed once as soon as SNTP arrives
 (`tv_sec ≥ 1.700.000.000`). `gettimeofday()` is used, not `time()`: the resolution of
 `time()` is one second and its rounding becomes a systematic error in every `ts`
 (§7b bug 6). Once `ts_base_ms` is known, each beat only needs to store the relative time
-`ms` (4 bytes) and its time is reconstructed when the payload is assembled. Without a correct clock, `ecg_mqtt_status()` reports `tunggu-jam` and the
+`ms` (4 bytes) and its time is reconstructed when the payload is assembled. Without a correct clock, the MQTT status is `tunggu-jam` on the menu (`no-clock` in `s`) and the
 backlog **waits**, deliberately not sending with a wrong ts.
 
 ---
@@ -379,8 +379,8 @@ Prerequisites: the broker is up (`docker compose up -d` in `dashboard/`) and
 | 1 | boot, wait | `mqtt: WiFi "…" -> 192.168.x.x:1883`, then `mqtt: clock synced, epoch_ms …` and `mqtt connected, backlog 0 beats` |
 | 2 | press `m` (if not yet ON) | `wifi ON (saved)` |
 | 3 | press `y`, or the menu **Sumber sinyal → REPLAY 208** (Signal source → REPLAY 208) | `replay ON (golden_raw)`; yellow `RP 208` in the top right corner of the screen |
-| 4 | wait ~7 seconds | `kualitas: calibrating -> good (GATE SKIPPED (replay), …)`, then `beat …` lines start to appear |
-| 5 | press `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
+| 4 | wait ~7 seconds | `quality: calibrating -> good (GATE SKIPPED (replay), …)`, then `beat …` lines start to appear |
+| 5 | press `s` | `mqtt online \| sent N \| backlog 0/27000 …` |
 | 6 | open `http://localhost:8080` | telemetry arrives on the dashboard |
 
 **Why replay passes the contact gate without special treatment on the publication path:** its swing is
@@ -396,37 +396,38 @@ used.
 Format (three lines; example numbers, `<…>` = fill-in):
 
 ```
-status: rekam=0 n=0 | replay=1 | kualitas good | beat 44 (12 aritmia, 3 ditahan) | antrean 2 |
-        sampel hilang 0 (tick 0) | LO 1 1 | mentah 1204..3550 ayun 2701 clipping 0
-        mqtt online | terkirim 41 | backlog 0/27000 | hilang 0 | gagal 0 |
-        paket <ack>/<kirim> PDSR <x>% | tunda alat rata <ms> ms maks <ms> ms |
-        RTT maks <ms> ms (lambat <n>) | RSSI <dBm> dBm | epoch_ms <epoch>
-        INA219 I=<mA> mA V=<V> V P=<mW> mW | bisu 0 | beku 0 | lewati 0 | daya -1 |
-        sumber acuan 0 | menu 0 | jeda 0
+status: rec=0 n=0 | replay=1 | quality good | beat 44 (12 arrhythmia, 3 withheld) | queue 2 |
+        missed 0 (tick 0) | LO 1 1 | raw 1204..3550 swing 2701 clipping 0
+        mqtt online | sent 41 | backlog 0/27000 | lost 0 | failed 0 |
+        packets <ack>/<sent> PDSR <x>% | device delay avg <ms> ms max <ms> ms |
+        RTT max <ms> ms (slow <n>) | RSSI <dBm> dBm | epoch_ms <epoch>
+        INA219 I=<mA> mA V=<V> V P=<mW> mW | mute 0 | freeze 0 | skip 0 | power -1 |
+        source reference 0 | menu 0 | pause 0
 ```
 
 | Column | Meaning |
 |---|---|
-| `kualitas` | phase: `calibrating`, `good`, or `poor` |
-| `ditahan` | beats deliberately NOT published (phase is not `good` / beat timeout) |
+| `quality` | phase: `calibrating`, `good`, or `poor` |
+| `withheld` | beats deliberately NOT published (phase is not `good` / beat timeout) |
 | `backlog` | beats waiting in the ring / ring capacity; non-zero = the broker is currently unreachable |
-| `hilang` | ring full, oldest beat dropped; the outage exceeded the ring capacity (27,000 beats ≈ 4–7 hours; 64 beats if PSRAM failed) |
-| `gagal` | PUBACK did not arrive / did not match, or the packet was not fully written |
-| `paket … PDSR` | packets with PUBACK / PUBLISH packets; PDSR is counted per packet, not per beat |
-| `tunda alat` | from the beat OCCURRING until its packet enters the ring (§7c) |
-| `RTT maks (lambat)` | the worst PUBACK RTT, and how many times it was > 1 second |
+| `lost` | ring full, oldest beat dropped; the outage exceeded the ring capacity (27,000 beats ≈ 4–7 hours; 64 beats if PSRAM failed) |
+| `failed` | PUBACK did not arrive / did not match, or the packet was not fully written |
+| `packets … PDSR` | packets with PUBACK / PUBLISH packets; PDSR is counted per packet, not per beat |
+| `device delay` | from the beat OCCURRING until its packet enters the ring (§7c) |
+| `RTT max (slow)` | the worst PUBACK RTT, and how many times it was > 1 second |
 | `RSSI` | WiFi signal strength |
 | `epoch_ms` | the board clock; used by the measuring tool on the laptop to correct the clock offset |
-| `lewati` | the `k` override is active (1) or not (0); replay does not change it |
-| `daya` | power measurement ladder step `p0`–`p5`, or `-1` = normal operation ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d) |
-| `sumber` | `adc`, `acuan` (golden 208), or `rekaman` followed by the file number (0 if not a recording replay) |
+| `skip` | the `k` override is active (1) or not (0); replay does not change it |
+| `power` | power measurement ladder step `p0`–`p5`, or `-1` = normal operation ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d) |
+| `source` | `adc`, `reference` (golden 208), or `recording` followed by the file number (0 if not a recording replay) |
 | `menu` | the on-screen menu is open (1) or not (0) |
-| `jeda` | the recording is paused (1) or not (0); `rekam=1` while a recording session is open, including while paused |
+| `pause` | the recording is paused (1) or not (0); `rec=1` while a recording session is open, including while paused |
 
-`mqtt` can contain: `mati` (toggle `m` off or no credentials), `no-wifi`,
-`no-broker`, `tunggu-jam` (SNTP not yet arrived), `online`.
+`mqtt` can contain: `off` (toggle `m` off or no credentials), `no-wifi`,
+`no-broker`, `no-clock` (SNTP not yet arrived), `online`. The menu status page
+shows `mati` and `tunggu-jam` for `off` and `no-clock`.
 
-**Loss accounting:** `beat_total − ditahan = terkirim + backlog + hilang`.
+**Loss accounting:** `beat_total − withheld = sent + backlog + lost`.
 That identity is what makes the resilience test measurable, and it only holds
 because the replay is **deterministic**: 11 beats per 6.67-second loop, already measured
 on the board ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5c, "Terukur di board" (Measured on the board)).
@@ -715,7 +716,7 @@ Playwright, 2-minute Realtime window).
 
 ### Latency broken down
 
-`tunda alat` (beat OCCURS → beat enters the ring in `publish()`; with an empty backlog,
+`device delay` in `s` (beat OCCURS → beat enters the ring in `publish()`; with an empty backlog,
 the ring is drained in ≤ 20 ms) is counted by the firmware and is **stable across 7
 measurements**: 887 / 880 / 879 / 878 / 876 / 870 / **869 ms**
 (max 1,353 ms).
