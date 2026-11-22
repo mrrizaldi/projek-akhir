@@ -105,6 +105,7 @@ atau diekstrak.
 | "PCB", "skematik KiCad", "routing", "Freerouting", berkas KiCad dari teman | `kicad-pcb-pa` (memuat `kicad-mcp-pcb`) |
 | "tambah bab/subbab", "abstrak", "Bab 4/Bab 5", "pasang gambar", "QA sebelum kumpul" | `struktur-pa` |
 | "buat tabel", "rapikan tabel", tabel hasil Bab 4 | `tabel-pa` |
+| "dokumentasikan fitur", "update docs", halaman `docs/features`, setelah fitur firmware/model berubah | `feature-docs` |
 | menulis atau menyunting kode (C/C++, Python, shell, `platformio.ini`), prompt ke subagen penulis kode | `tanpa-komentar-kode` (memuat `no-code-comments`) |
 | "indeks rujukan", "daftar bukti", dokumen dengan tautan ke berkas lokal | skill user `local-file-links` (PA: indeks rujukan di `laporan/pustaka/`, daftar bukti dari `model/artifacts`) |
 | "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` (memuat `indonesian-antislop-writing`) |

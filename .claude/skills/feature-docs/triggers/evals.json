@@ -1,0 +1,82 @@
+[
+  {
+    "query": "dokumentasikan fitur kalibrasi gerbang di docs/features",
+    "should_trigger": true
+  },
+  {
+    "query": "update docs setelah saya ubah ambang di gate.h",
+    "should_trigger": true
+  },
+  {
+    "query": "document this feature: the new serial command for recording",
+    "should_trigger": true
+  },
+  {
+    "query": "docs-nya diupdate, pointer file:line di halaman recording sudah geser",
+    "should_trigger": true
+  },
+  {
+    "query": "write a docs/features page for the MQTT beat queue",
+    "should_trigger": true
+  },
+  {
+    "query": "tambah halaman fitur untuk menu Sumber sinyal",
+    "should_trigger": true
+  },
+  {
+    "query": "the pointers in docs/features/calibration-gate.md are stale after the refactor, fix them",
+    "should_trigger": true
+  },
+  {
+    "query": "buat diagram Mermaid alur ecg_live_push untuk halaman fitur",
+    "should_trigger": true
+  },
+  {
+    "query": "translate the leftover Indonesian docs/features page to English",
+    "should_trigger": true
+  },
+  {
+    "query": "dokumentasikan tahap quantize di model setelah saya ganti skripnya",
+    "should_trigger": true
+  },
+  {
+    "query": "tambah komentar di gate.cpp supaya jelas",
+    "should_trigger": false
+  },
+  {
+    "query": "rapikan tabel Bab 4 di buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "tulis ulang paragraf Bab 3 biar tidak AI slop",
+    "should_trigger": false
+  },
+  {
+    "query": "build and flash the firmware to the board",
+    "should_trigger": false
+  },
+  {
+    "query": "bikin diagram arsitektur untuk laporan buku-pa",
+    "should_trigger": false
+  },
+  {
+    "query": "add a buffer limit to the recorder",
+    "should_trigger": false
+  },
+  {
+    "query": "update the proposal abstract to match the book",
+    "should_trigger": false
+  },
+  {
+    "query": "jalankan pio test -e native dan tunjukkan hasilnya",
+    "should_trigger": false
+  },
+  {
+    "query": "route the PCB with Freerouting",
+    "should_trigger": false
+  },
+  {
+    "query": "commit perubahan ini dan push ke remote",
+    "should_trigger": false
+  }
+]
