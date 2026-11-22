@@ -123,14 +123,14 @@ diag_result_t diag_adc(void)
 
 diag_result_t diag_ina219(void)
 {
-    if (!ina219_mulai(I2C_SDA, I2C_SCL))
-        return result(false, "INA219 0x%02X tidak menjawab (SDA%d SCL%d)", INA219_ALAMAT, I2C_SDA, I2C_SCL);
+    if (!ina219_begin(I2C_SDA, I2C_SCL))
+        return result(false, "INA219 0x%02X tidak menjawab (SDA%d SCL%d)", INA219_ADDRESS, I2C_SDA, I2C_SCL);
     delay(WAIT_AVERAGE_INA219_MS);
 
     float mA = 0, V = 0;
     uint16_t sh, bus;
-    if (!ina219_baca(R_SHUNT, &mA, &V) || !ina219_baca_reg(INA219_REG_SHUNT, &sh)
-        || !ina219_baca_reg(INA219_REG_BUS, &bus))
+    if (!ina219_read(R_SHUNT, &mA, &V) || !ina219_read_reg(INA219_REG_SHUNT, &sh)
+        || !ina219_read_reg(INA219_REG_BUS, &bus))
         return result(false, "INA219 baca register gagal");
     Serial.printf("INA219 mentah: shunt 0x%04X (%d x 10 uV) | bus 0x%04X, CNVR %d OVF %d\n",
                   sh, (int16_t)sh, bus, (bus >> 1) & 1, bus & 1);
@@ -140,8 +140,8 @@ diag_result_t diag_ina219(void)
         return result(false, "INA219 di luar rentang V=%d mV I=%dmA", mV, iA);
     if (V < V_BUS_SUPPLY_MIN)
         return result(true, "INA219 0x%02X ok V=%d,%02d I=-- bus<1V:bukan jalur catu",
-                     INA219_ALAMAT, mV / 1000, (mV % 1000) / 10);
-    return result(true, "INA219 0x%02X ok V=%d,%02d I=%dmA", INA219_ALAMAT, mV / 1000,
+                     INA219_ADDRESS, mV / 1000, (mV % 1000) / 10);
+    return result(true, "INA219 0x%02X ok V=%d,%02d I=%dmA", INA219_ADDRESS, mV / 1000,
                  (mV % 1000) / 10, iA);
 }
 

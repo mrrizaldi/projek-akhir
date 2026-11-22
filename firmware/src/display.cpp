@@ -57,7 +57,7 @@ static void schedule_beep(const ecg_beat_t &b, bool arrhythmia)
 
 static void run_schedule()
 {
-    const uint32_t current = (uint32_t)ecg_live_total_sampel();
+    const uint32_t current = (uint32_t)ecg_live_total_sample();
     while (j_fill && (int32_t)(current - schedule[j_head].sample) >= 0) {
         const uint16_t ms = schedule[j_head].ms;
         j_head = (j_head + 1) % SCHEDULE_N;
@@ -107,7 +107,7 @@ static void plot(float f)
 void display_sample(void)
 {
     run_schedule();
-    plot(delayed(ecg_live_tersaring_terakhir()));
+    plot(delayed(ecg_live_filtered_last()));
 }
 
 void display_beat(const ecg_beat_t &beat, bool arrhythmia)
@@ -198,7 +198,7 @@ static void draw_middle()
 
     if ((millis() / 3000) % 2 == 0) {
         float mA = 0, V = 0;
-        const bool ok = power_ina_present() && ina219_baca(R_SHUNT, &mA, &V);
+        const bool ok = power_ina_present() && ina219_read(R_SHUNT, &mA, &V);
         w = ok ? ST77XX_CYAN : ST77XX_RED;
         if (ok) {
             snprintf(large, sizeof large, "%4.0fmA", mA);

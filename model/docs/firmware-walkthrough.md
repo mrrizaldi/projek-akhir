@@ -71,7 +71,7 @@ Header GENERATED tidak memuat komentar; isinya dibaca dari sini:
 |---|---|
 | `ECG_N_RR` | Didefinisikan di `model_int8.h` dan `ecg_preproc.h`, keduanya di balik `#ifndef` supaya tidak bentrok |
 | `ECG_N_RR_DASAR`, `ECG_RR_RATIO`, `ECG_QRSW` | Bentuk fitur ritme (Fase D): jumlah kolom RR saja (tanpa QRSw/HOS) dan knob `PA_RR_RATIO`/`PA_QRSW` |
-| `ECG_R_IN_WINDOW`, `ECG_QRSW_CARI` | Posisi R di window (`WIN_PRE` + group delay) dan toleransi cari puncak ±4 untuk `ecg_qrs_lebar()` |
+| `ECG_R_IN_WINDOW`, `ECG_QRSW_CARI` | Posisi R di window (`WIN_PRE` + group delay) dan toleransi cari puncak ±4 untuk `ecg_qrs_width()` |
 | `ECG_PT_OFFSET`, `ECG_PT_REFINE`, `ECG_GROUP_DELAY` | Penyelarasan R-peak, urutan wajib `r - ECG_PT_OFFSET` → puncak dalam ±`ECG_PT_REFINE` → `- ECG_GROUP_DELAY` (§2 `ecg_align_r`) |
 | `ecg_sos`, `ECG_N_SOS` | Butterworth 0,5-40 Hz orde 4, `{b0, b1, b2, a0, a1, a2}` per baris; kausal, group delay +4 sampel dibiarkan |
 | `ECG_IN_*_SCALE/ZERO`, `ECG_OUT_*` | Kuantisasi affine: `q = round(x / scale) + zero_point`, `x = (q - zero_point) * scale` |
@@ -159,7 +159,7 @@ Hasilnya menaruh R di indeks **94** dalam window, sama seperti window training.
 Meleset 4 sampel ke arah mana pun dan precision jatuh dari 0,479 ke 0,124 —
 angkanya diukur di [Fase 6b](segmentasi-deteksi-walkthrough.md) §2.
 
-Test `test_align_r_menaruh_puncak_di_r_idx` menjaganya sebagai sifat, bukan
+Test `test_align_r_puts_peak_at_r_idx` menjaganya sebagai sifat, bukan
 sebagai angka: dia memotong window dari hasil `ecg_align_r` lalu memastikan
 puncaknya mendarat di `R_IDX = ECG_WIN_PRE + ECG_GROUP_DELAY`. Pencariannya
 dibatasi ±20 di sekitar `R_IDX` — `argmax` global tidak bisa dipakai karena
@@ -185,7 +185,7 @@ selisih terukur pada tahap bandpass: 2,09e-4  (amplitudo ~0,4)
 
 Bukan bug — yang haram adalah beda **sistematis**: geseran indeks, koefisien
 tertukar, `a0` ikut terbaca. Karena itu toleransi tidak sekadar dilonggarkan;
-`test_pipeline_utuh` menjalankan mentah → bandpass → z-score seluruhnya di C
+`test_pipeline_whole` menjalankan mentah → bandpass → z-score seluruhnya di C
 lalu membandingkan ke window golden — dan lolos.
 
 Alasannya elegan: **z-score membagi dengan simpangan baku**, jadi pergeseran
@@ -280,7 +280,7 @@ Menggabungkan semua yang sudah terverifikasi jadi satu jalur: sampel ADC masuk
 satu per satu, beat siap-klasifikasi keluar.
 
 ```c
-int ecg_live_push(float sampel_mentah, ecg_beat_t *beat);
+int ecg_live_push(float sample_raw, ecg_beat_t *beat);
 ```
 
 Di dalamnya:
@@ -349,7 +349,7 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
    (atau rp_data[] saat replay)               ├─ nilai_fase (gerbang kalibrasi)
                                               ├─ inferensi tiap beat (fase pemantauan)
                                               ├─ publikasi → ring backlog MQTT
-                                              ├─ ecg_mqtt_layani (non-blocking)
+                                              ├─ ecg_mqtt_service (non-blocking)
                                               ├─ LED kualitas sinyal (biru/oranye/hijau)
                                               ├─ TFT: HR, INA219 ⇄ jam, REC/JEDA/replay, gelombang
                                               ├─ buzzer: bip per detak (terjadwal, senyap saat kalibrasi)

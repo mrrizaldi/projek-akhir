@@ -15,13 +15,13 @@ static ecg_mqtt_beat_t beat(uint32_t ms, int label)
     return b;
 }
 
-#define UJI_KAP 8
-static ecg_mqtt_beat_t ring_uji[UJI_KAP];
+#define TEST_CAP 8
+static ecg_mqtt_beat_t ring_test[TEST_CAP];
 
-void setUp(void) { ecg_mqtt_antre_pasang(ring_uji, UJI_KAP); }
+void setUp(void) { ecg_mqtt_queue_attach(ring_test, TEST_CAP); }
 void tearDown(void) {}
 
-static void test_payload_tunggal(void)
+static void test_payload_single(void)
 {
     char buf[512];
     ecg_mqtt_beat_t b = beat(500, 1);
@@ -49,68 +49,68 @@ static void test_payload_batch_array(void)
     TEST_ASSERT_NOT_NULL(strstr(buf, "\"ts\":1300"));
 }
 
-static void test_payload_buffer_kurang(void)
+static void test_payload_buffer_short(void)
 {
     char buf[40];
     ecg_mqtt_beat_t b = beat(0, 0);
     TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_payload(buf, sizeof buf, &b, 1, 0));
 }
 
-static void test_antre_fifo(void)
+static void test_queue_fifo(void)
 {
-    for (uint32_t i = 0; i < 5; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_antre_isi(&b); }
-    TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_antre_n());
+    for (uint32_t i = 0; i < 5; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_queue_fill(&b); }
+    TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_queue_n());
 
-    ecg_mqtt_beat_t keluar[3];
-    TEST_ASSERT_EQUAL_size_t(3, ecg_mqtt_antre_intip(keluar, 3));
-    TEST_ASSERT_EQUAL_UINT32(0, keluar[0].ms);
-    TEST_ASSERT_EQUAL_UINT32(2, keluar[2].ms);
-    TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_antre_n());
+    ecg_mqtt_beat_t out[3];
+    TEST_ASSERT_EQUAL_size_t(3, ecg_mqtt_queue_peek(out, 3));
+    TEST_ASSERT_EQUAL_UINT32(0, out[0].ms);
+    TEST_ASSERT_EQUAL_UINT32(2, out[2].ms);
+    TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_queue_n());
 
-    ecg_mqtt_antre_buang(3);
-    TEST_ASSERT_EQUAL_size_t(2, ecg_mqtt_antre_n());
-    ecg_mqtt_antre_intip(keluar, 1);
-    TEST_ASSERT_EQUAL_UINT32(3, keluar[0].ms);
+    ecg_mqtt_queue_drop(3);
+    TEST_ASSERT_EQUAL_size_t(2, ecg_mqtt_queue_n());
+    ecg_mqtt_queue_peek(out, 1);
+    TEST_ASSERT_EQUAL_UINT32(3, out[0].ms);
 }
 
-static void test_antre_penuh_buang_tertua(void)
+static void test_queue_full_drops_oldest(void)
 {
-    for (uint32_t i = 0; i < UJI_KAP + 5; i++) {
+    for (uint32_t i = 0; i < TEST_CAP + 5; i++) {
         ecg_mqtt_beat_t b = beat(i, 0);
-        ecg_mqtt_antre_isi(&b);
+        ecg_mqtt_queue_fill(&b);
     }
-    TEST_ASSERT_EQUAL_size_t(UJI_KAP, ecg_mqtt_antre_n());
-    TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_antre_hilang());
+    TEST_ASSERT_EQUAL_size_t(TEST_CAP, ecg_mqtt_queue_n());
+    TEST_ASSERT_EQUAL_size_t(5, ecg_mqtt_queue_lost());
 
-    ecg_mqtt_beat_t keluar[1];
-    ecg_mqtt_antre_intip(keluar, 1);
-    TEST_ASSERT_EQUAL_UINT32(5, keluar[0].ms);
+    ecg_mqtt_beat_t out[1];
+    ecg_mqtt_queue_peek(out, 1);
+    TEST_ASSERT_EQUAL_UINT32(5, out[0].ms);
 }
 
-static void test_antre_pasang_kapasitas(void)
+static void test_queue_attach_capacity(void)
 {
-    TEST_ASSERT_EQUAL_size_t(UJI_KAP, ecg_mqtt_antre_kapasitas());
+    TEST_ASSERT_EQUAL_size_t(TEST_CAP, ecg_mqtt_queue_capacity());
 
     static ecg_mqtt_beat_t large[100];
-    ecg_mqtt_antre_pasang(large, 100);
-    TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_kapasitas());
-    for (uint32_t i = 0; i < 100; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_antre_isi(&b); }
-    TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_antre_n());
-    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_hilang());
+    ecg_mqtt_queue_attach(large, 100);
+    TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_queue_capacity());
+    for (uint32_t i = 0; i < 100; i++) { ecg_mqtt_beat_t b = beat(i, 0); ecg_mqtt_queue_fill(&b); }
+    TEST_ASSERT_EQUAL_size_t(100, ecg_mqtt_queue_n());
+    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_queue_lost());
 
-    ecg_mqtt_antre_pasang(NULL, 0);
-    TEST_ASSERT_EQUAL_size_t(ECG_MQTT_ANTRE_MIN, ecg_mqtt_antre_kapasitas());
-    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_antre_n());
+    ecg_mqtt_queue_attach(NULL, 0);
+    TEST_ASSERT_EQUAL_size_t(ECG_MQTT_QUEUE_MIN, ecg_mqtt_queue_capacity());
+    TEST_ASSERT_EQUAL_size_t(0, ecg_mqtt_queue_n());
 }
 
 int main(int, char **)
 {
     UNITY_BEGIN();
-    RUN_TEST(test_payload_tunggal);
+    RUN_TEST(test_payload_single);
     RUN_TEST(test_payload_batch_array);
-    RUN_TEST(test_payload_buffer_kurang);
-    RUN_TEST(test_antre_fifo);
-    RUN_TEST(test_antre_penuh_buang_tertua);
-    RUN_TEST(test_antre_pasang_kapasitas);
+    RUN_TEST(test_payload_buffer_short);
+    RUN_TEST(test_queue_fifo);
+    RUN_TEST(test_queue_full_drops_oldest);
+    RUN_TEST(test_queue_attach_capacity);
     return UNITY_END();
 }

@@ -120,7 +120,7 @@ void gate_assess_quality(float raw)
     static float g1, g2;
     static const float coef = 2.0f * cosf(2.0f * (float)M_PI * FREQUENCY_MAINS_HZ / ECG_FS);
 
-    const float f = ecg_live_tersaring_terakhir();
+    const float f = ecg_live_filtered_last();
     const int m = (int)raw;
     if (n == 0) { f_min = f_max = f; m_min = m_max = m; g1 = g2 = 0.0f; n_leadoff = 0; }
     if (digitalRead(PIN_LOP) || digitalRead(PIN_LON)) n_leadoff++;

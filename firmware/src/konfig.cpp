@@ -9,7 +9,7 @@
 #include "recorder.h"
 
 struct wifi_t { const char *ssid, *pass; };
-struct broker_t { const char *nama, *host; uint16_t port; const char *token; };
+struct broker_t { const char *name, *host; uint16_t port; const char *token; };
 
 #if __has_include("wifi_secrets.h")
 #include "wifi_secrets.h"
@@ -58,9 +58,9 @@ static void terapkan()
 {
     const wifi_t &w = WIFI[i_wifi];
     const broker_t &b = BROKER[i_broker];
-    ecg_mqtt_atur(w.ssid, w.pass, b.host, b.port, b.token);
+    ecg_mqtt_configure(w.ssid, w.pass, b.host, b.port, b.token);
     Serial.printf("konfig: wifi %d/%d \"%s\" %s | broker %d/%d %s (%s:%u)\n",
-                  i_wifi, N_WIFI, w.ssid, wifi_aktif ? "ON" : "OFF", i_broker, N_BROKER, b.nama,
+                  i_wifi, N_WIFI, w.ssid, wifi_aktif ? "ON" : "OFF", i_broker, N_BROKER, b.name,
                   b.host, (unsigned)b.port);
 }
 
@@ -75,8 +75,8 @@ void konfig_mulai(void)
     source_recording = p.getUShort("rekam", 0);
     p.end();
     terapkan();
-    if (wifi_aktif) ecg_mqtt_mulai();
-    else ecg_mqtt_set_aktif(0);
+    if (wifi_aktif) ecg_mqtt_begin();
+    else ecg_mqtt_set_active(0);
 }
 
 int konfig_wifi_n(void) { return N_WIFI; }
@@ -84,7 +84,7 @@ const char *konfig_wifi_nama(int i) { return i >= 0 && i < N_WIFI ? WIFI[i].ssid
 int konfig_wifi(void) { return i_wifi; }
 
 int konfig_broker_n(void) { return N_BROKER; }
-const char *konfig_broker_nama(int i) { return i >= 0 && i < N_BROKER ? BROKER[i].nama : ""; }
+const char *konfig_broker_nama(int i) { return i >= 0 && i < N_BROKER ? BROKER[i].name : ""; }
 const char *konfig_broker_host(int i) { return i >= 0 && i < N_BROKER ? BROKER[i].host : ""; }
 int konfig_broker_port(int i) { return i >= 0 && i < N_BROKER ? BROKER[i].port : 0; }
 int konfig_broker(void) { return i_broker; }
@@ -95,7 +95,7 @@ bool konfig_pilih_wifi(int i)
     i_wifi = i;
     tulis("wifi", i);
     terapkan();
-    if (wifi_aktif) ecg_mqtt_mulai();
+    if (wifi_aktif) ecg_mqtt_begin();
     return true;
 }
 
@@ -108,10 +108,10 @@ bool konfig_set_wifi_aktif(bool on)
     tulis("wifimati", !on);
     if (on) {
         esp_wifi_start();
-        ecg_mqtt_mulai();
-        ecg_mqtt_set_aktif(1);
+        ecg_mqtt_begin();
+        ecg_mqtt_set_active(1);
     } else {
-        ecg_mqtt_set_aktif(0);
+        ecg_mqtt_set_active(0);
         esp_wifi_stop();
     }
     Serial.printf("wifi %s (tersimpan)\n", on ? "ON" : "OFF");

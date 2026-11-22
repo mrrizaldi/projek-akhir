@@ -2,14 +2,14 @@
 
 #include <math.h>
 
-constexpr int KOEF_PER_SOS = 6;
+constexpr int COEF_PER_SOS = 6;
 
 void ecg_bandpass(const float *in, float *out, size_t n, float *state)
 {
     for (size_t i = 0; i < n; i++) {
         float x = in[i];
         for (int k = 0; k < ECG_N_SOS; k++) {
-            const float *c = &ecg_sos[k * KOEF_PER_SOS];
+            const float *c = &ecg_sos[k * COEF_PER_SOS];
             float *s = &state[k * 2];
             float y = c[0] * x + s[0];
             s[0] = c[1] * x - c[4] * y + s[1];
@@ -28,18 +28,18 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out)
     }
     const float *w = filtered + start;
 
-    double jumlah = 0.0;
+    double total = 0.0;
     for (int i = 0; i < ECG_WIN_LEN_; i++) {
-        jumlah += w[i];
+        total += w[i];
     }
-    const double mean = jumlah / ECG_WIN_LEN_;
+    const double mean = total / ECG_WIN_LEN_;
 
-    double kuadrat = 0.0;
+    double squares = 0.0;
     for (int i = 0; i < ECG_WIN_LEN_; i++) {
         const double d = w[i] - mean;
-        kuadrat += d * d;
+        squares += d * d;
     }
-    const double std_pop = sqrt(kuadrat / ECG_WIN_LEN_);
+    const double std_pop = sqrt(squares / ECG_WIN_LEN_);
 
     for (int i = 0; i < ECG_WIN_LEN_; i++) {
         out[i] = (float)((w[i] - mean) / (std_pop + ECG_ZSCORE_EPS));
@@ -60,15 +60,15 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_
 
     const size_t j = i - 1;
     const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
-    double jumlah = 0.0, jumlah2 = 0.0;
+    double total = 0.0, total2 = 0.0;
     for (size_t k = start; k <= j; k++) {
         const double d = (r[k + 1] - r[k]) * dt;
-        jumlah += d;
-        jumlah2 += d * d;
+        total += d;
+        total2 += d * d;
     }
     const double n = (double)(j - start + 1);
-    const double avg = jumlah / n;
-    double var = jumlah2 / n - avg * avg;
+    const double avg = total / n;
+    double var = total2 / n - avg * avg;
     if (var < 0.0) var = 0.0;
     const double sd = sqrt(var);
 
@@ -83,25 +83,25 @@ int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_
     }
     const double dt = 1.0 / (double)fs;
     const double rr_prev = (r[i] - r[i - 1]) * dt;
-    const double rr_sebelumnya = (r[i - 1] - r[i - 2]) * dt;
+    const double rr_before = (r[i - 1] - r[i - 2]) * dt;
 
     const size_t j = i - 1;
     const size_t start = (j >= ECG_RR_LOCAL_WINDOW - 1) ? j - (ECG_RR_LOCAL_WINDOW - 1) : 0;
-    double jumlah = 0.0;
+    double total = 0.0;
     for (size_t k = start; k <= j; k++) {
-        jumlah += (r[k + 1] - r[k]) * dt;
+        total += (r[k + 1] - r[k]) * dt;
     }
-    const double rata_lokal = jumlah / (double)(j - start + 1);
+    const double local_mean = total / (double)(j - start + 1);
 
     out[0] = (float)rr_prev;
-    out[1] = (float)(rr_prev / rata_lokal);
-    out[2] = (float)(rr_prev - rr_sebelumnya);
+    out[1] = (float)(rr_prev / local_mean);
+    out[2] = (float)(rr_prev - rr_before);
     return 1;
 #endif
 }
 
 #if ECG_QRSW
-float ecg_qrs_lebar(const float *window, float frac)
+float ecg_qrs_width(const float *window, float frac)
 {
     int lo = ECG_R_IN_WINDOW - ECG_QRSW_CARI;
     int hi = ECG_R_IN_WINDOW + ECG_QRSW_CARI;
@@ -112,34 +112,34 @@ float ecg_qrs_lebar(const float *window, float frac)
     for (int i = lo + 1; i <= hi; i++) {
         if (window[i] > window[ip]) ip = i;
     }
-    const float ambang = frac * window[ip];
+    const float threshold = frac * window[ip];
 
-    int kiri = 0;
+    int left = 0;
     for (int i = ip - 1; i >= 0; i--) {
-        if (window[i] < ambang) { kiri = i; break; }
+        if (window[i] < threshold) { left = i; break; }
     }
-    int kanan = ECG_WIN_LEN_ - 1;
+    int right = ECG_WIN_LEN_ - 1;
     for (int i = ip + 1; i < ECG_WIN_LEN_; i++) {
-        if (window[i] < ambang) { kanan = i; break; }
+        if (window[i] < threshold) { right = i; break; }
     }
-    return (float)(kanan - kiri);
+    return (float)(right - left);
 }
 
-int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat,
+int ecg_qrs_width_features(const float *window, float *history, size_t n_history,
                            float out[2])
 {
     const float frac[2] = {0.5f, 0.25f};
     for (int c = 0; c < 2; c++) {
-        const float lebar = ecg_qrs_lebar(window, frac[c]);
-        float *buf = riwayat + c * ECG_RR_LOCAL_WINDOW;
-        const size_t slot = n_riwayat % ECG_RR_LOCAL_WINDOW;
-        buf[slot] = lebar;
-        const size_t n = (n_riwayat + 1 < ECG_RR_LOCAL_WINDOW)
-                       ? n_riwayat + 1 : ECG_RR_LOCAL_WINDOW;
-        double jumlah = 0.0;
-        for (size_t k = 0; k < n; k++) jumlah += buf[k];
-        const double rerata = jumlah / (double)n;
-        out[c] = (float)(lebar / (rerata > 1e-8 ? rerata : 1e-8));
+        const float width = ecg_qrs_width(window, frac[c]);
+        float *buf = history + c * ECG_RR_LOCAL_WINDOW;
+        const size_t slot = n_history % ECG_RR_LOCAL_WINDOW;
+        buf[slot] = width;
+        const size_t n = (n_history + 1 < ECG_RR_LOCAL_WINDOW)
+                       ? n_history + 1 : ECG_RR_LOCAL_WINDOW;
+        double total = 0.0;
+        for (size_t k = 0; k < n; k++) total += buf[k];
+        const double mean_value = total / (double)n;
+        out[c] = (float)(width / (mean_value > 1e-8 ? mean_value : 1e-8));
     }
     return 1;
 }
@@ -151,7 +151,7 @@ static void pt_bandpass(const float *in, float *out, size_t n)
     for (size_t i = 0; i < n; i++) {
         float x = in[i];
         for (int k = 0; k < ECG_PT_N_SOS; k++) {
-            const float *c = &ecg_pt_sos[k * KOEF_PER_SOS];
+            const float *c = &ecg_pt_sos[k * COEF_PER_SOS];
             float *s = &state[k * 2];
             const float y = c[0] * x + s[0];
             s[0] = c[1] * x - c[4] * y + s[1];
@@ -164,11 +164,11 @@ static void pt_bandpass(const float *in, float *out, size_t n)
 
 static void pt_derivative(float *x, size_t n)
 {
-    const float skala = (float)ECG_FS / 8.0f;
+    const float scale = (float)ECG_FS / 8.0f;
     float h[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     for (size_t i = 0; i < n; i++) {
         const float xi = x[i];
-        x[i] = (xi + 2.0f * h[0] - 2.0f * h[2] - h[3]) * skala;
+        x[i] = (xi + 2.0f * h[0] - 2.0f * h[2] - h[3]) * scale;
         h[3] = h[2];
         h[2] = h[1];
         h[1] = h[0];
@@ -179,18 +179,18 @@ static void pt_derivative(float *x, size_t n)
 static void pt_mwi(float *x, size_t n)
 {
     float buf[ECG_PT_MWI_LEN] = {0.0f};
-    double jumlah = 0.0;
+    double total = 0.0;
     int pos = 0;
     for (size_t i = 0; i < n; i++) {
-        jumlah += x[i] - buf[pos];
+        total += x[i] - buf[pos];
         buf[pos] = x[i];
         pos = (pos + 1) % ECG_PT_MWI_LEN;
-        x[i] = (float)(jumlah / ECG_PT_MWI_LEN);
+        x[i] = (float)(total / ECG_PT_MWI_LEN);
     }
 }
 
 int ecg_detect_r(const float *filtered, size_t n, float *scratch,
-                 int *out, int out_maks)
+                 int *out, int out_max)
 {
     if (n < 3) {
         return 0;
@@ -202,13 +202,13 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
     }
     pt_mwi(scratch, n);
 
-    const size_t n_awal = (n < (size_t)ECG_PT_INIT_N) ? n : (size_t)ECG_PT_INIT_N;
-    double spki = scratch[0], jumlah = 0.0;
-    for (size_t i = 0; i < n_awal; i++) {
+    const size_t n_start = (n < (size_t)ECG_PT_INIT_N) ? n : (size_t)ECG_PT_INIT_N;
+    double spki = scratch[0], total = 0.0;
+    for (size_t i = 0; i < n_start; i++) {
         if (scratch[i] > spki) spki = scratch[i];
-        jumlah += scratch[i];
+        total += scratch[i];
     }
-    double npki = jumlah / n_awal;
+    double npki = total / n_start;
 
     int sum = 0;
     long last = -(long)ECG_PT_REFRACTORY;
@@ -220,31 +220,31 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
             continue;
         }
         const double v = scratch[i];
-        const double ambang = npki + 0.25 * (spki - npki);
-        if (v > ambang) {
+        const double threshold = npki + 0.25 * (spki - npki);
+        if (v > threshold) {
             spki = 0.125 * v + 0.875 * spki;
-            if (sum < out_maks) out[sum] = (int)i;
+            if (sum < out_max) out[sum] = (int)i;
             sum++;
             last = (long)i;
         } else {
             npki = 0.125 * v + 0.875 * npki;
         }
     }
-    return (sum < out_maks) ? sum : out_maks;
+    return (sum < out_max) ? sum : out_max;
 }
 
-int ecg_align_r(const float *filtered, size_t n, int r_kasar)
+int ecg_align_r(const float *filtered, size_t n, int r_coarse)
 {
-    int lo = r_kasar - ECG_PT_OFFSET;
+    int lo = r_coarse - ECG_PT_OFFSET;
     int a = lo - ECG_PT_REFINE;
     int b = lo + ECG_PT_REFINE;
     if (a < 0) a = 0;
     if (b > (int)n - 1) b = (int)n - 1;
     if (a > b) return lo - ECG_GROUP_DELAY;
 
-    int puncak = a;
+    int peak = a;
     for (int i = a + 1; i <= b; i++) {
-        if (filtered[i] > filtered[puncak]) puncak = i;
+        if (filtered[i] > filtered[peak]) peak = i;
     }
-    return puncak - ECG_GROUP_DELAY;
+    return peak - ECG_GROUP_DELAY;
 }

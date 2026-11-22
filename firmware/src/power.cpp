@@ -29,7 +29,7 @@ static uint32_t beat_dsp;
 static bool restart_window;
 static void sweep_record(int n, double i, double sd, double v, unsigned beat, unsigned missed);
 
-void power_begin(void) { ina_present = ina219_mulai(I2C_SDA, I2C_SCL); }
+void power_begin(void) { ina_present = ina219_begin(I2C_SDA, I2C_SCL); }
 bool power_ina_present(void) { return ina_present; }
 int power_mode(void) { return mode_power; }
 bool power_stage(int t) { return mode_power < 0 || mode_power >= t; }
@@ -39,7 +39,7 @@ const char *power_ina_text(void)
 {
     static char text[48];
     float mA, V;
-    if (ina_present && ina219_baca(R_SHUNT, &mA, &V))
+    if (ina_present && ina219_read(R_SHUNT, &mA, &V))
         snprintf(text, sizeof text, "I=%.1f mA V=%.3f V P=%.0f mW", mA, V, mA * V);
     else
         snprintf(text, sizeof text, "tidak menjawab");
@@ -53,13 +53,13 @@ void power_set_mode(int m)
     mode_power = m;
     acquisition_timer(m != 0);
     if (m >= 0 && m < 5) {
-        if (!wifi_off) { ecg_mqtt_set_aktif(0); esp_wifi_stop(); }
+        if (!wifi_off) { ecg_mqtt_set_active(0); esp_wifi_stop(); }
         wifi_off = true;
     } else if (wifi_off) {
         if (konfig_wifi_aktif()) {
             esp_wifi_start();
-            ecg_mqtt_mulai();
-            ecg_mqtt_set_aktif(1);
+            ecg_mqtt_begin();
+            ecg_mqtt_set_active(1);
         }
         wifi_off = false;
     }
@@ -81,7 +81,7 @@ void power_service(void)
         t_window = millis(); beat0 = beat_dsp; missed0 = acquisition_missed();
     }
     float mA, V;
-    if (ina219_baca(R_SHUNT, &mA, &V)) { sum += mA; sum2 += (double)mA * mA; sum_v += V; n++; }
+    if (ina219_read(R_SHUNT, &mA, &V)) { sum += mA; sum2 += (double)mA * mA; sum_v += V; n++; }
     if (millis() - t_window < WINDOW_POWER_MS || n == 0) return;
     const double i = sum / n, v = sum_v / n;
     const double sd = sqrt(fmax(sum2 / n - i * i, 0.0));

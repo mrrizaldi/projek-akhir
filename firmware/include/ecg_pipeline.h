@@ -17,16 +17,16 @@ int ecg_window_zscore(const float *filtered, size_t n, int r, float *out);
 int ecg_rr_features(const int *r, size_t n_r, size_t i, int fs, float out[ECG_N_RR_DASAR]);
 
 #if ECG_QRSW
-float ecg_qrs_lebar(const float *window, float frac);
+float ecg_qrs_width(const float *window, float frac);
 
-int ecg_qrs_width_features(const float *window, float *riwayat, size_t n_riwayat,
+int ecg_qrs_width_features(const float *window, float *history, size_t n_history,
                            float out[2]);
 #endif
 
 int ecg_detect_r(const float *filtered, size_t n, float *scratch,
-                 int *out, int out_maks);
+                 int *out, int out_max);
 
-int ecg_align_r(const float *filtered, size_t n, int r_kasar);
+int ecg_align_r(const float *filtered, size_t n, int r_coarse);
 
 #ifdef __cplusplus
 }

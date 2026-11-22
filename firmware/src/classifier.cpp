@@ -73,9 +73,9 @@ static float classifier(const ecg_beat_t &beat)
 
 static void publish(const ecg_beat_t &beat, float p, bool arrhythmia)
 {
-    if (!ecg_mqtt_aktif()) return;
+    if (!ecg_mqtt_active()) return;
     if (gate_phase() != PHASE_GOOD) { h.withheld++; return; }
-    if (beat.sinyal_hilang) { h.withheld++; return; }
+    if (beat.signal_lost) { h.withheld++; return; }
 
     ecg_mqtt_beat_t t;
     t.ms = gate_t_session_ms() + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
@@ -92,7 +92,7 @@ static void publish(const ecg_beat_t &beat, float p, bool arrhythmia)
     h.latency_sum += latency; h.latency_n++;
     if (latency > h.latency_max) h.latency_max = latency;
 
-    ecg_mqtt_antre_isi(&t);
+    ecg_mqtt_queue_fill(&t);
 }
 
 bool classifier_process(const ecg_beat_t &beat)

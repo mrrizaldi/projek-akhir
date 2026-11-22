@@ -17,49 +17,49 @@
 #include "display.h"
 #include "buttons.h"
 
-#ifndef VERSI_GIT
-#define VERSI_GIT "?"
+#ifndef GIT_VERSION
+#define GIT_VERSION "?"
 #endif
 
-typedef char baris_t[DISPLAY_COLUMNS + 1];
+typedef char row_t[DISPLAY_COLUMNS + 1];
 
-struct halaman_t;
+struct page_t;
 struct item_t {
-    const char *teks;
-    const halaman_t *anak;
-    void (*aksi)(void);
-    const char *(*nilai)(void);
+    const char *text;
+    const page_t *child;
+    void (*action)(void);
+    const char *(*value)(void);
 };
-struct halaman_t {
-    const char *judul;
+struct page_t {
+    const char *title;
     const item_t *item;
     int n;
     int (*n_dyn)(void);
-    void (*teks_dyn)(int i, char *out, size_t n);
-    void (*pilih_dyn)(int i);
-    void (*isi)(baris_t *b);
+    void (*text_dyn)(int i, char *out, size_t n);
+    void (*choose_dyn)(int i);
+    void (*fill)(row_t *b);
 };
-#define DAFTAR(j, a) {j, a, (int)(sizeof a / sizeof a[0]), nullptr, nullptr, nullptr, nullptr}
-#define DINAMIS(j, n, t, p) {j, nullptr, 0, n, t, p, nullptr}
-#define TEKS(j, f) {j, nullptr, 0, nullptr, nullptr, nullptr, f}
+#define LIST(j, a) {j, a, (int)(sizeof a / sizeof a[0]), nullptr, nullptr, nullptr, nullptr}
+#define DYNAMIC(j, n, t, p) {j, nullptr, 0, n, t, p, nullptr}
+#define TEXT(j, f) {j, nullptr, 0, nullptr, nullptr, nullptr, f}
 
-static const char *tanda(bool active) { return active ? "*" : ""; }
-static void ke_adc() { acquisition_set_source(SOURCE_ADC, 0, true); }
-static void ke_acuan() { acquisition_set_source(SOURCE_REFERENCE, 0, true); }
-static const char *n_adc() { return tanda(acquisition_source() == SOURCE_ADC); }
-static const char *n_acuan() { return tanda(acquisition_source() == SOURCE_REFERENCE); }
+static const char *mark(bool active) { return active ? "*" : ""; }
+static void to_adc() { acquisition_set_source(SOURCE_ADC, 0, true); }
+static void to_reference() { acquisition_set_source(SOURCE_REFERENCE, 0, true); }
+static const char *n_adc() { return mark(acquisition_source() == SOURCE_ADC); }
+static const char *n_reference() { return mark(acquisition_source() == SOURCE_REFERENCE); }
 
-static int rk_no[64], rk_n;
-static int rekaman_n() { return rk_n = recorder_list(rk_no, 64); }
-static void rekaman_teks(int i, char *out, size_t n)
+static int rec_no[64], rec_n;
+static int recordings_n() { return rec_n = recorder_list(rec_no, 64); }
+static void recordings_text(int i, char *out, size_t n)
 {
-    const bool active = acquisition_source() == SOURCE_RECORDING && acquisition_source_recording() == rk_no[i];
-    snprintf(out, n, "%03d  %6.1f s  %s", rk_no[i], (float)recorder_sample_n(rk_no[i]) / ECG_FS,
+    const bool active = acquisition_source() == SOURCE_RECORDING && acquisition_source_recording() == rec_no[i];
+    snprintf(out, n, "%03d  %6.1f s  %s", rec_no[i], (float)recorder_sample_n(rec_no[i]) / ECG_FS,
              active ? "*" : "");
 }
-static void rekaman_pilih(int i) { acquisition_set_source(SOURCE_RECORDING, rk_no[i], true); }
-static const halaman_t H_REKAMAN = DINAMIS("Replay rekaman", rekaman_n, rekaman_teks, rekaman_pilih);
-static const char *n_rekaman()
+static void recordings_choose(int i) { acquisition_set_source(SOURCE_RECORDING, rec_no[i], true); }
+static const page_t H_RECORDINGS = DYNAMIC("Replay rekaman", recordings_n, recordings_text, recordings_choose);
+static const char *n_recordings()
 {
     static char t[8];
     if (acquisition_source() != SOURCE_RECORDING) return ">";
@@ -67,27 +67,27 @@ static const char *n_rekaman()
     return t;
 }
 
-static const item_t I_SUMBER[] = {
-    {"Sensor (ADC)", nullptr, ke_adc, n_adc},
-    {"REPLAY 208", nullptr, ke_acuan, n_acuan},
-    {"Replay rekaman", &H_REKAMAN, nullptr, n_rekaman},
+static const item_t I_SOURCE[] = {
+    {"Sensor (ADC)", nullptr, to_adc, n_adc},
+    {"REPLAY 208", nullptr, to_reference, n_reference},
+    {"Replay rekaman", &H_RECORDINGS, nullptr, n_recordings},
 };
-static const halaman_t H_SUMBER = DAFTAR("Sumber sinyal", I_SUMBER);
+static const page_t H_SOURCE = LIST("Sumber sinyal", I_SOURCE);
 
 static const char *on_off(bool on) { return on ? "ON" : "OFF"; }
-static void kalib_ulang()
+static void calibration_restart()
 {
     gate_begin_session();
     classifier_reset();
     Serial.println("kalibrasi: sesi baru");
 }
-static void kalib_lewati()
+static void calibration_skip()
 {
     gate_set_skip(!gate_skip());
     Serial.printf("lewati gerbang kalibrasi %s\n", on_off(gate_skip()));
 }
-static const char *n_lewati() { return on_off(gate_skip()); }
-static void kalib_status(baris_t *b)
+static const char *n_skip() { return on_off(gate_skip()); }
+static void calibration_status(row_t *b)
 {
     const gate_quality_t &q = gate_quality();
     const int f = gate_phase();
@@ -102,57 +102,57 @@ static void kalib_status(baris_t *b)
     snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gate_skip()), on_off(acquisition_replay()));
     snprintf(b[5], sizeof *b, "Sampel hilang %u", (unsigned)acquisition_missed());
 }
-static const halaman_t H_KALIB_STATUS = TEKS("Status kalibrasi", kalib_status);
-static const item_t I_KALIB[] = {
-    {"Mulai ulang", nullptr, kalib_ulang, nullptr},
-    {"Lewati (bench)", nullptr, kalib_lewati, n_lewati},
-    {"Status", &H_KALIB_STATUS, nullptr, nullptr},
+static const page_t H_CALIBRATION_STATUS = TEXT("Status kalibrasi", calibration_status);
+static const item_t I_CALIBRATION[] = {
+    {"Mulai ulang", nullptr, calibration_restart, nullptr},
+    {"Lewati (bench)", nullptr, calibration_skip, n_skip},
+    {"Status", &H_CALIBRATION_STATUS, nullptr, nullptr},
 };
-static const halaman_t H_KALIB = DAFTAR("Kalibrasi", I_KALIB);
+static const page_t H_CALIBRATION = LIST("Kalibrasi", I_CALIBRATION);
 
-static const char *tes_nama;
-static diag_result_t tes_hasil;
-static void tes_jalan(const char *nama, diag_result_t (*f)(void))
+static const char *test_name;
+static diag_result_t test_result;
+static void test_run(const char *name, diag_result_t (*f)(void))
 {
-    tes_nama = nama;
+    test_name = name;
     acquisition_timer(false);
-    tes_hasil = f();
+    test_result = f();
     acquisition_timer(power_mode() != 0);
     int i;
     while (buttons_event(&i) != BUTTON_NONE) {}
-    Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.pass ? "LULUS" : "GAGAL", tes_hasil.summary);
+    Serial.printf("tes %s: %s | %s\n", name, test_result.pass ? "LULUS" : "GAGAL", test_result.summary);
 }
-static diag_result_t tombol_10s()
+static diag_result_t button_10s()
 {
     display_menu_frame("Tes tombol", "B2 yang masih ditahan: lepas dulu", "");
     display_menu_row(1, "Tekan B1, B2, B3", false);
     display_menu_row(2, "batas 10 detik", false);
     return diag_button(10000);
 }
-static void tes_buzzer() { tes_jalan("Buzzer", diag_buzzer); }
-static void tes_layar() { tes_jalan("Layar", diag_screen); }
-static void tes_adc() { tes_jalan("ADC & lead-off", diag_adc); }
-static void tes_ina() { tes_jalan("INA219", diag_ina219); }
-static void tes_tombol() { tes_jalan("Tombol", tombol_10s); }
-static void tes_isi(baris_t *b)
+static void test_buzzer() { test_run("Buzzer", diag_buzzer); }
+static void test_screen() { test_run("Layar", diag_screen); }
+static void test_adc() { test_run("ADC & lead-off", diag_adc); }
+static void test_ina() { test_run("INA219", diag_ina219); }
+static void test_button() { test_run("Tombol", button_10s); }
+static void test_fill(row_t *b)
 {
-    snprintf(b[0], sizeof *b, "%s", tes_nama ? tes_nama : "-");
-    snprintf(b[1], sizeof *b, "%s", tes_hasil.pass ? "LULUS" : "GAGAL");
-    const char *r = tes_hasil.summary;
+    snprintf(b[0], sizeof *b, "%s", test_name ? test_name : "-");
+    snprintf(b[1], sizeof *b, "%s", test_result.pass ? "LULUS" : "GAGAL");
+    const char *r = test_result.summary;
     for (int k = 2; k < DISPLAY_ROWS && *r; k++, r += min<size_t>(strlen(r), DISPLAY_COLUMNS))
         snprintf(b[k], sizeof *b, "%.*s", DISPLAY_COLUMNS, r);
 }
-static const halaman_t H_TES_HASIL = TEKS("Hasil tes", tes_isi);
-static const item_t I_TES[] = {
-    {"Buzzer", &H_TES_HASIL, tes_buzzer, nullptr},
-    {"Layar (pola warna)", &H_TES_HASIL, tes_layar, nullptr},
-    {"ADC & lead-off", &H_TES_HASIL, tes_adc, nullptr},
-    {"INA219", &H_TES_HASIL, tes_ina, nullptr},
-    {"Tombol (10 s)", &H_TES_HASIL, tes_tombol, nullptr},
+static const page_t H_TEST_RESULT = TEXT("Hasil tes", test_fill);
+static const item_t I_TEST[] = {
+    {"Buzzer", &H_TEST_RESULT, test_buzzer, nullptr},
+    {"Layar (pola warna)", &H_TEST_RESULT, test_screen, nullptr},
+    {"ADC & lead-off", &H_TEST_RESULT, test_adc, nullptr},
+    {"INA219", &H_TEST_RESULT, test_ina, nullptr},
+    {"Tombol (10 s)", &H_TEST_RESULT, test_button, nullptr},
 };
-static const halaman_t H_TES = DAFTAR("Tes perangkat", I_TES);
+static const page_t H_TEST = LIST("Tes perangkat", I_TEST);
 
-static void daya_isi(baris_t *b)
+static void power_fill(row_t *b)
 {
     if (power_sweep_active()) {
         snprintf(b[0], sizeof *b, "Mengukur, jangan disentuh");
@@ -167,233 +167,233 @@ static void daya_isi(baris_t *b)
     char *e = b[0] + strlen(b[0]);
     snprintf(e, sizeof *b - (e - b[0]), " #%03d", power_sweep_file());
 }
-static const halaman_t H_DAYA = TEKS("Ukur daya", daya_isi);
-static void tutup();
-static void mulai_tangga()
+static const page_t H_POWER = TEXT("Ukur daya", power_fill);
+static void close_menu();
+static void begin_sweep()
 {
     power_sweep_begin();
-    if (power_sweep_active()) tutup();
+    if (power_sweep_active()) close_menu();
 }
-static const item_t I_DAYA[] = {
-    {"Mulai tangga p0-p5", nullptr, mulai_tangga, nullptr},
-    {"Hasil terakhir", &H_DAYA, nullptr, nullptr},
+static const item_t I_POWER[] = {
+    {"Mulai tangga p0-p5", nullptr, begin_sweep, nullptr},
+    {"Hasil terakhir", &H_POWER, nullptr, nullptr},
 };
-static const halaman_t H_DAYA_MENU = DAFTAR("Ukur daya", I_DAYA);
+static const page_t H_POWER_MENU = LIST("Ukur daya", I_POWER);
 
 static int wifi_n() { return konfig_wifi_n(); }
-static void wifi_teks(int i, char *out, size_t n)
+static void wifi_text(int i, char *out, size_t n)
 {
     snprintf(out, n, "%c %s", i == konfig_wifi() ? '*' : ' ', konfig_wifi_nama(i));
 }
-static void wifi_pilih(int i) { konfig_pilih_wifi(i); }
+static void wifi_choose(int i) { konfig_pilih_wifi(i); }
 static int broker_n() { return konfig_broker_n(); }
-static void broker_teks(int i, char *out, size_t n)
+static void broker_text(int i, char *out, size_t n)
 {
     snprintf(out, n, "%c %s %s", i == konfig_broker() ? '*' : ' ', konfig_broker_nama(i),
              konfig_broker_host(i));
 }
-static void broker_pilih(int i) { konfig_pilih_broker(i); }
-static const halaman_t H_WIFI = DINAMIS("WiFi", wifi_n, wifi_teks, wifi_pilih);
-static const halaman_t H_BROKER = DINAMIS("Broker", broker_n, broker_teks, broker_pilih);
+static void broker_choose(int i) { konfig_pilih_broker(i); }
+static const page_t H_WIFI = DYNAMIC("WiFi", wifi_n, wifi_text, wifi_choose);
+static const page_t H_BROKER = DYNAMIC("Broker", broker_n, broker_text, broker_choose);
 
-static void wifi_ganti() { konfig_set_wifi_aktif(!konfig_wifi_aktif()); }
-static const char *n_wifi_aktif() { return on_off(konfig_wifi_aktif()); }
+static void wifi_switch() { konfig_set_wifi_aktif(!konfig_wifi_aktif()); }
+static const char *n_wifi_active() { return on_off(konfig_wifi_aktif()); }
 static const char *n_wifi() { return konfig_wifi_nama(konfig_wifi()); }
 static const char *n_broker() { return konfig_broker_nama(konfig_broker()); }
-static const char *ip_teks()
+static const char *ip_text()
 {
     static char t[16];
     if (WiFi.status() != WL_CONNECTED) return "-";
     snprintf(t, sizeof t, "%s", WiFi.localIP().toString().c_str());
     return t;
 }
-static void net_status(baris_t *b)
+static void net_status(row_t *b)
 {
     const int k = konfig_broker();
-    snprintf(b[0], sizeof *b, "MQTT %s (%s)", on_off(ecg_mqtt_aktif()), ecg_mqtt_status());
+    snprintf(b[0], sizeof *b, "MQTT %s (%s)", on_off(ecg_mqtt_active()), ecg_mqtt_status());
     snprintf(b[1], sizeof *b, "WiFi %s", konfig_wifi_nama(konfig_wifi()));
-    snprintf(b[2], sizeof *b, "IP %s", ip_teks());
+    snprintf(b[2], sizeof *b, "IP %s", ip_text());
     snprintf(b[3], sizeof *b, "RSSI %d dBm", ecg_mqtt_rssi());
     snprintf(b[4], sizeof *b, "%s:%d", konfig_broker_host(k), konfig_broker_port(k));
-    snprintf(b[5], sizeof *b, "Kirim %u backlog %u", (unsigned)ecg_mqtt_terkirim(),
-             (unsigned)ecg_mqtt_antre_n());
+    snprintf(b[5], sizeof *b, "Kirim %u backlog %u", (unsigned)ecg_mqtt_sent(),
+             (unsigned)ecg_mqtt_queue_n());
 }
-static const halaman_t H_NET_STATUS = TEKS("Status jaringan", net_status);
-static const item_t I_JARINGAN[] = {
-    {"WiFi aktif", nullptr, wifi_ganti, n_wifi_aktif},
+static const page_t H_NET_STATUS = TEXT("Status jaringan", net_status);
+static const item_t I_NETWORK[] = {
+    {"WiFi aktif", nullptr, wifi_switch, n_wifi_active},
     {"WiFi", &H_WIFI, nullptr, n_wifi},
     {"Broker", &H_BROKER, nullptr, n_broker},
     {"Status", &H_NET_STATUS, nullptr, nullptr},
 };
-static const halaman_t H_JARINGAN = DAFTAR("Jaringan", I_JARINGAN);
+static const page_t H_NETWORK = LIST("Jaringan", I_NETWORK);
 
-static void info_isi(baris_t *b)
+static void info_fill(row_t *b)
 {
     const int k = konfig_broker();
-    snprintf(b[0], sizeof *b, "IP %s  %d dBm", ip_teks(), ecg_mqtt_rssi());
+    snprintf(b[0], sizeof *b, "IP %s  %d dBm", ip_text(), ecg_mqtt_rssi());
     snprintf(b[1], sizeof *b, "Broker %s %s", konfig_broker_nama(k), konfig_broker_host(k));
     float mA, V;
-    if (power_ina_present() && ina219_baca(R_SHUNT, &mA, &V))
+    if (power_ina_present() && ina219_read(R_SHUNT, &mA, &V))
         snprintf(b[2], sizeof *b, "INA %.2f V %.1f mA", V, mA);
     else
         snprintf(b[2], sizeof *b, "INA219 tidak menjawab");
     const uint32_t d = millis() / 1000;
     snprintf(b[3], sizeof *b, "Uptime %lu:%02lu:%02lu", (unsigned long)(d / 3600),
              (unsigned long)(d / 60 % 60), (unsigned long)(d % 60));
-    snprintf(b[4], sizeof *b, "Versi %s", VERSI_GIT);
+    snprintf(b[4], sizeof *b, "Versi %s", GIT_VERSION);
     snprintf(b[5], sizeof *b, "Build %s %.5s", __DATE__, __TIME__);
 }
-static const halaman_t H_INFO = TEKS("Info", info_isi);
+static const page_t H_INFO = TEXT("Info", info_fill);
 
-static const item_t I_AKAR[] = {
-    {"Sumber sinyal", &H_SUMBER, nullptr, nullptr},
-    {"Kalibrasi", &H_KALIB, nullptr, nullptr},
-    {"Tes perangkat", &H_TES, nullptr, nullptr},
-    {"Ukur daya", &H_DAYA_MENU, nullptr, nullptr},
-    {"Jaringan", &H_JARINGAN, nullptr, nullptr},
+static const item_t I_ROOT[] = {
+    {"Sumber sinyal", &H_SOURCE, nullptr, nullptr},
+    {"Kalibrasi", &H_CALIBRATION, nullptr, nullptr},
+    {"Tes perangkat", &H_TEST, nullptr, nullptr},
+    {"Ukur daya", &H_POWER_MENU, nullptr, nullptr},
+    {"Jaringan", &H_NETWORK, nullptr, nullptr},
     {"Info", &H_INFO, nullptr, nullptr},
 };
-static const halaman_t H_AKAR = DAFTAR("MENU", I_AKAR);
+static const page_t H_ROOT = LIST("MENU", I_ROOT);
 
-constexpr int DALAM_MAKS = 4;
-static struct { const halaman_t *h; int sel, atas; } tumpuk[DALAM_MAKS];
-static int dalam = -1;
-static uint32_t t_isi;
+constexpr int DEPTH_MAX = 4;
+static struct { const page_t *h; int sel, top; } stack[DEPTH_MAX];
+static int depth = -1;
+static uint32_t t_fill;
 
-bool menu_terbuka(void) { return dalam >= 0; }
+bool menu_is_open(void) { return depth >= 0; }
 
-static int jumlah(const halaman_t *h) { return h->item ? h->n : h->n_dyn ? h->n_dyn() : 0; }
+static int count(const page_t *h) { return h->item ? h->n : h->n_dyn ? h->n_dyn() : 0; }
 
-static void label(const halaman_t *h, int i, char *out, size_t n)
+static void label(const page_t *h, int i, char *out, size_t n)
 {
-    if (!h->item) { h->teks_dyn(i, out, n); return; }
+    if (!h->item) { h->text_dyn(i, out, n); return; }
     const item_t &it = h->item[i];
-    const char *v = it.nilai ? it.nilai() : it.anak ? ">" : "";
-    const int pad = DISPLAY_COLUMNS - (int)strlen(it.teks);
-    snprintf(out, n, "%s%*s", it.teks, pad > 0 ? pad : 1, v);
+    const char *v = it.value ? it.value() : it.child ? ">" : "";
+    const int pad = DISPLAY_COLUMNS - (int)strlen(it.text);
+    snprintf(out, n, "%s%*s", it.text, pad > 0 ? pad : 1, v);
 }
 
-static void gambar(bool bingkai)
+static void draw(bool frame)
 {
-    auto &t = tumpuk[dalam];
-    if (bingkai)
-        display_menu_frame(t.h->judul,
-                              t.h->isi ? "B2 kembali" : "B3 naik   B1 turun   tahan B2 pilih",
-                              t.h->isi ? "tahan B1/B3 keluar ke monitor"
+    auto &t = stack[depth];
+    if (frame)
+        display_menu_frame(t.h->title,
+                              t.h->fill ? "B2 kembali" : "B3 naik   B1 turun   tahan B2 pilih",
+                              t.h->fill ? "tahan B1/B3 keluar ke monitor"
                                        : "B2 kembali   tahan B1/B3 keluar ke monitor");
-    if (t.h->isi) {
-        baris_t b[DISPLAY_ROWS] = {};
-        t.h->isi(b);
+    if (t.h->fill) {
+        row_t b[DISPLAY_ROWS] = {};
+        t.h->fill(b);
         for (int r = 0; r < DISPLAY_ROWS; r++) display_menu_row(r, b[r], false);
         return;
     }
-    const int n = jumlah(t.h);
+    const int n = count(t.h);
     if (t.sel >= n) t.sel = n ? n - 1 : 0;
-    if (t.sel < t.atas) t.atas = t.sel;
-    if (t.sel >= t.atas + DISPLAY_ROWS) t.atas = t.sel - DISPLAY_ROWS + 1;
+    if (t.sel < t.top) t.top = t.sel;
+    if (t.sel >= t.top + DISPLAY_ROWS) t.top = t.sel - DISPLAY_ROWS + 1;
     for (int r = 0; r < DISPLAY_ROWS; r++) {
-        const int i = t.atas + r;
-        baris_t s = "";
+        const int i = t.top + r;
+        row_t s = "";
         if (i < n) label(t.h, i, s, sizeof s);
         else if (n == 0 && r == 0) strcpy(s, "(kosong)");
         display_menu_row(r, s, i < n && i == t.sel);
     }
 }
 
-static void lapor()
+static void report()
 {
-    auto &t = tumpuk[dalam];
-    if (t.h->isi) {
-        baris_t b[DISPLAY_ROWS] = {};
-        t.h->isi(b);
-        Serial.printf("menu: %s\n", t.h->judul);
+    auto &t = stack[depth];
+    if (t.h->fill) {
+        row_t b[DISPLAY_ROWS] = {};
+        t.h->fill(b);
+        Serial.printf("menu: %s\n", t.h->title);
         for (auto &s : b) if (s[0]) Serial.printf("menu:   %s\n", s);
         return;
     }
-    const int n = jumlah(t.h);
-    baris_t s = "(kosong)";
+    const int n = count(t.h);
+    row_t s = "(kosong)";
     if (n) label(t.h, t.sel, s, sizeof s);
-    Serial.printf("menu: %s [%d/%d] %s\n", t.h->judul, n ? t.sel + 1 : 0, n, s);
+    Serial.printf("menu: %s [%d/%d] %s\n", t.h->title, n ? t.sel + 1 : 0, n, s);
 }
 
-static void masuk(const halaman_t *h)
+static void enter(const page_t *h)
 {
-    if (dalam + 1 >= DALAM_MAKS) return;
-    tumpuk[++dalam] = {h, 0, 0};
-    t_isi = millis();
-    gambar(true);
-    lapor();
+    if (depth + 1 >= DEPTH_MAX) return;
+    stack[++depth] = {h, 0, 0};
+    t_fill = millis();
+    draw(true);
+    report();
 }
 
-void menu_buka(void)
+void menu_open(void)
 {
-    if (dalam >= 0) return;
+    if (depth >= 0) return;
     if (recorder_reject("menu")) { display_message("TERKUNCI", "tahan B3=simpan"); return; }
     display_set_monitor(false);
-    masuk(&H_AKAR);
+    enter(&H_ROOT);
 }
 
-static void tutup()
+static void close_menu()
 {
-    dalam = -1;
+    depth = -1;
     display_set_monitor(true);
     Serial.println("menu: tutup");
 }
 
-static void kembali()
+static void back()
 {
-    if (dalam == 0) { tutup(); return; }
-    dalam--;
-    gambar(true);
-    lapor();
+    if (depth == 0) { close_menu(); return; }
+    depth--;
+    draw(true);
+    report();
 }
 
-static void pilih()
+static void choose()
 {
-    auto &t = tumpuk[dalam];
-    if (t.h->isi || !jumlah(t.h)) return;
+    auto &t = stack[depth];
+    if (t.h->fill || !count(t.h)) return;
     if (!t.h->item) {
-        t.h->pilih_dyn(t.sel);
-        kembali();
+        t.h->choose_dyn(t.sel);
+        back();
         return;
     }
     const item_t &it = t.h->item[t.sel];
-    if (it.aksi) it.aksi();
-    if (dalam < 0) return;
-    if (it.anak) { masuk(it.anak); return; }
-    gambar(false);
-    lapor();
+    if (it.action) it.action();
+    if (depth < 0) return;
+    if (it.child) { enter(it.child); return; }
+    draw(false);
+    report();
 }
 
-void menu_tombol(int i, int e)
+void menu_button(int i, int e)
 {
-    if (dalam < 0) return;
+    if (depth < 0) return;
     if (e == BUTTON_LONG) {
-        if (i == 1) pilih();
-        else tutup();
+        if (i == 1) choose();
+        else close_menu();
     } else if (e == BUTTON_SHORT) {
-        auto &t = tumpuk[dalam];
-        const int n = t.h->isi ? 0 : jumlah(t.h);
-        if (i == 1) kembali();
+        auto &t = stack[depth];
+        const int n = t.h->fill ? 0 : count(t.h);
+        if (i == 1) back();
         else if (n) {
             t.sel = (t.sel + (i == 2 ? n - 1 : 1)) % n;
-            gambar(false);
-            lapor();
+            draw(false);
+            report();
         }
     }
 }
 
-void menu_layani(void)
+void menu_service(void)
 {
-    static bool daya_lalu;
+    static bool power_previous;
     const bool d = power_sweep_active();
-    if (daya_lalu && !d && (dalam < 0 || tumpuk[dalam].h != &H_DAYA)) {
-        if (dalam < 0) display_set_monitor(false);
-        masuk(&H_DAYA);
+    if (power_previous && !d && (depth < 0 || stack[depth].h != &H_POWER)) {
+        if (depth < 0) display_set_monitor(false);
+        enter(&H_POWER);
     }
-    daya_lalu = d;
-    if (dalam < 0 || !tumpuk[dalam].h->isi || millis() - t_isi < 1000) return;
-    t_isi = millis();
-    gambar(false);
+    power_previous = d;
+    if (depth < 0 || !stack[depth].h->fill || millis() - t_fill < 1000) return;
+    t_fill = millis();
+    draw(false);
 }
 #endif

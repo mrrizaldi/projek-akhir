@@ -19,16 +19,16 @@ typedef struct {
     int r_abs;
     float window[ECG_WIN_LEN_];
     float rr[ECG_N_RR];
-    int sinyal_hilang;
+    int signal_lost;
 } ecg_beat_t;
 
 void ecg_live_reset(void);
 
-int ecg_live_push(float sampel_mentah, ecg_beat_t *beat);
+int ecg_live_push(float sample_raw, ecg_beat_t *beat);
 
-float ecg_live_tersaring_terakhir(void);
+float ecg_live_filtered_last(void);
 
-size_t ecg_live_total_sampel(void);
+size_t ecg_live_total_sample(void);
 int ecg_live_total_beat(void);
 
 #ifdef __cplusplus

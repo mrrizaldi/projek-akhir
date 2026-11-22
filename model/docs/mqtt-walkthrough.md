@@ -32,12 +32,12 @@ dibekukan 24 detik, deret waktu di dashboard **tidak berlubang** (jeda maksimum
                                    v
                       ┌──── publikasi(): GERBANG ────┐
                       │ ayun_bersih_1s >= THRESHOLD_SWING │
-                      │ && !beat.sinyal_hilang        │
+                      │ && !beat.signal_lost        │
                       └──────────────┬────────────────┘
                                      v
-        ring backlog 27.000 beat di PSRAM, cadangan 64 (ecg_mqtt_antre_isi)
+        ring backlog 27.000 beat di PSRAM, cadangan 64 (ecg_mqtt_queue_fill)
                                      │
-                                     v   ecg_mqtt_layani(), tiap loop()
+                                     v   ecg_mqtt_service(), tiap loop()
                       PUBLISH QoS 1 ──► broker ──► PUBACK
                                      │                  │
                           batch <=50 │       geser ring SETELAH PUBACK
@@ -116,9 +116,9 @@ antara nilai sesi bersih (median per menit ≤ 370) dan lonjakan kontak buruk
 Gerbang publikasi per detak:
 
 ```c
-if (!ecg_mqtt_aktif()) return;
+if (!ecg_mqtt_active()) return;
 if (fase != PHASE_GOOD)  { beat_ditahan++; return; }
-if (beat.sinyal_hilang) { beat_ditahan++; return; }
+if (beat.signal_lost) { beat_ditahan++; return; }
 ```
 
 **Dua gerbang, dua mekanisme independen.** Ayunan mengukur amplitudo, RR mengukur
@@ -252,20 +252,20 @@ tetap lulus, jadi kesalahannya tidak akan ketahuan dari situ.
 
 Buffer kurang → return **0**, bukan payload terpotong. JSON separuh diterima
 broker sebagai sampah tanpa error yang terlihat di board. Diuji:
-`test_payload_buffer_kurang`.
+`test_payload_buffer_short`.
 
 ### 3.4 Ring backlog — dan kenapa `intip` terpisah dari `buang`
 
 ```c
-size_t ecg_mqtt_antre_intip(ecg_mqtt_beat_t *keluar, size_t maks);
-void   ecg_mqtt_antre_buang(size_t n);
+size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *keluar, size_t maks);
+void   ecg_mqtt_queue_drop(size_t n);
 ```
 
 Dipisah supaya **pointer baca hanya bergeser setelah PUBACK**:
 
 ```c
 if (w && publish(buf, w)) {
-    ecg_mqtt_antre_buang(n);          // HANYA setelah PUBACK
+    ecg_mqtt_queue_drop(n);          // HANYA setelah PUBACK
     terkirim += n;
 }
 ```
@@ -274,15 +274,15 @@ Kalau digabung jadi satu `ambil()`, beat hilang setiap kali PUBACK tidak datang
 — dan QoS 1 jadi hiasan. `dashboard/README.md` menulis syarat ini sebagai
 kontrak: *"geser read pointer ring buffer hanya setelah PUBACK"*.
 
-Kapasitas ring **27.000 beat** (`ECG_MQTT_ANTRE_TARGET`), dialokasikan di PSRAM
-saat `setup()` lalu dipasang lewat `ecg_mqtt_antre_pasang()`; satu entri 40 byte,
+Kapasitas ring **27.000 beat** (`ECG_MQTT_QUEUE_TARGET`), dialokasikan di PSRAM
+saat `setup()` lalu dipasang lewat `ecg_mqtt_queue_attach()`; satu entri 40 byte,
 total ~1,05 MB dari 8 MB. Bila alokasi PSRAM gagal, ring turun ke cadangan
-statis 64 beat (`ECG_MQTT_ANTRE_MIN`) dan serial mencetak peringatan. Bagian
+statis 64 beat (`ECG_MQTT_QUEUE_MIN`) dan serial mencetak peringatan. Bagian
 murni ini tidak tahu soal PSRAM sehingga uji native cukup memasang array statis.
 
 Ring penuh → **buang yang TERTUA**. Alat monitoring lebih butuh menit terakhir
 daripada menit pertama saat koneksi baru pulih. Yang terbuang dicatat di
-`ecg_mqtt_antre_hilang()`, tidak disembunyikan.
+`ecg_mqtt_queue_lost()`, tidak disembunyikan.
 
 ### 3.5 Klien MQTT — empat paket, tanpa library
 
@@ -303,8 +303,8 @@ tersambung ulang.
 ```c
 struct timeval tv;
 gettimeofday(&tv, NULL);
-const uint64_t kini_ms = (uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000);
-ts_base_ms = kini_ms - (uint64_t)millis();
+const uint64_t now_ms = (uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000);
+ts_base_ms = now_ms - (uint64_t)millis();
 ```
 
 Epoch ms saat `millis() == 0`, dihitung sekali begitu SNTP masuk
@@ -543,7 +543,7 @@ deret waktu dashboard cuma 911 ms** — backlog mengisi lubangnya dengan `ts`
 asli, bukan `ts` saat kirim.
 
 Latensi per detak (26,6 ms) tidak berubah: publikasi cuma menyalin struct ke
-ring; jaringan diurus `ecg_mqtt_layani()` di luar jalur beat.
+ring; jaringan diurus `ecg_mqtt_service()` di luar jalur beat.
 
 ---
 
@@ -561,8 +561,8 @@ di dalam loop yang sedang menguras antrean ADC. Antrean 256 sampel @360 Hz =
 **711 ms**, jadi satu timeout saja sudah melahap antrean penuh — dan interval RR
 rusak, yaitu persis kegagalan yang arsitektur HW-4 dibangun untuk mencegah.
 
-Perbaikan: PUBACK dipungut **lintas iterasi** `loop()` (`menunggu_ack` +
-`pungut_masuk()`, timeout 5 detik), bukan di dalam satu panggilan. Tambahan: `ecg_mqtt_layani()`
+Perbaikan: PUBACK dipungut **lintas iterasi** `loop()` (`waiting_ack` +
+`poll_incoming()`, timeout 5 detik), bukan di dalam satu panggilan. Tambahan: `ecg_mqtt_service()`
 dibatasi tiap 20 ms — dipanggil 360×/detik, `WiFi.status()` + `time()` sebanyak
 itu ikut memakan anggaran 2.778 µs/sampel.
 
@@ -580,7 +580,7 @@ antrean 711 ms. Dan `IPAddress`, bukan hostname: resolusi DNS adalah panggilan
 blocking **terpisah** yang tidak ikut dibatasi argumen timeout itu.
 
 Hasil: 2.788 → **290**. Sisa 290 berasal dari menunggu CONNACK di tempat
-(1.500 ms). CONNACK karena itu juga dipungut lintas iterasi (`pungut_connack()`,
+(1.500 ms). CONNACK karena itu juga dipungut lintas iterasi (`poll_connack()`,
 batas 2 detik) sehingga tidak ada satu pun panggilan yang menunggu jaringan di
 tempat.
 
@@ -600,11 +600,11 @@ berbohong soal berapa byte yang berhasil ditulis.
 
 Perbaikan yang berlaku di kode:
 
-- Satu paket dirakit di **satu buffer** (`paket_buf`): payload ditulis langsung
+- Satu paket dirakit di **satu buffer** (`packet_buf`): payload ditulis langsung
   di belakang ruang header, lalu header MQTT ditempel mundur tepat sebelum
   payload. Dua buffer terpisah (payload + paket) memakan 32 KB RAM internal untuk
   batch 50; satu buffer memakan setengahnya.
-- `kirim_sampai_habis()` mengulang `sock.write()` untuk sisa yang belum
+- `send_all()` mengulang `sock.write()` untuk sisa yang belum
   tertulis, dengan batas 200 ms — di bawah kedalaman antrean ADC 711 ms. Tidak
   habis dalam batas itu → `gagal++` dan `putus()`, backlog tidak digeser.
 - Karena penulisan bertahap ini, `ECG_MQTT_BATCH_N` = **50** (~15 KB), batas
@@ -620,7 +620,7 @@ Firmware mengirim PINGREQ tiap 30 detik; broker membalas PINGRESP (2 byte,
 lalu terbaca sebagai dua byte pertama "PUBACK" berikutnya — aliran baca desync
 permanen sampai reconnect.
 
-Perbaikan: `pungut_masuk()` membaca header 2 byte, mengurus PUBACK, dan **membuang
+Perbaikan: `poll_incoming()` membaca header 2 byte, mengurus PUBACK, dan **membuang
 isi paket lain secara utuh** supaya byte berikutnya tetap jatuh di batas paket.
 
 Bug ini nyata dan perbaikannya benar, tetapi **bukan satu-satunya penyebab**
@@ -629,7 +629,7 @@ Penyebab sisanya adalah bug (5), yang teridentifikasi lewat pencacah RTT.
 
 ### (5) Nagle menahan segmen kecil → PUBACK terlambat 1–4,8 detik
 
-Pencacah RTT PUBACK (`rtt_maks`, `rtt_lambat`) dan cetakan keadaan socket saat
+Pencacah RTT PUBACK (`rtt_max`, `rtt_slow`) dan cetakan keadaan socket saat
 timeout menunjuk satu arah:
 
 ```
@@ -659,7 +659,7 @@ Perbaikan: `sock.setNoDelay(true)` sesudah connect — satu baris.
 
 Bug ini tidak merusak sistem, tetapi **merusak semua pengukuran latensi**.
 
-`sinkron_jam()` yang memakai `time(NULL)` mewarisi resolusi detik. Pembulatannya
+`sync_clock()` yang memakai `time(NULL)` mewarisi resolusi detik. Pembulatannya
 masuk ke `ts_base_ms` dan dari situ ke **setiap** `ts` yang dikirim — galat sistematis
 0–1.000 ms per boot, tetap sepanjang sesi. Gejalanya: latensi minimum bergeser
 934 / 1.045 / 1.286 / 1.347 ms antar-boot tanpa ada yang berubah di sistem, dan
@@ -668,7 +668,7 @@ satu kali melompat seragam ke 3.437 ms di semua persentil sekaligus.
 **Pergeseran yang seragam di semua persentil itu tanda selisih jam, bukan
 latensi.** Latensi nyata menggeser ekor lebih banyak daripada median.
 
-Perbaikan: `sinkron_jam()` memakai `gettimeofday()` (resolusi µs), dan alat ukur
+Perbaikan: `sync_clock()` memakai `gettimeofday()` (resolusi µs), dan alat ukur
 di laptop (`dashboard/ukur_pipeline.py`) mengukur selisih jam kedua sisi lewat
 `epoch_ms` di baris status lalu mengoreksinya. Selisih jam terukur −70 sampai
 −414 ms, dan angkanya berubah drastis:
@@ -786,7 +786,7 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
 
 ## 8. Cek pemahaman
 
-1. Kenapa `ecg_mqtt_antre_buang()` dipisah dari `ecg_mqtt_antre_intip()`, dan
+1. Kenapa `ecg_mqtt_queue_drop()` dipisah dari `ecg_mqtt_queue_peek()`, dan
    apa yang rusak kalau digabung?
 2. Alat kehilangan WiFi 2 menit lalu pulih. Berapa beat sampai di broker, dan
    `ts`-nya menunjukkan waktu apa? Bagaimana jawabannya berubah bila alokasi

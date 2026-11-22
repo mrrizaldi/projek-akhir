@@ -15,7 +15,7 @@
 #include "../golden_ref.h"
 
 constexpr int kArenaSize = 24 * 1024;
-constexpr uint32_t TUNGGU_USB_CDC_MS = 2000;
+constexpr uint32_t WAIT_USB_CDC_MS = 2000;
 alignas(16) static uint8_t tensor_arena[kArenaSize];
 
 static tflite::MicroInterpreter *interpreter = nullptr;
@@ -25,9 +25,9 @@ static TfLiteTensor *out = nullptr;
 
 static float buf_filtered[GOLDEN_N];
 static float buf_window[GOLDEN_WIN_LEN];
-static uint32_t us_terpakai[GOLDEN_N_BEAT];
+static uint32_t us_used[GOLDEN_N_BEAT];
 
-static void siapkan_model(void)
+static void prepare_model(void)
 {
     const tflite::Model *model = tflite::GetModel(model_int8_tflite);
     TEST_ASSERT_EQUAL_MESSAGE(TFLITE_SCHEMA_VERSION, model->version(),
@@ -44,12 +44,12 @@ static void siapkan_model(void)
     resolver.AddExpandDims();
 
 #ifdef TFLM_HAS_ERROR_REPORTER
-    static tflite::MicroErrorReporter lapor;
-    static tflite::MicroInterpreter statis(model, resolver, tensor_arena, kArenaSize, &lapor);
+    static tflite::MicroErrorReporter reporter;
+    static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize, &reporter);
 #else
-    static tflite::MicroInterpreter statis(model, resolver, tensor_arena, kArenaSize);
+    static tflite::MicroInterpreter static_interpreter(model, resolver, tensor_arena, kArenaSize);
 #endif
-    interpreter = &statis;
+    interpreter = &static_interpreter;
     TEST_ASSERT_EQUAL_MESSAGE(kTfLiteOk, interpreter->AllocateTensors(),
                               "AllocateTensors gagal — arena kurang besar?");
 
@@ -69,9 +69,9 @@ static int8_t to_int8(float x, float scale, int zero)
     return (int8_t)q;
 }
 
-void test_model_termuat(void)
+void test_model_loaded(void)
 {
-    siapkan_model();
+    prepare_model();
     TEST_ASSERT_EQUAL(kTfLiteInt8, in_morph->type);
     TEST_ASSERT_EQUAL(kTfLiteInt8, in_rr->type);
     TEST_ASSERT_EQUAL(kTfLiteInt8, out->type);
@@ -79,7 +79,7 @@ void test_model_termuat(void)
     TEST_ASSERT_EQUAL(GOLDEN_N_RR, (int)in_rr->bytes);
 }
 
-void test_inferensi_cocok_dengan_pc(void)
+void test_inference_matches_pc(void)
 {
     float state[ECG_N_SOS * 2];
     memset(state, 0, sizeof(state));
@@ -100,20 +100,20 @@ void test_inferensi_cocok_dengan_pc(void)
 
         const uint32_t t0 = micros();
         TEST_ASSERT_EQUAL(kTfLiteOk, interpreter->Invoke());
-        us_terpakai[b] = micros() - t0;
+        us_used[b] = micros() - t0;
 
         const float p = (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 
-        char pesan[128];
-        snprintf(pesan, sizeof(pesan), "beat %d (%s): device %.4f vs PC %.4f",
+        char message[128];
+        snprintf(message, sizeof(message), "beat %d (%s): device %.4f vs PC %.4f",
                  b, golden_sym[b], p, golden_prob_int8[b]);
-        TEST_ASSERT_FLOAT_WITHIN_MESSAGE(GOLDEN_TOL_PROB, golden_prob_int8[b], p, pesan);
+        TEST_ASSERT_FLOAT_WITHIN_MESSAGE(GOLDEN_TOL_PROB, golden_prob_int8[b], p, message);
 
-        TEST_ASSERT_EQUAL_MESSAGE(golden_label[b], p >= GOLDEN_THRESHOLD ? 1 : 0, pesan);
+        TEST_ASSERT_EQUAL_MESSAGE(golden_label[b], p >= GOLDEN_THRESHOLD ? 1 : 0, message);
     }
 }
 
-void test_diagnostik_input_golden(void)
+void test_diagnostic_golden_input(void)
 {
     for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT; b++) {
         const float *w = golden_window + (size_t)b * GOLDEN_WIN_LEN;
@@ -160,19 +160,19 @@ void test_diagnostik_input_golden(void)
                   in_rr->data.int8[0], in_rr->data.int8[1], in_rr->data.int8[2]);
 }
 
-void test_alur_hidup(void)
+void test_lifecycle(void)
 {
     static ecg_beat_t beat;
     ecg_live_reset();
-    int keluar = 0, cocok = 0, benar = 0;
-    uint32_t us_maks = 0;
-    const uint32_t t_mulai = micros();
+    int emitted = 0, matched = 0, correct = 0;
+    uint32_t us_max = 0;
+    const uint32_t t_begin = micros();
 
     for (int i = 0; i < GOLDEN_N; i++) {
         const uint32_t t0 = micros();
-        const int ada = ecg_live_push(golden_raw[i], &beat);
+        const int has_beat = ecg_live_push(golden_raw[i], &beat);
         uint32_t dt = micros() - t0;
-        if (!ada) { if (dt > us_maks) us_maks = dt; continue; }
+        if (!has_beat) { if (dt > us_max) us_max = dt; continue; }
         (void)dt;
 
         for (int k = 0; k < GOLDEN_WIN_LEN; k++)
@@ -181,71 +181,71 @@ void test_alur_hidup(void)
             in_rr->data.int8[k] = to_int8(beat.rr[k], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
         TEST_ASSERT_EQUAL(kTfLiteOk, interpreter->Invoke());
         const float p = (out->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
-        const int prediksi = (p >= GOLDEN_THRESHOLD) ? 1 : 0;
+        const int prediction = (p >= GOLDEN_THRESHOLD) ? 1 : 0;
 
         dt = micros() - t0;
-        if (dt > us_maks) us_maks = dt;
-        keluar++;
+        if (dt > us_max) us_max = dt;
+        emitted++;
 
         for (int b = 0; b < GOLDEN_N_BEAT; b++) {
             if (abs(beat.r_abs - golden_r[b]) <= 20) {
-                cocok++;
-                if (prediksi == golden_label[b]) benar++;
+                matched++;
+                if (prediction == golden_label[b]) correct++;
                 Serial.printf("  beat r=%4d (%s) p=%.4f -> %d, seharusnya %d %s\n",
-                              beat.r_abs, golden_sym[b], p, prediksi, golden_label[b],
-                              prediksi == golden_label[b] ? "OK" : "SALAH");
+                              beat.r_abs, golden_sym[b], p, prediction, golden_label[b],
+                              prediction == golden_label[b] ? "OK" : "SALAH");
                 break;
             }
         }
     }
 
-    const uint32_t us_jalan = micros() - t_mulai;
-    const uint32_t us_rata = us_jalan / GOLDEN_N;
-    const float beban = 100.0f * us_rata / 2778.0f;
-    const uint32_t antrean = (us_maks + 2777) / 2778;
+    const uint32_t us_run = micros() - t_begin;
+    const uint32_t us_mean = us_run / GOLDEN_N;
+    const float load = 100.0f * us_mean / 2778.0f;
+    const uint32_t backlog = (us_max + 2777) / 2778;
 
     Serial.printf("\n=== ALUR HIDUP ===\n");
     Serial.printf("beat keluar   : %d (%d cocok anotasi, %d prediksi benar)\n",
-                  keluar, cocok, benar);
+                  emitted, matched, correct);
     Serial.printf("total         : %lu us untuk %d sampel (%.1f detik sinyal)\n",
-                  (unsigned long)us_jalan, GOLDEN_N, (float)GOLDEN_N / ECG_FS);
+                  (unsigned long)us_run, GOLDEN_N, (float)GOLDEN_N / ECG_FS);
     Serial.printf("rata-rata     : %lu us/sampel dari anggaran 2778 us -> beban %.1f%%\n",
-                  (unsigned long)us_rata, beban);
+                  (unsigned long)us_mean, load);
     Serial.printf("puncak burst  : %lu us (deteksi 4 detik + inferensi bersamaan)\n",
-                  (unsigned long)us_maks);
+                  (unsigned long)us_max);
     Serial.printf("antrean min   : %lu sampel agar tidak bolong saat burst\n",
-                  (unsigned long)antrean);
+                  (unsigned long)backlog);
     Serial.printf("==================\n");
 
-    TEST_ASSERT_GREATER_THAN_MESSAGE(3, cocok, "terlalu sedikit beat cocok anotasi");
-    TEST_ASSERT_EQUAL_MESSAGE(cocok, benar, "ada prediksi yang beda dari jawaban PC");
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, "terlalu sedikit beat cocok anotasi");
+    TEST_ASSERT_EQUAL_MESSAGE(matched, correct, "ada prediksi yang beda dari jawaban PC");
 
-    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(2778, us_rata,
+    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(2778, us_mean,
         "rata-rata > 2778 us/sampel — tidak mungkin real-time pada 360 Hz");
-    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(ECG_LIVE_RING, antrean * 4,
+    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(ECG_LIVE_RING, backlog * 4,
         "burst terlalu panjang untuk ring 4 detik");
 }
 
-void test_latensi_dan_memori(void)
+void test_latency_and_memory(void)
 {
-    uint32_t total = 0, maks = 0;
+    uint32_t total = 0, max_us = 0;
     for (int b = GOLDEN_RR_FIRST; b < GOLDEN_N_BEAT; b++) {
-        total += us_terpakai[b];
-        if (us_terpakai[b] > maks) maks = us_terpakai[b];
+        total += us_used[b];
+        if (us_used[b] > max_us) max_us = us_used[b];
     }
     const int n = GOLDEN_N_BEAT - GOLDEN_RR_FIRST;
     const size_t arena = interpreter->arena_used_bytes();
 
     Serial.printf("\n=== BENCHMARK ESP32-S3 ===\n");
     Serial.printf("inferensi     : %lu us rata-rata, %lu us maksimum (%d beat)\n",
-                  (unsigned long)(total / n), (unsigned long)maks, n);
+                  (unsigned long)(total / n), (unsigned long)max_us, n);
     Serial.printf("tensor arena  : %u byte terpakai dari %d byte dialokasikan\n",
                   (unsigned)arena, kArenaSize);
     Serial.printf("heap bebas    : %u byte\n", (unsigned)ESP.getFreeHeap());
     Serial.printf("CPU           : %u MHz\n", (unsigned)ESP.getCpuFreqMHz());
     Serial.printf("==========================\n");
 
-    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(200000, maks,
+    TEST_ASSERT_LESS_THAN_UINT32_MESSAGE(200000, max_us,
         "inferensi > 200 ms — terlalu lambat untuk kontinu, pertimbangkan ESP-NN");
     TEST_ASSERT_LESS_OR_EQUAL_MESSAGE(kArenaSize, arena, "arena kurang besar");
 }
@@ -253,13 +253,13 @@ void test_latensi_dan_memori(void)
 void setup()
 {
     Serial.begin(115200);
-    delay(TUNGGU_USB_CDC_MS);
+    delay(WAIT_USB_CDC_MS);
     UNITY_BEGIN();
-    RUN_TEST(test_model_termuat);
-    RUN_TEST(test_diagnostik_input_golden);
-    RUN_TEST(test_inferensi_cocok_dengan_pc);
-    RUN_TEST(test_latensi_dan_memori);
-    RUN_TEST(test_alur_hidup);
+    RUN_TEST(test_model_loaded);
+    RUN_TEST(test_diagnostic_golden_input);
+    RUN_TEST(test_inference_matches_pc);
+    RUN_TEST(test_latency_and_memory);
+    RUN_TEST(test_lifecycle);
     UNITY_END();
 }
 

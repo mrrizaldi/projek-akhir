@@ -21,7 +21,7 @@ Total 20 butir hapus-kandidat, 1 pertahankan. Semua skrip di `model/scripts/`, `
 
 | path:baris | jenis | bukti | usulan | risiko |
 |---|---|---|---|---|
-| firmware/include/ecg_mqtt.h:35, firmware/src/ecg_mqtt.cpp:21 | fungsi tak dipanggil `ecg_mqtt_antre_reset` | `grep -rnw ecg_mqtt_antre_reset src include test ../scripts ../model/scripts README.md` hanya mengembalikan deklarasi dan definisi. Tidak ada di test_mqtt maupun README. | hapus deklarasi + definisi | rendah; `antre_kepala/isi/hilang` tetap dipakai internal |
+| firmware/include/ecg_mqtt.h:35, firmware/src/ecg_mqtt.cpp:21 | fungsi tak dipanggil `ecg_mqtt_antre_reset` | `grep -rnw ecg_mqtt_antre_reset src include test ../scripts ../model/scripts README.md` hanya mengembalikan deklarasi dan definisi. Tidak ada di test_mqtt maupun README. | hapus deklarasi + definisi | rendah; `queue_head/isi/hilang` tetap dipakai internal |
 | firmware/include/ecg_mqtt.h:47, firmware/src/ecg_mqtt.cpp:350 | fungsi tak dipanggil `ecg_mqtt_tersambung` | grep yang sama: hanya deklarasi + definisi. | hapus; cek bahwa variabel `tersambung` masih dipakai fungsi lain (dipakai di ecg_mqtt.cpp) | rendah |
 | firmware/include/display.h:21, firmware/src/display.cpp:313 | fungsi tak dipanggil `tampilan_monitor` | grep: hanya deklarasi + definisi. Variabel `monitor` dipakai di tempat lain di display.cpp. | hapus accessor | rendah |
 

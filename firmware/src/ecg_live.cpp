@@ -8,16 +8,16 @@ static int r_det[64];
 
 static float sos_state[ECG_N_SOS * 2];
 static size_t n_total;
-static size_t sejak_deteksi;
+static size_t since_detection;
 static int r_hist[ECG_LIVE_HIST];
 static int n_hist;
-static int r_terakhir;
+static int r_last;
 static int n_beat;
 
 static int queue[8];
-static int n_antre, i_antre;
+static int n_queue, i_queue;
 #if ECG_RR_RATIO
-static float qrsw_riwayat[2 * ECG_RR_LOCAL_WINDOW];
+static float qrsw_history[2 * ECG_RR_LOCAL_WINDOW];
 static size_t n_qrsw;
 static int r_timeout;
 #endif
@@ -26,29 +26,29 @@ void ecg_live_reset(void)
 {
     memset(sos_state, 0, sizeof(sos_state));
     memset(ring, 0, sizeof(ring));
-    n_total = sejak_deteksi = 0;
-    n_hist = n_beat = n_antre = i_antre = 0;
-    r_terakhir = -ECG_PT_REFRACTORY;
+    n_total = since_detection = 0;
+    n_hist = n_beat = n_queue = i_queue = 0;
+    r_last = -ECG_PT_REFRACTORY;
 #if ECG_RR_RATIO
-    memset(qrsw_riwayat, 0, sizeof(qrsw_riwayat));
+    memset(qrsw_history, 0, sizeof(qrsw_history));
     n_qrsw = 0;
     r_timeout = -1;
 #endif
 }
 
-static float dari_ring(size_t abs_idx)
+static float from_ring(size_t abs_idx)
 {
     return ring[abs_idx % ECG_LIVE_RING];
 }
 
-static void ambil(size_t awal, size_t n, float *keluar)
+static void fetch(size_t start, size_t n, float *out)
 {
     for (size_t i = 0; i < n; i++) {
-        keluar[i] = dari_ring(awal + i);
+        out[i] = from_ring(start + i);
     }
 }
 
-static void tambah_hist(int r_abs)
+static void add_hist(int r_abs)
 {
     if (n_hist == ECG_LIVE_HIST) {
         memmove(r_hist, r_hist + 1, (ECG_LIVE_HIST - 1) * sizeof(int));
@@ -57,76 +57,76 @@ static void tambah_hist(int r_abs)
     r_hist[n_hist++] = r_abs;
 }
 
-static int keluarkan(int idx, const int *r, size_t n_r, int sentinel,
+static int emit_beat(int idx, const int *r, size_t n_r, int sentinel,
                      ecg_beat_t *beat)
 {
-    const int r_nilai = r[idx];
+    const int r_value = r[idx];
     if (!ecg_rr_features(r, n_r, (size_t)idx, ECG_FS, beat->rr)) {
         return 0;
     }
-    static float potong[ECG_LIVE_RING];
-    const size_t awal = n_total - ((n_total < ECG_LIVE_RING) ? n_total : ECG_LIVE_RING);
-    const size_t n = n_total - awal;
-    ambil(awal, n, potong);
-    if (!ecg_window_zscore(potong, n, r_nilai - (int)awal, beat->window)) {
+    static float excerpt[ECG_LIVE_RING];
+    const size_t start = n_total - ((n_total < ECG_LIVE_RING) ? n_total : ECG_LIVE_RING);
+    const size_t n = n_total - start;
+    fetch(start, n, excerpt);
+    if (!ecg_window_zscore(excerpt, n, r_value - (int)start, beat->window)) {
         return 0;
     }
 #if ECG_QRSW
-    ecg_qrs_width_features(beat->window, qrsw_riwayat, n_qrsw,
+    ecg_qrs_width_features(beat->window, qrsw_history, n_qrsw,
                            beat->rr + ECG_N_RR_DASAR);
     n_qrsw++;
 #endif
-    beat->r_abs = r_nilai;
-    beat->sinyal_hilang = sentinel;
+    beat->r_abs = r_value;
+    beat->signal_lost = sentinel;
     n_beat++;
     return 1;
 }
 
-static void jalankan_deteksi(void)
+static void run_detection(void)
 {
     const size_t n = (n_total < ECG_LIVE_RING) ? n_total : ECG_LIVE_RING;
     if (n < (size_t)ECG_PT_INIT_N) {
         return;
     }
-    const size_t awal = n_total - n;
+    const size_t start = n_total - n;
 
-    static float lurus[ECG_LIVE_RING];
-    ambil(awal, n, lurus);
+    static float unwrapped[ECG_LIVE_RING];
+    fetch(start, n, unwrapped);
 
-    const int sum = ecg_detect_r(lurus, n, scratch, r_det, 64);
+    const int sum = ecg_detect_r(unwrapped, n, scratch, r_det, 64);
     for (int i = 0; i < sum; i++) {
-        const int r_sel = ecg_align_r(lurus, n, r_det[i]);
-        const int r_abs = (int)awal + r_sel;
+        const int r_selected = ecg_align_r(unwrapped, n, r_det[i]);
+        const int r_abs = (int)start + r_selected;
 
-        if (r_abs - r_terakhir < ECG_PT_REFRACTORY) {
+        if (r_abs - r_last < ECG_PT_REFRACTORY) {
             continue;
         }
-        if (r_abs - ECG_WIN_PRE < (int)awal) continue;
+        if (r_abs - ECG_WIN_PRE < (int)start) continue;
         if (r_abs + ECG_WIN_POST > (int)n_total) continue;
 
-        tambah_hist(r_abs);
-        r_terakhir = r_abs;
-        if (n_antre < 8) {
-            queue[n_antre++] = r_abs;
+        add_hist(r_abs);
+        r_last = r_abs;
+        if (n_queue < 8) {
+            queue[n_queue++] = r_abs;
         }
     }
 }
 
-int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
+int ecg_live_push(float sample_raw, ecg_beat_t *beat)
 {
-    float terfilter;
-    ecg_bandpass(&sampel_mentah, &terfilter, 1, sos_state);
-    ring[n_total % ECG_LIVE_RING] = terfilter;
+    float filtered_value;
+    ecg_bandpass(&sample_raw, &filtered_value, 1, sos_state);
+    ring[n_total % ECG_LIVE_RING] = filtered_value;
     n_total++;
 
-    if (++sejak_deteksi >= ECG_LIVE_TIAP) {
-        sejak_deteksi = 0;
-        n_antre = i_antre = 0;
-        jalankan_deteksi();
+    if (++since_detection >= ECG_LIVE_TIAP) {
+        since_detection = 0;
+        n_queue = i_queue = 0;
+        run_detection();
     }
 
-    while (i_antre < n_antre) {
-        const int r_abs = queue[i_antre++];
+    while (i_queue < n_queue) {
+        const int r_abs = queue[i_queue++];
 
         if (n_hist < 3) {
             continue;
@@ -139,14 +139,14 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
             continue;
         }
 #if ECG_RR_RATIO
-        const int idx_nilai = idx_hist - 1;
-        if (idx_nilai < 2 || r_hist[idx_nilai] <= r_timeout) {
+        const int idx_value = idx_hist - 1;
+        if (idx_value < 2 || r_hist[idx_value] <= r_timeout) {
             continue;
         }
 #else
-        const int idx_nilai = idx_hist;
+        const int idx_value = idx_hist;
 #endif
-        if (!keluarkan(idx_nilai, r_hist, n_hist, 0, beat)) {
+        if (!emit_beat(idx_value, r_hist, n_hist, 0, beat)) {
             continue;
         }
         return 1;
@@ -154,13 +154,13 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
 
 #if ECG_RR_RATIO
     if (n_hist >= 3 && r_hist[n_hist - 1] > r_timeout) {
-        const int r_akhir = r_hist[n_hist - 1];
-        if (n_total > (size_t)r_akhir && n_total - (size_t)r_akhir > ECG_LIVE_TIMEOUT) {
+        const int r_end = r_hist[n_hist - 1];
+        if (n_total > (size_t)r_end && n_total - (size_t)r_end > ECG_LIVE_TIMEOUT) {
             int r_tmp[ECG_LIVE_HIST + 1];
             memcpy(r_tmp, r_hist, (size_t)n_hist * sizeof(int));
-            r_tmp[n_hist] = r_akhir + (r_akhir - r_hist[n_hist - 2]);
-            if (keluarkan(n_hist - 1, r_tmp, (size_t)n_hist + 1, 1, beat)) {
-                r_timeout = r_akhir;
+            r_tmp[n_hist] = r_end + (r_end - r_hist[n_hist - 2]);
+            if (emit_beat(n_hist - 1, r_tmp, (size_t)n_hist + 1, 1, beat)) {
+                r_timeout = r_end;
                 return 1;
             }
         }
@@ -169,10 +169,10 @@ int ecg_live_push(float sampel_mentah, ecg_beat_t *beat)
     return 0;
 }
 
-float ecg_live_tersaring_terakhir(void)
+float ecg_live_filtered_last(void)
 {
     return n_total ? ring[(n_total - 1) % ECG_LIVE_RING] : 0.0f;
 }
 
-size_t ecg_live_total_sampel(void) { return n_total; }
+size_t ecg_live_total_sample(void) { return n_total; }
 int ecg_live_total_beat(void) { return n_beat; }

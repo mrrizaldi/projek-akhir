@@ -35,7 +35,7 @@ Hal penting di `platformio.ini`:
   `undefined reference to main`.
 - Profil board `4d_systems_esp32s3_gen4_r8n16` sudah membawa
   `-DBOARD_HAS_PSRAM`; flag itu tidak ditulis ulang.
-- `build_src_flags` mengisi `VERSI_GIT` dari `git describe --always --dirty`
+- `build_src_flags` mengisi `GIT_VERSION` dari `git describe --always --dirty`
   (ditampilkan di Menu → Info). Flag ini hanya berlaku untuk `src/` sehingga
   pustaka tidak dikompilasi ulang setiap commit.
 - Chirale_TensorFLowLite memakai kernel referensi (belum ESP-NN); angka latensi
@@ -170,7 +170,7 @@ pengukuran ada di walkthrough yang dirujuk.
   menilai SPI dari waktu `fillScreen` penuh (110 KB; pada 80 MHz pun ≥ 11 ms);
   di bawah `FILL_MIN_US` (5 ms) berarti tidak ada transfer.
 - INA219: modul yang tidak terpasang membalas `0x0000`/`0xFFFF` sehingga
-  `ina219_mulai()` menulis config lalu membaca balik untuk membedakan "tidak
+  `ina219_begin()` menulis config lalu membaca balik untuk membedakan "tidak
   terpasang" dari 0 mA. Setelah config ditulis, tunggu > 68 ms (satu hasil
   rata-rata 128 sampel) sebelum membaca. Register kalibrasi on-chip tidak
   dipakai; `R_SHUNT` membagi di software sebagai knob kalibrasi terhadap
@@ -210,7 +210,7 @@ pengukuran ada di walkthrough yang dirujuk.
   sehingga posisi tersimpan basi dan beat dapat keluar dua kali.
 - Beat yang menunggu R berikutnya dikeluarkan setelah `ECG_LIVE_TIMEOUT`
   (3 detik ≈ 20 bpm) dengan R semu (RR berikutnya = RR sekarang) sehingga
-  RR+1/RR0 = 1,0 sebagai sentinel netral dan `sinyal_hilang = 1`. Beat
+  RR+1/RR0 = 1,0 sebagai sentinel netral dan `signal_lost = 1`. Beat
   seperti ini tidak dipublikasi (`ditahan`).
 - Pan-Tompkins: ambang awal diinisialisasi dari `ECG_PT_INIT_N` (2 detik
   pertama) dengan akumulasi `double` (penjumlahan float sepanjang itu kehilangan
@@ -252,7 +252,7 @@ pengukuran ada di walkthrough yang dirujuk.
 - Klien MQTT tidak pernah menunggu jaringan di tempat: CONNECT, PUBLISH, dan
   PINGREQ ditulis lalu jawabannya dipungut di iterasi `loop()` berikutnya.
   Setiap blokir harus di bawah 711 ms: `CONNECT_TIMEOUT_MS` 300,
-  `BATAS_TULIS_MS` 200, layanan tiap `PERIODE_LAYANI_MS` 20 ms. Host broker
+  `WRITE_LIMIT_MS` 200, layanan tiap `PERIOD_SERVICE_MS` 20 ms. Host broker
   berupa `IPAddress` karena resolusi DNS memblokir di luar batas waktu itu.
   `TCP_NODELAY`, `WiFi.setSleep(false)`, membaca PINGRESP, dan `gettimeofday()`
   (bukan `time()`) masing-masing menutup satu bug yang hanya muncul di board
@@ -295,7 +295,7 @@ pengukuran ada di walkthrough yang dirujuk.
 | Daftar rekaman di menu `LIST_MAX` = 64 | Hanya batas tampilan; nomor berkas baru tetap dari pindai penuh | — |
 | Angka sesudah perintah serial ditunggu sampai 500 ms per digit | `loop()` terblokir selama menunggu | Perintah bench, tidak dipakai saat merekam sinyal tubuh |
 | Antrean jadwal bip `SCHEDULE_N` = 8 | Saat lonjakan detak lebih dari 8 bip menunggu, bip berikutnya tidak dibunyikan; data beat dan klasifikasi tidak terpengaruh | Perbesar `SCHEDULE_N` di `display.cpp` |
-| Memilih WiFi saat tangga daya `p0`–`p4` | Radio ikut menyala lagi lewat `ecg_mqtt_mulai()` | Pilih jaringan di operasi normal |
+| Memilih WiFi saat tangga daya `p0`–`p4` | Radio ikut menyala lagi lewat `ecg_mqtt_begin()` | Pilih jaringan di operasi normal |
 
 ## Catu daya dan pengukuran arus
 
@@ -601,7 +601,7 @@ sinyal dan menu tidak dapat diubah:
 | `s`, `l`, `q`, `v`, `h<n>` | tetap berlaku; `d` ditolak (`Sedang merekam.`) |
 
 Pemeriksaan ada di satu fungsi, `recorder_reject()` (`recorder.h`), yang dipanggil di
-fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `acquisition_set_source`,
+fungsi tujuan, bukan di tiap pemanggil: `menu_open`, `acquisition_set_source`,
 `power_set_mode`, `power_sweep_begin`, `gate_set_skip`,
 `konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu
 otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,

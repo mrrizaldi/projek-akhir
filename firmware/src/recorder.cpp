@@ -240,7 +240,7 @@ void recorder_toggle(void)
     part_max = min(part_max, RECORDER_NUMBER_MAX - last_number);
     const char *reject = acquisition_source() != SOURCE_ADC ? "REKAM hanya dari sensor"
                       : power_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
-                      : menu_terbuka() ? "REKAM ditolak: tutup menu dulu"
+                      : menu_is_open() ? "REKAM ditolak: tutup menu dulu"
                       : writing ? "REKAM ditolak: masih menyimpan sesi sebelumnya"
                       : !buf ? "REKAM ditolak: PSRAM tidak tersedia"
                       : last_number >= RECORDER_NUMBER_MAX ? "REKAM ditolak: nomor rekaman habis, hapus dulu (h<n>)"
@@ -248,7 +248,7 @@ void recorder_toggle(void)
     if (reject) {
         Serial.println(reject);
         const bool waiting = writing;
-        display_message(waiting ? "TUNGGU" : acquisition_source() != SOURCE_ADC || power_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
+        display_message(waiting ? "TUNGGU" : acquisition_source() != SOURCE_ADC || power_mode() >= 0 || menu_is_open() ? "TOLAK" : "PENUH",
                        waiting ? "masih menyimpan" : acquisition_replay() ? "hanya sensor ADC" : "rekam ditolak");
         return;
     }

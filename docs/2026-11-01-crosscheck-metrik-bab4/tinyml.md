@@ -8,10 +8,10 @@ Nomor halaman = nomor halaman PDF (pemisah form-feed `pdftotext`), kecuali diseb
 
 Pemeriksaan kode menunjukkan beberapa hal yang belum tertulis di Bab 4. Hal ini relevan untuk sidang:
 
-- Latensi: `micros()` mengapit satu `interpreter->Invoke()` per detak, 7 detak (indeks 2–8), sekali jalan. Pada arduino-esp32 terpasang (3.20017), `micros()` = `esp_timer_get_time()` (`cores/esp32/esp32-hal-misc.c:166-168`), jadi resolusinya 1 µs. Kode **sudah mencetak rata-rata dan maksimum** (`test_latensi_dan_memori`), tetapi buku hanya melaporkan rata-rata.
-- Warm-up sebenarnya **sudah terjadi tanpa disengaja**. `RUN_TEST(test_diagnostik_input_golden)` dijalankan sebelum uji latensi dan memanggil `Invoke()` 9 kali (7 detak, input nol, detak 2). Akibatnya pengukuran 26,6 ms bukan inferensi dingin. Fakta ini belum tertulis dan bisa dipakai sebagai argumen.
+- Latensi: `micros()` mengapit satu `interpreter->Invoke()` per detak, 7 detak (indeks 2–8), sekali jalan. Pada arduino-esp32 terpasang (3.20017), `micros()` = `esp_timer_get_time()` (`cores/esp32/esp32-hal-misc.c:166-168`), jadi resolusinya 1 µs. Kode **sudah mencetak rata-rata dan maksimum** (`test_latency_and_memory`), tetapi buku hanya melaporkan rata-rata.
+- Warm-up sebenarnya **sudah terjadi tanpa disengaja**. `RUN_TEST(test_diagnostic_golden_input)` dijalankan sebelum uji latensi dan memanggil `Invoke()` 9 kali (7 detak, input nol, detak 2). Akibatnya pengukuran 26,6 ms bukan inferensi dingin. Fakta ini belum tertulis dan bisa dipakai sebagai argumen.
 - Arena: `alignas(16) static uint8_t tensor_arena[24*1024]` berada di SRAM internal (.bss), bukan PSRAM. `arena_used_bytes()` dibaca sesudah `AllocateTensors()`.
-- Beban preprocessing: `us_jalan / GOLDEN_N` adalah total waktu sibuk dibagi jumlah sampel. Replay berjalan berurutan tanpa pacing 360 Hz, jadi angka 82 µs adalah **utilisasi agregat** (waktu sibuk / waktu tersedia), bukan rerata per panggilan. Puncak `us_maks` adalah maksimum yang teramati dari 2.400 panggilan.
+- Beban preprocessing: `us_run / GOLDEN_N` adalah total waktu sibuk dibagi jumlah sampel. Replay berjalan berurutan tanpa pacing 360 Hz, jadi angka 82 µs adalah **utilisasi agregat** (waktu sibuk / waktu tersedia), bukan rerata per panggilan. Puncak `us_max` adalah maksimum yang teramati dari 2.400 panggilan.
 - Loop Arduino berjalan di core 1 (`CONFIG_ARDUINO_RUNNING_CORE 1`). Task WiFi di-pin ke core 0 (`CONFIG_ESP32_WIFI_TASK_PINNED_TO_CORE_0=y`, `tools/sdk/esp32s3/sdkconfig:233,1242`).
 
 ## 1. Tabel crosscheck
