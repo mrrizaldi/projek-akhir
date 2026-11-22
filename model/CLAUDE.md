@@ -33,12 +33,12 @@ make plot1seg  # verifikasi Fase 1b (segmentasi)
 make prep      # Fase 2 → per_record/*.npz      make test      # pytest
 make split     # Fase 3 → train/test.npz         make poc       # Fase 8 checklist
 make pull      # tarik rekaman dari board
-make analisis FILE=data/recordings/<nama>.csv   # analisis + grafik rekaman
-make pull-daya [N=<n>]   # tarik hasil tangga daya mandiri /daya/NNN.csv dari board
+make analyze FILE=data/recordings/<nama>.csv   # analisis + grafik rekaman
+make pull-power [N=<n>]   # tarik hasil tangga daya mandiri /daya/NNN.csv dari board
 make broker-info         # SSID, IP LAN, port 1883/8080, saran entri wifi_secrets.h
 ```
 
-`make help` menampilkan semua target (termasuk `data-semua`, `split-multi`, `clean`).
+`make help` menampilkan semua target (termasuk `data-all`, `split-multi`, `clean`).
 
 ## Status fase
 
@@ -96,7 +96,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   [`docs/firmware-walkthrough.md` §5d](docs/firmware-walkthrough.md#5d-tangga-ukur-daya) (rasional di bagian Rasional rancangan).
   Jalur ukur sudah jadi: dari laptop (serial `p0`-`p5`, `scripts/measure_power.py`
   -> `artifacts/metrics/daya/<ts>.csv`) atau mandiri dari baterai (menu Ukur daya
-  / serial `V`, lalu `make pull-daya`; prosedur di `firmware/README.md` bagian
+  / serial `V`, lalu `make pull-power`; prosedur di `firmware/README.md` bagian
   Ukur daya tanpa laptop). INA219 sudah di jalur baterai (tangga 14 Okt 2026
   terbaca 3,69 V, ±137–154 mA tanpa WiFi; baterai bertahan hampir 1 jam).
   **Terhalang catu:** `p5` butuh WiFi ON, yang menunggu konverter 5 V (butir
@@ -114,7 +114,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   2. Nyalakan dari baterai tanpa USB: layar menyala, bip kalibrasi utuh sekali,
      tidak ada reset berulang. Lalu colok USB dan cek `s`: RSSI ≠ 0.
   3. Ulangi tangga daya **tanpa charger TP4056**, laptop di SSID yang sama
-     dengan board dan ThingsBoard menyala, lalu `make pull-daya`. Tangga
+     dengan board dan ThingsBoard menyala, lalu `make pull-power`. Tangga
      `/daya/003.csv` (14 Okt, tanpa WiFi, dugaan charger tercolok mulai
      +326 s) tidak dipakai untuk laporan.
   4. Hapus butir ini dan kalimat "Selama keluaran konverter belum disetel"
@@ -127,7 +127,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   untuk hasil klasifikasi per detak) tetap berjalan; aliran mentah adalah
   tambahan. Hal yang perlu dirancang bersama user sebelum mulai: protokol
   (topik MQTT terpisah atau HTTP), penerima di laptop yang menulis CSV dengan
-  format `/rekam/NNN.csv` agar `make analisis` tetap dipakai, perilaku saat
+  format `/rekam/NNN.csv` agar `make analyze` tetap dipakai, perilaku saat
   koneksi putus (fallback ke LittleFS), dan beban WiFi terhadap catu baterai
   (bergantung pada butir WiFi OFF di atas).
 

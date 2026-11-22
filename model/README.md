@@ -36,7 +36,7 @@ make poc                  # Fase 8 (checklist DoD)
 make export               # model_int8.h -> firmware/include/
 make test                 # pytest
 make pull                 # tarik rekaman dari board -> data/recordings/
-make analisis FILE=data/recordings/<berkas>.csv
+make analyze FILE=data/recordings/<berkas>.csv
 ```
 
 Daftar lengkap target: `make help`. Target plot memakai `REC=<record>` (bawaan
@@ -75,10 +75,10 @@ alur dan alasan ada di walkthrough yang disebut di kolom terakhir.
 | `summarize_ablation.py` | `python scripts/summarize_ablation.py [--tag A B] [--vs A]` | Rerata ± setengah-rentang per tag, vonis ambang F1 0,04, tag < 3 seed ditandai |
 | `check_lead.py`, `check_calibration.py`, `check_fp.py`, `check_operating_point.py`, `second_stage_rules.py` | lihat [docs/README.md](docs/README.md) §Alat analisis pendukung | Diagnosis eksperimen; DS2 hanya mendiagnosis, tidak memilih parameter |
 | `pull_recording.py` | `make pull [N=n]` | Tarik rekaman dari board ([akuisisi](docs/akuisisi-walkthrough.md)). Bila board masih merekam, skrip menghentikan & menyimpannya dulu. Port lain: `ECG_PORT=/dev/ttyACM1` |
-| `analyze_recording.py` | `make analisis FILE=... [JUDUL="R1"]` | Nilai kualitas rekaman dengan angka, lihat di bawah |
+| `analyze_recording.py` | `make analyze FILE=... [JUDUL="R1"]` | Nilai kualitas rekaman dengan angka, lihat di bawah |
 | `quality_trend.py` | `.venv/bin/python scripts/quality_trend.py <berkas-1.csv> [<lanjutan>.csv ...]` | Kualitas per detik satu sesi rekam (berkas lanjutan disambung urut, `celah` selain 0 diperingatkan, berkas ber-`# jeda` ditolak) dengan rumus gerbang firmware: ayunan tersaring, dengung 50 Hz (bin FFT 1 detik = bin Goertzel `gerbang.cpp`), `ayun_bersih`, clipping, RR wajar, lama RR tenang. Mencetak ringkasan per menit dan detik pertama tiap syarat gerbang terpenuhi; tabel per detik → `artifacts/metrics/kualitas/<berkas-1>-sesi<k>.csv`. Dasar durasi pemanasan 60 s gerbang kalibrasi ([mqtt](docs/mqtt-walkthrough.md) §3.1) |
-| `plot_recording.py` | `make grafik FILE=... [MULAI=detik]` | Grafik EKG 60 detik terbaik (atau mulai detik tertentu) dalam baris 10 detik + HR per detak ([akuisisi](docs/akuisisi-walkthrough.md) §5) |
-| `measure_power.py`, `pull_power.py` | `.venv/bin/python scripts/measure_power.py`, `make pull-daya [N=n]` | Tangga daya dari laptop dan dari board ([firmware](docs/firmware-walkthrough.md) §5d) |
+| `plot_recording.py` | `make plot FILE=... [MULAI=detik]` | Grafik EKG 60 detik terbaik (atau mulai detik tertentu) dalam baris 10 detik + HR per detak ([akuisisi](docs/akuisisi-walkthrough.md) §5) |
+| `measure_power.py`, `pull_power.py` | `.venv/bin/python scripts/measure_power.py`, `make pull-power [N=n]` | Tangga daya dari laptop dan dari board ([firmware](docs/firmware-walkthrough.md) §5d) |
 | `broker_info.py` | `make broker-info` | SSID WiFi laptop, IPv4 LAN, status port, saran entri `wifi_secrets.h`. Firmware tidak me-resolve nama host, jadi broker = alamat IP dan board harus di SSID yang sama. Memakai `ip -j` (iproute2, Linux saja) dan `nmcli -t` |
 
 ### `ablasi.py`

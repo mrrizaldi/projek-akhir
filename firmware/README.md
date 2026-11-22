@@ -416,15 +416,15 @@ langkah itu ditandai tidak sah.
 7. Colokkan USB ke laptop, tutup monitor serial lain, lalu dari folder `model/`:
 
    ```bash
-   make pull-daya          # berkas terakhir
-   make pull-daya N=3      # berkas /daya/003.csv
+   make pull-power          # berkas terakhir
+   make pull-power N=3      # berkas /daya/003.csv
    ```
 
    Hasil: `model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv` (kolom
    `waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah`), ringkasan per mode
    di terminal, dan validasi ulang dengan kriteria `measure_power.py`. Skrip
    keluar dengan kode 1 dan mencetak `GAGAL (TIDAK SAH)` beserta alasannya bila
-   ada langkah yang tidak sah. Port lain: `ECG_PORT=/dev/ttyACM1 make pull-daya`.
+   ada langkah yang tidak sah. Port lain: `ECG_PORT=/dev/ttyACM1 make pull-power`.
 
 Tangga yang sama dapat dimulai lewat serial `V`; berkas di board didaftar dengan
 `v` dan dicetak dengan `v<n>`. Uji singkat jalur ini tanpa menunggu 7 menit:
@@ -622,7 +622,7 @@ Port bawaan: `ECG_PORT`, atau `/dev/ttyACM*` pertama. Skrip menunggu hingga
 Padanan serial: `r` (mulai / stop dan simpan) dan `j` (jeda / lanjut). Batas
 300 detik per berkas tidak menghitung waktu jeda. Berkas ditarik
 ke laptop dengan `make pull` di `model/` dan dianalisis per segmen dengan
-`make analisis` (prosedur lengkap:
+`make analyze` (prosedur lengkap:
 [`akuisisi-walkthrough`](../model/docs/akuisisi-walkthrough.md) §3–§5).
 
 Format berkas `/rekam/NNN.csv`:
@@ -813,7 +813,7 @@ menunggu sinkronisasi jam, `online` = normal, `mati` = MQTT dinonaktifkan.
 | `k` | Toggle lewati gerbang kalibrasi (hanya untuk bench); OFF memulai sesi baru dengan gerbang penuh |
 | `p0`–`p5` | Satu anak tangga ukur daya, baris `DAYA` tiap 10 detik; `p` + huruf lain = operasi normal (`model/docs/firmware-walkthrough.md` §5d) |
 | `V` | Mulai tangga daya mandiri `p0`–`p5` (sama dengan menu Ukur daya → Mulai), hasil ke `/daya/NNN.csv` |
-| `v` / `v<n>` | Daftar berkas `/daya/` / cetak `/daya/<n>.csv` di antara `---MULAI---` dan `---SELESAI---` (`make pull-daya` memakai ini) |
+| `v` / `v<n>` | Daftar berkas `/daya/` / cetak `/daya/<n>.csv` di antara `---MULAI---` dan `---SELESAI---` (`make pull-power` memakai ini) |
 | `t1`–`t3` / `T1`–`T3` | Suntik tekan pendek / lama tombol B1–B3; diproses sama dengan tombol fisik (uji menu tanpa menekan tombol) |
 | `m` | Toggle WiFi aktif (radio WiFi dan MQTT), disimpan di NVS; ditolak selama sesi rekam |
 | `w` / `w<n>` | Daftar `WIFI_DAFTAR` (`*` = aktif) / pilih entri `<n>`, disimpan di NVS lalu sambung ulang |

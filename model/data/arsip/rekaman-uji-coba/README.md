@@ -28,5 +28,5 @@ Menganalisis ulang (hasil grafik masuk `artifacts/metrics/akuisisi/`):
 
 ```
 cd model
-make analisis FILE=data/arsip/rekaman-uji-coba/20260915-1130.csv
+make analyze FILE=data/arsip/rekaman-uji-coba/20260915-1130.csv
 ```

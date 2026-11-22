@@ -52,7 +52,7 @@ data/raw/mitdb/*.dat  (48 record MIT-BIH, 30 menit @360 Hz)
         │
   [HW]  │  ecg_pipeline.cpp   port preprocessing ke C, diadu ke golden Python
         │  TFLite Micro       inferensi di ESP32-S3: 26,6 ms/detak
-        ▼  akuisisi           AD8232 -> make pull -> make analisis -> grafik
+        ▼  akuisisi           AD8232 -> make pull -> make analyze -> grafik
 ```
 
 ---

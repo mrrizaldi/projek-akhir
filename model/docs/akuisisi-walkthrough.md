@@ -29,7 +29,7 @@ elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
                           ▼
               model/data/recordings/<tanggal-jam>.csv
                           │
-                     make analisis FILE=...
+                     make analyze FILE=...
                           ▼
      angka kualitas per segmen di terminal + grafik di artifacts/metrics/akuisisi/akuisisi_*.png
 ```
@@ -308,11 +308,11 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
 1. Jalankan dari `model/`:
 
    ```
-   make analisis FILE=data/recordings/<nama>.csv
+   make analyze FILE=data/recordings/<nama>.csv
    ```
 
 2. Hasil yang diharapkan berupa angka, bukan kesan. Contoh dari rekaman uji
-   coba (arsip) yang gagal, `make analisis FILE=data/arsip/rekaman-uji-coba/20260910-2019.csv`:
+   coba (arsip) yang gagal, `make analyze FILE=data/arsip/rekaman-uji-coba/20260910-2019.csv`:
 
    ```
    20260910-2019: 15877 samples = 44.1 seconds @ 360 Hz, 0 samples missed
@@ -362,8 +362,8 @@ sama muncul di dua panel pertama bila batasnya jatuh dalam 6 detik pertama.
 4. Grafik satu menit untuk dilihat detak per detak:
 
    ```
-   make grafik FILE=data/recordings/<nama>.csv            # 60 detik terbaik
-   make grafik FILE=data/recordings/<nama>.csv MULAI=120  # mulai detik 120
+   make plot FILE=data/recordings/<nama>.csv            # 60 detik terbaik
+   make plot FILE=data/recordings/<nama>.csv MULAI=120  # mulai detik 120
    ```
 
    Hasil: `artifacts/metrics/akuisisi/rekaman_<nama>_detik-<awal>.png`, enam
@@ -563,7 +563,7 @@ elektroda sekaligus sehingga hasilnya tidak dapat diatribusikan ke salah satu.
 `data/arsip/rekaman-uji-coba/20260915-1130.csv` — ayunan 3.128 counts,
 dengung 3,3%, autokorelasi 0,27 @ 87 bpm, 64 R-peak dalam 47,2 detik, BPM masuk
 akal 100% (20 sampel clipping di rail atas). Berguna sebagai pembanding bentuk
-grafik saat menguji `make analisis`.
+grafik saat menguji `make analyze`.
 
 ---
 

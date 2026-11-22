@@ -11,7 +11,7 @@ kejadian kontak) dan **tidak dipakai sebagai data hasil**. Rekaman uji coba
 [`../arsip/rekaman-uji-coba/`](../arsip/rekaman-uji-coba/README.md).
 
 Prosedur merekam, menarik, dan menganalisis: [`../../docs/akuisisi-walkthrough.md`](../../docs/akuisisi-walkthrough.md).
-Hasil analisis (`make analisis FILE=data/recordings/<nama>.csv`) mengisi
+Hasil analisis (`make analyze FILE=data/recordings/<nama>.csv`) mengisi
 penanda `PLACEHOLDER-DATA` di `laporan/buku-pa/` (`grep -rn PLACEHOLDER-DATA laporan/buku-pa`).
 
 ## Catatan per sesi

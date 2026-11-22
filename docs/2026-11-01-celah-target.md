@@ -20,7 +20,7 @@ perangkat keras dan gambar.
 
 | # | Target | Sumber | Status | Penghalang | Aksi berikutnya |
 |---|---|---|---|---|---|
-| A1 | Arus dan daya per mode operasi (6 tingkat `p0`–`p5`) | `bab3.tex` rencana daya; PRD Lampiran C | Belum diukur (`bab4.tex` `\PlaceholderData` daya) | Tingkat 5 butuh WiFi; board reset tiap ±2,5 s saat `WiFi.begin()` dengan konverter 4,x V | User menyetel konverter ke 5,0–5,1 V. Lalu: WiFi ON (`m`), tangga dari baterai tanpa charger, `make pull-daya`, isi Bab 4 |
+| A1 | Arus dan daya per mode operasi (6 tingkat `p0`–`p5`) | `bab3.tex` rencana daya; PRD Lampiran C | Belum diukur (`bab4.tex` `\PlaceholderData` daya) | Tingkat 5 butuh WiFi; board reset tiap ±2,5 s saat `WiFi.begin()` dengan konverter 4,x V | User menyetel konverter ke 5,0–5,1 V. Lalu: WiFi ON (`m`), tangga dari baterai tanpa charger, `make pull-power`, isi Bab 4 |
 | A2 | Biaya arus radio tanpa mode tidur (perkiraan ±30 mA) | `bab4.tex` butir Latensi | Belum diukur | Sama dengan A1 | Terukur sekaligus di tingkat 5 tangga A1 |
 | A3 | Status jalur model on-device | Tujuan Bab 1 butir 2 | Sebagian tercapai, hanya karena A1 | A1 | Sesudah A1: ketercapaian, abstrak, Bab 5 |
 | A4 | Latensi inferensi saat WiFi/MQTT aktif | `bab3.tex` `tab:pengujian-model` | Diukur 26,6 ms tanpa radio | Tidak ada (board via USB cukup) | Ukur ulang latensi inferensi dengan WiFi ON lewat USB |
