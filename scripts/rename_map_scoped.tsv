@@ -195,3 +195,10 @@ app_settings.cpp	nomor	number
 app_settings.cpp	sumber	source
 app_settings.cpp	tulis	write_stored
 app_settings.h	nomor	number
+model/src/dataset.py	bagian	train_parts
+model/src/evaluate.py	hasil	matched
+model/src/features_rr.py	bagian	feature_blocks
+model/src/features_rr.py	bawah	below_cutoff
+model/src/features_rr.py	lebar	widths
+model/src/model.py	lama	old_layer
+model/src/model.py	baru	new_layer

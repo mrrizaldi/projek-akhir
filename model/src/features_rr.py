@@ -52,9 +52,9 @@ def _width_at_fraction(windows: np.ndarray, frac: float, r_idx: int,
     cutoff = (frac * puncak)[:, None]
 
     idx = np.arange(n)[None, :]
-    bawah = w < cutoff
-    kiri_ok = bawah & (idx < peak_idx[:, None])
-    kanan_ok = bawah & (idx > peak_idx[:, None])
+    below_cutoff = w < cutoff
+    kiri_ok = below_cutoff & (idx < peak_idx[:, None])
+    kanan_ok = below_cutoff & (idx > peak_idx[:, None])
     kiri = np.where(kiri_ok.any(1), (idx * kiri_ok).max(1), 0)
     kanan = np.where(kanan_ok.any(1), np.where(kanan_ok, idx, n).min(1), n - 1)
     return (kanan - kiri).astype(np.float64)
@@ -66,12 +66,12 @@ def qrs_width_features(windows: np.ndarray, r_idx: int = None,
     r_idx = R_IN_WINDOW if r_idx is None else r_idx
     kolom = []
     for frac in (0.5, 0.25):
-        lebar = _width_at_fraction(windows, frac, r_idx)
-        j = np.arange(len(lebar))
+        widths = _width_at_fraction(windows, frac, r_idx)
+        j = np.arange(len(widths))
         start = np.maximum(0, j - w + 1)
-        csum = np.concatenate(([0.0], np.cumsum(lebar)))
+        csum = np.concatenate(([0.0], np.cumsum(widths)))
         rerata = (csum[j + 1] - csum[start]) / (j + 1 - start)
-        kolom.append(lebar / np.maximum(rerata, 1e-8))
+        kolom.append(widths / np.maximum(rerata, 1e-8))
     return np.stack(kolom, axis=1).astype(np.float32)
 
 
@@ -106,9 +106,9 @@ def assemble_rhythm_features(r_locations: np.ndarray, windows: np.ndarray,
     from config import USE_HOS, USE_QRSW, USE_RR_RATIO
     dasar = (compute_rr_ratio_features(r_locations) if USE_RR_RATIO
              else compute_rr_features(r_locations))[idx]
-    bagian = [dasar]
+    feature_blocks = [dasar]
     if USE_HOS:
-        bagian.append(hos_features(windows))
+        feature_blocks.append(hos_features(windows))
     if USE_QRSW:
-        bagian.append(qrs_width_features(windows))
-    return np.hstack(bagian).astype(np.float32) if len(bagian) > 1 else dasar
+        feature_blocks.append(qrs_width_features(windows))
+    return np.hstack(feature_blocks).astype(np.float32) if len(feature_blocks) > 1 else dasar

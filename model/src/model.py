@@ -44,8 +44,8 @@ def build_deploy_model(trained: Model) -> Model:
     conv_old = [l for l in trained.layers if isinstance(l, layers.Conv1D)]
     conv_new = [l for l in deploy.layers
                  if isinstance(l, layers.Conv1D) and l.name.startswith("conv")]
-    for lama, baru in zip(conv_old, conv_new):
-        baru.set_weights(lama.get_weights())
+    for old_layer, new_layer in zip(conv_old, conv_new):
+        new_layer.set_weights(old_layer.get_weights())
     deploy.get_layer("gap_dw").set_weights(
         [np.full((time_steps, channels, 1), 1.0 / time_steps, dtype=np.float32)])
 
