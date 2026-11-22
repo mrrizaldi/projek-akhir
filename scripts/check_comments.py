@@ -56,9 +56,9 @@ def python_comments(teks):
         if not isinstance(syntax_node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
             continue
         if syntax_node.body and isinstance(syntax_node.body[0], ast.Expr):
-            nilai = syntax_node.body[0].value
-            if isinstance(nilai, ast.Constant) and isinstance(nilai.value, str):
-                temuan.append(nilai.lineno)
+            first_value = syntax_node.body[0].value
+            if isinstance(first_value, ast.Constant) and isinstance(first_value.value, str):
+                temuan.append(first_value.lineno)
     return temuan
 
 
@@ -125,15 +125,15 @@ def makefile_comments(teks):
 
 
 def jenis(path):
-    bagian = path.split("/")
-    nama = bagian[-1]
-    if bagian[0] in ("laporan", "docs") or "arsip" in bagian[:-1] or nama.endswith((".md", ".tex")):
+    parts = path.split("/")
+    nama = parts[-1]
+    if parts[0] in ("laporan", "docs") or "arsip" in parts[:-1] or nama.endswith((".md", ".tex")):
         return None
     if nama.endswith(C_EXTENSIONS):
         return c_comments
     if nama.endswith(".py"):
         return python_comments
-    if nama.endswith(".sh") or bagian[0] == ".githooks":
+    if nama.endswith(".sh") or parts[0] == ".githooks":
         return shell_comments
     if nama == "platformio.ini":
         return ini_comments
@@ -146,17 +146,17 @@ def collect_paths(argumen):
     base_dir = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
     argumen = [os.path.abspath(a) for a in argumen] or [base_dir]
     os.chdir(base_dir)
-    hasil = []
+    found_paths = []
     for arg in argumen:
         if os.path.isdir(arg) and os.path.commonpath([arg, base_dir]) == base_dir:
             keluaran = subprocess.run(["git", "ls-files", "--", arg], capture_output=True, text=True, check=True).stdout
-            hasil.extend(keluaran.splitlines())
+            found_paths.extend(keluaran.splitlines())
         elif os.path.isdir(arg):
             for folder, _, file_names in os.walk(arg):
-                hasil.extend(os.path.join(folder, n) for n in file_names)
+                found_paths.extend(os.path.join(folder, n) for n in file_names)
         elif os.path.isfile(arg):
-            hasil.append(os.path.relpath(arg))
-    return hasil
+            found_paths.append(os.path.relpath(arg))
+    return found_paths
 
 
 def periksa(berkas):
@@ -168,12 +168,12 @@ def periksa(berkas):
         with open(path, encoding="utf-8", errors="replace") as f:
             teks = f.read()
         try:
-            nomor = checker(teks)
+            line_numbers = checker(teks)
         except (SyntaxError, tokenize.TokenError) as fault:
             violations.append(f"{path}:0: cannot parse: {fault}")
             continue
         baris = teks.splitlines()
-        for no in sorted(set(nomor)):
+        for no in sorted(set(line_numbers)):
             isi = baris[no - 1].strip() if 0 < no <= len(baris) else ""
             violations.append(f"{path}:{no}: {isi}")
     return violations

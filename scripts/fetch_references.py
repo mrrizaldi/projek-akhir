@@ -60,7 +60,7 @@ def unduh(key, cands):
 
 def main():
     OUT.mkdir(exist_ok=True)
-    gagal = []
+    failures = []
     for key, (doi, url) in bib_entries().items():
         if (OUT / f"{key}.pdf").exists():
             print(f"[exists] {key}")
@@ -77,12 +77,12 @@ def main():
         if src:
             print(f"[fetched] {key}  <- {src}")
         else:
-            gagal.append((key, doi, url, is_oa))
+            failures.append((key, doi, url, is_oa))
             print(f"[failed] {key}  doi={doi} oa={is_oa}")
-    print(f"\ndownloaded: {len(list(OUT.glob('*.pdf')))}  failed: {len(gagal)}")
-    for g in gagal:
+    print(f"\ndownloaded: {len(list(OUT.glob('*.pdf')))}  failed: {len(failures)}")
+    for g in failures:
         print("  ", *g)
-    return 1 if gagal else 0
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

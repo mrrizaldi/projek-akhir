@@ -35,10 +35,10 @@ def tanda(teks):
 
 def chapter_starts(pages):
     awal = {}
-    for nomor, teks in enumerate(pages, start=1):
+    for page_number, teks in enumerate(pages, start=1):
         cocok = CHAPTER_PATTERN.search(teks)
         if cocok and cocok.group(1) not in awal:
-            awal[cocok.group(1)] = nomor
+            awal[cocok.group(1)] = page_number
     return awal
 
 
@@ -66,9 +66,9 @@ def bandingkan(pdf_latex, docx, wordcraft):
     beda = [n for n, (a, b) in enumerate(zip(latex_pages, docx_pages), start=1) if tanda(a) != tanda(b)]
     sama = min(len(latex_pages), len(docx_pages)) - len(beda)
     print(f"Pages with matching start: {sama} of {len(latex_pages)}")
-    for nomor in beda[:SHOW_DIFF_MAX]:
-        print(f"  p{nomor} PDF : {page_excerpt(latex_pages[nomor - 1])}")
-        print(f"  p{nomor} DOCX: {page_excerpt(docx_pages[nomor - 1])}")
+    for page_number in beda[:SHOW_DIFF_MAX]:
+        print(f"  p{page_number} PDF : {page_excerpt(latex_pages[page_number - 1])}")
+        print(f"  p{page_number} DOCX: {page_excerpt(docx_pages[page_number - 1])}")
     return not beda and len(latex_pages) == len(docx_pages)
 
 
