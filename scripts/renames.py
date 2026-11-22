@@ -27,6 +27,8 @@ SKIP = (
     "firmware/include/model_int8.h",
 )
 TEXT_SUFFIXES = {".md", ".sh", ".yml", ".yaml", ".ini", ".json", ".txt", ".inc", ""}
+DEV_DOC_DIRS = ("model/data/", "model/artifacts/")
+INFO_DIRS = ("laporan/", "presentasi/", ".claude/skills-arsip/")
 ONE_OFF = ("scripts/rename_map.tsv", "scripts/glossary.tsv", "docs/2026-11-22-english-codebase.md")
 C_SUFFIXES = {".cpp", ".h", ".c"}
 FROZEN = {"WIFI_DAFTAR", "BROKER_DAFTAR"}
@@ -134,11 +136,21 @@ def apply_text(text, pairs):
     return pattern.sub(lambda m: safe[m.group(1)], text)
 
 
+def is_skipped(name):
+    if name.startswith(DEV_DOC_DIRS) and name.endswith("README.md"):
+        return False
+    return name.startswith(SKIP)
+
+
+def is_informational(name):
+    return name.startswith(INFO_DIRS) or (name.startswith(DEV_DOC_DIRS) and not name.endswith("README.md"))
+
+
 def tracked(paths, skip=True, quiet=False):
     raw = subprocess.run(["git", "ls-files", "-z", "--", *paths], capture_output=True, check=True).stdout
     found = []
     for name in raw.decode("utf-8", "surrogateescape").split("\0"):
-        if not name or (skip and name.startswith(SKIP)) or not Path(name).is_file():
+        if not name or (skip and is_skipped(name)) or not Path(name).is_file():
             continue
         if is_text(name):
             found.append(name)
@@ -222,7 +234,7 @@ def report_stale(pairs):
     for name in tracked(["."], skip=False, quiet=True):
         if name in ONE_OFF:
             continue
-        label = "stale-laporan" if name.startswith("laporan/") else "stale"
+        label = "stale-info" if is_informational(name) else "stale"
         for number, line in enumerate(read(name).split("\n"), 1):
             for match in pattern.finditer(line):
                 print(f"{label} {name}:{number} {match.group(1)}")
