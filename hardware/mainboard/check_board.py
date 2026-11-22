@@ -39,11 +39,11 @@ ALLOWED_5V = {"U1", "C1", "C2", "D2"}
 
 
 def netlist(tmp):
-    keluar = Path(tmp) / "n.xml"
-    subprocess.run(["kicad-cli", "sch", "export", "netlist", "--format", "kicadxml", "-o", str(keluar), str(SCH)],
+    netlist_xml = Path(tmp) / "n.xml"
+    subprocess.run(["kicad-cli", "sch", "export", "netlist", "--format", "kicadxml", "-o", str(netlist_xml), str(SCH)],
                    check=True, capture_output=True)
     pin = {}
-    for net in ET.parse(keluar).getroot().iter("net"):
+    for net in ET.parse(netlist_xml).getroot().iter("net"):
         for node in net.iter("node"):
             pin[(node.get("ref"), node.get("pin"))] = net.get("name").lstrip("/")
     return pin
@@ -56,10 +56,10 @@ def expected_pins():
     return pin_nets
 
 
-def laporan(perintah):
+def laporan(command):
     with tempfile.TemporaryDirectory() as tmp:
         report_file = Path(tmp) / "r.rpt"
-        subprocess.run(perintah + ["-o", str(report_file)], check=True, capture_output=True)
+        subprocess.run(command + ["-o", str(report_file)], check=True, capture_output=True)
         return report_file.read_text()
 
 
@@ -68,23 +68,23 @@ def main():
     with tempfile.TemporaryDirectory() as tmp:
         pin = netlist(tmp)
     exp = expected_pins()
-    salah = [(k, v, pin.get(k)) for k, v in sorted(exp.items()) if pin.get(k) != v]
-    for (ref, p), v, ada in salah:
-        print(f"WRONG {ref}.{p}: expected {v}, found {ada}")
-    print(f"netlist: {len(exp) - len(salah)}/{len(exp)} pins match the map")
-    failures += bool(salah)
+    mismatches = [(k, v, pin.get(k)) for k, v in sorted(exp.items()) if pin.get(k) != v]
+    for (ref, p), v, found in mismatches:
+        print(f"WRONG {ref}.{p}: expected {v}, found {found}")
+    print(f"netlist: {len(exp) - len(mismatches)}/{len(exp)} pins match the map")
+    failures += bool(mismatches)
 
-    bocor = sorted(k for k, v in pin.items() if v == "+5V" and k[0] not in ALLOWED_5V and not k[0].startswith("#"))
-    print(f"+5V outside the power path: {bocor or 'none'}")
-    failures += bool(bocor)
+    leaks = sorted(k for k, v in pin.items() if v == "+5V" and k[0] not in ALLOWED_5V and not k[0].startswith("#"))
+    print(f"+5V outside the power path: {leaks or 'none'}")
+    failures += bool(leaks)
 
-    teks = laporan(["kicad-cli", "sch", "erc", "--severity-all", str(SCH)])
-    erc = {k: int(v) for k, v in re.findall(r"(Errors|Warnings) (\d+)", teks)}
+    report_text = laporan(["kicad-cli", "sch", "erc", "--severity-all", str(SCH)])
+    erc = {k: int(v) for k, v in re.findall(r"(Errors|Warnings) (\d+)", report_text)}
     print(f"ERC: errors {erc.get('Errors')} warnings {erc.get('Warnings')}")
     failures += erc.get("Errors", 1) > 0
 
-    teks = laporan(["kicad-cli", "pcb", "drc", "--severity-error", "--schematic-parity", str(PCB)])
-    drc = {v: int(k) for k, v in re.findall(r"Found (\d+) (DRC violations|unconnected pads|Footprint errors)", teks)}
+    report_text = laporan(["kicad-cli", "pcb", "drc", "--severity-error", "--schematic-parity", str(PCB)])
+    drc = {v: int(k) for k, v in re.findall(r"Found (\d+) (DRC violations|unconnected pads|Footprint errors)", report_text)}
     print(f"DRC errors: {drc.get('DRC violations')}, unconnected: {drc.get('unconnected pads')}, "
           f"schematic parity: {drc.get('Footprint errors')}")
     failures += any(drc.get(k, 1) for k in ("DRC violations", "unconnected pads", "Footprint errors"))
