@@ -14,21 +14,21 @@ MODE_NAMES = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ 
         4: "+ UI (TFT, beep, LED)", 5: "+ WiFi/MQTT"}
 
 
-def read_until(s, akhir, detik):
-    lines, deadline = [], time.time() + detik
+def read_until(s, end_marker, seconds):
+    lines, deadline = [], time.time() + seconds
     while time.time() < deadline:
         b = s.readline().decode(errors="replace").rstrip()
         if b:
             lines.append(b)
-            if akhir in b:
+            if end_marker in b:
                 return lines
     return None
 
 
-def validate_rings(baris):
-    ring, failures, lalu = {}, [], None
-    for m in sorted({int(r["mode"]) for r in baris}):
-        r = [x for x in baris if int(x["mode"]) == m]
+def validate_rings(rows):
+    ring, failures, previous_mode = {}, [], None
+    for m in sorted({int(r["mode"]) for r in rows}):
+        r = [x for x in rows if int(x["mode"]) == m]
         i = [float(x["I_mA"]) for x in r]
         ring[m] = dict(I=statistics.mean(i), sd=statistics.stdev(i) if len(i) > 1 else 0.0,
                        V=statistics.mean(float(x["V"]) for x in r),
@@ -43,13 +43,13 @@ def validate_rings(baris):
             failures.append(f"p{m}: {g['lewat']} samples lost, load not representative")
         if m >= 2 and not g["beat"]:
             failures.append(f"p{m}: no beats, replay not running")
-        if lalu is not None:
-            dI, sd = g["I"] - ring[lalu]["I"], max(g["sd"], ring[lalu]["sd"])
+        if previous_mode is not None:
+            dI, sd = g["I"] - ring[previous_mode]["I"], max(g["sd"], ring[previous_mode]["sd"])
             if dI < 0:
-                failures.append(f"p{lalu}->p{m}: current dropped {dI:+.2f} mA (not monotonic)")
+                failures.append(f"p{previous_mode}->p{m}: current dropped {dI:+.2f} mA (not monotonic)")
             elif dI <= 2 * sd:
-                failures.append(f"p{lalu}->p{m}: difference {dI:+.2f} mA <= 2 x std {sd:.2f}")
-        lalu = m
+                failures.append(f"p{previous_mode}->p{m}: difference {dI:+.2f} mA <= 2 x std {sd:.2f}")
+        previous_mode = m
     if len(ring) < 6:
         failures.append(f"only {len(ring)} of 6 modes (sweep aborted midway)")
     return ring, failures
@@ -69,17 +69,17 @@ def main() -> None:
     except Exception as e:
         sys.exit(f"Cannot open {PORT}: {e}\nIs another serial monitor still open?")
 
-    daftar = None
+    listing = None
     for _ in range(5):
         time.sleep(1.0)
         s.reset_input_buffer()
         s.write(b"v")
-        daftar = read_until(s, "power: end of list", 3)
-        if daftar:
+        listing = read_until(s, "power: end of list", 3)
+        if listing:
             break
-    if not daftar:
+    if not listing:
         sys.exit("Board did not answer 'v' (old firmware without the standalone sweep?).")
-    file_numbers = sorted(int(g.group(1)) for b in daftar if (g := re.match(r"\s+(\d+)\s+\d+ B", b)))
+    file_numbers = sorted(int(g.group(1)) for b in listing if (g := re.match(r"\s+(\d+)\s+\d+ B", b)))
     print("Files on board: " + (", ".join(f"{n:03d}" for n in file_numbers) or "(empty)"))
     if not file_numbers:
         sys.exit("No sweep result yet. Run the Ukur daya menu or serial 'V' first.")
@@ -103,12 +103,12 @@ def main() -> None:
     ring, failures = validate_rings(list(csv.DictReader(io.StringIO("\n".join(lines)))))
     print(f"{'mode':<26}{'I (mA)':>16}{'V':>8}{'P (mW)':>9}{'delta I':>9}{'beat':>6}"
           f"{'missed':>6}  board")
-    lalu = None
+    previous_mode = None
     for m, r in ring.items():
-        d = "" if lalu is None else f"{r['I'] - ring[lalu]['I']:+.2f}"
+        d = "" if previous_mode is None else f"{r['I'] - ring[previous_mode]['I']:+.2f}"
         print(f"p{m} {MODE_NAMES[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
               f"{d:>9}{r['beat']:>6}{r['lewat']:>6}  {'valid' if r['sah'] else 'INVALID'}")
-        lalu = m
+        previous_mode = m
     print("\nCheck: " + ("PASS" if not failures else "FAIL (INVALID)\n  " + "\n  ".join(failures)))
     sys.exit(1 if failures else 0)
 
