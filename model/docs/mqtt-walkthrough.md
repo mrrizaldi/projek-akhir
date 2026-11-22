@@ -17,30 +17,30 @@ frozen for 24 seconds and the time series on the dashboard has **no gaps** (maxi
 ## 1. The big picture
 
 ```
-        ┌──────────── SUMBER SINYAL (menu Sumber sinyal) ──────────┐
-        │  replay acuan  : sim_counts[] dari golden_raw (rec 208)  │
-        │  replay rekaman: /rekam/NNN.csv dimuat ke PSRAM          │
-        │  sensor (ADC)  : adc1_get_raw() — AD8232, elektroda      │
+        ┌──────────── SIGNAL SOURCE (Sumber sinyal menu) ──────────┐
+        │  reference replay : sim_counts[] from golden_raw (rec 208) │
+        │  recording replay : /rekam/NNN.csv loaded into PSRAM       │
+        │  sensor (ADC)     : adc1_get_raw() — AD8232, electrodes    │
         └──────────────────────────┬───────────────────────────────┘
-                                   │ ISR 360 Hz → antrean 256
+                                   │ ISR 360 Hz → queue 256
                                    v
-   bandpass → Pan-Tompkins → selaraskan R → window+z-score → fitur RR
+   bandpass → Pan-Tompkins → align R → window+z-score → RR features
                                    │  (ecg_live_push)
                                    v
-                        inferensi INT8 (TFLM)  →  p
+                        INT8 inference (TFLM)  →  p
                                    │
                                    v
-                      ┌──── publikasi(): GERBANG ────┐
-                      │ ayun_bersih_1s >= THRESHOLD_SWING │
+                      ┌──── publish(): GATE ────┐
+                      │ swing_clean >= THRESHOLD_SWING │
                       │ && !beat.signal_lost        │
                       └──────────────┬────────────────┘
                                      v
-        ring backlog 27.000 beat di PSRAM, cadangan 64 (ecg_mqtt_queue_fill)
+        backlog ring 27,000 beats in PSRAM, reserve 64 (ecg_mqtt_queue_fill)
                                      │
-                                     v   ecg_mqtt_service(), tiap loop()
+                                     v   ecg_mqtt_service(), every loop()
                       PUBLISH QoS 1 ──► broker ──► PUBACK
                                      │                  │
-                          batch <=50 │       geser ring SETELAH PUBACK
+                          batch <=50 │       advance ring AFTER PUBACK
                                      v
                           ThingsBoard CE: ts_kv → widget
 ```
@@ -76,13 +76,13 @@ Contact assessment runs every second in `assess_contact()` (called by
 beat in `gate_assess_phase()`:
 
 ```
-kontak (tiap detik)   LO+ = LO- = 0 sepanjang detik itu (diabaikan saat replay)
-                      dan ayun_bersih >= THRESHOLD_SWING (60)
-                      dan dengung50 <= THRESHOLD_HUM (500)
-KALIBRASI -> BAIK     kontak bertahan >= WARMUP_MS (60 detik, dihitung sejak
-                      kontak terakhir terbentuk, bukan sejak boot)
-                      dan RR 300-1500 ms dengan |dRR| <= 200 ms tenang 30 detik
-                      dan kontak saat itu
+contact (every second)  LO+ = LO- = 0 throughout that second (ignored in replay)
+                        and swing_clean >= THRESHOLD_SWING (60)
+                        and hum50 <= THRESHOLD_HUM (500)
+calibrating -> good     contact held >= WARMUP_MS (60 seconds, counted from the
+                        last time contact was established, not from boot)
+                        and RR 300-1500 ms with |dRR| <= 200 ms calm for 30 seconds
+                        and contact at that moment
 ```
 
 The warm-up duration comes from three recording sessions of ±15 minutes (21–22 Oct 2026):
@@ -117,8 +117,8 @@ The per-beat publication gate:
 
 ```c
 if (!ecg_mqtt_active()) return;
-if (fase != PHASE_GOOD)  { beat_ditahan++; return; }
-if (beat.signal_lost) { beat_ditahan++; return; }
+if (gate_phase() != PHASE_GOOD) { h.withheld++; return; }
+if (beat.signal_lost) { h.withheld++; return; }
 ```
 
 **Two gates, two independent mechanisms.** Swing measures amplitude, RR measures
@@ -139,8 +139,8 @@ announcement. That bypass is **derived from the signal source**, not stored as a
 flag:
 
 ```c
-if ((skip_calibration || replay || (hangat && rr_quiet)) && q.kontak)
-    fase = PHASE_GOOD;
+if ((skip_calibration || replay || (warm && rr_quiet)) && q.contact)
+    phase = PHASE_GOOD;
 ```
 
 `replay` is true for both replay sources, reference and recording
@@ -175,7 +175,7 @@ already in the pitfall list of `../CLAUDE.md`:
 > signal" is not a condition it recognizes: even 15 counts of noise has peaks.
 
 If publication were gated on beats, a detached electrode = a flood of false alarms to the broker.
-`beat_ditahan` is counted so that this holding back is visible in `'s'`, rather than becoming
+`withheld` is counted so that this holding back is visible in `'s'`, rather than becoming
 data that is lost silently.
 
 The third line rejects beats that come out through `ECG_LIVE_TIMEOUT` (asystole /
@@ -215,7 +215,7 @@ Not yet verified with a serial log: step 3 (the transitions `calibrating -> good
 ### 3.2 `confidence`: confidence in the DECISION, not the raw `p`
 
 ```c
-t.confidence = aritmia ? p : 1.0f - p;
+t.confidence = arrhythmia ? p : 1.0f - p;
 ```
 
 `p = 0,02` for a normal beat means the device is **very sure**. Sending 0.02 as is
@@ -238,7 +238,7 @@ a beat held for 40 seconds in the backlog still carries the time it **occurred**
 `millis()` at the moment the beat comes out:
 
 ```c
-t.ms = t_session_ms + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
+t.ms = gate_t_session_ms() + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
 ```
 
 Detection runs every 1 second over a 4-second ring, so several beats come out
@@ -258,17 +258,18 @@ broker as garbage with no visible error on the board. Tested:
 ### 3.4 The backlog ring, and why `peek` is separate from `drop`
 
 ```c
-size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *keluar, size_t maks);
+size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *beats_out, size_t max_count);
 void   ecg_mqtt_queue_drop(size_t n);
 ```
 
 They are separated so that **the read pointer only advances after PUBACK**:
 
 ```c
-if (w && publish(buf, w)) {
-    ecg_mqtt_queue_drop(n);          // HANYA setelah PUBACK
-    terkirim += n;
-}
+waiting_ack = false;
+packet_ack++;
+ecg_mqtt_queue_drop(n_in_flight);
+sent += n_in_flight;
+n_in_flight = 0;
 ```
 
 If merged into a single `ambil()`, beats are lost every time PUBACK does not arrive,
@@ -323,12 +324,12 @@ backlog **waits**, deliberately not sending with a wrong ts.
 
 ```bash
 cd dashboard && docker compose up -d      # broker + dashboard
-python3 smoke_test.py                     # cetak: device ... token=XXXX
-cd ../model && make broker-info           # SSID laptop, IP LAN, port 1883, saran entri
+python3 smoke_test.py                     # prints: device ... token=XXXX
+cd ../model && make broker-info           # laptop SSID, LAN IP, port 1883, suggested entries
 
 cd ../firmware
 cp include/wifi_secrets.example.h include/wifi_secrets.h
-$EDITOR include/wifi_secrets.h            # isi WIFI_DAFTAR dan BROKER_DAFTAR
+$EDITOR include/wifi_secrets.h            # fill in WIFI_DAFTAR and BROKER_DAFTAR
 ```
 
 `include/wifi_secrets.h` is in `.gitignore`, so credentials never enter git.
