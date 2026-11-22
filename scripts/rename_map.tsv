@@ -180,3 +180,11 @@ kelompok	folder_groups
 DOI_TAMBAHAN	EXTRA_DOIS
 entri_bib	bib_entries
 url_pdf	pdf_urls
+DURASI	DURATION_S
+henti	stop_event
+pembaca	reader_loop
+lat_atas	latency_upper
+lat_bawah	latency_lower
+terlihat	seen_ts
+ukur_offset	measure_offset
+tunggu_baris	wait_for_line

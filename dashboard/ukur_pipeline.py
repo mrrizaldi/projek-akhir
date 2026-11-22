@@ -3,7 +3,7 @@ import json, re, statistics, sys, threading, time, urllib.request
 import serial
 
 HOST, DEVICE = "http://localhost:8080", "esp32s3-ekg-01"
-DURASI = float(sys.argv[1]) if len(sys.argv) > 1 else 90.0
+DURATION_S = float(sys.argv[1]) if len(sys.argv) > 1 else 90.0
 
 
 def rest(path, body=None, token=None):
@@ -22,22 +22,22 @@ s = serial.Serial(); s.port, s.baudrate, s.timeout = "/dev/ttyACM0", 115200, 0.2
 s.dtr = s.rts = False
 s.open()
 baris = []
-henti = threading.Event()
+stop_event = threading.Event()
 
 
-def pembaca():
-    while not henti.is_set():
+def reader_loop():
+    while not stop_event.is_set():
         b = s.readline()
         if b:
             baris.append(b.decode("utf-8", "replace").rstrip())
 
 
-threading.Thread(target=pembaca, daemon=True).start()
+threading.Thread(target=reader_loop, daemon=True).start()
 print("== boot + WiFi ==")
 time.sleep(14)
 
 
-def tunggu_baris(isi, detik=3.0, mulai=None):
+def wait_for_line(isi, detik=3.0, mulai=None):
     tanda = len(baris) if mulai is None else mulai
     akhir = time.time() + detik
     while time.time() < akhir:
@@ -49,16 +49,16 @@ def tunggu_baris(isi, detik=3.0, mulai=None):
 
 
 tanda = len(baris); s.write(b"s"); s.flush()
-st = tunggu_baris("replay=", mulai=tanda)
+st = wait_for_line("replay=", mulai=tanda)
 if st is None:
     sys.exit("board tidak menjawab 's'")
 if "replay=1" not in st:
     tanda = len(baris); s.write(b"y"); s.flush()
-    if not tunggu_baris("replay ON", mulai=tanda):
+    if not wait_for_line("replay ON", mulai=tanda):
         sys.exit("replay gagal dinyalakan")
 print("== replay ON ==")
 time.sleep(1.5)
-def ukur_offset(n=5):
+def measure_offset(n=5):
     beda = []
     for _ in range(n):
         tanda = len(baris)
@@ -79,14 +79,14 @@ def ukur_offset(n=5):
         time.sleep(0.6)
     return statistics.median(beda) if beda else None
 
-offset = ukur_offset()
+offset = measure_offset()
 print(f"== selisih jam board - laptop: {offset} ms "
       f"({'board di depan' if (offset or 0) > 0 else 'board di belakang'}) ==")
-print(f"== mengukur {DURASI:g} detik ==")
+print(f"== mengukur {DURATION_S:g} detik ==")
 
-terlihat, lat_bawah, lat_atas, rest_ms = set(), [], [], []
+seen_ts, latency_lower, latency_upper, rest_ms = set(), [], [], []
 t0 = time.time()
-while time.time() - t0 < DURASI:
+while time.time() - t0 < DURATION_S:
     sebelum = int(time.time() * 1000)
     kini = sebelum
     try:
@@ -98,23 +98,23 @@ while time.time() - t0 < DURASI:
     sesudah = int(time.time() * 1000)
     rest_ms.append(sesudah - sebelum)
     for r in rows:
-        if r["ts"] not in terlihat:
-            terlihat.add(r["ts"])
+        if r["ts"] not in seen_ts:
+            seen_ts.add(r["ts"])
             ts_koreksi = r["ts"] - (offset or 0)
-            lat_bawah.append(sebelum - ts_koreksi)
-            lat_atas.append(sesudah - ts_koreksi)
+            latency_lower.append(sebelum - ts_koreksi)
+            latency_upper.append(sesudah - ts_koreksi)
     time.sleep(0.1)
 
 s.write(b"s"); s.flush(); time.sleep(2.5)
-henti.set(); time.sleep(0.3); s.close()
+stop_event.set(); time.sleep(0.3); s.close()
 
 print(f"\n{'='*66}\nLATENSI END-TO-END (akuisisi -> tersedia di API ThingsBoard)")
 def p95(v):
     v = sorted(v)
     return v[int(0.95 * (len(v) - 1))]
 
-if lat_bawah:
-    lo, hi = sorted(lat_bawah), sorted(lat_atas)
+if latency_lower:
+    lo, hi = sorted(latency_lower), sorted(latency_upper)
     print(f"  n                       : {len(lo)} beat")
     print(f"  REST polling (alat ukur): median {statistics.median(rest_ms):.0f} ms, "
           f"maks {max(rest_ms)} ms  <- bias, bukan sistem")
