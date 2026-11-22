@@ -20,12 +20,12 @@ make train          # → artifacts/model_fp32.keras + artifacts/metrics/fase5_t
 ## 0. The big picture
 
 ```
-train.npz (DS1, 152.904 beat = 50.968 × 3 salinan)
+train.npz (DS1, 152.904 beats = 50.968 × 3 copies)
         │
-        │  split_train_val()   ← per pasien: 5 record VAL_RECORDS disisihkan
+        │  split_train_val()   ← per patient: 5 VAL_RECORDS records held out
         ▼
- train 121.857 beat           val 31.047 beat
- (12.315 aritmia, 10,11%)     (3.138 aritmia, 10,11%)
+ train 121.857 beats          val 31.047 beats
+ (12.315 arrhythmia, 10,11%)  (3.138 arrhythmia, 10,11%)
         │                            │
         │  class_weight              │  EarlyStopping(val_auc)
         ▼                            ▼
@@ -99,7 +99,11 @@ already solve, especially a package as large as sklearn used for only one functi
 ## 3. Metrics: why `accuracy` is not in the list
 
 ```python
-metrics=[Recall(name="recall"), Precision(name="precision"), AUC(name="auc")]
+metrics=[
+    metrics.Recall(name="recall"),
+    metrics.Precision(name="precision"),
+    metrics.AUC(name="auc"),
+],
 ```
 
 | Metric | Answers the question | Why it is here |
@@ -116,8 +120,10 @@ learning anything; showing it only invites misreading.
 ## 4. EarlyStopping, and why monitor AUC rather than recall
 
 ```python
-callbacks.EarlyStopping(monitor="val_auc", mode="max",
-                        patience=8, restore_best_weights=True)
+callbacks.EarlyStopping(
+    monitor=EARLY_STOP_MONITOR, mode="max",
+    patience=EARLY_STOP_PATIENCE, restore_best_weights=True,
+)
 ```
 
 Three candidates were considered:
