@@ -71,7 +71,7 @@ Berurutan 0 → 7. Tiap dokumen mengasumsikan yang sebelumnya sudah dibaca.
 | 4 | [model](model-walkthrough.md) | Kenapa dua cabang, kenapa GAP bukan Flatten, dari mana 6.417 param |
 | 5 | [train](train-walkthrough.md) | Kenapa accuracy dilarang, bagaimana class weight bekerja, kenapa monitor AUC |
 | 6 | [evaluate](evaluate-walkthrough.md) | Kenapa threshold dikunci sebelum DS2, kelas aritmia mana yang gagal & kenapa |
-| 6b | [segmentasi-deteksi](segmentasi-deteksi-walkthrough.md) | Biaya segmentasi on-device: kenapa geser 4 sampel menjatuhkan precision 4×, dan kenapa detektor membuang aritmia |
+| 6b | [segmentasi-deteksi](detection-segmentation-walkthrough.md) | Biaya segmentasi on-device: kenapa geser 4 sampel menjatuhkan precision 4×, dan kenapa detektor membuang aritmia |
 | 6c | [jitter](jitter-walkthrough.md) | Berapa jauh R-peak di alat meleset sungguhan, kenapa ±18 sampel milik paper tidak boleh disalin, dan kenapa melatih dengan error justru menaikkan angka di data bersih |
 | 7 | [quantize](quantize-walkthrough.md) | Apa yang berubah saat INT8, kenapa metrik bisa "naik" tapi model tidak membaik |
 | HW | [firmware](firmware-walkthrough.md) | Port ke C, harness golden Python↔C, dan kenapa op `MEAN` harus diganti untuk TFLM |
@@ -94,7 +94,7 @@ Jebakan yang paling menentukan desain:
 | **Kebocoran identitas pasien** | Akurasi 99% yang tidak berarti apa-apa | [3](dataset-walkthrough.md) §1 |
 | **Threshold dituning di DS2** | Angka bagus yang gugur saat ditanya penguji | [6](evaluate-walkthrough.md) §0 |
 | **Op sama, hasil beda di TFLM** | Model benar di PC, keyakinan runtuh di device | [HW](firmware-walkthrough.md) §5 |
-| **R-peak meleset 4 sampel** | Precision jatuh 4×, tanpa error | [6b](segmentasi-deteksi-walkthrough.md) §2 |
+| **R-peak meleset 4 sampel** | Precision jatuh 4×, tanpa error | [6b](detection-segmentation-walkthrough.md) §2 |
 | **Threshold dikalibrasi di kondisi yang salah** | AUC nyaris utuh tapi F1 anjlok 20% | [6c](jitter-walkthrough.md) §4 |
 
 Sebagian besar jebakan ini **tidak menghasilkan error apa pun**. Itu benang

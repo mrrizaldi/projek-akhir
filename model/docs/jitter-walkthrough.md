@@ -2,12 +2,12 @@
 
 > **Ruang lingkup:** mengukur error posisi R-peak detektor, mengukur dampaknya pada model, lalu melatih model yang tahan terhadapnya (augmentasi jitter) dan memilih ukuran window lewat ablasi.
 > **Kode terkait:** `scripts/measure_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
-> **Prasyarat:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Fase 6b)
+> **Prasyarat:** [`detection-segmentation-walkthrough.md`](detection-segmentation-walkthrough.md) (Fase 6b)
 
 Fase 6c, di luar PRD. Adaptasi Dias et al. 2021 (*Arrhythmia classification from
 single-lead ECG signals using the inter-patient paradigm*, CMPB 202:105948,
 doi:10.1016/j.cmpb.2021.105948), bagian yang dia ablasi sendiri.
-`segmentasi-deteksi-walkthrough.md` menemukan masalahnya; dokumen ini mengukur
+`detection-segmentation-walkthrough.md` menemukan masalahnya; dokumen ini mengukur
 dan memperbaikinya.
 
 ---
@@ -46,7 +46,7 @@ dan tetap benar: jalur training harus bersih dari error detektor, kalau tidak
 kita tidak pernah tahu yang rusak itu modelnya atau detektornya.
 
 Tapi keputusan itu punya konsekuensi. Di alat, tidak ada kardiolog. Yang ada `ecg_detect_r` → `ecg_align_r`, dan hasilnya meleset.
-`segmentasi-deteksi-walkthrough.md` §2 sudah mencatat betapa pekanya model ini:
+`detection-segmentation-walkthrough.md` §2 sudah mencatat betapa pekanya model ini:
 **geser 4 sampel (11 ms) saja, precision jatuh 0,479 → 0,124.**
 
 Jadi metrik yang diukur dengan anotasi adalah batas atas, bukan ramalan.

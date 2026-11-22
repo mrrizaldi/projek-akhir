@@ -157,7 +157,7 @@ return puncak - ECG_GROUP_DELAY;                     // 4: geseran bandpass kaus
 
 Hasilnya menaruh R di indeks **94** dalam window, sama seperti window training.
 Meleset 4 sampel ke arah mana pun dan precision jatuh dari 0,479 ke 0,124 —
-angkanya diukur di [Fase 6b](segmentasi-deteksi-walkthrough.md) §2.
+angkanya diukur di [Fase 6b](detection-segmentation-walkthrough.md) §2.
 
 Test `test_align_r_puts_peak_at_r_idx` menjaganya sebagai sifat, bukan
 sebagai angka: dia memotong window dari hasil `ecg_align_r` lalu memastikan

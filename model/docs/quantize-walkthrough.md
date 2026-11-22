@@ -344,4 +344,4 @@ menambah satu sumber variasi baru untuk keuntungan yang belum tentu ada.
 
 ---
 
-**[← Fase 6b — segmentasi deteksi](segmentasi-deteksi-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[firmware — port ke ESP32-S3 →](firmware-walkthrough.md)**
+**[← Fase 6b — segmentasi deteksi](detection-segmentation-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[firmware — port ke ESP32-S3 →](firmware-walkthrough.md)**

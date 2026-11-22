@@ -258,7 +258,7 @@ sampel MWI. Konsekuensinya:
   (indeks digeser ke kiri sebesar `PT_DETECTOR_OFFSET = 38`, median DS1) sebelum
   window dipotong. Tanpa kompensasi, window bergeser sistematis dari yang dilihat
   model saat training. Rinciannya:
-  [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md).
+  [`detection-segmentation-walkthrough.md`](detection-segmentation-walkthrough.md).
 
 Skor record 100: `TP=2263  FN=10  FP=9` → sensitivity 0.996,
 precision 0.996.
