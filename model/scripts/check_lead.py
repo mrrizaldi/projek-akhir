@@ -17,21 +17,21 @@ R_IDX = WIN_PRE + 4
 N_REC = int(os.environ.get("PA_CHECK_REC", 8))
 
 
-def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:
-    if lead_paksa:
-        DATASETS[db]["leads"] = (lead_paksa,)
+def ukur(db: str, rec: str, sos, forced_lead=None) -> dict:
+    if forced_lead:
+        DATASETS[db]["leads"] = (forced_lead,)
     signal, r0, sym, _ = load_record(rec, db=db)
     filt = apply_bandpass(signal, sos)
     normal = np.array([AAMI_MAP[s] == "N" for s in sym])
 
     out = {}
-    for nama, r in (("mentah", r0), ("selaras", align_r(r0, filt))):
+    for name, r in (("mentah", r0), ("selaras", align_r(r0, filt))):
         ok = (r - WIN_PRE >= 0) & (r + WIN_PRE <= len(signal)) & normal
         if ok.sum() < 20:
             return {}
         w = zscore_per_window(segment_beats(filt, r[ok]))
         at_r = w[:, R_IDX]
-        out[nama] = {
+        out[name] = {
             "n": len(w),
             "mean": float(at_r.mean()),
             "%positif": float((at_r > 0).mean() * 100),
@@ -56,39 +56,39 @@ def main() -> None:
         if not recs:
             print(f"{db:10} {'-':6} no complete record yet: skipped")
             continue
-        asli = DATASETS[db]["leads"]
+        default_leads = DATASETS[db]["leads"]
         mean_pairs = []
         for rec in recs[:N_REC]:
             try:
                 m = ukur(db, rec, sos, lead)
             except ValueError as e:
-                print(f"{db:10} {lead or asli[0]:6} {rec:6} {str(e)[:40]}")
+                print(f"{db:10} {lead or default_leads[0]:6} {rec:6} {str(e)[:40]}")
                 continue
             if not m:
                 continue
             mean_pairs.append((m["mentah"]["mean"], m["selaras"]["mean"]))
-            print(f"{db:10} {lead or asli[0]:6} {rec:6} {m['mentah']['n']:>6} | "
+            print(f"{db:10} {lead or default_leads[0]:6} {rec:6} {m['mentah']['n']:>6} | "
                   f"{m['mentah']['mean']:>12.3f} {m['mentah']['%positif']:>4.0f}% "
                   f"{m['mentah']['puncak_di']:>4} | "
                   f"{m['selaras']['mean']:>13.3f} {m['selaras']['%positif']:>4.0f}% "
                   f"{m['selaras']['puncak_di']:>4}")
-        DATASETS[db]["leads"] = asli
+        DATASETS[db]["leads"] = default_leads
         if mean_pairs:
             a = np.asarray(mean_pairs)
-            digest[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
+            digest[f"{db}/{lead or default_leads[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
                                                  (a[:, 0] > 0).mean(), len(a))
 
     print("\n── POLARITY verdict (from the RAW column, not from ALIGNED) ──")
-    acuan = digest.get("mitdb/MLII", (None,))[0]
-    for k, (mentah, selaras, konsisten, n) in digest.items():
-        vonis = ""
-        if acuan is not None and k != "mitdb/MLII":
-            vonis = ("  <- COMPARABLE" if np.sign(mentah) == np.sign(acuan) and konsisten > 0.8
+    reference = digest.get("mitdb/MLII", (None,))[0]
+    for k, (mentah, selaras, consistency, n) in digest.items():
+        verdict = ""
+        if reference is not None and k != "mitdb/MLII":
+            verdict = ("  <- COMPARABLE" if np.sign(mentah) == np.sign(reference) and consistency > 0.8
                      else "  <- SUSPICIOUS / INVERTED")
-        print(f"  {k:18} raw {mentah:+7.3f}  ({100*konsisten:.0f}% records positive, "
-              f"n={n}){vonis}")
+        print(f"  {k:18} raw {mentah:+7.3f}  ({100*consistency:.0f}% records positive, "
+              f"n={n}){verdict}")
     print("\n── ALIGNMENT verdict (from the ALIGNED column; peak must be 132) ──")
-    for k, (mentah, selaras, konsisten, n) in digest.items():
+    for k, (mentah, selaras, consistency, n) in digest.items():
         print(f"  {k:18} aligned {selaras:+7.3f}")
 
 

@@ -21,10 +21,10 @@ def ipv4_lan():
             for a in i.get("addr_info", []) if a.get("family") == "inet"]
 
 
-def ssid_aktif():
+def active_ssid():
     if shutil.which("nmcli"):
-        for baris in jalankan(["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]).splitlines():
-            active, _, ssid = baris.partition(":")
+        for line in jalankan(["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]).splitlines():
+            active, _, ssid = line.partition(":")
             if active in ("yes", "ya") and ssid:
                 return ssid.replace("\\:", ":")
     if shutil.which("iwgetid"):
@@ -40,7 +40,7 @@ def port_is_open(port):
 
 def main():
     lan = ipv4_lan()
-    ssid = ssid_aktif()
+    ssid = active_ssid()
 
     print(f"Hostname : {socket.gethostname()}")
     if ssid:
@@ -50,7 +50,7 @@ def main():
               " the board must connect to the same network as the laptop")
 
     print("IPv4 LAN :", end="")
-    print("".join(f"\n  {nama:<12} {ip}" for nama, ip in lan) or " none (laptop is not connected to a network)")
+    print("".join(f"\n  {name:<12} {ip}" for name, ip in lan) or " none (laptop is not connected to a network)")
 
     print("Port localhost:")
     for p, port_service in PORT.items():
@@ -62,8 +62,8 @@ def main():
     print("  WIFI_DAFTAR:")
     print(f'    {{"{ssid or "<ssid>"}", "<password>"}},')
     print("  BROKER_DAFTAR:")
-    for nama, ip in lan or [("-", "<IP>")]:
-        print(f'    {{"laptop", "{ip}", 1883, "<token>"}},   // {nama}, valid while this IP stays')
+    for name, ip in lan or [("-", "<IP>")]:
+        print(f'    {{"laptop", "{ip}", 1883, "<token>"}},   // {name}, valid while this IP stays')
     print("Token: cd dashboard && python3 smoke_test.py")
     print("Laptop IP changed (DHCP)? Run this again, update the entries, reflash.")
 

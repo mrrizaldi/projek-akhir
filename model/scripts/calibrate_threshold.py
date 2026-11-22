@@ -30,10 +30,10 @@ def main() -> None:
                  r["specificity"], r["tp"], r["fn"], r["fp"]))
 
     f1_max = max(r["f1"] for r in rows)
-    kandidat = [r for r in rows if f1_max - r["f1"] < F1_TIE_MARGIN]
-    best = max(kandidat, key=lambda r: r["recall"])
+    candidates = [r for r in rows if f1_max - r["f1"] < F1_TIE_MARGIN]
+    best = max(candidates, key=lambda r: r["recall"])
     print(f"\nmax F1 {f1_max:.4f}; candidates within margin {F1_TIE_MARGIN}: "
-          f"{[round(r['threshold'], 2) for r in kandidat]}")
+          f"{[round(r['threshold'], 2) for r in candidates]}")
     print(f"→ THRESHOLD = {best['threshold']:.2f}  "
           f"(recall {best['recall']:.4f}, precision {best['precision']:.4f})")
 
