@@ -14,7 +14,7 @@ from src.preprocessing import (
 )
 
 R_IDX = WIN_PRE + 4
-N_REC = int(os.environ.get("PA_CEK_REC", 8))
+N_REC = int(os.environ.get("PA_CHECK_REC", 8))
 
 
 def ukur(db: str, rec: str, sos, lead_paksa=None) -> dict:

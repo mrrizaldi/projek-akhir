@@ -231,7 +231,7 @@ berpindah bila tidak ada langkah adaptif di antara knob dan metrik.
 
 | Skrip | Untuk apa |
 |---|---|
-| `scripts/check_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar. Knob `PA_CEK_REC` = jumlah rekaman per basis data (bawaan 8), mis. `PA_CEK_REC=20 python scripts/check_lead.py` dari folder `model/` |
+| `scripts/check_lead.py` | Polaritas & alignment lead antar-database. Dua kolom (mentah/selaras), dua vonis — jangan tertukar. Knob `PA_CHECK_REC` = jumlah rekaman per basis data (bawaan 8), mis. `PA_CHECK_REC=20 python scripts/check_lead.py` dari folder `model/` |
 | `scripts/check_calibration.py` | Seberapa jauh kalibrasi VAL dari optimum DS2. DS2 mendiagnosis, TIDAK memilih |
 | `scripts/second_stage_rules.py` | Aturan penamaan V/S di atas keputusan biner. Tidak dikirim: VAL hanya dapat mensertifikasi presisi 43,9% |
 | `scripts/ablasi.py --db` | Latih multi-database. Bawaan `mitdb` = jalur terkunci, byte-identik |
