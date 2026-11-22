@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: pesan-akhir-dan-daftar-periksa
+expected_outcome: |
+  The message names the checklist commands: make pdf-bersih with grep undefined|Overfull, grep for leftover old-version phrases, grep for internal labels, grep di atas/di bawah, and python3 scripts/cek_tabel.py. Command output numbers are written [N] or 'belum dijalankan', not invented. The message stays a proposal throughout and does not claim files were changed.

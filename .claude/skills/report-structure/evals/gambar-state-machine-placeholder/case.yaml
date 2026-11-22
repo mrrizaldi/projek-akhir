@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: gambar-state-machine-placeholder
+expected_outcome: |
+  The figure is a LaTeX placeholder with a complete specification card (ID fig:{bab}-{slug}, repo material ecg_mqtt.cpp, exact text), without TikZ or any other diagram. Caption, label, ref, intro and explanation are final. The explanation names only card elements and closes with exactly one meaning sentence.
