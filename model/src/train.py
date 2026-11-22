@@ -36,12 +36,12 @@ class BestWeightAverage(callbacks.Callback):
                              [w.copy() for w in self.model.get_weights()]))
 
     def on_train_end(self, logs=None):
-        top = sorted(self.riwayat, key=lambda t: -t[0])[:self.n]
-        self.epochs_used = sorted(e for _, e, _ in top)
+        best_epochs = sorted(self.riwayat, key=lambda t: -t[0])[:self.n]
+        self.epochs_used = sorted(e for _, e, _ in best_epochs)
         print(f"[swa] averaged epochs: {self.epochs_used} "
               f"of {len(self.riwayat)} epochs")
         self.model.set_weights([np.mean(w, axis=0)
-                                for w in zip(*[b for _, _, b in top])])
+                                for w in zip(*[b for _, _, b in best_epochs])])
 
 
 def train(model, train_data: dict, val_data: dict,

@@ -142,7 +142,7 @@ def jenis(path):
     return None
 
 
-def list_files(argumen):
+def collect_paths(argumen):
     base_dir = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True).stdout.strip()
     argumen = [os.path.abspath(a) for a in argumen] or [base_dir]
     os.chdir(base_dir)
@@ -210,7 +210,7 @@ def main():
     if argumen == ["--self-test"]:
         uji()
         return 0
-    violations = periksa(list_files(argumen))
+    violations = periksa(collect_paths(argumen))
     for p in violations:
         print(p)
     if violations:

@@ -588,7 +588,7 @@ hal_d	docx_page
 hal	page_count_at
 bab_latex	latex_chapters
 bab_docx	docx_chapters
-cuplikan	excerpt
+cuplikan	page_excerpt
 EKSTENSI_C	C_EXTENSIONS
 POLA_CODING	CODING_PATTERN
 POLA_HEREDOC	HEREDOC_PATTERN
@@ -599,7 +599,7 @@ komentar_shell	shell_comments
 komentar_ini	ini_comments
 komentar_makefile	makefile_comments
 posisi_pagar	hash_position
-daftar_berkas	list_files
+daftar_berkas	collect_paths
 nama_berkas	file_names
 akar	base_dir
 awal_kata	word_starts
@@ -692,7 +692,7 @@ kepala	column_headers
 konteks	context
 lab	label_match
 lab_grid	grid_label_match
-lap	report
+lap	table_report
 lebar_teks	text_width
 lebar_x	x_width
 lingkungan	environment
@@ -1053,4 +1053,4 @@ tak_dikenal	unknown_databases
 kanal	channels
 latih	train_records
 penyebut	denominator
-teratas	top
+teratas	best_epochs

@@ -166,7 +166,7 @@ def column_name(column_headers, j):
     return f"column {j + 1}"
 
 
-def check_content(report, berkas, first_line, table_rows):
+def check_content(table_report, berkas, first_line, table_rows):
     if len(table_rows) < 2:
         return
     column_headers, badan = table_rows[0], []
@@ -174,7 +174,7 @@ def check_content(report, berkas, first_line, table_rows):
         rentang, isi = unwrap_multicolumn(b[0])
         if len(b) == 1 and rentang >= len(column_headers):
             if word_count(isi) > CELL_MAX_WORDS:
-                report.catat(berkas, first_line, "T-CATATAN", False,
+                table_report.catat(berkas, first_line, "T-CATATAN", False,
                           f"table-wide note row ({word_count(isi)} words), move it to the Keterangan below the table")
             continue
         badan.append([unwrap_multicolumn(s)[1] for s in b])
@@ -184,11 +184,11 @@ def check_content(report, berkas, first_line, table_rows):
         for b in badan:
             if j < len(b) and word_count(b[j]) > CELL_MAX_WORDS:
                 awal = " ".join(plain_text(b[0]).split()[:4])
-                report.catat(berkas, first_line, "T-SEL", False,
+                table_report.catat(berkas, first_line, "T-SEL", False,
                           f"cell '{nama}' in row '{awal}' has {word_count(b[j])} words (max {CELL_MAX_WORDS}), move the reasoning to the paragraph or Keterangan")
         with_units = [s for s in kolom if word_count(s) <= 4 and re.search(r"\d\s*~?\s*" + UNITS_REGEX + r"(?![a-zA-Z])", s)]
         if len(with_units) >= UNIT_MIN_CELLS and "(" not in column_headers[j]:
-            report.catat(berkas, first_line, "T-SATUAN", False,
+            table_report.catat(berkas, first_line, "T-SATUAN", False,
                       f"column '{nama}': unit repeated in {len(with_units)} cells, write it once in the header, e.g. '{nama} (ms)'")
         decimal_places = set()
         for s in kolom:
@@ -196,11 +196,11 @@ def check_content(report, berkas, first_line, table_rows):
             if m:
                 decimal_places.add(len(m.group(1)))
         if len(decimal_places) > 1:
-            report.catat(berkas, first_line, "T-DESIMAL", False,
+            table_report.catat(berkas, first_line, "T-DESIMAL", False,
                       f"column '{nama}': inconsistent decimal places {sorted(decimal_places)}")
         for s in kolom:
             if plain_text(s).strip().lower() in VAGUE_FILLERS:
-                report.catat(berkas, first_line, "T-ISIAN", False,
+                table_report.catat(berkas, first_line, "T-ISIAN", False,
                           f"column '{nama}' contains '{s.strip()}', use '--' and explain in Keterangan")
 
 
@@ -232,41 +232,41 @@ def opening(teks):
     return " ".join(polos.split()[:3]).rstrip(",")
 
 
-def check_tables(report, berkas, sumber, text_width):
+def check_tables(table_report, berkas, sumber, text_width):
     polos = strip_comments(sumber)
     explainers = []
     for m in BLOCK_PATTERN.finditer(polos):
         environment, blok = m.group(1), m.group(2)
         first_line = line_number_of(polos, m.start())
         if Path(berkas).name in CHAPTERS_WITHOUT_TABLES:
-            report.catat(berkas, first_line, "T-BAB", True, "Chapters 1 and 5 contain no tables")
+            table_report.catat(berkas, first_line, "T-BAB", True, "Chapters 1 and 5 contain no tables")
         grid_label_match = re.search(r"\\label\{([^}]*)\}", blok)
         full_grid = bool(grid_label_match) and grid_label_match.group(1) in FULL_GRID_TABLES
         if full_grid:
             if re.search(r"\\(toprule|midrule|bottomrule|rowcolor|cellcolor)", blok) or "\\hline" not in blok:
-                report.catat(berkas, first_line, "T-GRID", True, "related-work table: plain full grid, \\hline and vertical rules, no booktabs and no color")
+                table_report.catat(berkas, first_line, "T-GRID", True, "related-work table: plain full grid, \\hline and vertical rules, no booktabs and no color")
         elif re.search(r"\\(hline|cline)|\\rowcolor", blok):
-            report.catat(berkas, first_line, "T-GRID", True, "three-line style: \\toprule, \\midrule, \\bottomrule, without \\hline, \\cline, and \\rowcolor")
+            table_report.catat(berkas, first_line, "T-GRID", True, "three-line style: \\toprule, \\midrule, \\bottomrule, without \\hline, \\cline, and \\rowcolor")
         if not full_grid and not all(f"\\{garis}" in blok for garis in ("toprule", "midrule", "bottomrule")):
-            report.catat(berkas, first_line, "T-HEADER", True, "table without the full \\toprule, \\midrule, \\bottomrule set")
+            table_report.catat(berkas, first_line, "T-HEADER", True, "table without the full \\toprule, \\midrule, \\bottomrule set")
         if environment == "table" and re.match(r"\s*\[H\]", blok):
-            report.catat(berkas, first_line, "T-FLOAT", False, "[H] pins the position, use [!ht]")
+            table_report.catat(berkas, first_line, "T-FLOAT", False, "[H] pins the position, use [!ht]")
         jenis, x_width, column_spec, column_spec_end = find_tabular(blok, environment)
         if column_spec and "|" in column_spec and not full_grid:
-            report.catat(berkas, first_line, "T-GRID", True, "vertical rule | in the column spec, three-line style has no vertical rules")
+            table_report.catat(berkas, first_line, "T-GRID", True, "vertical rule | in the column spec, three-line style has no vertical rules")
         caption_match = re.search(r"\\caption\{", blok)
         if not caption_match:
-            report.catat(berkas, first_line, "T-CAPTION", True, "table without \\caption")
+            table_report.catat(berkas, first_line, "T-CAPTION", True, "table without \\caption")
         else:
             caption_text, _ = braced_content(blok, caption_match.end() - 1)
             if environment == "table" and jenis and blok.find("\\begin{" + jenis) < caption_match.start():
-                report.catat(berkas, first_line, "T-CAPTION", True, "table caption must be ABOVE the table")
+                table_report.catat(berkas, first_line, "T-CAPTION", True, "table caption must be ABOVE the table")
             if caption_text.rstrip().endswith("."):
-                report.catat(berkas, first_line, "T-CAPTION", False, "caption ends with a period, a caption is a noun phrase without one")
+                table_report.catat(berkas, first_line, "T-CAPTION", False, "caption ends with a period, a caption is a noun phrase without one")
             if "(" in plain_text(caption_text):
-                report.catat(berkas, first_line, "T-CAPTION", False, "caption has a parenthetical note, move it to the Keterangan line below the table")
+                table_report.catat(berkas, first_line, "T-CAPTION", False, "caption has a parenthetical note, move it to the Keterangan line below the table")
             if word_count(caption_text) > CAPTION_MAX_WORDS:
-                report.catat(berkas, first_line, "T-CAPTION", False, f"caption {word_count(caption_text)} words (max {CAPTION_MAX_WORDS})")
+                table_report.catat(berkas, first_line, "T-CAPTION", False, f"caption {word_count(caption_text)} words (max {CAPTION_MAX_WORDS})")
         if column_spec is not None:
             lebar, kolom, garis = read_column_spec(column_spec, text_width)
             context = polos[max(0, m.start() - 600):m.start()] + blok
@@ -275,25 +275,25 @@ def check_tables(report, berkas, sumber, text_width):
             if jenis != "tabularx" and lebar and all(x is not None for x in lebar):
                 total = sum(lebar) + kolom * 2 * tabcolsep * PT_TO_CM + garis * 0.4 * PT_TO_CM
                 if total > text_width + 0.05:
-                    report.catat(berkas, first_line, "T-LEBAR", True,
+                    table_report.catat(berkas, first_line, "T-LEBAR", True,
                               f"table width {total:.2f} cm exceeds text width {text_width:.2f} cm")
             isi = blok[column_spec_end:] if column_spec_end else blok
-            check_content(report, berkas, first_line, split_rows(isi))
+            check_content(table_report, berkas, first_line, split_rows(isi))
         label_match = re.search(r"\\label\{([^}]*)\}", blok)
         label = label_match.group(1) if label_match else None
         if label:
             references = [r.start() for r in re.finditer(REF_PATTERN % re.escape(label), polos)]
             if not references:
-                report.catat(berkas, first_line, "T-RUJUK", True, f"{label} is never referenced in a paragraph")
+                table_report.catat(berkas, first_line, "T-RUJUK", True, f"{label} is never referenced in a paragraph")
             elif min(references) > m.start():
-                report.catat(berkas, first_line, "T-RUJUK", False, f"{label} is first referenced after the table, reference it first in an introductory paragraph")
+                table_report.catat(berkas, first_line, "T-RUJUK", False, f"{label} is first referenced after the table, reference it first in an introductory paragraph")
         pos, teks = paragraph_after(polos, m.end(), label)
         if teks:
             explainers.append((line_number_of(polos, pos), teks, numbers_in(blok), label))
-    check_explainers(report, berkas, explainers)
+    check_explainers(table_report, berkas, explainers)
 
 
-def check_explainers(report, berkas, explainers):
+def check_explainers(table_report, berkas, explainers):
     sebelumnya = None
     berdasarkan = 0
     repeated_openers = []
@@ -306,16 +306,16 @@ def check_explainers(report, berkas, explainers):
         sebelumnya = buka
         kata = word_count(teks)
         if kata > PARAGRAPH_MAX_WORDS:
-            report.catat(berkas, baris, "N-PANJANG", False, f"explanatory paragraph {label} has {kata} words (max {PARAGRAPH_MAX_WORDS}), split it by function")
+            table_report.catat(berkas, baris, "N-PANJANG", False, f"explanatory paragraph {label} has {kata} words (max {PARAGRAPH_MAX_WORDS}), split it by function")
         diulang = table_numbers & numbers_in(teks)
         if len(table_numbers) >= REPEAT_MIN_NUMBERS and len(diulang) / len(table_numbers) > REPEAT_RATIO_MAX:
-            report.catat(berkas, baris, "N-ULANG", False,
+            table_report.catat(berkas, baris, "N-ULANG", False,
                       f"explanatory paragraph {label} repeats {len(diulang)} of {len(table_numbers)} table numbers, write the finding and its meaning")
     if repeated_openers:
-        report.catat(berkas, int(repeated_openers[0]), "N-PEMBUKA", False,
+        table_report.catat(berkas, int(repeated_openers[0]), "N-PEMBUKA", False,
                   f"{len(repeated_openers)} explanatory paragraphs open the same way as the previous one (lines {', '.join(repeated_openers)})")
     if berdasarkan > BERDASARKAN_MAX_PER_CHAPTER:
-        report.catat(berkas, 1, "N-PEMBUKA", False,
+        table_report.catat(berkas, 1, "N-PEMBUKA", False,
                   f"'Berdasarkan Tabel' opens {berdasarkan} paragraphs (max {BERDASARKAN_MAX_PER_CHAPTER} per chapter), vary the openers")
 
 
@@ -333,7 +333,7 @@ def prose_blocks(sumber):
     return hasil
 
 
-def check_prose(report, berkas, sumber):
+def check_prose(table_report, berkas, sumber):
     total_words, sehingga, panjang, gaya = 0, 0, [], []
     for baris, teks in prose_blocks(sumber):
         if "\\makebox" in teks or teks.startswith("\\noindent\\makebox"):
@@ -348,16 +348,16 @@ def check_prose(report, berkas, sumber):
             if n > SENTENCE_MAX_WORDS:
                 panjang.append((n, baris, " ".join(plain_text(sentence).split()[:6])))
     if gaya:
-        report.catat(berkas, int(gaya[0]), "N-GAYA", False,
+        table_report.catat(berkas, int(gaya[0]), "N-GAYA", False,
                   f"semicolon or em dash in {len(gaya)} paragraphs (laporan/CLAUDE.md), lines {', '.join(gaya)}")
     if panjang:
         example = "; ".join(f"line {b} ({n} words) '{a} ...'" for n, b, a in sorted(panjang, reverse=True)[:5])
-        report.catat(berkas, sorted(panjang, reverse=True)[0][1], "N-KALIMAT", False,
+        table_report.catat(berkas, sorted(panjang, reverse=True)[0][1], "N-KALIMAT", False,
                   f"{len(panjang)} sentences over {SENTENCE_MAX_WORDS} words, longest: {example}")
     if total_words:
         per_thousand = sehingga * 1000 / total_words
         if per_thousand > 5:
-            report.catat(berkas, 1, "N-SEHINGGA", False,
+            table_report.catat(berkas, 1, "N-SEHINGGA", False,
                       f"'sehingga' {sehingga} times ({per_thousand:.1f} per 1,000 words), vary or split the sentences")
 
 
@@ -369,31 +369,31 @@ LIBRARY_WORD_PATTERN = re.compile(r"(?<!Kajian )(?<!KAJIAN )(?<!Daftar )(?<!DAFT
 POINTER_PATTERN = re.compile(r"(?:Sub)?[Bb]ab~?\\ref\{|\b(?:Sub)?[Bb]ab~?\s?[0-9]\b|(?:diuraikan|dibahas|dijelaskan) pada (?:sub-?bagian|butir [a-z]\b)")
 
 
-def check_objective_labels(report, berkas, sumber):
+def check_objective_labels(table_report, berkas, sumber):
     for nomor, baris in enumerate(strip_comments(sumber).split("\n"), 1):
         m = OBJECTIVE_LABEL_PATTERN.search(plain_text(baris))
         if m:
-            report.catat(berkas, nomor, "N-TUJUAN", True,
+            table_report.catat(berkas, nomor, "N-TUJUAN", True,
                       f"numbered label '{m.group(0)}' in printed text, name the content of the objective (path, model, pipeline) like the AFIB book")
         m = PCB_REVISION_PATTERN.search(plain_text(baris))
         if m:
-            report.catat(berkas, nomor, "N-REVISI", True,
+            table_report.catat(berkas, nomor, "N-REVISI", True,
                       f"internal revision label '{m.group(0)}' in printed text, write only the final design")
         m = LIBRARY_WORD_PATTERN.search(plain_text(baris)) or BOARD_WORD_PATTERN.search(plain_text(baris))
         if m:
-            report.catat(berkas, nomor, "N-ISTILAH", True,
+            table_report.catat(berkas, nomor, "N-ISTILAH", True,
                       f"'{m.group(0)}' for an electronics/software term, write \\textit{{library}} atau \\textit{{board}} (laporan/CLAUDE.md, Istilah Asing)")
         m = POINTER_PATTERN.search(baris)
         if m:
-            report.catat(berkas, nomor, "N-PENUNJUK", True,
+            table_report.catat(berkas, nomor, "N-PENUNJUK", True,
                       f"pointer '{m.group(0)}' to another chapter, section, or item, state the content directly")
         m = SUBSECTION_META_PATTERN.search(plain_text(baris))
         if m:
-            report.catat(berkas, nomor, "N-META", True,
+            table_report.catat(berkas, nomor, "N-META", True,
                       f"opener '{m.group(0)} ...' in a section, go straight to the content; 'Bab ini ...' only in a chapter opener")
 
 
-def check_chapter_opening(report, berkas, sumber):
+def check_chapter_opening(table_report, berkas, sumber):
     polos = strip_comments(sumber)
     bab = re.search(r"\\chapter\{", polos)
     if not bab:
@@ -403,7 +403,7 @@ def check_chapter_opening(report, berkas, sumber):
     between = re.sub(r"^[^\n]*\}\s*", "", between, count=1)
     between = re.sub(r"\\label\{[^}]*\}", "", between)
     if between.strip():
-        report.catat(berkas, line_number_of(polos, bab.start()), "N-PEMBUKA-BAB", True,
+        table_report.catat(berkas, line_number_of(polos, bab.start()), "N-PEMBUKA-BAB", True,
                   "opening paragraph before the first section, go straight to the first section like the proposal")
 
 
@@ -433,12 +433,12 @@ def run_table_self_test():
         "Pemetaan label diuraikan pada Subbab~\\ref{subsec:x}.",
         "Pustaka pyserial dipakai pada Kajian Pustaka.",
     ])
-    report = Report()
-    check_tables(report, "uji.tex", example, TEXT_WIDTH_CM["a4"])
-    check_prose(report, "uji.tex", example)
-    check_objective_labels(report, "uji.tex", example)
-    check_chapter_opening(report, "uji.tex", example)
-    kode = {t[2] for t in report.temuan}
+    table_report = Report()
+    check_tables(table_report, "uji.tex", example, TEXT_WIDTH_CM["a4"])
+    check_prose(table_report, "uji.tex", example)
+    check_objective_labels(table_report, "uji.tex", example)
+    check_chapter_opening(table_report, "uji.tex", example)
+    kode = {t[2] for t in table_report.temuan}
     expected_codes = {"N-ISTILAH", "N-PEMBUKA-BAB", "N-PENUNJUK", "N-REVISI", "N-META", "N-TUJUAN", "T-GRID", "T-HEADER", "T-FLOAT", "T-CAPTION", "T-LEBAR", "T-SATUAN", "T-ISIAN", "N-GAYA"}
     grid = Report()
     check_tables(grid, "uji.tex", "Lihat Tabel~\\ref{tab:perbandingan-penelitian}.\n\\begin{longtable}{|c|c|}\n\\caption{Perbandingan Penelitian Terkait}\\label{tab:perbandingan-penelitian}\\\\\n\\toprule\na & b \\\\\n\\bottomrule\n\\end{longtable}\n", TEXT_WIDTH_CM["a4"])
@@ -448,7 +448,7 @@ def run_table_self_test():
     if kurang:
         print(f"self-test FAILED, not detected: {sorted(kurang)}")
         return 1
-    print(f"self-test passed ({len(report.temuan)} findings, {len(expected_codes)} expected codes detected)")
+    print(f"self-test passed ({len(table_report.temuan)} findings, {len(expected_codes)} expected codes detected)")
     return 0
 
 
@@ -465,17 +465,17 @@ def main():
     if arg.uji:
         return run_table_self_test()
     daftar = [Path(b) for b in arg.berkas] or sorted((base_dir / "laporan/buku-pa/bab").glob("bab*.tex"))
-    report = Report()
+    table_report = Report()
     for berkas in daftar:
         sumber = berkas.read_text(encoding="utf-8")
-        check_tables(report, berkas, sumber, TEXT_WIDTH_CM[arg.kertas])
-        check_objective_labels(report, berkas, sumber)
-        check_chapter_opening(report, berkas, sumber)
+        check_tables(table_report, berkas, sumber, TEXT_WIDTH_CM[arg.kertas])
+        check_objective_labels(table_report, berkas, sumber)
+        check_chapter_opening(table_report, berkas, sumber)
         if not arg.tanpa_prosa:
-            check_prose(report, berkas, sumber)
-    report.cetak(arg.hanya_galat)
-    print(f"{len(daftar)} files, {report.fault_count()} errors, {report.suggestion_count()} suggestions")
-    if report.fault_count() or (arg.ketat and report.suggestion_count()):
+            check_prose(table_report, berkas, sumber)
+    table_report.cetak(arg.hanya_galat)
+    print(f"{len(daftar)} files, {table_report.fault_count()} errors, {table_report.suggestion_count()} suggestions")
+    if table_report.fault_count() or (arg.ketat and table_report.suggestion_count()):
         return 1
     return 0
 

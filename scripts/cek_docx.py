@@ -42,7 +42,7 @@ def chapter_starts(pages):
     return awal
 
 
-def excerpt(teks):
+def page_excerpt(teks):
     return " ".join(teks.split())[:EXCERPT_MAX_CHARS]
 
 
@@ -67,8 +67,8 @@ def bandingkan(pdf_latex, docx, wordcraft):
     sama = min(len(latex_pages), len(docx_pages)) - len(beda)
     print(f"Pages with matching start: {sama} of {len(latex_pages)}")
     for nomor in beda[:SHOW_DIFF_MAX]:
-        print(f"  p{nomor} PDF : {excerpt(latex_pages[nomor - 1])}")
-        print(f"  p{nomor} DOCX: {excerpt(docx_pages[nomor - 1])}")
+        print(f"  p{nomor} PDF : {page_excerpt(latex_pages[nomor - 1])}")
+        print(f"  p{nomor} DOCX: {page_excerpt(docx_pages[nomor - 1])}")
     return not beda and len(latex_pages) == len(docx_pages)
 
 
