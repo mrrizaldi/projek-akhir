@@ -181,12 +181,12 @@ more false detections. That trade-off can be measured with the same script.
 ## 5. What this means for the firmware
 
 ```c
-// urutan wajib di alur hidup on-device
-r_kasar   = pan_tompkins(filtered)      // punya delay ~38 sampel
-r_kompen  = r_kasar - 38                // kompensasi median (kalibrasi DS1)
-r_halus   = argmax(filtered, r_kompen +- 25)   // puncak sebenarnya
-r_used   = r_halus - 4                 // kembalikan group delay -> R di indeks 132
-window    = filtered[r_used - 128 : r_used + 128]   // WIN_PRE / WIN_POST
+// mandatory order in the on-device live flow
+r_coarse      = pan_tompkins(filtered)      // has a delay of ~38 samples
+r_compensated = r_coarse - 38               // median compensation (DS1 calibration)
+r_refined     = argmax(filtered, r_compensated +- 25)   // the actual peak
+r_used        = r_refined - 4               // restore group delay -> R at index 132
+window        = filtered[r_used - 128 : r_used + 128]   // WIN_PRE / WIN_POST
 ```
 
 The same constants in the firmware: `ECG_PT_OFFSET` 38, `ECG_GROUP_DELAY` 4,
