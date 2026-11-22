@@ -109,18 +109,18 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | `src/daya.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
 | `src/konfig.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
 | `src/serial_cmd.cpp` | Perintah serial (bagian Perintah serial) |
-| `src/perangkat.cpp` | Pemasangan perangkat PCB: SPI dan TFT, buzzer LEDC, tombol, pin LO, ADC |
+| `src/board.cpp` | Pemasangan perangkat PCB: SPI dan TFT, buzzer LEDC, tombol, pin LO, ADC |
 | `src/ecg_pipeline.cpp` | Port preprocessing Python ke C (bandpass kausal, deteksi Pan-Tompkins, penyelarasan R, window + z-score, fitur RR) |
 | `src/ecg_live.cpp` | Alur streaming: sampel masuk satu per satu, beat siap-klasifikasi keluar |
 | `src/ecg_mqtt.cpp` | Payload JSON, antrean backlog, klien MQTT di atas `WiFiClient` (tanpa library tambahan) |
 | `src/ina219.cpp` | Konversi register INA219 ke mA/V (fungsi murni) dan akses I2C |
-| `include/` | Header kontrak; `perangkat.h` memuat pin map; `model_int8.h` dan `ecg_preproc.h` hasil generate (lihat [`include/README.md`](include/README.md)) |
+| `include/` | Header kontrak; `board.h` memuat pin map; `model_int8.h` dan `ecg_preproc.h` hasil generate (lihat [`include/README.md`](include/README.md)) |
 | `test/golden_ref.h` | Golden reference Python, hasil `model/scripts/export_golden.py` |
 | `test/test_*` | Suite Unity (lihat bagian Test) |
 
 ## Pin map (PCB rev1)
 
-Sumber tunggal: [`include/perangkat.h`](include/perangkat.h).
+Sumber tunggal: [`include/board.h`](include/board.h).
 
 | Fungsi | GPIO |
 |---|---|
@@ -135,7 +135,7 @@ Sumber tunggal: [`include/perangkat.h`](include/perangkat.h).
 Urutan pemasangan wajib: `SPI.begin(9, -1, 8)` dipanggil sebelum buzzer
 dipasang ke LEDC. Di ESP32-S3, MISO −1 diganti MISO bawaan FSPI, yaitu GPIO 13,
 dan pin itu dijadikan input; bila LEDC dipasang lebih dulu, buzzer kehilangan
-pinnya dan tidak berbunyi. `perangkat_mulai()` memegang urutan ini dan
+pinnya dan tidak berbunyi. `board_begin()` memegang urutan ini dan
 `test_hw_buzzer` memeriksanya dari register GPIO matrix.
 
 ## Jebakan
@@ -145,7 +145,7 @@ pengukuran ada di walkthrough yang dirujuk.
 
 **Perangkat**
 
-- `SPI.begin(TFT_SCK, TANPA_MISO, TFT_MOSI)` dipanggil sebelum buzzer dipasang
+- `SPI.begin(TFT_SCK, WITHOUT_MISO, TFT_MOSI)` dipanggil sebelum buzzer dipasang
   (bagian Pin map). `tft.init()` memanggil `SPI.begin()` lagi, tetapi
   `SPIClass::begin()` langsung kembali bila bus sudah aktif, jadi urutan tidak
   rusak oleh TFT.
@@ -153,10 +153,10 @@ pengukuran ada di walkthrough yang dirujuk.
   `digitalWrite` sebelum LEDC mengambil alih, karena pin yang belum diatur
   dapat terbaca LOW oleh modul dan berbunyi saat boot. Kanal LEDC dipasang
   dengan `output_invert = 1` (kanal 0 → `LEDC_TIMER_0`, sama dengan
-  `ledcSetup`) sehingga `ledcWriteTone(kanal, NADA_DIAM)` (duty 0) menghasilkan
-  HIGH = diam dan gelombang kotak tetap berbunyi. `perangkat_mulai()`
+  `ledcSetup`) sehingga `ledcWriteTone(kanal, TONE_IDLE)` (duty 0) menghasilkan
+  HIGH = diam dan gelombang kotak tetap berbunyi. `board_begin()`
   dipanggil pertama di `setup()` supaya buzzer diam secepatnya.
-- `NADA_HZ` (`perangkat.h`) adalah knob: buzzer pasif paling keras di frekuensi
+- `TONE_HZ` (`board.h`) adalah knob: buzzer pasif paling keras di frekuensi
   resonansinya, yang berbeda per part.
 - Pin LO+/LO− dipasang `INPUT_PULLUP`: kabel LO yang putus terbaca HIGH
   (elektroda lepas), bukan mengambang. Keluaran LO AD8232 push-pull sehingga

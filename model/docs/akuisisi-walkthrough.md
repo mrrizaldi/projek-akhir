@@ -1,7 +1,7 @@
 # Walkthrough akuisisi sinyal — dari elektroda ke grafik
 
 > **Ruang lingkup:** prosedur merekam EKG dari tubuh dengan firmware utama, menarik rekaman ke laptop, dan menilai kualitasnya.
-> **Kode terkait:** `firmware/src/main.cpp`, `firmware/include/perangkat.h`, `model/scripts/pull_recording.py`, `model/scripts/analyze_recording.py`, `model/Makefile` (target `pull`, `analisis`)
+> **Kode terkait:** `firmware/src/main.cpp`, `firmware/include/board.h`, `model/scripts/pull_recording.py`, `model/scripts/analyze_recording.py`, `model/Makefile` (target `pull`, `analisis`)
 > **Prasyarat:** [`firmware-walkthrough.md`](firmware-walkthrough.md)
 
 Panduan kerja, bukan spesifikasi: merekam dari badan, menarik data, menilai
@@ -54,7 +54,7 @@ jala-jala; gejalanya `dengung50` ~930 counts di laporan `q` walau elektroda
 terpasang (lihat §7).
 
 Tabel pin ini adalah bagian akuisisi dari peta pin PCB rev1
-(`firmware/include/perangkat.h`). Peta lengkap, termasuk TFT, buzzer, tombol
+(`firmware/include/board.h`). Peta lengkap, termasuk TFT, buzzer, tombol
 B1/B2, dan INA219, serta peta tombol dan menu di layar, ada di
 [`firmware/README.md`](../../firmware/README.md).
 Jalur akuisisi dapat diperiksa tanpa elektroda dengan

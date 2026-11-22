@@ -25,7 +25,7 @@ KiCad 10.0.6) ditolak KiCad 9 dengan pesan `Failed to load schematic`.
 
 ## Peta pin
 
-Sama dengan `firmware/include/perangkat.h`. Nomor pad U1 mengikuti footprint
+Sama dengan `firmware/include/board.h`. Nomor pad U1 mengikuti footprint
 resmi Espressif: pad 1–22 kolom kiri dari atas (3V3 … GND), pad 23–44 kolom
 kanan dari bawah (GND … GND). Urutan fisik kedua kolom sudah dicocokkan 44/44
 dengan gambar pinout resmi ESP32-S3-DevKitC-1.
@@ -181,7 +181,7 @@ membawa transistor sendiri.
   5 V, I/O HIGH 3,3 V menyisakan V_EB 1,7 V: PNP tetap menyala, buzzer tidak
   pernah diam, dan arus dari 5 V masuk ke GPIO lewat sambungan E–B. Dengan
   VCC 3V3, V_EB = 0 saat HIGH dan buzzer diam. Suara sedikit lebih pelan
-  daripada di 5 V; kerasnya dikembalikan dengan menyetel `NADA_HZ` ke
+  daripada di 5 V; kerasnya dikembalikan dengan menyetel `TONE_HZ` ke
   resonansi buzzer. Modul aktif (A07009) dijual di halaman toko yang sama:
   bagian bawah buzzer aktif tertutup rapat, buzzer pasif memperlihatkan PCB
   hijau.
@@ -234,7 +234,7 @@ Skrip keluar dengan kode 1 bila satu pin saja menyimpang dari peta di atas,
 bila ada jalur lebih tipis dari netclass-nya, dua courtyard berjarak < 1 mm,
 atau teks menumpuk, di atas pad, keluar tepi, atau tidak searah header.
 Peta pin di skrip (`PIN_U1`, `PIN_LAIN`) wajib diperbarui bersamaan dengan
-`perangkat.h` setiap kali pin dipindah.
+`board.h` setiap kali pin dipindah.
 
 ## Ukiran nama
 

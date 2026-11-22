@@ -1,0 +1,11 @@
+KANAL_BUZZ	CHANNEL_BUZZ
+KANAL_EKG	CHANNEL_ECG
+NADA_HZ	TONE_HZ
+NADA_DIAM	TONE_IDLE
+TANPA_MISO	WITHOUT_MISO
+PERANGKAT_H	BOARD_H
+perangkat_mulai	board_begin
+pasang_buzzer	attach_buzzer
+nyala	enabled
+perangkat.h	board.h
+perangkat.cpp	board.cpp

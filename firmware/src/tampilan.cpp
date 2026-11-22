@@ -8,7 +8,7 @@
 #include "daya.h"
 #include "gerbang.h"
 #include "ina219.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 #include "tombol.h"
 

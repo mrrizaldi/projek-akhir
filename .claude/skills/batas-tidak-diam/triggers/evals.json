@@ -40,7 +40,7 @@
     "should_trigger": true
   },
   {
-    "query": "ganti pin buzzer ke GPIO13 di perangkat.h",
+    "query": "ganti pin buzzer ke GPIO13 di board.h",
     "should_trigger": false
   },
   {

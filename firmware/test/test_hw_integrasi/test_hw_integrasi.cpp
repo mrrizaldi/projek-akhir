@@ -12,7 +12,7 @@
 #include "model_int8.h"
 #include "ecg_live.h"
 #include "ina219.h"
-#include "perangkat.h"
+#include "board.h"
 #include "../golden_ref.h"
 
 constexpr int PUTARAN = 3;
@@ -176,7 +176,7 @@ void tearDown(void) {}
 
 void setup()
 {
-    perangkat_mulai();
+    board_begin();
     Serial.begin(115200);
     delay(2000);
     ina219_mulai(I2C_SDA, I2C_SCL);

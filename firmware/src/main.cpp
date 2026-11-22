@@ -10,7 +10,7 @@
 #include "klasifikasi.h"
 #include "konfig.h"
 #include "menu.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 #include "serial_cmd.h"
 #include "diagnosa.h"
@@ -42,7 +42,7 @@ static void layani_tombol()
 
 void setup()
 {
-    perangkat_mulai();
+    board_begin();
     Serial.begin(115200);
     delay(1500);
     daya_mulai();
@@ -77,7 +77,7 @@ void setup()
                   ECG_FS, (unsigned)ANTRE_N, (unsigned)klasifikasi_arena(),
                   klasifikasi_ambang(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
                   I2C_SDA, I2C_SCL, INA219_ALAMAT, daya_ina_ada() ? "siap" : "TIDAK TERDETEKSI",
-                  TFT_W, TFT_H, PIN_BUZZ, (unsigned)NADA_HZ);
+                  TFT_W, TFT_H, PIN_BUZZ, (unsigned)TONE_HZ);
 }
 
 void loop()

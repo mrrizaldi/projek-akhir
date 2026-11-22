@@ -8,7 +8,7 @@
 #include "gerbang.h"
 #include "klasifikasi.h"
 #include "konfig.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 #include "golden_ref.h"
 
@@ -50,7 +50,7 @@ static void IRAM_ATTR on_timer()
         antre[tulis] = rp_data[replay_i];
         if (++replay_i >= rp_n) replay_i = 0;
     } else {
-        antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);
+        antre[tulis] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
     }
     tulis = berikut;
 }

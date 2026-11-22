@@ -8,7 +8,7 @@
 #include "soc/io_mux_reg.h"
 
 #include "ina219.h"
-#include "perangkat.h"
+#include "board.h"
 
 constexpr uint32_t FILL_MIN_US = 5000;
 constexpr int BACA_ADC_SATU_DETIK = 360;
@@ -45,7 +45,7 @@ diag_hasil_t diag_buzzer(void)
     PIN_INPUT_ENABLE(GPIO_PIN_MUX_REG[PIN_BUZZ]);
 
     const auto &cfg = GPIO.func_out_sel_cfg[PIN_BUZZ];
-    if (cfg.func_sel != LEDC_LS_SIG_OUT0_IDX + KANAL_BUZZ)
+    if (cfg.func_sel != LEDC_LS_SIG_OUT0_IDX + CHANNEL_BUZZ)
         return hasil(false, "Buzzer GPIO%d lepas dari LEDC (SPI sesudah buzzer?)", PIN_BUZZ);
     if (!cfg.inv_sel)
         return hasil(false, "Buzzer LEDC tidak dibalik (output_invert)");
@@ -75,7 +75,7 @@ diag_hasil_t diag_buzzer(void)
     if (!level_buzz())
         return hasil(false, "Buzzer tidak kembali HIGH sesudah bip");
     return hasil(true, "Buzzer GPIO%d ok LOW %d%% %u Hz, dengar 3 bip", PIN_BUZZ, persen,
-                 (unsigned)NADA_HZ);
+                 (unsigned)TONE_HZ);
 }
 
 diag_hasil_t diag_layar(void)
@@ -106,12 +106,12 @@ diag_hasil_t diag_layar(void)
 diag_hasil_t diag_adc(void)
 {
     for (int i = 0; i < 100; i++) {
-        const int v = adc1_get_raw(KANAL_EKG);
+        const int v = adc1_get_raw(CHANNEL_ECG);
         if (v < 0 || v > 4095) return hasil(false, "ADC GPIO1 error (%d)", v);
     }
     int lo = 4095, hi = 0;
     for (int i = 0; i < BACA_ADC_SATU_DETIK; i++) {
-        const int v = adc1_get_raw(KANAL_EKG);
+        const int v = adc1_get_raw(CHANNEL_ECG);
         if (v < lo) lo = v;
         if (v > hi) hi = v;
         delayMicroseconds(2700);

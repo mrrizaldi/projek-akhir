@@ -1,18 +1,18 @@
-#ifndef PERANGKAT_H
-#define PERANGKAT_H
+#ifndef BOARD_H
+#define BOARD_H
 
 #include <Arduino.h>
 #include <Adafruit_ST7789.h>
 #include "driver/adc.h"
 
-constexpr adc1_channel_t KANAL_EKG = ADC1_CHANNEL_0;
+constexpr adc1_channel_t CHANNEL_ECG = ADC1_CHANNEL_0;
 constexpr int PIN_LON = 2, PIN_LOP = 42;
 
 constexpr int TFT_SCK = 9, TFT_MOSI = 8, TFT_RST = 10, TFT_DC = 11;
 constexpr int TFT_W = 320, TFT_H = 172;
 
-constexpr int PIN_BUZZ = 13, KANAL_BUZZ = 0;
-constexpr uint32_t NADA_HZ = 2000;
+constexpr int PIN_BUZZ = 13, CHANNEL_BUZZ = 0;
+constexpr uint32_t TONE_HZ = 2000;
 
 constexpr int PIN_BTN[3] = {4, 5, 6};
 
@@ -23,8 +23,8 @@ constexpr int PIN_LED = 48;
 
 extern Adafruit_ST7789 tft;
 
-void perangkat_mulai(void);
+void board_begin(void);
 
-void buzzer(bool nyala);
+void buzzer(bool enabled);
 
 #endif

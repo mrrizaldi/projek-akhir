@@ -24,7 +24,7 @@ CI menjalankannya untuk seluruh repo lewat `.github/workflows/cek.yml`. Pelangga
 
 ## Nama yang sudah ada di repo
 
-Konstanta bersama tinggal di header `firmware/include/` (mis. `AMBANG_AYUN` di `gerbang.h`, `NADA_HZ` di `perangkat.h`), jadi cari dulu dengan `grep -rn "AMBANG\|BIP_\|NADA_" firmware/include firmware/src model/config.py` dan include header-nya, jangan definisikan ulang. Konstanta `BIP_*_MS` bersifat lokal per berkas (`tampilan.cpp`, `rekam.cpp`, `gerbang.cpp`, `main.cpp`), jadi baca prefiks konstanta di berkas tujuan sebelum menamai. Nilai model (FS, window, ambang) ada di `model/config.py`; pakai dari sana, bukan salinan. Nama yang ada dengan arti lain (`BIP_TOLAK_MS` di `tampilan.cpp` adalah lama bip, bukan jeda) jangan dipakai ulang atau ditiru dengan nama mirip, karena firmware satu namespace.
+Konstanta bersama tinggal di header `firmware/include/` (mis. `AMBANG_AYUN` di `gerbang.h`, `TONE_HZ` di `board.h`), jadi cari dulu dengan `grep -rn "AMBANG\|BIP_\|NADA_" firmware/include firmware/src model/config.py` dan include header-nya, jangan definisikan ulang. Konstanta `BIP_*_MS` bersifat lokal per berkas (`tampilan.cpp`, `rekam.cpp`, `gerbang.cpp`, `main.cpp`), jadi baca prefiks konstanta di berkas tujuan sebelum menamai. Nilai model (FS, window, ambang) ada di `model/config.py`; pakai dari sana, bukan salinan. Nama yang ada dengan arti lain (`BIP_TOLAK_MS` di `tampilan.cpp` adalah lama bip, bukan jeda) jangan dipakai ulang atau ditiru dengan nama mirip, karena firmware satu namespace.
 
 Literal yang dikirim ke API driver diberi nama yang menyebut efeknya, mis. `LEVEL_PIN_DIAM_HIGH` untuk level pin saat buzzer diam, bukan `1` dan bukan nama internal seperti `..._TERBALIK`. Alasannya: buzzer modul aktif LOW, jadi arti angka 1 tidak terbaca dari kodenya.
 
@@ -44,7 +44,7 @@ Baca bagian tujuan dulu dan jangan menggandakan isinya; rujuk yang sudah ada.
 Di §Jebakan firmware, satu butir masuk ke satu sub-daftar sesuai subsistemnya, karena butir yang melintas subsistem sulit ditemukan lagi. Sub-daftar yang ada: Perangkat, Akuisisi dan pipeline, TFLite Micro, Jaringan dan jam, LittleFS (cek dengan `grep -n "^\*\*" firmware/README.md`).
 
 - **Akuisisi dan pipeline**: perilaku loop, ISR, antrean, buzzer yang memblok `loop()`.
-- **Perangkat**: pin, buzzer, layar, LED, INA219 (contoh: `SPI.begin` harus sebelum `pasang_buzzer` karena SPI merebut GPIO13).
+- **Perangkat**: pin, buzzer, layar, LED, INA219 (contoh: `SPI.begin` harus sebelum `attach_buzzer` karena SPI merebut GPIO13).
 
 Tambahkan bagian baru hanya bila tidak ada satu pun sub-daftar yang cocok.
 
@@ -67,6 +67,6 @@ Tunjuk bagian dokumen tujuan dari tabel di atas, dan tandai klaim yang belum ter
 Kode tetap bersih, jebakannya masuk `firmware/README.md` §Jebakan, sub-daftar Perangkat:
 
 ```cpp
-SPI.begin(TFT_SCK, TANPA_MISO, TFT_MOSI);
-pasang_buzzer();
+SPI.begin(TFT_SCK, WITHOUT_MISO, TFT_MOSI);
+attach_buzzer();
 ```

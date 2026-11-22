@@ -10,7 +10,7 @@
 #include "ina219.h"
 #include "klasifikasi.h"
 #include "konfig.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 #include "diagnosa.h"
 #include "daya.h"

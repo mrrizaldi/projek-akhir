@@ -1,7 +1,7 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
 > **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/akuisisi.cpp`, `firmware/src/tombol.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/perangkat.cpp`, `firmware/include/perangkat.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/akuisisi.cpp`, `firmware/src/tombol.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
 > **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
 
 Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
@@ -358,7 +358,7 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
 ```
 
 Pin map PCB rev1 dan urutan pemasangan perangkat berada di
-`firmware/include/perangkat.h` dan `firmware/src/perangkat.cpp`, dipakai
+`firmware/include/board.h` dan `firmware/src/board.cpp`, dipakai
 bersama oleh `main.cpp` dan test device `test_hw_*`. Tabel pin, peta tombol,
 dan pohon menu ada di [`firmware/README.md`](../../firmware/README.md) bagian
 Pemakaian di perangkat.
@@ -457,7 +457,7 @@ if (rp_data) {
     antre[tulis] = rp_data[replay_i];      // integer saja: golden dikonversi sekali di akuisisi_mulai()
     if (++replay_i >= rp_n) replay_i = 0;
 } else {
-    antre[tulis] = (uint16_t)adc1_get_raw(KANAL_EKG);
+    antre[tulis] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
 }
 ```
 
@@ -704,7 +704,7 @@ tetap tersambung.
    bawah 1 V hanya muncul bila INA219 tidak berada di jalur arus.
 6. Cek silang sekali dengan multimeter mode arus yang disisipkan di titik yang
    sama (antara TP4056 `OUT+` dan masukan konverter) pada satu mode; selisih
-   dikoreksi lewat `R_SHUNT` di `perangkat.h`
+   dikoreksi lewat `R_SHUNT` di `board.h`
    (`R_baru = R_lama × I_ina219 / I_multimeter`).
 7. Ulangi pada beberapa tegangan sel (mis. sel penuh dan sel sekitar 3,5 V):
    arus di sisi baterai naik saat tegangan sel turun, karena konverter

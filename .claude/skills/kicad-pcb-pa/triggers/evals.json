@@ -40,7 +40,7 @@
     "should_trigger": true
   },
   {
-    "query": "tambah bip indikator baterai rendah di firmware, GPIO mana yang bebas di perangkat.h?",
+    "query": "tambah bip indikator baterai rendah di firmware, GPIO mana yang bebas di board.h?",
     "should_trigger": false
   },
   {

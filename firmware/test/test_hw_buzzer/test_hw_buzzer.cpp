@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"
-#include "perangkat.h"
+#include "board.h"
 
 void test_diag_buzzer(void)
 {
@@ -14,7 +14,7 @@ void tearDown(void) {}
 
 void setup()
 {
-    perangkat_mulai();
+    board_begin();
     Serial.begin(115200);
     delay(2000);
     UNITY_BEGIN();

@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"
-#include "perangkat.h"
+#include "board.h"
 
 static uint32_t ms_mulai;
 
@@ -23,7 +23,7 @@ void tearDown(void) {}
 void setup()
 {
     const uint32_t t0 = millis();
-    perangkat_mulai();
+    board_begin();
     ms_mulai = millis() - t0;
     Serial.begin(115200);
     delay(2000);

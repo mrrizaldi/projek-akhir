@@ -9,7 +9,7 @@
 #include "daya.h"
 #include "ecg_pipeline.h"
 #include "menu.h"
-#include "perangkat.h"
+#include "board.h"
 #include "tampilan.h"
 
 constexpr size_t REKAM_N = REKAM_SAMPEL_MAKS;

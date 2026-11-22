@@ -11,7 +11,7 @@
 #include "klasifikasi.h"
 #include "konfig.h"
 #include "menu.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 #include "daya.h"
 #include "tampilan.h"

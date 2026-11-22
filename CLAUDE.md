@@ -268,7 +268,7 @@ env `native` = test di PC). Jalankan dari `firmware/`.
   build flag), bukan salinan kode terpisah.
 - **Sebelum mengubah pin/driver**, pastikan perangkat keras yang sedang dipakai
   (breadboard atau PCB rev N). Pin map tunggal ada di
-  `firmware/include/perangkat.h`; peta pin dan rasional rangkaian PCB di
+  `firmware/include/board.h`; peta pin dan rasional rangkaian PCB di
   `hardware/mainboard/README.md` (bagian Peta pin dan Rasional rangkaian modul).
 
 ## Diagrams & gambar laporan

@@ -10,7 +10,7 @@
 #include "ecg_mqtt.h"
 #include "ina219.h"
 #include "konfig.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 
 #ifndef DAYA_JENDELA_MS

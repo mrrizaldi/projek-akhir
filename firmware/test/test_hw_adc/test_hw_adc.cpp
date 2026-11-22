@@ -1,14 +1,14 @@
 #include <Arduino.h>
 #include <unity.h>
 #include "diagnosa.h"
-#include "perangkat.h"
+#include "board.h"
 #include "ecg_preproc.h"
 
 static volatile uint32_t n_isr;
 
 static void IRAM_ATTR on_timer()
 {
-    if (adc1_get_raw(KANAL_EKG) >= 0) n_isr++;
+    if (adc1_get_raw(CHANNEL_ECG) >= 0) n_isr++;
 }
 
 void test_diag_adc(void)
@@ -36,7 +36,7 @@ void tearDown(void) {}
 
 void setup()
 {
-    perangkat_mulai();
+    board_begin();
     Serial.begin(115200);
     delay(2000);
     UNITY_BEGIN();

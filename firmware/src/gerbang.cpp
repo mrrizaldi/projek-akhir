@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #include "akuisisi.h"
-#include "perangkat.h"
+#include "board.h"
 #include "rekam.h"
 #include "tampilan.h"
 

@@ -2,7 +2,7 @@
 #include "tombol.h"
 
 #include <Arduino.h>
-#include "perangkat.h"
+#include "board.h"
 
 constexpr uint32_t DEBOUNCE_MS = 50;
 

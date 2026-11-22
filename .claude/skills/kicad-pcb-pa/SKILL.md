@@ -9,7 +9,7 @@ Muat skill user `kicad-mcp-pcb` lebih dulu; skill ini hanya menambah hal khusus 
 
 ## Dokumen yang dibaca sebelum bertanya ke user
 
-Baca `hardware/mainboard/README.md` (peta pin, urutan pin header, catu daya, layout, netclass, footprint, daftar "Yang belum terverifikasi") dan `firmware/include/perangkat.h` (pin map tunggal firmware). Tanyakan ke user hanya pilihan yang keduanya tidak menetapkan, karena keputusan desain milik user. Pertanyaannya membawa satu rekomendasi yang dipilih sekarang; data yang belum ada ditulis "berubah ke X bila ...", bukan menunda pilihan, karena menunda pilihan berulang kali menahan pekerjaan.
+Baca `hardware/mainboard/README.md` (peta pin, urutan pin header, catu daya, layout, netclass, footprint, daftar "Yang belum terverifikasi") dan `firmware/include/board.h` (pin map tunggal firmware). Tanyakan ke user hanya pilihan yang keduanya tidak menetapkan, karena keputusan desain milik user. Pertanyaannya membawa satu rekomendasi yang dipilih sekarang; data yang belum ada ditulis "berubah ke X bila ...", bukan menunda pilihan, karena menunda pilihan berulang kali menahan pekerjaan.
 
 ## Lokasi
 
@@ -56,7 +56,7 @@ python3 hardware/mainboard/cek_board.py
 
 Yang diperiksa: peta pin terhadap netlist (`PIN_U1` dan `PIN_LAIN` di skrip), `+5V` hanya menyentuh `U1`, `C1`, `C2`, `D2` (`BOLEH_5V`), ERC, DRC error, unconnected, paritas skematik, lalu `cek_tata_letak.py` (lebar per netclass, courtyard ≥ 1 mm, teks). Baris terakhir yang diharapkan `LULUS`; tempel keluarannya di pesan commit.
 
-Perbarui `PIN_U1` dan `PIN_LAIN` bersamaan dengan `firmware/include/perangkat.h` dan tabel peta pin di README setiap kali pin berpindah, karena skrip keluar dengan kode 1 bila satu pin saja menyimpang dari peta. Bila `cek_board.py` atau `cek_tata_letak.py` diubah, tambahkan satu uji negatif (papan yang sengaja dirusak harus gagal).
+Perbarui `PIN_U1` dan `PIN_LAIN` bersamaan dengan `firmware/include/board.h` dan tabel peta pin di README setiap kali pin berpindah, karena skrip keluar dengan kode 1 bila satu pin saja menyimpang dari peta. Bila `cek_board.py` atau `cek_tata_letak.py` diubah, tambahkan satu uji negatif (papan yang sengaja dirusak harus gagal).
 
 ## Profil JLCPCB: "ideal teknis"
 
