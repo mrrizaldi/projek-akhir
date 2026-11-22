@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: penjelas-tabel-temuan-bukti-makna
-expected_outcome: |
-  Paragraf ditulis ulang dibuka temuan, memuat paling banyak lima angka yang masing-masing dibandingkan atau dijelaskan, ditutup makna, tanpa titik dua, dan tidak dibuka 'Berdasarkan Tabel'.

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: lingkup-bab-lain-dilaporkan
+expected_outcome: |
+  Only the requested chapter is edited; slop in other chapters is reported without editing; the procedure uses make pdf-bersih and before/after metrics in the commit.

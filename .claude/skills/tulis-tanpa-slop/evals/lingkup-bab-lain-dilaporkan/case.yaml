@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: lingkup-bab-lain-dilaporkan
-expected_outcome: |
-  Hanya bab yang diminta disunting; slop di bab lain dilaporkan tanpa disunting; prosedur memakai make pdf-bersih dan metrik sebelum/sesudah di commit.

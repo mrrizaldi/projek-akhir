@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: aturan-rumah-persona-titik-dua
+expected_outcome: |
+  The persona and colon are removed, English terms stay italicised, the decimal comma is kept, internal labels are replaced by general terms, and the reason says laporan/CLAUDE.md wins over the source advice.

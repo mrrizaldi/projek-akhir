@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: angka-kuantisasi
+expected_outcome: |
+  The slide uses 0,7213, 0,7104 and 21.344 byte in Indonesian format. The subject recall appears as `[PLACEHOLDER DATA: recall rekaman subjek S01--S05]`. The 0,68 from the trial recording is not used. The slide title is a finding sentence.

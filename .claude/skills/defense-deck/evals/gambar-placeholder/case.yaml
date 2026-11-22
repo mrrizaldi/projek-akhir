@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: gambar-placeholder
+expected_outcome: |
+  The slide places exactly one dashed-outline box holding `[PLACEHOLDER GAMBAR]`, the type and a one-line summary. No shapes, arrows or connected boxes form a diagram. The specification card goes in `addNotes` under the line `KARTU GAMBAR (tidak dibacakan)`. `deck.js` has no comments.
