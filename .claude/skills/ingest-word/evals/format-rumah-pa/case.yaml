@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: format-rumah-pa
-expected_outcome: |
-  Usulan: desimal koma (98,2), buang nama skrip dari teks cetak, titik koma menjadi titik atau koma + konjungsi; satu usulan per temuan, menunggu konfirmasi, tanpa menulis ulang isi kalimat. Pemeriksa cek_tabel.py dan check_slop.py --summary.

@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: bukti-build-pa
+expected_outcome: |
+  make pdf-bersih, grep -cE "undefined|Overfull" output/main.log must be 0, make docx afterwards; cek_tabel is run; only bab/bab2.tex is added. No make rebuild, no plain make pdf.

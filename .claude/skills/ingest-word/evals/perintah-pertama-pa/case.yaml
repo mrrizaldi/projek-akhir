@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: perintah-pertama-pa
-expected_outcome: |
-  Jawaban memakai folder laporan/buku-pa dan target make PA: cek tree bersih, salin DOCX ke output/suntingan-<stempel>.docx, lalu make sync-dry DOCX=... Tanpa make sync, tanpa make docx.
