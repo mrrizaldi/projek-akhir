@@ -211,12 +211,12 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
     double npki = jumlah / n_awal;
 
     int jml = 0;
-    long terakhir = -(long)ECG_PT_REFRACTORY;
+    long last = -(long)ECG_PT_REFRACTORY;
     for (size_t i = 1; i + 1 < n; i++) {
         if (!(scratch[i] > scratch[i - 1] && scratch[i] >= scratch[i + 1])) {
             continue;
         }
-        if ((long)i - terakhir < (long)ECG_PT_REFRACTORY) {
+        if ((long)i - last < (long)ECG_PT_REFRACTORY) {
             continue;
         }
         const double v = scratch[i];
@@ -225,7 +225,7 @@ int ecg_detect_r(const float *filtered, size_t n, float *scratch,
             spki = 0.125 * v + 0.875 * spki;
             if (jml < out_maks) out[jml] = (int)i;
             jml++;
-            terakhir = (long)i;
+            last = (long)i;
         } else {
             npki = 0.125 * v + 0.875 * npki;
         }

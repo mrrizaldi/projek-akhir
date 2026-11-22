@@ -12,7 +12,7 @@
 #include "konfig.h"
 #include "menu.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 #include "daya.h"
 #include "tampilan.h"
 #include "buttons.h"
@@ -45,7 +45,7 @@ static void status()
                   "maks %u ms | RTT maks %u ms (lambat %u) | RSSI %d dBm | epoch_ms %llu\n"
                   "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
                   "sumber %s %d | menu %d | jeda %d\n",
-                  (int)rekam_aktif(), (unsigned)rekam_n(), (int)acquisition_replay(),
+                  (int)recorder_active(), (unsigned)recorder_n(), (int)acquisition_replay(),
                   gate_phase_name(), h.total, h.arrhythmia, h.withheld,
                   (unsigned)acquisition_fill(), (unsigned)acquisition_missed(), (unsigned)acquisition_tick_lost(),
                   digitalRead(PIN_LOP), digitalRead(PIN_LON),
@@ -63,7 +63,7 @@ static void status()
                   (int)gate_skip(), daya_mode(),
                   acquisition_source() == SOURCE_ADC ? "adc"
                   : acquisition_source() == SOURCE_REFERENCE ? "acuan" : "rekaman",
-                  acquisition_source_recording(), (int)menu_terbuka(), (int)rekam_dijeda());
+                  acquisition_source_recording(), (int)menu_terbuka(), (int)recorder_paused());
 }
 
 static void daftar_wifi()
@@ -83,17 +83,17 @@ void serial_cmd_layani(void)
 {
     if (!Serial.available()) return;
     const char c = Serial.read();
-    if (c == 'r') rekam_toggle();
-    else if (c == 'j') rekam_jeda();
+    if (c == 'r') recorder_toggle();
+    else if (c == 'j') recorder_pause();
     else if (c == 'd') {
         const int n = angka();
-        if (!rekam_aktif()) rekam_dump(n);
+        if (!recorder_active()) recorder_dump(n);
         else Serial.println("Sedang merekam.");
     }
-    else if (c == 'l') rekam_cetak_daftar();
+    else if (c == 'l') recorder_print_list();
     else if (c == 'h') {
         const int n = angka();
-        if (n > 0) rekam_hapus(n);
+        if (n > 0) recorder_delete(n);
         else Serial.println("h<n>: nomor rekaman, lihat 'l'");
     }
     else if (c == 'y') acquisition_switch_source();
@@ -124,7 +124,7 @@ void serial_cmd_layani(void)
     else if (c == 'w') {
         const int n = angka();
         if (n < 0) daftar_wifi();
-        else if (!konfig_pilih_wifi(n) && !rekam_aktif()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
+        else if (!konfig_pilih_wifi(n) && !recorder_active()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
     }
     else if (c == 't' || c == 'T') {
         const uint32_t t0 = millis();
@@ -136,7 +136,7 @@ void serial_cmd_layani(void)
     else if (c == 'b') {
         const int n = angka();
         if (n < 0) daftar_broker();
-        else if (!konfig_pilih_broker(n) && !rekam_aktif()) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
+        else if (!konfig_pilih_broker(n) && !recorder_active()) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
     }
 }
 #endif

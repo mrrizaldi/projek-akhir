@@ -77,7 +77,7 @@ juga dibiarkan (di `progres-pa-1` sudah diperbaiki). Butir ini dikerjakan saat
 
 | # | Temuan | Langkah berikutnya |
 |---|---|---|
-| F1 | Rekaman mulai sendiri sesaat setelah board dicolok USB (22 dan 23 Okt) | Cetak sumber pemicu di `rekam_toggle()` (tombol B3 / serial `r`), lalu colok ulang beberapa kali |
+| F1 | Rekaman mulai sendiri sesaat setelah board dicolok USB (22 dan 23 Okt) | Cetak sumber pemicu di `recorder_toggle()` (tombol B3 / serial `r`), lalu colok ulang beberapa kali |
 | F2 | Sesi rekam hilang bila daya putus sebelum `SIMPAN`; jalur live kehilangan ±4,7 s per bagian saat menyimpan | Tercatat di `firmware/README.md` §Batasan yang disengaja. Akar: ISR akuisisi tidak aman-IRAM. Dikerjakan hanya bila diminta |
 | F3 | Antrean puncak naik 12 → 21 sampel (`bab4.tex` butir alur hidup) | Telusuri dengan pencacah isi antrean per tahap |
 | F4 | Refraktori 200 ms sebagai penyebab sensitivity S 0,6494 | Ablasi refraktori dengan `model/scripts/eval_detected_segmentation.py` |

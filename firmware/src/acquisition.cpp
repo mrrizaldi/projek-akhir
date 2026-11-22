@@ -9,7 +9,7 @@
 #include "classifier.h"
 #include "konfig.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 #include "golden_ref.h"
 
 static volatile uint16_t queue[QUEUE_N];
@@ -98,8 +98,8 @@ void acquisition_timer(bool running)
 static bool attach_source(int s, int number)
 {
     if (s == SOURCE_RECORDING) {
-        if (!recording_buf) recording_buf = (uint16_t *)ps_malloc(REKAM_SAMPEL_MAKS * sizeof(uint16_t));
-        const size_t n = recording_buf ? rekam_muat(number, recording_buf, REKAM_SAMPEL_MAKS) : 0;
+        if (!recording_buf) recording_buf = (uint16_t *)ps_malloc(RECORDER_SAMPLE_MAX * sizeof(uint16_t));
+        const size_t n = recording_buf ? recorder_load(number, recording_buf, RECORDER_SAMPLE_MAX) : 0;
         if (n < ECG_FS) {
             Serial.printf("replay rekaman %d GAGAL dimuat (%u sampel)\n", number, (unsigned)n);
             return false;
@@ -121,7 +121,7 @@ static bool attach_source(int s, int number)
 
 bool acquisition_set_source(int s, int number, bool save)
 {
-    if (rekam_tolak("ganti sumber")) return false;
+    if (recorder_reject("ganti sumber")) return false;
     acquisition_timer(false);
     const bool ok = attach_source(s, number);
     acquisition_timer(true);

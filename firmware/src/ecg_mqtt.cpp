@@ -101,7 +101,7 @@ static const char *w_ssid = "", *w_pass = "", *b_host = "", *b_token = "";
 static uint16_t b_port = 1883;
 
 static WiFiClient sock;
-static bool aktif = true, tersambung;
+static bool active = true, tersambung;
 static uint32_t t_coba, t_ping, t_layani, terkirim, gagal;
 static uint32_t paket_kirim, paket_ack;
 static uint32_t rtt_maks, rtt_lambat;
@@ -266,7 +266,7 @@ void ecg_mqtt_mulai(void)
     if (!strlen(w_ssid)) {
         Serial.println("mqtt NONAKTIF: include/wifi_secrets.h belum ada "
                        "(salin dari wifi_secrets.example.h)");
-        aktif = false;
+        active = false;
         return;
     }
     WiFi.mode(WIFI_STA);
@@ -294,7 +294,7 @@ uint64_t ecg_mqtt_epoch_ms(void)
 
 void ecg_mqtt_layani(void)
 {
-    if (!aktif) return;
+    if (!active) return;
     if (millis() - t_layani < PERIODE_LAYANI_MS) return;
     t_layani = millis();
 
@@ -310,7 +310,7 @@ void ecg_mqtt_layani(void)
         IPAddress ip;
         if (!ip.fromString(b_host)) {
             Serial.printf("mqtt: host broker \"%s\" bukan alamat IP\n", b_host);
-            aktif = false;
+            active = false;
             return;
         }
         if (!sock.connect(ip, b_port, CONNECT_TIMEOUT_MS)) return;
@@ -346,8 +346,8 @@ void ecg_mqtt_layani(void)
     }
 }
 
-int ecg_mqtt_aktif(void) { return aktif ? 1 : 0; }
-void ecg_mqtt_set_aktif(int on) { aktif = on != 0; if (!on) putus("dimatikan"); }
+int ecg_mqtt_aktif(void) { return active ? 1 : 0; }
+void ecg_mqtt_set_aktif(int on) { active = on != 0; if (!on) putus("dimatikan"); }
 uint32_t ecg_mqtt_terkirim(void) { return terkirim; }
 uint32_t ecg_mqtt_gagal(void) { return gagal; }
 uint32_t ecg_mqtt_paket_kirim(void) { return paket_kirim; }
@@ -360,7 +360,7 @@ int ecg_mqtt_rssi(void) { return WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0
 
 const char *ecg_mqtt_status(void)
 {
-    if (!aktif) return "mati";
+    if (!active) return "mati";
     if (WiFi.status() != WL_CONNECTED) return "no-wifi";
     if (!tersambung) return "no-broker";
     if (!ts_base_ms) return "tunggu-jam";

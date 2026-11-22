@@ -2,7 +2,7 @@ schema_version: "1.1"
 name: konstanta-lokal-rekam
 expected_outcome: |
   Potongan hasil tanpa komentar, tidak mendefinisikan ulang ukuran blok tulis karena konstanta
-  yang sudah ada di berkas itu (`SAMPEL_PER_TULIS` di rekam.cpp) dipakai, dan jawaban
-  menyebut grep yang dijalankan di berkas tujuan (firmware/src/rekam.cpp, bukan hanya
+  yang sudah ada di berkas itu (`SAMPLES_PER_WRITE` di recorder.cpp) dipakai, dan jawaban
+  menyebut grep yang dijalankan di berkas tujuan (firmware/src/recorder.cpp, bukan hanya
   firmware/include) serta pemeriksa
-  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py firmware/src/rekam.cpp`.
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/cek_komentar.py firmware/src/recorder.cpp`.

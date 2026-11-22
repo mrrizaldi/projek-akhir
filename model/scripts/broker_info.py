@@ -24,8 +24,8 @@ def ipv4_lan():
 def ssid_aktif():
     if shutil.which("nmcli"):
         for baris in jalankan(["nmcli", "-t", "-f", "active,ssid", "dev", "wifi"]).splitlines():
-            aktif, _, ssid = baris.partition(":")
-            if aktif in ("yes", "ya") and ssid:
+            active, _, ssid = baris.partition(":")
+            if active in ("yes", "ya") and ssid:
                 return ssid.replace("\\:", ":")
     if shutil.which("iwgetid"):
         return jalankan(["iwgetid", "-r"]).strip()

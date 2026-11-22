@@ -1,6 +1,6 @@
 ---
 name: batas-tidak-diam
-description: Lapisan repo PA untuk firmware yang punya batas atau operasi lambat di loop(). Pakai setiap kali menulis, menyunting, atau meninjau firmware/src (rekam.cpp, acquisition.cpp, tampilan.cpp, serial_cmd.cpp) yang menyentuh buffer atau array penuh, REKAM_DETIK/REKAM_N, antrean ISR, kapasitas LittleFS atau PSRAM, nomor berkas rekaman, atau tulis berkas, jaringan di loop(). Juga untuk keluhan "rekaman terpotong", "sampel hilang", "buffer penuh", "loop macet", "simpan memblok", "data hilang", "rekam berhenti sendiri", dan saat merencanakan uji batas rekam. Memuat skill umum firmware-bounded-limits lalu menambahkan nilai, nama, dan berkas khusus PA.
+description: Lapisan repo PA untuk firmware yang punya batas atau operasi lambat di loop(). Pakai setiap kali menulis, menyunting, atau meninjau firmware/src (recorder.cpp, acquisition.cpp, tampilan.cpp, serial_cmd.cpp) yang menyentuh buffer atau array penuh, RECORDER_SECONDS/RECORDER_N, antrean ISR, kapasitas LittleFS atau PSRAM, nomor berkas rekaman, atau tulis berkas, jaringan di loop(). Juga untuk keluhan "rekaman terpotong", "sampel hilang", "buffer penuh", "loop macet", "simpan memblok", "data hilang", "rekam berhenti sendiri", dan saat merencanakan uji batas rekam. Memuat skill umum firmware-bounded-limits lalu menambahkan nilai, nama, dan berkas khusus PA.
 ---
 
 # Batas tidak diam (lapisan PA)
@@ -14,11 +14,11 @@ Pakai nama ini persis di kode, pesan, dan rencana uji, karena skill umum memakai
 - Antrean ISR: `QUEUE_N = 256` (`firmware/include/acquisition.h`) pada `ECG_FS = 360` Hz, jadi 256 / 360 = 711 ms. `loop()` mengambil satu sampel per iterasi. Bandingkan setiap konstanta waktu simpan, coba ulang, dan batas tunggu dengan 711 ms.
 - Isi antrean dibaca lewat `acquisition_fill()`; potongan simpan hanya jalan saat `acquisition_fill() == 0`.
 - Sampel hilang dihitung `acquisition_missed()` (sama dengan `n_lewat + n_tick_lost`). Uji jalur gagal mencocokkan angka yang dilaporkan dengan selisih `acquisition_missed()`.
-- Batas rekam di `firmware/include/rekam.h`: `REKAM_DETIK` (bawaan 300), `REKAM_BAGIAN` (bawaan 6), `REKAM_NOMOR` (bawaan 999). `REKAM_N` di `firmware/src/rekam.cpp` turunan `ECG_FS * REKAM_DETIK`, jadi build flag-nya `REKAM_DETIK`, bukan `REKAM_N`.
-- Desain rekam yang berlaku (`rekam.cpp`): seluruh sesi ditahan di PSRAM dengan `SESI_N = REKAM_N * REKAM_BAGIAN_MAKS`, baru ditulis ke LittleFS sesudah berhenti, dari `rekam_layani()` saat `acquisition_fill() == 0`. Kapasitas per bagian `RUANG_BERKAS_PENUH`, dan `bagian_maks` dihitung saat mulai dari ruang bebas dan `REKAM_NOMOR_MAKS`. Perubahan dimulai dari desain ini, bukan dari rancangan baru, karena skema ini sudah ada di repo.
+- Batas rekam di `firmware/include/recorder.h`: `RECORDER_SECONDS` (bawaan 300), `RECORDER_PART` (bawaan 6), `RECORDER_NUMBER` (bawaan 999). `RECORDER_N` di `firmware/src/recorder.cpp` turunan `ECG_FS * RECORDER_SECONDS`, jadi build flag-nya `RECORDER_SECONDS`, bukan `RECORDER_N`.
+- Desain rekam yang berlaku (`recorder.cpp`): seluruh sesi ditahan di PSRAM dengan `SESSION_N = RECORDER_N * RECORDER_PART_MAX`, baru ditulis ke LittleFS sesudah berhenti, dari `recorder_service()` saat `acquisition_fill() == 0`. Kapasitas per bagian `FULL_FILE_SPACE`, dan `part_max` dihitung saat mulai dari ruang bebas dan `RECORDER_NUMBER_MAX`. Perubahan dimulai dari desain ini, bukan dari rancangan baru, karena skema ini sudah ada di repo.
 - Penghitung nama PA: sampel dilewati antrean = `lewat` (`acquisition_missed()`, juga `lewat=` di header CSV); data yang belum tersimpan = `belum` (belum ada di firmware, ditambahkan ke baris `s` bila uji membutuhkannya). Jangan pakai `lewati`: nama itu sudah dipakai di baris `s` untuk gerbang kalibrasi bench.
-- Penulis wadah di `rekam.cpp` memeriksa batasnya sendiri; fungsi dari jalur sampel (`rekam_sampel`) hanya menulis `aktif = false` dan menandai kejadian.
-- Variabel penanda sesi di `rekam.cpp` bernama `aktif`; setiap jalur berhenti menulis `aktif = false` sebelum `Serial`, `tampilan_pesan`, atau `tampilan_bunyi`.
+- Penulis wadah di `recorder.cpp` memeriksa batasnya sendiri; fungsi dari jalur sampel (`recorder_sample`) hanya menulis `aktif = false` dan menandai kejadian.
+- Variabel penanda sesi di `recorder.cpp` bernama `aktif`; setiap jalur berhenti menulis `aktif = false` sebelum `Serial`, `tampilan_pesan`, atau `tampilan_bunyi`.
 
 ## Teks layar dan serial
 
@@ -31,7 +31,7 @@ Perintah serial 115200 untuk uji: `r` mulai atau stop rekam, `j` jeda, `s` statu
 Batas kecil lewat build flag dari `firmware/`, satu perintah literal per uji:
 
 ```bash
-PLATFORMIO_BUILD_FLAGS="-DREKAM_DETIK=10" pio run -t upload
+PLATFORMIO_BUILD_FLAGS="-DRECORDER_SECONDS=10" pio run -t upload
 ```
 
 Daftar batas di berkas PA dicari dengan `grep -nE "(>=|==|>) *[A-Z_]*(MAKS|_N)" firmware/src/*.cpp`, karena konstanta batas PA bersufiks `_MAKS` atau `_N`. Uji jeda membaca jumlah sampel pasti dari penghitung (`n=` di baris `s`) sebelum dan sesudah jeda, dan baris harapan memakai selisihnya.

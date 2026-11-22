@@ -105,7 +105,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | `src/buttons.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
 | `src/menu.cpp` | Pohon menu (array struct statis + pointer fungsi), navigasi tiga tombol, halaman teks diperbarui 1 Hz |
 | `src/diagnosa.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
-| `src/rekam.cpp` | Rekaman mentah: buffer PSRAM, jeda/lanjut (batas segmen jadi baris `# jeda`), berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
+| `src/recorder.cpp` | Rekaman mentah: buffer PSRAM, jeda/lanjut (batas segmen jadi baris `# jeda`), berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
 | `src/daya.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
 | `src/konfig.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
 | `src/serial_cmd.cpp` | Perintah serial (bagian Perintah serial) |
@@ -265,16 +265,16 @@ pengukuran ada di walkthrough yang dirujuk.
 - Keberadaan berkas dicek dengan `stat()`, bukan `LittleFS.exists()`, dan
   direktori `/daya` dibuat dengan `mkdir` sebelum dibuka: `exists()` dan
   `open()` pada jalur yang belum ada mencetak `[E]` ke serial.
-- Rekaman dimuat untuk replay per blok `BLOK_BACA` (512 B) dan diurai sendiri;
+- Rekaman dimuat untuk replay per blok `READ_BLOCK` (512 B) dan diurai sendiri;
   `readStringUntil` per baris terlalu lambat untuk 108.000 baris.
 - Selama sesi rekam tidak ada penulisan flash sama sekali, karena setiap
   tulis flash menahan ISR akuisisi (jebakan tick hilang di atas). Seluruh sesi
-  disangga di satu buffer PSRAM `SESI_N` = `REKAM_SAMPEL_MAKS` ×
-  `REKAM_BAGIAN_MAKS` sampel (bawaan 108.000 × 6 × 2 B = 1.296.000 B), dan
-  jalur sampel `rekam_sampel()` hanya menyimpan sampel ke indeks berikutnya.
-  Batas bagian (setiap `REKAM_SAMPEL_MAKS`) hanya dicatat sebagai indeks.
-  Sesudah sesi berhenti, `rekam_layani()` menulis bagian demi bagian ke berkas
-  berurutan per `SAMPEL_PER_TULIS` (256) sampel, hanya saat antrean ISR kosong
+  disangga di satu buffer PSRAM `SESSION_N` = `RECORDER_SAMPLE_MAX` ×
+  `RECORDER_PART_MAX` sampel (bawaan 108.000 × 6 × 2 B = 1.296.000 B), dan
+  jalur sampel `recorder_sample()` hanya menyimpan sampel ke indeks berikutnya.
+  Batas bagian (setiap `RECORDER_SAMPLE_MAX`) hanya dicatat sebagai indeks.
+  Sesudah sesi berhenti, `recorder_service()` menulis bagian demi bagian ke berkas
+  berurutan per `SAMPLES_PER_WRITE` (256) sampel, hanya saat antrean ISR kosong
   (`acquisition_fill() == 0`). Menulis di setiap iterasi membuat antrean terisi
   lebih cepat daripada dikuras dan meluap. Ukuran berkas sesudah `close()`
   dibandingkan dengan byte yang tertulis (`PERINGATAN: ... berukuran`).
@@ -289,10 +289,10 @@ pengukuran ada di walkthrough yang dirujuk.
 | Ring backlog MQTT di memori volatil (PSRAM) | Beat yang belum terkirim hilang bila board reboot | LittleFS sudah terpasang dan dapat dipakai sebagai penyimpan backlog |
 | Snippet payload dicuplik merata dari window, bukan di sekitar R | Widget dashboard tidak menampilkan QRS terpusat | Ambil `ECG_SNIPPET_N` titik mulai dari `ECG_WIN_PRE` |
 | Jadwal bip memakai jam sampel yang sudah diproses `ecg_live` | Saat burst deteksi bip terlambat paling lama sepanjang burst (±33 ms) | Pakai indeks sampel yang masuk antrean |
-| Batas segmen rekaman `BATAS_MAKS` = 64 per sesi | Jeda ke-65 dan seterusnya tidak dicatat (segmen bersambung), serial mencetak `PERINGATAN: batas jeda penuh` | Naikkan bila sesi butuh lebih dari 64 jeda |
+| Batas segmen rekaman `BREAKS_MAX` = 64 per sesi | Jeda ke-65 dan seterusnya tidak dicatat (segmen bersambung), serial mencetak `PERINGATAN: batas jeda penuh` | Naikkan bila sesi butuh lebih dari 64 jeda |
 | Sesi rekam hanya ada di PSRAM sampai berhenti | Daya putus atau reset di tengah sesi menghilangkan seluruh sesi, bukan hanya bagian terakhir | Simpan ke flash di tengah sesi butuh ISR akuisisi yang aman-IRAM (pembacaan ADC tanpa `adc1_get_raw` dan replay dari RAM internal) |
 | Menulis berkas sesudah sesi menahan ISR akuisisi | Selama ±4,7 detik per bagian 300 detik, jalur live kehilangan sampel (dihitung di `sampel hilang`); RR dan klasifikasi detak di jendela itu tidak sahih | Sama dengan baris di atas |
-| Daftar rekaman di menu `DAFTAR_MAKS` = 64 | Hanya batas tampilan; nomor berkas baru tetap dari pindai penuh | — |
+| Daftar rekaman di menu `LIST_MAX` = 64 | Hanya batas tampilan; nomor berkas baru tetap dari pindai penuh | — |
 | Angka sesudah perintah serial ditunggu sampai 500 ms per digit | `loop()` terblokir selama menunggu | Perintah bench, tidak dipakai saat merekam sinyal tubuh |
 | Antrean jadwal bip `JADWAL_N` = 8 | Saat lonjakan detak lebih dari 8 bip menunggu, bip berikutnya tidak dibunyikan; data beat dan klasifikasi tidak terpengaruh | Perbesar `JADWAL_N` di `tampilan.cpp` |
 | Memilih WiFi saat tangga daya `p0`–`p4` | Radio ikut menyala lagi lewat `ecg_mqtt_mulai()` | Pilih jaringan di operasi normal |
@@ -544,7 +544,7 @@ dapat diuji tanpa menekan tombol fisik.
    `SIMPAN <n> sampel (<detik> detik, <k> segmen), ... -> /rekam/NNN.csv`.
 
 **Rekaman panjang.** Satu sesi disangga utuh di PSRAM dan baru ditulis ke
-LittleFS sesudah berhenti, dipecah menjadi berkas per `REKAM_DETIK_MAKS`
+LittleFS sesudah berhenti, dipecah menjadi berkas per `RECORDER_SECONDS_MAX`
 (300) detik. Saat merekam melewati 300 detik, serial mencetak `REKAM lanjut
 bagian <k> (di PSRAM, ditulis saat berhenti)` dan kanan atas tetap `RECmm:ss`
 dengan waktu total sesi dan baris kecil `bagian <k>`. Sesudah berhenti serial
@@ -554,8 +554,8 @@ berheader `lanjutan=NNN celah=0`. Selama berkas ditulis, mulai rekam ditolak
 (`REKAM ditolak: masih menyimpan sesi sebelumnya`, layar `TUNGGU`).
 
 Panjang sesi maksimum ditetapkan saat mulai dan dicetak di `REKAM mulai (maks
-<k> bagian = <detik> detik)`: k = min(`REKAM_BAGIAN_MAKS` (6), ruang bebas
-LittleFS / `RUANG_BERKAS_PENUH`, sisa nomor berkas). `RUANG_BERKAS_PENUH` =
+<k> bagian = <detik> detik)`: k = min(`RECORDER_PART_MAX` (6), ruang bebas
+LittleFS / `FULL_FILE_SPACE`, sisa nomor berkas). `FULL_FILE_SPACE` =
 108.000 sampel × 6 B = 648.000 B per bagian (berkas nyata ±540 KB, sisanya
 cadangan). Dengan LittleFS kosong (3.456 KiB total, 36 KiB terpakai):
 
@@ -569,7 +569,7 @@ Batas sesi tercapai → sesi berhenti sendiri dan langsung menulis: serial
 `, LittleFS tidak cukup untuk bagian berikutnya` bila yang membatasi ruang),
 layar `BATAS SESI` atau `RUANG PENUH` / `menyimpan...`. Mulai rekam ditolak
 bila tidak satu bagian pun muat (`REKAM ditolak: LittleFS penuh, tarik data
-dulu`, layar `PENUH`) atau nomor berkas habis (`REKAM_NOMOR_MAKS` 999, `REKAM
+dulu`, layar `PENUH`) atau nomor berkas habis (`RECORDER_NUMBER_MAX` 999, `REKAM
 ditolak: nomor rekaman habis, hapus dulu (h<n>)`). Tarik data (`make pull
 N=<n>`) dan hapus (`h<n>`) sesudah tiap subjek. Bila sebuah berkas gagal
 dibuka saat menulis, bagian yang belum tertulis tetap di PSRAM (`GAGAL
@@ -579,9 +579,9 @@ penulisannya; sesi baru tidak bisa dimulai sebelum itu.
 Selama merekam, kanan atas menampilkan `HILANG` merah dengan jumlah sampel
 menggantikan `RECmm:ss` begitu `sampel hilang` sesi lebih dari 0.
 
-Untuk menguji tanpa menunggu: `PLATFORMIO_BUILD_FLAGS="-DREKAM_DETIK=10" pio
-run -t upload` (bagian 10 detik, sesi maksimum 60 detik); `-DREKAM_BAGIAN=<k>`
-mengubah jumlah bagian dan `-DREKAM_NOMOR=<k>` batas nomor berkas.
+Untuk menguji tanpa menunggu: `PLATFORMIO_BUILD_FLAGS="-DRECORDER_SECONDS=10" pio
+run -t upload` (bagian 10 detik, sesi maksimum 60 detik); `-DRECORDER_PART=<k>`
+mengubah jumlah bagian dan `-DRECORDER_NUMBER=<k>` batas nomor berkas.
 
 Mulai rekam ditolak bila sumber sinyal bukan Sensor (ADC): layar menampilkan
 `TOLAK` / `hanya sensor ADC` selama 2 detik dengan bip tolak 150 ms, dan serial
@@ -600,7 +600,7 @@ sinyal dan menu tidak dapat diubah:
 | B1 pendek, B2 pendek, B3, `r`, `j` | tetap berlaku (bisu, beku, jeda/lanjut, simpan) |
 | `s`, `l`, `q`, `v`, `h<n>` | tetap berlaku; `d` ditolak (`Sedang merekam.`) |
 
-Pemeriksaan ada di satu fungsi, `rekam_tolak()` (`rekam.h`), yang dipanggil di
+Pemeriksaan ada di satu fungsi, `recorder_reject()` (`recorder.h`), yang dipanggil di
 fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `acquisition_set_source`,
 `daya_set_mode`, `daya_tangga_mulai`, `gate_set_skip`,
 `konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu

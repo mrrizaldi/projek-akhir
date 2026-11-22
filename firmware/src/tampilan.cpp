@@ -9,7 +9,7 @@
 #include "gate.h"
 #include "ina219.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 #include "buttons.h"
 
 constexpr int GY = 30, GH = 112;
@@ -132,12 +132,12 @@ void tampilan_gambar_tombol(int i)
     if (i < 2) {
         tft.setCursor(x + 6, 153);
         tft.print(label[i][i == 0 ? bisu : beku]);
-    } else if (!rekam_aktif()) {
+    } else if (!recorder_active()) {
         tft.setCursor(x + 6, 153);
         tft.print("B3 REC");
     } else {
         tft.setCursor(x, 149);
-        tft.print(rekam_dijeda() ? "B3 LANJUT" : "B3 JEDA");
+        tft.print(recorder_paused() ? "B3 LANJUT" : "B3 JEDA");
         tft.setTextSize(1);
         tft.setCursor(x + 6, 165);
         tft.print("tahan=SIMPAN");
@@ -229,28 +229,28 @@ static void gambar_kanan()
 {
     char t[16] = "", kecil[24] = "";
     uint16_t w = ST77XX_YELLOW;
-    const unsigned d = (unsigned)(rekam_n_sesi() / ECG_FS);
-    const int simpan = rekam_baru_disimpan();
+    const unsigned d = (unsigned)(recorder_n_session() / ECG_FS);
+    const int simpan = recorder_newly_saved();
     if (t_pesan && millis() - t_pesan < PESAN_MS) {
         w = ST77XX_ORANGE;
         snprintf(t, sizeof t, "%s", pesan_besar);
         snprintf(kecil, sizeof kecil, "%s", pesan_kecil);
-    } else if (rekam_aktif() && !rekam_dijeda() && acquisition_missed()) {
+    } else if (recorder_active() && !recorder_paused() && acquisition_missed()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "HILANG");
         snprintf(kecil, sizeof kecil, "%u sampel", (unsigned)acquisition_missed());
-    } else if (rekam_aktif() && !rekam_dijeda()) {
+    } else if (recorder_active() && !recorder_paused()) {
         w = ST77XX_RED;
         snprintf(t, sizeof t, "REC%02u:%02u", d / 60 % 100, d % 60);
-        if (rekam_bagian() > 1) snprintf(kecil, sizeof kecil, "bagian %d", rekam_bagian());
-    } else if (rekam_aktif()) {
+        if (recorder_part() > 1) snprintf(kecil, sizeof kecil, "bagian %d", recorder_part());
+    } else if (recorder_active()) {
         snprintf(t, sizeof t, "JEDA%u:%02u", d / 60 % 10, d % 60);
-    } else if (rekam_menulis()) {
+    } else if (recorder_writing()) {
         snprintf(t, sizeof t, "SIMPAN..");
     } else if (simpan) {
         w = ST77XX_GREEN;
         snprintf(t, sizeof t, "SIMPAN");
-        snprintf(kecil, sizeof kecil, REKAM_POLA, simpan);
+        snprintf(kecil, sizeof kecil, RECORDER_PATTERN, simpan);
     } else if (acquisition_source() == SOURCE_RECORDING) {
         snprintf(t, sizeof t, "RP#%03d", acquisition_source_recording());
     } else if (acquisition_source() == SOURCE_REFERENCE) {

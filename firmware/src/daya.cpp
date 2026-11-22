@@ -11,7 +11,7 @@
 #include "ina219.h"
 #include "konfig.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 
 #ifndef DAYA_JENDELA_MS
 #define DAYA_JENDELA_MS 10000
@@ -49,7 +49,7 @@ const char *daya_ina_teks(void)
 void daya_set_mode(int m)
 {
     static bool wifi_mati;
-    if (rekam_tolak("mode daya")) return;
+    if (recorder_reject("mode daya")) return;
     mode_daya = m;
     acquisition_timer(m != 0);
     if (m >= 0 && m < 5) {
@@ -170,7 +170,7 @@ static void mulai_langkah(int m)
 
 void daya_tangga_mulai(void)
 {
-    if (rekam_tolak("tangga daya")) return;
+    if (recorder_reject("tangga daya")) return;
     if (langkah >= 0) { Serial.println("tangga: sudah berjalan"); return; }
     if (!ina_ada) { Serial.println("tangga: INA219 tidak terdeteksi, batal"); return; }
     jd_n = hasil_n = 0;

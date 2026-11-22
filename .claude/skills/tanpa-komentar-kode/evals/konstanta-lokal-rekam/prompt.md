@@ -5,7 +5,7 @@ timeout_seconds: 600
 allowed_tools: [Read, Skill, Write]
 ---
 
-Kita di `/home/mrrizaldi/dev/projek-akhir`. Di `firmware/src/rekam.cpp` aku punya potongan ini:
+Kita di `/home/mrrizaldi/dev/projek-akhir`. Di `firmware/src/recorder.cpp` aku punya potongan ini:
 
 ```c
 // ukuran blok sekali tulis ke LittleFS

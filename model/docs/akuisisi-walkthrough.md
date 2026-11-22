@@ -230,7 +230,7 @@ sesudah berhenti; berkas yang sudah tertulis bertahan walau board mati, sedangka
 sesi yang belum dihentikan hilang bila daya putus. Penulisan flash ditunda
 karena setiap tulis flash menahan interrupt akuisisi dan membuang sampel
 (`firmware/README.md` §Jebakan, Akuisisi). Sesudah berhenti, sesi dipecah
-menjadi berkas per 5 menit sinyal (`REKAM_SAMPEL_MAKS` = 360 × 300 sampel;
+menjadi berkas per 5 menit sinyal (`RECORDER_SAMPLE_MAX` = 360 × 300 sampel;
 waktu jeda tidak dihitung); header berkas lanjutan memuat `lanjutan=NNN
 celah=0`, dan selama merekam layar menampilkan waktu total sesi beserta
 `bagian <k>`. Panjang sesi maksimum dicetak saat mulai (`REKAM mulai (maks 5

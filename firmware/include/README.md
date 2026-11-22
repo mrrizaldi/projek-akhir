@@ -16,7 +16,7 @@
 | `buttons.h` | Debounce dan event tombol B1–B3 (tekan lama 800 ms), event suntikan serial | ditulis tangan |
 | `menu.h` | Menu di perangkat: buka, teruskan event tombol, halaman teks 1 Hz | ditulis tangan |
 | `diagnosa.h` | Tes perangkat `diag_*` untuk menu Tes perangkat dan `test_hw_*` | ditulis tangan |
-| `rekam.h` | Rekaman bernomor `/rekam/NNN.csv` di LittleFS | ditulis tangan |
+| `recorder.h` | Rekaman bernomor `/rekam/NNN.csv` di LittleFS | ditulis tangan |
 | `daya.h` | INA219, tangga ukur daya `p0`–`p5`, tangga mandiri dengan hasil `/daya/NNN.csv` | ditulis tangan |
 | `konfig.h` | Daftar WiFi/broker; pilihan WiFi, broker, dan sumber sinyal di NVS | ditulis tangan |
 | `serial_cmd.h` | Perintah serial | ditulis tangan |

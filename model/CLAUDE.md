@@ -88,7 +88,7 @@ hanya setelah benar-benar ditutup (catat penutupnya di walkthrough terkait).
   (rekaman 30,5 s tanpa elektroda, mulai ±1 s sebelum port pertama dibuka).
   ModemManager sudah dikecualikan (udev `ID_MM_DEVICE_IGNORE=1`). Penyebab
   belum diukur: pasang cetak sumber pemicu (tombol B3 / serial `r`) di
-  `rekam_toggle()` sebelum menebak. Dampak: sesi rekam kosong ikut tersimpan
+  `recorder_toggle()` sebelum menebak. Dampak: sesi rekam kosong ikut tersimpan
   dan perintah yang ditolak selama sesi rekam (mis. `m`) gagal diam-diam di
   skrip.
 - **(13 Okt 2026) Konsumsi daya per mode operasi.** Pengukuran daya per mode

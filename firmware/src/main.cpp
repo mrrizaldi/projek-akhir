@@ -11,7 +11,7 @@
 #include "konfig.h"
 #include "menu.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 #include "serial_cmd.h"
 #include "diagnosa.h"
 #include "daya.h"
@@ -32,10 +32,10 @@ static void layani_tombol()
         if (e == BUTTON_SHORT) {
             if (i == 0) tampilan_set_bisu(!tampilan_bisu());
             if (i == 1) tampilan_set_beku(!tampilan_beku());
-            if (i == 2) { if (rekam_aktif()) rekam_jeda(); else rekam_toggle(); }
+            if (i == 2) { if (recorder_active()) recorder_pause(); else recorder_toggle(); }
         }
         if (e == BUTTON_LONG && i == 1) { menu_buka(); continue; }
-        if (e == BUTTON_LONG && i == 2 && rekam_aktif()) rekam_toggle();
+        if (e == BUTTON_LONG && i == 2 && recorder_active()) recorder_toggle();
         tampilan_gambar_tombol(i);
     }
 }
@@ -60,7 +60,7 @@ void setup()
         Serial.printf("PERINGATAN: PSRAM ring gagal, backlog turun ke %u beat\n",
                       ECG_MQTT_ANTRE_MIN);
     }
-    rekam_siapkan();
+    recorder_prepare();
 
     classifier_begin();
     gate_begin_session();
@@ -87,7 +87,7 @@ void loop()
     uint16_t s;
     if (acquisition_fetch(&s)) {
         const float sampel = (float)s;
-        rekam_sampel(s);
+        recorder_sample(s);
 
         const bool dsp = daya_tahap(2), cnn = daya_tahap(3), ui = daya_tahap(4);
         const int ada_beat = dsp ? ecg_live_push(sampel, &beat) : 0;
@@ -104,7 +104,7 @@ void loop()
         if (ui) tampilan_sampel();
     }
 
-    rekam_layani();
+    recorder_service();
     ecg_mqtt_layani();
     daya_layani();
     daya_tangga_tick();

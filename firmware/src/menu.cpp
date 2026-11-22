@@ -11,7 +11,7 @@
 #include "classifier.h"
 #include "konfig.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 #include "diagnosa.h"
 #include "daya.h"
 #include "tampilan.h"
@@ -43,19 +43,19 @@ struct halaman_t {
 #define DINAMIS(j, n, t, p) {j, nullptr, 0, n, t, p, nullptr}
 #define TEKS(j, f) {j, nullptr, 0, nullptr, nullptr, nullptr, f}
 
-static const char *tanda(bool aktif) { return aktif ? "*" : ""; }
+static const char *tanda(bool active) { return active ? "*" : ""; }
 static void ke_adc() { acquisition_set_source(SOURCE_ADC, 0, true); }
 static void ke_acuan() { acquisition_set_source(SOURCE_REFERENCE, 0, true); }
 static const char *n_adc() { return tanda(acquisition_source() == SOURCE_ADC); }
 static const char *n_acuan() { return tanda(acquisition_source() == SOURCE_REFERENCE); }
 
 static int rk_no[64], rk_n;
-static int rekaman_n() { return rk_n = rekam_daftar(rk_no, 64); }
+static int rekaman_n() { return rk_n = recorder_list(rk_no, 64); }
 static void rekaman_teks(int i, char *out, size_t n)
 {
-    const bool aktif = acquisition_source() == SOURCE_RECORDING && acquisition_source_recording() == rk_no[i];
-    snprintf(out, n, "%03d  %6.1f s  %s", rk_no[i], (float)rekam_sampel_n(rk_no[i]) / ECG_FS,
-             aktif ? "*" : "");
+    const bool active = acquisition_source() == SOURCE_RECORDING && acquisition_source_recording() == rk_no[i];
+    snprintf(out, n, "%03d  %6.1f s  %s", rk_no[i], (float)recorder_sample_n(rk_no[i]) / ECG_FS,
+             active ? "*" : "");
 }
 static void rekaman_pilih(int i) { acquisition_set_source(SOURCE_RECORDING, rk_no[i], true); }
 static const halaman_t H_REKAMAN = DINAMIS("Replay rekaman", rekaman_n, rekaman_teks, rekaman_pilih);
@@ -328,7 +328,7 @@ static void masuk(const halaman_t *h)
 void menu_buka(void)
 {
     if (dalam >= 0) return;
-    if (rekam_tolak("menu")) { tampilan_pesan("TERKUNCI", "tahan B3=simpan"); return; }
+    if (recorder_reject("menu")) { tampilan_pesan("TERKUNCI", "tahan B3=simpan"); return; }
     tampilan_set_monitor(false);
     masuk(&H_AKAR);
 }

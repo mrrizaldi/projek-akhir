@@ -5,7 +5,7 @@
 
 #include "acquisition.h"
 #include "board.h"
-#include "rekam.h"
+#include "recorder.h"
 #include "tampilan.h"
 
 constexpr int ADC_UPPER = 4090, ADC_LOWER = 5;
@@ -47,7 +47,7 @@ void gate_begin_session(void)
 
 void gate_set_skip(bool on)
 {
-    if (rekam_tolak("lewati kalibrasi")) return;
+    if (recorder_reject("lewati kalibrasi")) return;
     skip_calibration = on;
     if (!on) gate_begin_session();
 }

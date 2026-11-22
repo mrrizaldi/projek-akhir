@@ -1,10 +1,10 @@
 [
   {
-    "query": "tulis rekam_sampel di firmware/src/rekam.cpp supaya batas REKAM_N tidak membuang sampel diam-diam",
+    "query": "tulis recorder_sample di firmware/src/recorder.cpp supaya batas RECORDER_N tidak membuang sampel diam-diam",
     "should_trigger": true
   },
   {
-    "query": "rekaman 45 menit cuma tersimpan 5 menit, cek rekam.cpp",
+    "query": "rekaman 45 menit cuma tersimpan 5 menit, cek recorder.cpp",
     "should_trigger": true
   },
   {
@@ -12,7 +12,7 @@
     "should_trigger": true
   },
   {
-    "query": "buat rencana uji batas rekam pakai -DREKAM_DETIK=10 di board",
+    "query": "buat rencana uji batas rekam pakai -DRECORDER_SECONDS=10 di board",
     "should_trigger": true
   },
   {
@@ -28,7 +28,7 @@
     "should_trigger": true
   },
   {
-    "query": "the ESP32 recording stops early and buffer penuh, review rekam_layani",
+    "query": "the ESP32 recording stops early and buffer penuh, review recorder_service",
     "should_trigger": true
   },
   {

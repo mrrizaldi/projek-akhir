@@ -6,7 +6,7 @@
 #include "esp_wifi.h"
 
 #include "ecg_mqtt.h"
-#include "rekam.h"
+#include "recorder.h"
 
 struct wifi_t { const char *ssid, *pass; };
 struct broker_t { const char *nama, *host; uint16_t port; const char *token; };
@@ -91,7 +91,7 @@ int konfig_broker(void) { return i_broker; }
 
 bool konfig_pilih_wifi(int i)
 {
-    if (i < 0 || i >= N_WIFI || rekam_tolak("ganti WiFi")) return false;
+    if (i < 0 || i >= N_WIFI || recorder_reject("ganti WiFi")) return false;
     i_wifi = i;
     tulis("wifi", i);
     terapkan();
@@ -103,7 +103,7 @@ bool konfig_wifi_aktif(void) { return wifi_aktif; }
 
 bool konfig_set_wifi_aktif(bool on)
 {
-    if (rekam_tolak("WiFi")) return false;
+    if (recorder_reject("WiFi")) return false;
     wifi_aktif = on;
     tulis("wifimati", !on);
     if (on) {
@@ -120,7 +120,7 @@ bool konfig_set_wifi_aktif(bool on)
 
 bool konfig_pilih_broker(int i)
 {
-    if (i < 0 || i >= N_BROKER || rekam_tolak("ganti broker")) return false;
+    if (i < 0 || i >= N_BROKER || recorder_reject("ganti broker")) return false;
     i_broker = i;
     tulis("broker", i);
     terapkan();
