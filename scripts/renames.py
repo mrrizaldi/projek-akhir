@@ -1,6 +1,7 @@
 import ast
 import difflib
 import io
+import keyword
 import os
 import re
 import shutil
@@ -254,7 +255,8 @@ def apply(paths):
     texts = {name: read(name) for name in tracked(paths)}
     sources = {n: t for n, t in texts.items() if Path(n).suffix in C_SUFFIXES or n.endswith(".py")}
     every_py = {n: read(n) for n in tracked(["."], quiet=True) if n.endswith(".py")}
-    errors = guard(sources, every_py, pairs)
+    py_rows = python_rows(load_scoped(pairs), every_py, pairs)
+    errors = guard(sources, every_py, pairs) + scoped_guard(py_rows, every_py)
     if errors:
         for error in errors:
             print(f"REFUSED {error}")
@@ -264,7 +266,7 @@ def apply(paths):
         if path.suffix in C_SUFFIXES:
             new = apply_c(text, pairs)
         elif path.suffix == ".py":
-            new = apply_py(text, ids)
+            new = apply_py(text, {**ids, **py_rows.get(name, {})})
         elif path.suffix in TEXT_SUFFIXES or path.name == "Makefile":
             new = apply_text(text, pairs)
         else:
@@ -329,8 +331,9 @@ def same_python(rev_a, rev_b):
     ids = identifiers(pairs)
     files_a, files_b = python_files(rev_a), python_files(rev_b)
     sources = {name: show(rev_a, name) for name in files_a}
+    py_rows = python_rows(load_scoped(pairs), sources, pairs)
     failed = False
-    for error in guard(sources, sources, pairs):
+    for error in guard(sources, sources, pairs) + scoped_guard(py_rows, sources):
         failed = True
         print(f"REFUSED {error}")
     claimed = set()
@@ -343,7 +346,7 @@ def same_python(rev_a, rev_b):
             continue
         claimed.add(new)
         compared += 1
-        a = ast.dump(Renamer(ids).visit(ast.parse(sources[old])), indent=1)
+        a = ast.dump(Renamer({**ids, **py_rows.get(old, {})}).visit(ast.parse(sources[old])), indent=1)
         b = ast.dump(ast.parse(show(rev_b, new)), indent=1)
         if a == b:
             print(f"same {old} -> {new}")
@@ -413,6 +416,7 @@ def load_scoped(pairs=None):
     pairs = load_pairs(MAP) if pairs is None else pairs
     forbidden = set(pairs) | set(pairs.values())
     sources = firmware_sources()
+    python_sources = {n for n in tracked(["."], quiet=True) if n.endswith(".py")}
     for number, line in enumerate(read(SCOPED).split("\n"), 1):
         line = line.rstrip("\r")
         if not line.strip():
@@ -420,8 +424,10 @@ def load_scoped(pairs=None):
         if line.count("\t") != 2:
             sys.exit(f"{SCOPED}:{number}: need exactly two TABs")
         source, old, new = line.split("\t")
-        if source not in sources:
-            sys.exit(f"{SCOPED}:{number}: {source} is not a firmware source file")
+        if source not in sources | python_sources:
+            sys.exit(f"{SCOPED}:{number}: {source} is not a firmware source file or a tracked Python path")
+        if source in python_sources and (old in pairs or not new.isidentifier() or keyword.iskeyword(new)):
+            sys.exit(f"{SCOPED}:{number}: {source}: {old} is a global key or {new} is not a Python name")
         rows = scoped.setdefault(source, {})
         if old in rows:
             sys.exit(f"{SCOPED}:{number}: duplicate {source} {old}")
@@ -431,6 +437,116 @@ def load_scoped(pairs=None):
             sys.exit(f"{SCOPED}:{number}: scoped target {new} equals a global key or target")
         rows[old] = new
     return scoped
+
+
+def python_rows(scoped, files, pairs):
+    found = {}
+    for name in files:
+        rows = {**scoped.get(name, {}), **scoped.get(counterpart(name, pairs), {})}
+        if rows:
+            found[name] = rows
+    return found
+
+
+def scope_bindings(nodes):
+    found = set()
+    pending = list(nodes)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            found.add(node.name)
+            continue
+        if isinstance(node, ast.Lambda):
+            continue
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            found.add(node.id)
+        elif isinstance(node, ast.alias):
+            found.add((node.asname or node.name).split(".")[0])
+        elif isinstance(node, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)) and node.name:
+            found.add(node.name)
+        pending.extend(ast.iter_child_nodes(node))
+    return found
+
+
+def module_level(tree):
+    declared = {n for node in ast.walk(tree) if isinstance(node, ast.Global) for n in node.names}
+    return scope_bindings(tree.body) | declared
+
+
+def class_members(tree):
+    return {n for node in ast.walk(tree) if isinstance(node, ast.ClassDef) for n in scope_bindings(node.body)}
+
+
+def module_stem(path):
+    path = Path(path)
+    return path.parent.name if path.stem == "__init__" else path.stem
+
+
+def import_facts(tree):
+    imported, module_parts = [], set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            module_parts |= set(module.split("."))
+            imported += [(module.rpartition(".")[2], alias.name) for alias in node.names]
+        elif isinstance(node, ast.Import):
+            module_parts |= {part for alias in node.names for part in alias.name.split(".")}
+    return imported, module_parts
+
+
+def scoped_guard(rows_by_file, every_py):
+    if not rows_by_file:
+        return []
+    trees = {p: ast.parse(t) for p, t in every_py.items()}
+    names = {p: py_names(t) for p, t in every_py.items()}
+    facts = {p: import_facts(tree) for p, tree in trees.items()}
+    modules = {part for p in every_py for part in Path(p).with_suffix("").parts}
+    attrs, kwargs = set(), {}
+    for path, tree in trees.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                attrs.add(node.attr)
+            elif isinstance(node, ast.MatchClass):
+                attrs.update(node.kwd_attrs)
+            elif isinstance(node, ast.Call):
+                for item in node.keywords:
+                    kwargs.setdefault(item.arg, []).append((path, item.lineno, node.func))
+    errors = []
+    for path, rows in sorted(rows_by_file.items()):
+        active = {old: new for old, new in rows.items() if old in names.get(path, ())}
+        if not active:
+            continue
+        tree = trees[path]
+        top, members, accepts = module_level(tree), class_members(tree), {}
+        collect_parameters(tree, accepts)
+        imported, module_parts = facts[path]
+        stem = module_stem(path)
+        importers = {g for g, (their, _) in facts.items() if g != path and any(last == stem for last, _ in their)}
+        strings = py_strings(every_py[path]).union(*(py_strings(every_py[g]) for g in importers))
+        if any(name == "*" for _, name in imported):
+            errors.append(f"SCOPED-STAR-IMPORT {path}: scoped rows need explicit imports")
+        for old, new in sorted(active.items()):
+            where = f"{path}: {old} -> {new}"
+            checks = (
+                (new in names[path], "SCOPED-TARGET-TAKEN", f"{new} already appears in the file"),
+                (old in attrs, "SCOPED-ATTRIBUTE", f"{old} is an attribute name somewhere in the repo"),
+                (old in members, "SCOPED-CLASS-MEMBER", f"{old} is bound in a class body"),
+                (old in modules | module_parts, "SCOPED-MODULE-NAME", f"{old} is a module or package name"),
+                (old in strings, "SCOPED-STRING", f"{old} appears in a string literal of the file or of a file importing it"),
+            )
+            errors += [f"{label} {where}: {reason}" for hit, label, reason in checks if hit]
+            for other, line, func in kwargs.get(old, []):
+                local = other == path and isinstance(func, ast.Name) and old in accepts.get(func.id, set())
+                if not local:
+                    errors.append(f"SCOPED-KWARG {where}: keyword {old}= at {other}:{line} is not a call to a function of {path}")
+            if old not in top:
+                continue
+            for other, (their, _) in sorted(facts.items()):
+                linked = other in importers and ((stem, old) in their or (stem, "*") in their)
+                linked = linked or (other != path and (module_stem(other), old) in imported)
+                if linked and rows_by_file.get(other, {}).get(old) != new:
+                    errors.append(f"SCOPED-UNLINKED {where}: {other} shares the module-level name without the same row")
+    return errors
 
 
 def scoped_ids(scoped, name, pairs):
