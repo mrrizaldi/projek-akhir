@@ -37,24 +37,24 @@ print("== boot + WiFi ==")
 time.sleep(14)
 
 
-def wait_for_line(isi, detik=3.0, mulai=None):
-    tanda = len(baris) if mulai is None else mulai
+def wait_for_line(expected_text, detik=3.0, start_index=None):
+    tanda = len(baris) if start_index is None else start_index
     akhir = time.time() + detik
     while time.time() < akhir:
         for b in baris[tanda:]:
-            if isi in b:
+            if expected_text in b:
                 return b
         time.sleep(0.05)
     return None
 
 
 tanda = len(baris); s.write(b"s"); s.flush()
-st = wait_for_line("replay=", mulai=tanda)
+st = wait_for_line("replay=", start_index=tanda)
 if st is None:
     sys.exit("board tidak menjawab 's'")
 if "replay=1" not in st:
     tanda = len(baris); s.write(b"y"); s.flush()
-    if not wait_for_line("replay ON", mulai=tanda):
+    if not wait_for_line("replay ON", start_index=tanda):
         sys.exit("replay gagal dinyalakan")
 print("== replay ON ==")
 time.sleep(1.5)

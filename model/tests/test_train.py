@@ -45,18 +45,18 @@ def test_empty_class_errors_not_division_by_zero():
 
 
 def test_weight_average_averages_best_n_not_picking_argmax():
-    hasil = _jalankan(BestWeightAverage("val_auc", 3),
-                      [(0.90, 4.0), (0.80, 50.0), (0.92, 3.0),
-                       (0.50, 99.0), (0.91, 5.0)])
-    assert np.isclose(hasil, 4.0)
+    averaged_weight = _jalankan(BestWeightAverage("val_auc", 3),
+                                [(0.90, 4.0), (0.80, 50.0), (0.92, 3.0),
+                                 (0.50, 99.0), (0.91, 5.0)])
+    assert np.isclose(averaged_weight, 4.0)
 
 
 def test_bad_epoch_excluded_from_average():
-    hasil = _jalankan(BestWeightAverage("val_auc", 2),
-                      [(0.9, 1.0), (0.1, 1000.0), (0.8, 3.0)])
-    assert np.isclose(hasil, 2.0)
+    averaged_weight = _jalankan(BestWeightAverage("val_auc", 2),
+                                [(0.9, 1.0), (0.1, 1000.0), (0.8, 3.0)])
+    assert np.isclose(averaged_weight, 2.0)
 
 
 def test_n_larger_than_epoch_count_uses_all():
-    hasil = _jalankan(BestWeightAverage("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
-    assert np.isclose(hasil, 3.0)
+    averaged_weight = _jalankan(BestWeightAverage("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
+    assert np.isclose(averaged_weight, 3.0)

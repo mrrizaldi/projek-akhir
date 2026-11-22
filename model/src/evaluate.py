@@ -96,7 +96,7 @@ def mcc(counts: dict) -> float:
 def pair_detected(detected, annotation, tolerance_samples: int):
     detected = np.asarray(detected)
     annotation = np.asarray(annotation)
-    hasil = np.full(len(detected), -1, dtype=np.int64)
+    matched = np.full(len(detected), -1, dtype=np.int64)
     terpakai = np.zeros(len(annotation), dtype=bool)
     for k, d in enumerate(detected):
         if len(annotation) == 0:
@@ -106,5 +106,5 @@ def pair_detected(detected, annotation, tolerance_samples: int):
         i = int(np.argmin(selisih))
         if selisih[i] <= tolerance_samples:
             terpakai[i] = True
-            hasil[k] = i
-    return hasil
+            matched[k] = i
+    return matched

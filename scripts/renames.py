@@ -1,6 +1,8 @@
 import ast
+import builtins
 import difflib
 import io
+import keyword
 import os
 import re
 import shutil
@@ -34,8 +36,13 @@ INFO_DIRS = ("laporan/", "presentasi/", ".claude/skills-arsip/")
 ONE_OFF = ("scripts/rename_map.tsv", "scripts/rename_map_scoped.tsv", "scripts/glossary.tsv", "docs/2026-11-22-english-codebase.md")
 C_SUFFIXES = {".cpp", ".h", ".c"}
 FROZEN = {"WIFI_DAFTAR", "BROKER_DAFTAR"}
+BUILTINS = set(dir(builtins))
+DYNAMIC_IMPORTS = {"importlib", "__import__"}
+ATTRIBUTE_FUNCTIONS = {"getattr", "hasattr", "setattr", "delattr"}
+INTROSPECTION = {"locals", "vars", "globals", "dir", "eval", "exec", "__name__", "__qualname__", "__code__", "__dict__", "inspect", "pickle", "joblib", "dill"}
 C_TOKEN = re.compile(r'#include "[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*')
 WORD = re.compile(r"\w+")
+ESCAPE = re.compile(r"\\.")
 BIN = Path.home() / ".platformio/packages/toolchain-xtensa-esp32s3/bin"
 OBJDUMP = str(BIN / "xtensa-esp32s3-elf-objdump")
 OBJCOPY = str(BIN / "xtensa-esp32s3-elf-objcopy")
@@ -103,7 +110,8 @@ def py_strings(text):
     found = set()
     for t in tokenize.generate_tokens(io.StringIO(text).readline):
         if t.type in (tokenize.STRING, getattr(tokenize, "FSTRING_MIDDLE", -1)):
-            found |= set(WORD.findall(t.string.replace("-", "_")))
+            raw = t.string.replace("-", "_")
+            found |= set(WORD.findall(raw)) | set(WORD.findall(ESCAPE.sub(" ", raw)))
     return found
 
 
@@ -254,7 +262,8 @@ def apply(paths):
     texts = {name: read(name) for name in tracked(paths)}
     sources = {n: t for n, t in texts.items() if Path(n).suffix in C_SUFFIXES or n.endswith(".py")}
     every_py = {n: read(n) for n in tracked(["."], quiet=True) if n.endswith(".py")}
-    errors = guard(sources, every_py, pairs)
+    py_rows = python_rows(load_scoped(pairs), every_py, pairs)
+    errors = guard(sources, every_py, pairs) + scoped_guard(py_rows, every_py, working_texts)
     if errors:
         for error in errors:
             print(f"REFUSED {error}")
@@ -264,7 +273,7 @@ def apply(paths):
         if path.suffix in C_SUFFIXES:
             new = apply_c(text, pairs)
         elif path.suffix == ".py":
-            new = apply_py(text, ids)
+            new = apply_py(text, {**ids, **py_rows.get(name, {})})
         elif path.suffix in TEXT_SUFFIXES or path.name == "Makefile":
             new = apply_text(text, pairs)
         else:
@@ -329,8 +338,9 @@ def same_python(rev_a, rev_b):
     ids = identifiers(pairs)
     files_a, files_b = python_files(rev_a), python_files(rev_b)
     sources = {name: show(rev_a, name) for name in files_a}
+    py_rows = python_rows(load_scoped(pairs), sources, pairs)
     failed = False
-    for error in guard(sources, sources, pairs):
+    for error in guard(sources, sources, pairs) + scoped_guard(py_rows, sources, lambda: revision_texts(rev_b)):
         failed = True
         print(f"REFUSED {error}")
     claimed = set()
@@ -343,7 +353,7 @@ def same_python(rev_a, rev_b):
             continue
         claimed.add(new)
         compared += 1
-        a = ast.dump(Renamer(ids).visit(ast.parse(sources[old])), indent=1)
+        a = ast.dump(Renamer({**ids, **py_rows.get(old, {})}).visit(ast.parse(sources[old])), indent=1)
         b = ast.dump(ast.parse(show(rev_b, new)), indent=1)
         if a == b:
             print(f"same {old} -> {new}")
@@ -413,6 +423,7 @@ def load_scoped(pairs=None):
     pairs = load_pairs(MAP) if pairs is None else pairs
     forbidden = set(pairs) | set(pairs.values())
     sources = firmware_sources()
+    python_sources = {n for n in tracked(["."], quiet=True) if n.endswith(".py")}
     for number, line in enumerate(read(SCOPED).split("\n"), 1):
         line = line.rstrip("\r")
         if not line.strip():
@@ -420,8 +431,10 @@ def load_scoped(pairs=None):
         if line.count("\t") != 2:
             sys.exit(f"{SCOPED}:{number}: need exactly two TABs")
         source, old, new = line.split("\t")
-        if source not in sources:
-            sys.exit(f"{SCOPED}:{number}: {source} is not a firmware source file")
+        if source not in sources | python_sources:
+            sys.exit(f"{SCOPED}:{number}: {source} is not a firmware source file or a tracked Python path")
+        if source in python_sources and (old in pairs or not new.isidentifier() or keyword.iskeyword(new)):
+            sys.exit(f"{SCOPED}:{number}: {source}: {old} is a global key or {new} is not a Python name")
         rows = scoped.setdefault(source, {})
         if old in rows:
             sys.exit(f"{SCOPED}:{number}: duplicate {source} {old}")
@@ -431,6 +444,259 @@ def load_scoped(pairs=None):
             sys.exit(f"{SCOPED}:{number}: scoped target {new} equals a global key or target")
         rows[old] = new
     return scoped
+
+
+def python_rows(scoped, files, pairs):
+    found = {}
+    for name in files:
+        rows = {**scoped.get(name, {}), **scoped.get(counterpart(name, pairs), {})}
+        if rows:
+            found[name] = rows
+    return found
+
+
+def scope_bindings(nodes):
+    found = set()
+    pending = list(nodes)
+    while pending:
+        node = pending.pop()
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            found.add(node.name)
+            continue
+        if isinstance(node, ast.Lambda):
+            continue
+        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Store):
+            found.add(node.id)
+        elif isinstance(node, ast.alias):
+            found.add((node.asname or node.name).split(".")[0])
+        elif isinstance(node, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)) and node.name:
+            found.add(node.name)
+        pending.extend(ast.iter_child_nodes(node))
+    return found
+
+
+def module_level(tree):
+    declared = {n for node in ast.walk(tree) if isinstance(node, ast.Global) for n in node.names}
+    return scope_bindings(tree.body) | declared
+
+
+def class_members(tree):
+    return {n for node in ast.walk(tree) if isinstance(node, ast.ClassDef) for n in scope_bindings(node.body)}
+
+
+def bound_names(tree):
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            found.add(node.id)
+        elif isinstance(node, ast.arg):
+            found.add(node.arg)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            found.add(node.name)
+        elif isinstance(node, (ast.ExceptHandler, ast.MatchAs, ast.MatchStar)) and node.name:
+            found.add(node.name)
+        elif isinstance(node, ast.MatchMapping) and node.rest:
+            found.add(node.rest)
+        elif isinstance(node, ast.alias):
+            found.add((node.asname or node.name).split(".")[0])
+    return found
+
+
+def is_fixture(function):
+    for decorator in function.decorator_list:
+        target = decorator.func if isinstance(decorator, ast.Call) else decorator
+        if terminal_name(target) == "fixture":
+            return True
+    return False
+
+
+def fixture_names(trees):
+    found = set()
+    for path, tree in trees.items():
+        if Path(path).name == "conftest.py":
+            found |= module_level(tree)
+        found |= {n.name for n in ast.walk(tree) if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and is_fixture(n)}
+    return found
+
+
+def introspection_hits(tree, names):
+    attributes = {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute)}
+    return sorted((names - {"__name__"} | attributes) & INTROSPECTION)
+
+
+def dynamic_access(tree, names):
+    found = sorted(names & DYNAMIC_IMPORTS)
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Attribute) and node.attr == "modules" and isinstance(node.value, ast.Name) and node.value.id == "sys":
+            found.append(f"sys.modules:{node.lineno}")
+        elif isinstance(node, ast.Call) and terminal_name(node.func) in ATTRIBUTE_FUNCTIONS:
+            key = node.args[1] if len(node.args) > 1 else None
+            if not (isinstance(key, ast.Constant) and isinstance(key.value, str)):
+                found.append(f"{terminal_name(node.func)}:{node.lineno}")
+    return found
+
+
+def imports_module(tree, stem):
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import) and any(a.name.rpartition(".")[2] == stem for a in node.names):
+            return True
+        if isinstance(node, ast.ImportFrom) and ((node.module or "").rpartition(".")[2] == stem or any(a.name == stem for a in node.names)):
+            return True
+    return False
+
+
+def pytest_parameters(tree):
+    found = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and (node.name.startswith("test") or is_fixture(node)):
+            found |= parameter_names(node)
+    return found
+
+
+def rebound(tree, name):
+    definitions = sum(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) and n.name == name for n in ast.walk(tree))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)) and node.id == name:
+            return True
+        if isinstance(node, ast.arg) and node.arg == name:
+            return True
+    return definitions > 1
+
+
+def shape_problem(old, new):
+    if new.startswith("__"):
+        return f"{new} starts with a double underscore"
+    if old.startswith("_") != new.startswith("_"):
+        return "the leading underscore changes"
+    if old.startswith("test") != new.startswith("test"):
+        return "the test prefix changes (pytest collection)"
+    if old.startswith("Test") != new.startswith("Test"):
+        return "the Test class prefix changes (pytest collection)"
+    return None
+
+
+def working_texts():
+    return {n: read(n) for n in tracked(["."], quiet=True) if is_doc_text(n)}
+
+
+def revision_texts(rev):
+    raw = subprocess.run(["git", "ls-tree", "-r", "-z", "--name-only", rev], capture_output=True, check=True).stdout
+    names = [n for n in raw.decode("utf-8").split("\0") if n and not is_skipped(n) and is_doc_text(n)]
+    found = {}
+    for name in names:
+        text = revision_text(rev, name)
+        if text is not None:
+            found[name] = text
+    return found
+
+
+def is_doc_text(name):
+    path = Path(name)
+    return path.suffix in TEXT_SUFFIXES or path.name.startswith("Makefile")
+
+
+def text_references(word, texts):
+    pattern = re.compile(rf"(?<!\w){re.escape(word)}(?!\w)")
+    return [f"{name}:{number}" for name, text in sorted(texts.items()) for number, line in enumerate(text.split("\n"), 1) if pattern.search(line)]
+
+
+def module_stem(path):
+    path = Path(path)
+    return path.parent.name if path.stem == "__init__" else path.stem
+
+
+def import_facts(tree):
+    imported, module_parts = [], set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            module_parts |= set(module.split("."))
+            imported += [(module.rpartition(".")[2], alias.name) for alias in node.names]
+        elif isinstance(node, ast.Import):
+            module_parts |= {part for alias in node.names for part in alias.name.split(".")}
+    return imported, module_parts
+
+
+def scoped_guard(rows_by_file, every_py, load_texts):
+    if not rows_by_file:
+        return []
+    trees = {p: ast.parse(t) for p, t in every_py.items()}
+    names = {p: py_names(t) for p, t in every_py.items()}
+    facts = {p: import_facts(tree) for p, tree in trees.items()}
+    modules = {part for p in every_py for part in Path(p).with_suffix("").parts}
+    repo_stems = {module_stem(p) for p in every_py}
+    fixtures = fixture_names(trees)
+    every_string = set().union(*(py_strings(t) for t in every_py.values()))
+    texts = None
+    attrs, kwargs = set(), {}
+    for path, tree in trees.items():
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Attribute):
+                attrs.add(node.attr)
+            elif isinstance(node, ast.MatchClass):
+                attrs.update(node.kwd_attrs)
+            elif isinstance(node, (ast.Call, ast.ClassDef)):
+                func = node.func if isinstance(node, ast.Call) else None
+                for item in node.keywords:
+                    kwargs.setdefault(item.arg, []).append((path, item.lineno, func))
+    errors = []
+    for path, rows in sorted(rows_by_file.items()):
+        active = {old: new for old, new in rows.items() if old in names.get(path, ())}
+        if not active:
+            continue
+        tree = trees[path]
+        top, members, bound = module_level(tree), class_members(tree), bound_names(tree)
+        accepts = {n.name: parameter_names(n) for n in tree.body if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef))}
+        imported, module_parts = facts[path]
+        imported_names = {(a.asname or a.name).split(".")[0] for n in ast.walk(tree) if isinstance(n, (ast.Import, ast.ImportFrom)) for a in n.names}
+        external = {name for last, name in imported if last not in repo_stems}
+        stem = module_stem(path)
+        importers = {g for g, t in trees.items() if g != path and imports_module(t, stem)}
+        test_parameters = pytest_parameters(tree)
+        strings = py_strings(every_py[path]).union(*(py_strings(every_py[g]) for g in importers))
+        if any(name == "*" for _, name in imported):
+            errors.append(f"SCOPED-STAR-IMPORT {path}: scoped rows need explicit imports")
+        introspection = introspection_hits(tree, names[path])
+        if introspection:
+            errors.append(f"SCOPED-INTROSPECTION {path}: the file uses {introspection}, so no scoped rows")
+        for other in [path, *sorted(importers)]:
+            dynamic = dynamic_access(trees[other], names[other])
+            if dynamic:
+                errors.append(f"SCOPED-DYNAMIC {path}: {other} uses {dynamic}, so no scoped rows")
+        for old, new in sorted(active.items()):
+            where = f"{path}: {old} -> {new}"
+            shape = shape_problem(old, new)
+            module_level_name = old in top
+            checks = (
+                (new in names[path], "SCOPED-TARGET-TAKEN", f"{new} already appears in the file"),
+                (old in BUILTINS, "SCOPED-BUILTIN", f"{old} is a builtin name"),
+                (old in test_parameters, "SCOPED-PYTEST-PARAM", f"{old} is a parameter of a test or fixture function"),
+                (old not in bound, "SCOPED-UNBOUND", f"{old} is never bound in the file (builtin or external name)"),
+                (old in external, "SCOPED-EXTERNAL-IMPORT", f"{old} is imported from a module outside the repo"),
+                (shape is not None, "SCOPED-SHAPE", shape),
+                (old in fixtures, "SCOPED-FIXTURE", f"{old} is a pytest fixture or a conftest.py name"),
+                (old in attrs, "SCOPED-ATTRIBUTE", f"{old} is an attribute name somewhere in the repo"),
+                (old in members, "SCOPED-CLASS-MEMBER", f"{old} is bound in a class body"),
+                (old in modules | module_parts, "SCOPED-MODULE-NAME", f"{old} is a module or package name"),
+                (old in strings, "SCOPED-STRING", f"{old} appears in a string literal of the file or of a file importing it"),
+                (module_level_name and old in every_string, "SCOPED-STRING", f"module-level {old} appears in a string literal of the repo"),
+            )
+            errors += [f"{label} {where}: {reason}" for hit, label, reason in checks if hit]
+            for other, line, func in kwargs.get(old, []):
+                callee = func.id if isinstance(func, ast.Name) else None
+                local = other == path and callee not in imported_names and old in accepts.get(callee, set()) and not rebound(tree, callee)
+                if not local:
+                    errors.append(f"SCOPED-KWARG {where}: keyword {old}= at {other}:{line} is not a call to a module-level function of {path}")
+            if not module_level_name:
+                continue
+            texts = load_texts() if texts is None else texts
+            errors += [f"SCOPED-TEXT-REF {ref} {where}: update the reference or pick another name" for ref in text_references(old, texts)]
+            for other, (their, _) in sorted(facts.items()):
+                linked = other in importers and ((stem, old) in their or (stem, "*") in their)
+                linked = linked or (other != path and (module_stem(other), old) in imported)
+                if linked and rows_by_file.get(other, {}).get(old) != new:
+                    errors.append(f"SCOPED-UNLINKED {where}: {other} shares the module-level name without the same row")
+    return errors
 
 
 def scoped_ids(scoped, name, pairs):

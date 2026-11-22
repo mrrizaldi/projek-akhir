@@ -25,16 +25,16 @@ def aami_symbols_ds2() -> np.ndarray:
 
 
 def digest(y, prob, records, aami) -> dict:
-    hasil = evaluate_probabilities(y, prob, THRESHOLD)
+    metrics = evaluate_probabilities(y, prob, THRESHOLD)
     prediksi = prob >= THRESHOLD
     baris = per_record_metrics(y, prob, records, THRESHOLD)
     recall_recording = [r["recall"] for r in baris if r["n_aritmia"] > 0]
     summary_metrics = {
         "pr_auc": average_precision(y, prob),
         "prevalensi": float(np.mean(y)),
-        "mcc": mcc(hasil),
-        "tp": hasil["tp"], "fn": hasil["fn"], "fp": hasil["fp"], "tn": hasil["tn"],
-        "recall": hasil["recall"],
+        "mcc": mcc(metrics),
+        "tp": metrics["tp"], "fn": metrics["fn"], "fp": metrics["fp"], "tn": metrics["tn"],
+        "recall": metrics["recall"],
         "recall_rerata_rekaman": float(np.mean(recall_recording)),
         "recall_median_rekaman": float(np.median(recall_recording)),
         "n_rekaman_aritmia": len(recall_recording),

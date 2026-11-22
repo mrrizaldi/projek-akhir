@@ -41,19 +41,19 @@ class BoardEditor:
     def fp(self, ref):
         return self.b.FindFootprintByReference(ref)
 
-    def pad(self, ref, nomor):
-        p = self.fp(ref).FindPadByNumber(nomor).GetPosition()
+    def pad(self, ref, pad_number):
+        p = self.fp(ref).FindPadByNumber(pad_number).GetPosition()
         return (mm(p.x), mm(p.y))
 
     def net(self, nama):
         return self.b.GetNetsByName()[nama]
 
-    def jalur(self, net, copper_layer, points, lebar):
+    def jalur(self, net, copper_layer, points, width_mm):
         for (x1, y1), (x2, y2) in zip(points, points[1:]):
             t = pcbnew.PCB_TRACK(self.b)
             t.SetStart(point(x1, y1))
             t.SetEnd(point(x2, y2))
-            t.SetWidth(MM(lebar))
+            t.SetWidth(MM(width_mm))
             t.SetLayer(copper_layer)
             t.SetNet(self.net(net))
             t.SetLocked(True)
@@ -89,8 +89,8 @@ def place_footprints(p):
 
 
 def route_analog(p, F, B):
-    for nomor, net in (("41", "/ECG_OUT"), ("40", "/ECG_LON"), ("39", "/ECG_LOP")):
-        a = p.pad("U1", nomor)
+    for pad_number, net in (("41", "/ECG_OUT"), ("40", "/ECG_LON"), ("39", "/ECG_LOP")):
+        a = p.pad("U1", pad_number)
         p.jalur(net, F, [a, (122, a[1])], W_ECG)
     c41, c42 = p.pad("C4", "1"), p.pad("C4", "2")
     p.jalur("/+3V3", F, [c41, (c41[0] + 0.48, 55.08), (122, 55.08)], W_SIGNAL)
@@ -113,8 +113,8 @@ def pad_devkit(p):
 
 
 def route_i2c_gap(p, F, B):
-    for nomor, net in (("10", "/I2C_SDA"), ("11", "/I2C_SCL")):
-        x, y = p.pad("U1", nomor)
+    for pad_number, net in (("10", "/I2C_SDA"), ("11", "/I2C_SCL")):
+        x, y = p.pad("U1", pad_number)
         ys = y + 1.27
         p.jalur(net, F, [(x, y), (91.27, ys), (117.0, ys)], W_SIGNAL)
     sda, scl = p.pad("U2", "4"), p.pad("U2", "3")
@@ -260,8 +260,8 @@ class TextPlacer:
             n = len(t.GetShownText(False)) * u * 0.45
             semua += [(k[0] - text_offset - n, cy), (k[2] + text_offset + n, cy)]
         span = max(max(xs) - min(xs), max(ys) - min(ys)) if xs else 0
-        batas = max(1.5, span / 2)
-        geser = [0] + [v * d for d in (0.75, 1.5, 2.25, 3, 4, 5, 6) for v in (1, -1) if d <= batas]
+        max_shift = max(1.5, span / 2)
+        geser = [0] + [v * d for d in (0.75, 1.5, 2.25, 3, 4, 5, 6) for v in (1, -1) if d <= max_shift]
         for x, y in semua:
             for d in geser:
                 yield (x + d, y) if rotation_deg == 0 and y != cy else (x, y + d)
@@ -272,8 +272,8 @@ class TextPlacer:
         bebas_arah = f.GetReference().startswith(("Q", "H", "SW"))
         horizontal = (max(xs) - min(xs)) >= (max(ys) - min(ys))
         primary = 0 if horizontal or bebas_arah else 90
-        daftar = [primary] + ([90 - primary] if t.IsReference() else [])
-        for rotation_deg in daftar:
+        rotations = [primary] + ([90 - primary] if t.IsReference() else [])
+        for rotation_deg in rotations:
             for u in ukuran:
                 self.configure_text(t, u, rotation_deg, 0, 0)
                 for x, y in self.calon(f, t, u, rotation_deg, far_first):
@@ -299,30 +299,30 @@ def teks():
         if f.GetReference() == "U1":
             placer.placed += [box(x.GetBoundingBox(), 0.15) for x in (f.Reference(), f.Value()) if x.IsVisible()]
     urut = sorted([f for f in p.b.GetFootprints() if f.GetReference() != "U1"], key=lambda f: -len(f.Pads()))
-    hasil = {f.GetReference(): [placer.put_text(f, f.Reference(), [1.0], 0)] for f in urut}
+    placements = {f.GetReference(): [placer.put_text(f, f.Reference(), [1.0], 0)] for f in urut}
     for f in urut:
         v = f.Value()
         v.SetLayer(pcbnew.F_Fab)
         v.SetVisible(True)
         if f.GetReference().startswith("H"):
             placer.configure_text(v, 0.6, 0, mm(f.GetPosition().x), mm(f.GetPosition().y))
-            hasil[f.GetReference()].append("center")
+            placements[f.GetReference()].append("center")
         else:
-            hasil[f.GetReference()].append(placer.put_text(f, v, [0.8, 0.6, 0.5, 0.4], 1))
+            placements[f.GetReference()].append(placer.put_text(f, v, [0.8, 0.6, 0.5, 0.4], 1))
     u1 = p.fp("U1").Value()
     placer.configure_text(u1, 0.8, 0, 101.43, 110.4)
     p.save_item()
-    gagal = [r for r, h in hasil.items() if None in h]
-    for r, h in sorted(hasil.items()):
+    failed = [r for r, h in placements.items() if None in h]
+    for r, h in sorted(placements.items()):
         print(r, h)
-    print(f"text: failed {gagal}")
+    print(f"text: failed {failed}")
 
 
 def engrave():
     p = BoardEditor()
-    lama = [d for d in p.b.GetDrawings() if isinstance(d, pcbnew.PCB_TEXT) and d.GetLayer() == pcbnew.B_SilkS
+    old_texts = [d for d in p.b.GetDrawings() if isinstance(d, pcbnew.PCB_TEXT) and d.GetLayer() == pcbnew.B_SilkS
             and d.GetText().splitlines()[0] == ENGRAVING[0]]
-    if lama:
+    if old_texts:
         print("engrave: already present, not added")
         return
     x, y1, y2 = ENGRAVING_POSITION

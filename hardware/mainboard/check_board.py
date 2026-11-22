@@ -50,10 +50,10 @@ def netlist(tmp):
 
 
 def expected_pins():
-    hasil = {("U1", p): n for p, n in PIN_U1.items()}
+    pin_nets = {("U1", p): n for p, n in PIN_U1.items()}
     for ref, nets in PIN_OTHER.items():
-        hasil.update({(ref, str(i + 1)): n for i, n in enumerate(nets)})
-    return hasil
+        pin_nets.update({(ref, str(i + 1)): n for i, n in enumerate(nets)})
+    return pin_nets
 
 
 def laporan(perintah):
@@ -64,7 +64,7 @@ def laporan(perintah):
 
 
 def main():
-    gagal = 0
+    failures = 0
     with tempfile.TemporaryDirectory() as tmp:
         pin = netlist(tmp)
     exp = expected_pins()
@@ -72,29 +72,29 @@ def main():
     for (ref, p), v, ada in salah:
         print(f"WRONG {ref}.{p}: expected {v}, found {ada}")
     print(f"netlist: {len(exp) - len(salah)}/{len(exp)} pins match the map")
-    gagal += bool(salah)
+    failures += bool(salah)
 
     bocor = sorted(k for k, v in pin.items() if v == "+5V" and k[0] not in ALLOWED_5V and not k[0].startswith("#"))
     print(f"+5V outside the power path: {bocor or 'none'}")
-    gagal += bool(bocor)
+    failures += bool(bocor)
 
     teks = laporan(["kicad-cli", "sch", "erc", "--severity-all", str(SCH)])
     erc = {k: int(v) for k, v in re.findall(r"(Errors|Warnings) (\d+)", teks)}
     print(f"ERC: errors {erc.get('Errors')} warnings {erc.get('Warnings')}")
-    gagal += erc.get("Errors", 1) > 0
+    failures += erc.get("Errors", 1) > 0
 
     teks = laporan(["kicad-cli", "pcb", "drc", "--severity-error", "--schematic-parity", str(PCB)])
     drc = {v: int(k) for k, v in re.findall(r"Found (\d+) (DRC violations|unconnected pads|Footprint errors)", teks)}
     print(f"DRC errors: {drc.get('DRC violations')}, unconnected: {drc.get('unconnected pads')}, "
           f"schematic parity: {drc.get('Footprint errors')}")
-    gagal += any(drc.get(k, 1) for k in ("DRC violations", "unconnected pads", "Footprint errors"))
+    failures += any(drc.get(k, 1) for k in ("DRC violations", "unconnected pads", "Footprint errors"))
 
     layout_run = subprocess.run(["/usr/bin/python3", str(DIR / "check_layout.py")], capture_output=True, text=True)
     print("\n".join(b for b in layout_run.stdout.splitlines() if b.strip()))
-    gagal += layout_run.returncode != 0
+    failures += layout_run.returncode != 0
 
-    print("PASS" if not gagal else "FAIL")
-    return 1 if gagal else 0
+    print("PASS" if not failures else "FAIL")
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":

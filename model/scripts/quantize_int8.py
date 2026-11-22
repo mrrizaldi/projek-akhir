@@ -56,8 +56,8 @@ def main() -> None:
     fp32 = {}
     with open(os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")) as f:
         kolom = f.readline().strip().split(",")
-        nilai = f.readline().strip().split(",")
-    for k, v in zip(kolom, nilai):
+        values = f.readline().strip().split(",")
+    for k, v in zip(kolom, values):
         if k not in ("model",):
             fp32[k] = float(v)
 

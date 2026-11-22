@@ -57,15 +57,15 @@ def process_record(record_id: str, sos, jitter=None, db: str = "mitdb") -> dict:
     }
 
 
-def combine(bagian: list) -> dict:
-    if len(bagian) == 1:
-        return bagian[0]
+def combine(parts: list) -> dict:
+    if len(parts) == 1:
+        return parts[0]
     return {
-        "windows": np.concatenate([b["windows"] for b in bagian]),
-        "rr": np.concatenate([b["rr"] for b in bagian]),
-        "labels": np.concatenate([b["labels"] for b in bagian]),
-        "symbols": np.concatenate([b["symbols"] for b in bagian]),
-        "n_dropped": np.int32(sum(int(b["n_dropped"]) for b in bagian)),
+        "windows": np.concatenate([b["windows"] for b in parts]),
+        "rr": np.concatenate([b["rr"] for b in parts]),
+        "labels": np.concatenate([b["labels"] for b in parts]),
+        "symbols": np.concatenate([b["symbols"] for b in parts]),
+        "n_dropped": np.int32(sum(int(b["n_dropped"]) for b in parts)),
     }
 
 

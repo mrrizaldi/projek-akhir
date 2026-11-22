@@ -83,7 +83,7 @@ def to_cm(ukuran, text_width):
 
 
 def read_column_spec(column_spec, text_width):
-    lebar, kolom, garis, i = [], 0, 0, 0
+    widths, kolom, garis, i = [], 0, 0, 0
     while i < len(column_spec):
         c = column_spec[i]
         if c in "><@!" and i + 1 < len(column_spec) and column_spec[i + 1] == "{":
@@ -94,45 +94,45 @@ def read_column_spec(column_spec, text_width):
         elif c in "pmbLR" and i + 1 < len(column_spec) and column_spec[i + 1] == "{":
             ukuran, i = braced_content(column_spec, i + 1)
             kolom += 1
-            lebar.append(to_cm(ukuran, text_width))
+            widths.append(to_cm(ukuran, text_width))
             continue
         elif c in "lcrX":
             kolom += 1
-            lebar.append(None)
+            widths.append(None)
         i += 1
-    return lebar, kolom, garis
+    return widths, kolom, garis
 
 
-def find_tabular(blok, environment):
+def find_tabular(latex_block, environment):
     if environment == "longtable":
-        lewati = re.match(r"\s*(\[[^\]]*\])?", blok).end()
-        column_spec, akhir = braced_content(blok, lewati)
+        options_end = re.match(r"\s*(\[[^\]]*\])?", latex_block).end()
+        column_spec, akhir = braced_content(latex_block, options_end)
         return "longtable", None, column_spec, akhir
-    m = re.search(r"\\begin\{(tabularx|tabular)\}", blok)
+    m = re.search(r"\\begin\{(tabularx|tabular)\}", latex_block)
     if not m:
         return None, None, None, None
     i = m.end()
     x_width = None
     if m.group(1) == "tabularx":
-        x_width, i = braced_content(blok, i)
-    column_spec, akhir = braced_content(blok, i)
+        x_width, i = braced_content(latex_block, i)
+    column_spec, akhir = braced_content(latex_block, i)
     return m.group(1), x_width, column_spec, akhir
 
 
-def split_rows(isi):
-    isi = re.sub(r"\\(caption|label)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", " ", isi)
-    isi = re.sub(r"\\(rowcolor|cellcolor)(\[[^\]]*\])?\{[^}]*\}", " ", isi)
-    isi = re.sub(r"\\(hline|endfirsthead|endhead|endfoot|endlastfoot|toprule|midrule|bottomrule|cline\{[^}]*\})", " ", isi)
-    isi = re.sub(r"\\end\{(tabularx|tabular)\}.*", "", isi, flags=re.S)
-    baris, lihat = [], set()
-    for mentah in re.split(r"\\\\(?:\[[^\]]*\])?", isi):
-        sel = [s.strip() for s in re.split(r"(?<!\\)&", mentah)]
+def split_rows(body):
+    body = re.sub(r"\\(caption|label)\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", " ", body)
+    body = re.sub(r"\\(rowcolor|cellcolor)(\[[^\]]*\])?\{[^}]*\}", " ", body)
+    body = re.sub(r"\\(hline|endfirsthead|endhead|endfoot|endlastfoot|toprule|midrule|bottomrule|cline\{[^}]*\})", " ", body)
+    body = re.sub(r"\\end\{(tabularx|tabular)\}.*", "", body, flags=re.S)
+    baris, seen = [], set()
+    for raw_row in re.split(r"\\\\(?:\[[^\]]*\])?", body):
+        sel = [s.strip() for s in re.split(r"(?<!\\)&", raw_row)]
         if not any(sel):
             continue
         kunci = "|".join(sel)
-        if kunci in lihat:
+        if kunci in seen:
             continue
-        lihat.add(kunci)
+        seen.add(kunci)
         baris.append(sel)
     return baris
 
@@ -142,8 +142,8 @@ def unwrap_multicolumn(sel):
     if not m:
         return 1, sel
     _, i = braced_content(sel, sel.find("{", m.end()))
-    isi, _ = braced_content(sel, sel.find("{", i))
-    return int(m.group(1)), isi
+    body, _ = braced_content(sel, sel.find("{", i))
+    return int(m.group(1)), body
 
 
 def plain_text(sel):
@@ -171,11 +171,11 @@ def check_content(table_report, berkas, first_line, table_rows):
         return
     column_headers, badan = table_rows[0], []
     for b in table_rows[1:]:
-        rentang, isi = unwrap_multicolumn(b[0])
+        rentang, body = unwrap_multicolumn(b[0])
         if len(b) == 1 and rentang >= len(column_headers):
-            if word_count(isi) > CELL_MAX_WORDS:
+            if word_count(body) > CELL_MAX_WORDS:
                 table_report.catat(berkas, first_line, "T-CATATAN", False,
-                          f"table-wide note row ({word_count(isi)} words), move it to the Keterangan below the table")
+                          f"table-wide note row ({word_count(body)} words), move it to the Keterangan below the table")
             continue
         badan.append([unwrap_multicolumn(s)[1] for s in b])
     for j in range(len(column_headers)):
@@ -232,34 +232,34 @@ def opening(teks):
     return " ".join(polos.split()[:3]).rstrip(",")
 
 
-def check_tables(table_report, berkas, sumber, text_width):
-    polos = strip_comments(sumber)
+def check_tables(table_report, berkas, source, text_width):
+    polos = strip_comments(source)
     explainers = []
     for m in BLOCK_PATTERN.finditer(polos):
-        environment, blok = m.group(1), m.group(2)
+        environment, latex_block = m.group(1), m.group(2)
         first_line = line_number_of(polos, m.start())
         if Path(berkas).name in CHAPTERS_WITHOUT_TABLES:
             table_report.catat(berkas, first_line, "T-BAB", True, "Chapters 1 and 5 contain no tables")
-        grid_label_match = re.search(r"\\label\{([^}]*)\}", blok)
+        grid_label_match = re.search(r"\\label\{([^}]*)\}", latex_block)
         full_grid = bool(grid_label_match) and grid_label_match.group(1) in FULL_GRID_TABLES
         if full_grid:
-            if re.search(r"\\(toprule|midrule|bottomrule|rowcolor|cellcolor)", blok) or "\\hline" not in blok:
+            if re.search(r"\\(toprule|midrule|bottomrule|rowcolor|cellcolor)", latex_block) or "\\hline" not in latex_block:
                 table_report.catat(berkas, first_line, "T-GRID", True, "related-work table: plain full grid, \\hline and vertical rules, no booktabs and no color")
-        elif re.search(r"\\(hline|cline)|\\rowcolor", blok):
+        elif re.search(r"\\(hline|cline)|\\rowcolor", latex_block):
             table_report.catat(berkas, first_line, "T-GRID", True, "three-line style: \\toprule, \\midrule, \\bottomrule, without \\hline, \\cline, and \\rowcolor")
-        if not full_grid and not all(f"\\{garis}" in blok for garis in ("toprule", "midrule", "bottomrule")):
+        if not full_grid and not all(f"\\{garis}" in latex_block for garis in ("toprule", "midrule", "bottomrule")):
             table_report.catat(berkas, first_line, "T-HEADER", True, "table without the full \\toprule, \\midrule, \\bottomrule set")
-        if environment == "table" and re.match(r"\s*\[H\]", blok):
+        if environment == "table" and re.match(r"\s*\[H\]", latex_block):
             table_report.catat(berkas, first_line, "T-FLOAT", False, "[H] pins the position, use [!ht]")
-        jenis, x_width, column_spec, column_spec_end = find_tabular(blok, environment)
+        jenis, x_width, column_spec, column_spec_end = find_tabular(latex_block, environment)
         if column_spec and "|" in column_spec and not full_grid:
             table_report.catat(berkas, first_line, "T-GRID", True, "vertical rule | in the column spec, three-line style has no vertical rules")
-        caption_match = re.search(r"\\caption\{", blok)
+        caption_match = re.search(r"\\caption\{", latex_block)
         if not caption_match:
             table_report.catat(berkas, first_line, "T-CAPTION", True, "table without \\caption")
         else:
-            caption_text, _ = braced_content(blok, caption_match.end() - 1)
-            if environment == "table" and jenis and blok.find("\\begin{" + jenis) < caption_match.start():
+            caption_text, _ = braced_content(latex_block, caption_match.end() - 1)
+            if environment == "table" and jenis and latex_block.find("\\begin{" + jenis) < caption_match.start():
                 table_report.catat(berkas, first_line, "T-CAPTION", True, "table caption must be ABOVE the table")
             if caption_text.rstrip().endswith("."):
                 table_report.catat(berkas, first_line, "T-CAPTION", False, "caption ends with a period, a caption is a noun phrase without one")
@@ -268,18 +268,18 @@ def check_tables(table_report, berkas, sumber, text_width):
             if word_count(caption_text) > CAPTION_MAX_WORDS:
                 table_report.catat(berkas, first_line, "T-CAPTION", False, f"caption {word_count(caption_text)} words (max {CAPTION_MAX_WORDS})")
         if column_spec is not None:
-            lebar, kolom, garis = read_column_spec(column_spec, text_width)
-            context = polos[max(0, m.start() - 600):m.start()] + blok
+            widths, kolom, garis = read_column_spec(column_spec, text_width)
+            context = polos[max(0, m.start() - 600):m.start()] + latex_block
             sep = re.findall(r"\\setlength\{\\tabcolsep\}\{([\d.]+)pt\}", context)
             tabcolsep = float(sep[-1]) if sep else TABCOLSEP_DEFAULT_PT
-            if jenis != "tabularx" and lebar and all(x is not None for x in lebar):
-                total = sum(lebar) + kolom * 2 * tabcolsep * PT_TO_CM + garis * 0.4 * PT_TO_CM
+            if jenis != "tabularx" and widths and all(x is not None for x in widths):
+                total = sum(widths) + kolom * 2 * tabcolsep * PT_TO_CM + garis * 0.4 * PT_TO_CM
                 if total > text_width + 0.05:
                     table_report.catat(berkas, first_line, "T-LEBAR", True,
                               f"table width {total:.2f} cm exceeds text width {text_width:.2f} cm")
-            isi = blok[column_spec_end:] if column_spec_end else blok
-            check_content(table_report, berkas, first_line, split_rows(isi))
-        label_match = re.search(r"\\label\{([^}]*)\}", blok)
+            body = latex_block[column_spec_end:] if column_spec_end else latex_block
+            check_content(table_report, berkas, first_line, split_rows(body))
+        label_match = re.search(r"\\label\{([^}]*)\}", latex_block)
         label = label_match.group(1) if label_match else None
         if label:
             references = [r.start() for r in re.finditer(REF_PATTERN % re.escape(label), polos)]
@@ -289,7 +289,7 @@ def check_tables(table_report, berkas, sumber, text_width):
                 table_report.catat(berkas, first_line, "T-RUJUK", False, f"{label} is first referenced after the table, reference it first in an introductory paragraph")
         pos, teks = paragraph_after(polos, m.end(), label)
         if teks:
-            explainers.append((line_number_of(polos, pos), teks, numbers_in(blok), label))
+            explainers.append((line_number_of(polos, pos), teks, numbers_in(latex_block), label))
     check_explainers(table_report, berkas, explainers)
 
 
@@ -319,23 +319,23 @@ def check_explainers(table_report, berkas, explainers):
                   f"'Berdasarkan Tabel' opens {berdasarkan} paragraphs (max {BERDASARKAN_MAX_PER_CHAPTER} per chapter), vary the openers")
 
 
-def prose_blocks(sumber):
-    polos = strip_comments(sumber)
+def prose_blocks(source):
+    polos = strip_comments(source)
     for nama in NON_PROSE_ENVIRONMENTS:
         polos = re.sub(r"\\begin\{%s\*?\}.*?\\end\{%s\*?\}" % (nama, nama),
                        lambda m: "\n" * m.group(0).count("\n"), polos, flags=re.S)
     hasil, position = [], 0
-    for blok in re.split(r"(\n\s*\n)", polos):
-        teks = blok.strip()
+    for latex_block in re.split(r"(\n\s*\n)", polos):
+        teks = latex_block.strip()
         if teks and not teks.startswith(("\\section", "\\subsection", "\\subsubsection", "\\chapter", "\\label")):
-            hasil.append((line_number_of(polos, position + len(blok) - len(blok.lstrip())), teks))
-        position += len(blok)
+            hasil.append((line_number_of(polos, position + len(latex_block) - len(latex_block.lstrip())), teks))
+        position += len(latex_block)
     return hasil
 
 
-def check_prose(table_report, berkas, sumber):
+def check_prose(table_report, berkas, source):
     total_words, sehingga, panjang, gaya = 0, 0, [], []
-    for baris, teks in prose_blocks(sumber):
+    for baris, teks in prose_blocks(source):
         if "\\makebox" in teks or teks.startswith("\\noindent\\makebox"):
             continue
         without_math = DISCARDED_MATH.sub("X", teks)
@@ -369,32 +369,32 @@ LIBRARY_WORD_PATTERN = re.compile(r"(?<!Kajian )(?<!KAJIAN )(?<!Daftar )(?<!DAFT
 POINTER_PATTERN = re.compile(r"(?:Sub)?[Bb]ab~?\\ref\{|\b(?:Sub)?[Bb]ab~?\s?[0-9]\b|(?:diuraikan|dibahas|dijelaskan) pada (?:sub-?bagian|butir [a-z]\b)")
 
 
-def check_objective_labels(table_report, berkas, sumber):
-    for nomor, baris in enumerate(strip_comments(sumber).split("\n"), 1):
+def check_objective_labels(table_report, berkas, source):
+    for line_no, baris in enumerate(strip_comments(source).split("\n"), 1):
         m = OBJECTIVE_LABEL_PATTERN.search(plain_text(baris))
         if m:
-            table_report.catat(berkas, nomor, "N-TUJUAN", True,
+            table_report.catat(berkas, line_no, "N-TUJUAN", True,
                       f"numbered label '{m.group(0)}' in printed text, name the content of the objective (path, model, pipeline) like the AFIB book")
         m = PCB_REVISION_PATTERN.search(plain_text(baris))
         if m:
-            table_report.catat(berkas, nomor, "N-REVISI", True,
+            table_report.catat(berkas, line_no, "N-REVISI", True,
                       f"internal revision label '{m.group(0)}' in printed text, write only the final design")
         m = LIBRARY_WORD_PATTERN.search(plain_text(baris)) or BOARD_WORD_PATTERN.search(plain_text(baris))
         if m:
-            table_report.catat(berkas, nomor, "N-ISTILAH", True,
+            table_report.catat(berkas, line_no, "N-ISTILAH", True,
                       f"'{m.group(0)}' for an electronics/software term, write \\textit{{library}} atau \\textit{{board}} (laporan/CLAUDE.md, Istilah Asing)")
         m = POINTER_PATTERN.search(baris)
         if m:
-            table_report.catat(berkas, nomor, "N-PENUNJUK", True,
+            table_report.catat(berkas, line_no, "N-PENUNJUK", True,
                       f"pointer '{m.group(0)}' to another chapter, section, or item, state the content directly")
         m = SUBSECTION_META_PATTERN.search(plain_text(baris))
         if m:
-            table_report.catat(berkas, nomor, "N-META", True,
+            table_report.catat(berkas, line_no, "N-META", True,
                       f"opener '{m.group(0)} ...' in a section, go straight to the content; 'Bab ini ...' only in a chapter opener")
 
 
-def check_chapter_opening(table_report, berkas, sumber):
-    polos = strip_comments(sumber)
+def check_chapter_opening(table_report, berkas, source):
+    polos = strip_comments(source)
     bab = re.search(r"\\chapter\{", polos)
     if not bab:
         return
@@ -467,12 +467,12 @@ def main():
     daftar = [Path(b) for b in arg.berkas] or sorted((base_dir / "laporan/buku-pa/bab").glob("bab*.tex"))
     table_report = Report()
     for berkas in daftar:
-        sumber = berkas.read_text(encoding="utf-8")
-        check_tables(table_report, berkas, sumber, TEXT_WIDTH_CM[arg.kertas])
-        check_objective_labels(table_report, berkas, sumber)
-        check_chapter_opening(table_report, berkas, sumber)
+        source = berkas.read_text(encoding="utf-8")
+        check_tables(table_report, berkas, source, TEXT_WIDTH_CM[arg.kertas])
+        check_objective_labels(table_report, berkas, source)
+        check_chapter_opening(table_report, berkas, source)
         if not arg.tanpa_prosa:
-            check_prose(table_report, berkas, sumber)
+            check_prose(table_report, berkas, source)
     table_report.emit(arg.hanya_galat)
     print(f"{len(daftar)} files, {table_report.fault_count()} errors, {table_report.suggestion_count()} suggestions")
     if table_report.fault_count() or (arg.ketat and table_report.suggestion_count()):

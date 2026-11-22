@@ -24,13 +24,13 @@ def _ecg_with_muscle_noise():
 
 
 def test_best_window_avoids_muscle_noise():
-    hasil = [analyze_segment(_ecg_with_muscle_noise().astype(np.float32), FS)]
-    odd_rr, _, _, mulai, _ = select_window(hasil, FS, WINDOW_S * FS, None)
+    analyses = [analyze_segment(_ecg_with_muscle_noise().astype(np.float32), FS)]
+    odd_rr, _, _, mulai, _ = select_window(analyses, FS, WINDOW_S * FS, None)
     assert mulai >= DERAU_SAMPAI_S * FS
     assert odd_rr == 0
 
 
 def test_explicit_start_used_as_is():
-    hasil = [analyze_segment(_ecg_with_muscle_noise().astype(np.float32), FS)]
-    _, _, _, mulai, _ = select_window(hasil, FS, WINDOW_S * FS, DERAU_DARI_S)
+    analyses = [analyze_segment(_ecg_with_muscle_noise().astype(np.float32), FS)]
+    _, _, _, mulai, _ = select_window(analyses, FS, WINDOW_S * FS, DERAU_DARI_S)
     assert mulai == DERAU_DARI_S * FS

@@ -14,10 +14,10 @@ LOG_ERROR_PATTERN = re.compile(r"undefined|Overfull")
 
 
 def git(*argumen, cwd=REPO_ROOT):
-    hasil = subprocess.run(["git", *argumen], cwd=cwd, capture_output=True, text=True)
-    if hasil.returncode:
-        gagal(f"git {' '.join(argumen)}: {hasil.stderr.strip()}")
-    return hasil.stdout.strip()
+    result = subprocess.run(["git", *argumen], cwd=cwd, capture_output=True, text=True)
+    if result.returncode:
+        gagal(f"git {' '.join(argumen)}: {result.stderr.strip()}")
+    return result.stdout.strip()
 
 
 def gagal(msg):
@@ -26,17 +26,17 @@ def gagal(msg):
 
 
 def existing_versions(proyek):
-    hasil = {}
+    result = {}
     for tag in git("tag", "--list", f"rilis/{proyek}/v*").splitlines():
         cocok = TAG_PATTERN.match(tag)
         if cocok:
-            hasil[int(cocok["nomor"])] = tag
-    return hasil
+            result[int(cocok["nomor"])] = tag
+    return result
 
 
 def make(folder, *target):
-    hasil = subprocess.run(["make", *target], cwd=folder, capture_output=True, text=True, errors="replace")
-    return hasil.returncode == 0
+    result = subprocess.run(["make", *target], cwd=folder, capture_output=True, text=True, errors="replace")
+    return result.returncode == 0
 
 
 def build_in_tree(worktree_dir, proyek):
@@ -49,8 +49,8 @@ def build_in_tree(worktree_dir, proyek):
 def page_count(pdf):
     for baris in subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True).stdout.splitlines():
         if baris.startswith("Pages:"):
-            _, nilai = baris.split()
-            return int(nilai)
+            _, value = baris.split()
+            return int(value)
     return 0
 
 
@@ -67,13 +67,13 @@ def banding(old_tree, new_tree, proyek, tujuan):
     baru = new_tree / "laporan" / proyek
     (baru / "datar-lama.tex").write_text(flatten(lama))
     (baru / "datar-baru.tex").write_text(flatten(baru))
-    hasil = subprocess.run(
+    result = subprocess.run(
         ["latexdiff", "--math-markup=0", "datar-lama.tex", "datar-baru.tex"],
         cwd=baru, capture_output=True, text=True,
     )
-    if hasil.returncode:
+    if result.returncode:
         return None
-    (baru / "banding.tex").write_text(hasil.stdout)
+    (baru / "banding.tex").write_text(result.stdout)
     make(baru, "pdf", "MAIN=banding")
     pdf = baru / "output" / "banding.pdf"
     if not pdf.exists():

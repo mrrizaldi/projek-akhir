@@ -10,7 +10,7 @@ TUJUAN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))
 
 
 def main() -> None:
-    nomor = int(sys.argv[1]) if len(sys.argv) > 1 else None
+    file_number = int(sys.argv[1]) if len(sys.argv) > 1 else None
     try:
         import serial
     except ImportError:
@@ -37,8 +37,8 @@ def main() -> None:
         print("Board is still recording: stopping and saving first.")
         s.write(b"r")
         s.flush()
-        batas = time.time() + 15
-        while time.time() < batas:
+        deadline = time.time() + 15
+        while time.time() < deadline:
             baris = s.readline().decode(errors="replace").rstrip()
             if baris:
                 print(baris)
@@ -46,12 +46,12 @@ def main() -> None:
                 break
 
     s.reset_input_buffer()
-    s.write(f"d{nomor}\n".encode() if nomor else b"d")
+    s.write(f"d{file_number}\n".encode() if file_number else b"d")
     s.flush()
 
-    isi, mulai = [], False
-    batas = time.time() + 60
-    while time.time() < batas:
+    lines, mulai = [], False
+    deadline = time.time() + 60
+    while time.time() < deadline:
         baris = s.readline().decode(errors="replace").rstrip()
         if not baris:
             continue
@@ -61,22 +61,22 @@ def main() -> None:
         if "---SELESAI---" in baris:
             break
         if mulai:
-            isi.append(baris)
+            lines.append(baris)
     s.close()
 
-    if not isi:
+    if not lines:
         sys.exit("No recording on the board. Press REC to record first.")
 
     os.makedirs(TUJUAN, exist_ok=True)
     nama = datetime.datetime.now().strftime("%Y%m%d-%H%M")
-    if nomor:
-        nama += f"-rekam-{nomor:03d}"
+    if file_number:
+        nama += f"-rekam-{file_number:03d}"
     path = os.path.join(TUJUAN, f"{nama}.csv")
     with open(path, "w") as f:
-        f.write("\n".join(isi) + "\n")
+        f.write("\n".join(lines) + "\n")
 
-    print(f"\n{len(isi)} lines -> {path}")
-    print(f"{isi[0]}\n\nContinue with analysis:\n  .venv/bin/python scripts/analyze_recording.py {path} {nama}")
+    print(f"\n{len(lines)} lines -> {path}")
+    print(f"{lines[0]}\n\nContinue with analysis:\n  .venv/bin/python scripts/analyze_recording.py {path} {nama}")
 
 
 if __name__ == "__main__":

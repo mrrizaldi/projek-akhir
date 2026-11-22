@@ -40,9 +40,9 @@ H_GOLDEN = os.path.join(ROOT, "firmware", "test", "golden_ref.h")
 
 
 def _c_array(nama: str, data, per_row: int = 6, fmt: str = "%.8ef") -> str:
-    isi = [fmt % v for v in np.asarray(data).ravel()]
-    baris = [", ".join(isi[i:i + per_row]) for i in range(0, len(isi), per_row)]
-    return f"const float {nama}[{len(isi)}] = {{\n  " + ",\n  ".join(baris) + "\n};\n"
+    cells = [fmt % v for v in np.asarray(data).ravel()]
+    baris = [", ".join(cells[i:i + per_row]) for i in range(0, len(cells), per_row)]
+    return f"const float {nama}[{len(cells)}] = {{\n  " + ",\n  ".join(baris) + "\n};\n"
 
 
 def main() -> None:

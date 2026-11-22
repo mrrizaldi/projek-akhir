@@ -24,12 +24,12 @@ TOLERANCE_WINDOW_MS = 150
 
 
 def refine_peaks(r_kasar, filtered):
-    hasil = []
+    refined = []
     for lo in r_kasar:
         a = max(0, lo - PT_REFINE_WIN)
         b = lo + PT_REFINE_WIN + 1
-        hasil.append(a + int(np.argmax(filtered[a:b])))
-    return np.asarray(hasil) - GROUP_DELAY_SAMPLES
+        refined.append(a + int(np.argmax(filtered[a:b])))
+    return np.asarray(refined) - GROUP_DELAY_SAMPLES
 
 
 def deteksi(record_id: str, sos):

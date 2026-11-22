@@ -7,9 +7,9 @@ from scripts.analyze_recording import (
 FS = 360
 
 
-def _synthetic_ecg(detik, phase, dasar):
+def _synthetic_ecg(detik, phase, baseline):
     t = np.arange(int(detik * FS)) / FS
-    x = np.full_like(t, dasar)
+    x = np.full_like(t, baseline)
     for tb in np.arange(phase, detik, 1.0):
         x += 1500 * np.exp(-0.5 * ((t - tb) / 0.012) ** 2)
     return x.astype(int)
@@ -25,9 +25,9 @@ def test_rr_does_not_cross_pause(tmp_path):
     segmen, fs, _ = muat(str(berkas))
     assert fs == FS and [len(s) for s in segmen] == [len(s1), len(s2)]
 
-    hasil = [analyze_segment(s, fs) for s in segmen]
-    r, rr, *_ = combine(hasil, fs)
-    assert all(len(h["r"]) > 10 for h in hasil)
+    analyses = [analyze_segment(s, fs) for s in segmen]
+    r, rr, *_ = combine(analyses, fs)
+    assert all(len(h["r"]) > 10 for h in analyses)
     assert len(rr) == len(r) - 2
     assert np.all(np.abs(rr - 1.0) < 0.05)
 

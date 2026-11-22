@@ -15,16 +15,16 @@ class Board:
         self.s.port, self.s.baudrate, self.s.timeout = port, 115200, 0.1
         self.s.dtr = self.s.rts = False
         self.s.open()
-        batas = time.time() + 20
-        while self.status()["rekam"] is None and time.time() < batas:
+        deadline = time.time() + 20
+        while self.status()["rekam"] is None and time.time() < deadline:
             time.sleep(1.0)
 
-    def kirim(self, perintah, tunggu=1.0, until=None):
+    def kirim(self, perintah, wait_s=1.0, until=None):
         self.s.reset_input_buffer()
         self.s.write(perintah.encode())
         self.s.flush()
-        sisa, baris, batas = b"", [], time.time() + tunggu
-        while time.time() < batas:
+        sisa, baris, deadline = b"", [], time.time() + wait_s
+        while time.time() < deadline:
             sisa += self.s.read(self.s.in_waiting or 1)
             *lengkap, sisa = sisa.split(b"\n")
             baris += [t for t in (x.decode(errors="replace").rstrip() for x in lengkap) if t]
@@ -47,10 +47,10 @@ def ada(baris, pola):
 
 
 def periksa(nama, conditions):
-    gagal = [k for k, ok in conditions if not ok]
-    hasil.append(not gagal)
-    print(f"{'PASS' if not gagal else 'FAIL'}  {nama}")
-    for k in gagal:
+    failed = [k for k, ok in conditions if not ok]
+    hasil.append(not failed)
+    print(f"{'PASS' if not failed else 'FAIL'}  {nama}")
+    for k in failed:
         print(f"         x {k}")
 
 
@@ -69,7 +69,7 @@ def main():
         b.kirim("y\n", 2.0)
     skip_before = b.status()["lewati"]
     lost_during_recording = []
-    nomor = None
+    file_number = None
     try:
         o = b.kirim("r", 1.0) + b.kirim("T2", 1.5)
         st = b.status(); lost_during_recording.append(st["hilang"])
@@ -108,17 +108,17 @@ def main():
         o = b.kirim("T3", 20.0, r"^SIMPAN|GAGAL")
         save_item = next((x for x in o if x.startswith("SIMPAN")), "")
         m = re.search(r"/rekam/(\d+)\.csv", save_item)
-        nomor = int(m.group(1)) if m else None
-        daftar = b.kirim("l", 2.0)
-        isi = b.kirim(f"d{nomor}\n", 30.0, r"---SELESAI---") if nomor else []
-        sampel = [x for x in isi if x.isdigit()]
-        hdr = next((x for x in isi if x.startswith("# fs=")), "")
+        file_number = int(m.group(1)) if m else None
+        listing = b.kirim("l", 2.0)
+        lines = b.kirim(f"d{file_number}\n", 30.0, r"---SELESAI---") if file_number else []
+        sampel = [x for x in lines if x.isdigit()]
+        hdr = next((x for x in lines if x.startswith("# fs=")), "")
         n_hdr = int((re.search(r" n=(\d+)", hdr) or [0, -1])[1])
         st = b.status()
         periksa("f. pause/resume -> T3 save", [
-            (f"SIMPAN to /rekam/NNN.csv: {save_item!r}", nomor is not None),
-            ("file listed by 'l'", nomor is not None and ada(daftar, rf"^\s+{nomor}\s+\d+ B\s+# fs=")),
-            ("file contains '# jeda'", "# jeda" in isi),
+            (f"SIMPAN to /rekam/NNN.csv: {save_item!r}", file_number is not None),
+            ("file listed by 'l'", file_number is not None and ada(listing, rf"^\s+{file_number}\s+\d+ B\s+# fs=")),
+            ("file contains '# jeda'", "# jeda" in lines),
             (f"sample count = header n ({len(sampel)} vs {n_hdr})", len(sampel) == n_hdr > 0),
             ("header lewat=0", "lewat=0 " in hdr),
             (f"0 samples lost during recording {lost_during_recording}", all(h == 0 for h in lost_during_recording)),
@@ -155,10 +155,10 @@ def main():
         if st["rekam"] == "1":
             o = b.kirim("r", 20.0, r"^SIMPAN|GAGAL")
             m = re.search(r"/rekam/(\d+)\.csv", " ".join(o))
-            if m and nomor is None:
-                nomor = int(m.group(1))
-        if nomor:
-            b.kirim(f"h{nomor}\n", 1.5)
+            if m and file_number is None:
+                file_number = int(m.group(1))
+        if file_number:
+            b.kirim(f"h{file_number}\n", 1.5)
         if b.status()["sumber"] != "adc":
             b.kirim("y\n", 2.0)
         print(f"end: {b.status()}")

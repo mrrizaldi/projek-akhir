@@ -21,14 +21,14 @@ STYLE = (
 
 
 def find_files():
-    hasil = []
+    paths = []
     for folder, subfolder, berkas in os.walk(REPO_ROOT):
         subfolder[:] = [d for d in subfolder if d not in SKIPPED_DIRS]
         for nama in berkas:
             jalur = Path(folder, nama)
             if jalur.suffix.lower() in EXTENSIONS:
-                hasil.append(jalur.relative_to(REPO_ROOT))
-    return hasil
+                paths.append(jalur.relative_to(REPO_ROOT))
+    return paths
 
 
 def waktu(rel):
@@ -83,24 +83,24 @@ def index_page():
     for rel in find_files():
         folder_groups.setdefault(rel.parent.as_posix(), []).append(rel)
     urutan = sorted(folder_groups.items(), key=lambda kv: max(map(waktu, kv[1])), reverse=True)
-    bagian = []
-    for folder, daftar in urutan:
+    sections = []
+    for folder, entries in urutan:
         baris = "".join(
             f'<li><a href="/{quote(r.as_posix())}">{html.escape(r.name)}</a>'
             f'<small>{time.strftime("%d %b %Y %H:%M", time.localtime(waktu(r)))}</small></li>'
-            for r in sorted(daftar, key=waktu, reverse=True)
+            for r in sorted(entries, key=waktu, reverse=True)
         )
-        bagian.append(f"<h2>{html.escape(folder)}{diff_link(folder)}</h2><ul>{baris}</ul>")
+        sections.append(f"<h2>{html.escape(folder)}{diff_link(folder)}</h2><ul>{baris}</ul>")
     return (
         '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">'
         f'<base target="_blank"><title>PA files</title><style>{STYLE}</style>'
-        f"<h1>PA files</h1>{''.join(bagian)}"
+        f"<h1>PA files</h1>{''.join(sections)}"
     )
 
 
 class PageHandler(SimpleHTTPRequestHandler):
-    def send_html(self, isi):
-        data = isi.encode()
+    def send_html(self, page_html):
+        data = page_html.encode()
         self.send_response(200)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Content-Length", str(len(data)))
@@ -112,10 +112,10 @@ class PageHandler(SimpleHTTPRequestHandler):
         if alamat.path == "/":
             return self.send_html(index_page())
         if alamat.path == "/banding":
-            isi = compare_page(alamat.query)
-            if isi is None:
+            page_html = compare_page(alamat.query)
+            if page_html is None:
                 return self.send_error(404)
-            return self.send_html(isi)
+            return self.send_html(page_html)
         return super().do_GET()
 
 

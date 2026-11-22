@@ -19,8 +19,8 @@ MIN_COMPLEXES = 2
 OUTPUT_FOLDER = os.path.join(METRICS_DIR, "kualitas")
 
 
-def template_correlation(sinyal, r, lebar):
-    setengah = lebar // 2
+def template_correlation(sinyal, r, width):
+    setengah = width // 2
     r = r[(r - setengah >= 0) & (r + setengah < len(sinyal))]
     if len(r) < MIN_COMPLEXES:
         return 0.0
@@ -46,14 +46,14 @@ def window_scores(sinyal, r, fs):
 
 def recording_windows(segmen, fs):
     n = SQI_WINDOW_S * fs
-    hasil = []
-    for mentah in segmen:
-        h = analyze_segment(mentah, fs)
+    scores = []
+    for raw in segmen:
+        h = analyze_segment(raw, fs)
         r = r_peaks(h)
-        for mulai in range(0, len(mentah) - n + 1, n):
+        for mulai in range(0, len(raw) - n + 1, n):
             inside = r[(r >= mulai) & (r < mulai + n)] - mulai
-            hasil.append(window_scores(h["filtered"][mulai:mulai + n], inside, fs))
-    return hasil
+            scores.append(window_scores(h["filtered"][mulai:mulai + n], inside, fs))
+    return scores
 
 
 def main() -> None:
@@ -61,16 +61,16 @@ def main() -> None:
     print(f"{'recording':<28} {'windows':>7} {'rules':>8} {'all':>8} {'correlation med/min':>19}")
     for path in sys.argv[1:]:
         segmen, fs, _ = muat(path)
-        hasil = recording_windows(segmen, fs)
+        scores = recording_windows(segmen, fs)
         nama = os.path.splitext(os.path.basename(path))[0]
-        korelasi = [j["korelasi"] for j in hasil]
-        percent_rules = 100 * np.mean([j["lolos_aturan"] for j in hasil])
-        percent_pass = 100 * np.mean([j["lolos"] for j in hasil])
-        print(f"{nama:<28} {len(hasil):>7} {percent_rules:>7.1f}% {percent_pass:>7.1f}% "
+        korelasi = [j["korelasi"] for j in scores]
+        percent_rules = 100 * np.mean([j["lolos_aturan"] for j in scores])
+        percent_pass = 100 * np.mean([j["lolos"] for j in scores])
+        print(f"{nama:<28} {len(scores):>7} {percent_rules:>7.1f}% {percent_pass:>7.1f}% "
               f"{np.median(korelasi):>8.3f} / {min(korelasi):.3f}")
         with open(os.path.join(OUTPUT_FOLDER, f"jendela10s_{nama}.csv"), "w") as f:
             f.write("jendela,hr_bpm,jeda_rr_maks_s,rasio_rr,korelasi,lolos_aturan,lolos\n")
-            for i, j in enumerate(hasil):
+            for i, j in enumerate(scores):
                 f.write(f"{i},{j['hr']:.1f},{j['jeda_maks']:.3f},{j['rasio']:.3f},"
                         f"{j['korelasi']:.4f},{int(j['lolos_aturan'])},{int(j['lolos'])}\n")
 

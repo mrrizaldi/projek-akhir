@@ -86,7 +86,7 @@ def split_train_val(data: dict, val_records=VAL_RECORDS):
 
 def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
     assert_split_valid()
-    bagian = [stack_records([str(r) for r in DS1], per_record_dir, "mitdb")]
+    train_parts = [stack_records([str(r) for r in DS1], per_record_dir, "mitdb")]
     hasil = {"ds2": stack_records([str(r) for r in DS2], per_record_dir, "mitdb")}
 
     for db in DATASETS:
@@ -106,10 +106,10 @@ def build_split_multi(per_record_dir: str = PER_RECORD_DIR) -> dict:
             )
         train_records, uji = split_train_test(tersedia)
         if db in TRAIN_DATABASES:
-            bagian.append(stack_records(train_records, per_record_dir, db))
+            train_parts.append(stack_records(train_records, per_record_dir, db))
         hasil[f"{db}_test"] = stack_records(uji, per_record_dir, db)
 
-    hasil["train"] = {k: np.concatenate([b[k] for b in bagian]) for k in bagian[0]}
+    hasil["train"] = {k: np.concatenate([b[k] for b in train_parts]) for k in train_parts[0]}
 
     semua = {nama: set(np.unique(d["records"])) for nama, d in hasil.items()}
     for nama, rec in semua.items():
