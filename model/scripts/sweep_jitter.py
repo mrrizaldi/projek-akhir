@@ -62,19 +62,19 @@ def ukur(model, cache, model_jitter, delta, seed) -> dict:
     prob = model.predict([X_morph, X_rr], verbose=0, batch_size=4096).ravel()
     pred = (prob >= THRESHOLD).astype(int)
     m = binary_metrics(confusion_counts(y, pred))
-    baris = {"model_jitter": model_jitter or "anotasi", "delta": delta, "seed": seed,
+    row = {"model_jitter": model_jitter or "anotasi", "delta": delta, "seed": seed,
              "n": len(y), **m, "auc": roc_auc(y, prob)}
     for k in ("S", "V", "F"):
         sel = aami == k
-        baris[f"recall_{k}"] = float(pred[sel].mean()) if sel.any() else float("nan")
-    return baris
+        row[f"recall_{k}"] = float(pred[sel].mean()) if sel.any() else float("nan")
+    return row
 
 
 def plot(rows: list, out_path: str) -> None:
     ser = [r for r in rows if r["model_jitter"] == "seragam"]
     emp = [r for r in rows if r["model_jitter"] == "empiris"]
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.2))
-    for ax, key, judul in zip(axes, ("recall", "precision", "f1"),
+    for ax, key, title in zip(axes, ("recall", "precision", "f1"),
                               ("Recall Aritmia", "Precision", "F1")):
         mean = [np.mean([r[key] for r in ser if r["delta"] == d]) for d in DELTA]
         lo = [np.min([r[key] for r in ser if r["delta"] == d]) for d in DELTA]
@@ -86,7 +86,7 @@ def plot(rows: list, out_path: str) -> None:
             ax.axhline(e, color="#c0392b", ls="--",
                        label=f"jitter empiris (detektor kita) {e:.3f}")
         ax.set_xlabel("δ (sampel)")
-        ax.set_title(judul)
+        ax.set_title(title)
         ax.grid(alpha=0.3)
         ax.legend(fontsize=8)
     fig.suptitle("Ketahanan terhadap error segmentasi di DS2 — model dilatih tanpa jitter")
@@ -124,13 +124,13 @@ def main() -> None:
         rows.append(ukur(model, cache, "empiris", 0, seed))
         emit(rows[-1])
 
-    kolom = list(rows[0])
+    columns = list(rows[0])
     out = os.path.join(OUT_DIR, f"sweep_jitter_{args.tag}.csv")
     with open(out, "w") as f:
-        f.write(",".join(kolom) + "\n")
+        f.write(",".join(columns) + "\n")
         for r in rows:
             f.write(",".join(f"{r[k]:.6f}" if isinstance(r[k], float) else str(r[k])
-                             for k in kolom) + "\n")
+                             for k in columns) + "\n")
     plot(rows, os.path.join(OUT_DIR, f"sweep_jitter_{args.tag}.png"))
     print(f"\n{out}")
 

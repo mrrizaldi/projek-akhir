@@ -27,13 +27,13 @@ def run_lengths(mask: np.ndarray, records: np.ndarray) -> np.ndarray:
     return np.array(fp_run_lengths, dtype=int)
 
 
-def summarize_runs(nama: str, mask: np.ndarray, records: np.ndarray) -> None:
+def summarize_runs(label: str, mask: np.ndarray, records: np.ndarray) -> None:
     R = run_lengths(mask, records)
     n = int(R.sum())
     if n == 0:
-        print(f"{nama:<18} none")
+        print(f"{label:<18} none")
         return
-    print(f"{nama:<18} {n:>5} beats  {len(R):>5} runs  "
+    print(f"{label:<18} {n:>5} beats  {len(R):>5} runs  "
           f"single {100 * R[R == 1].sum() / n:5.1f}%  "
           f"run>=3 {100 * R[R >= 3].sum() / n:5.1f}%  longest {R.max()}")
 

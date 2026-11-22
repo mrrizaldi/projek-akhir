@@ -8,10 +8,10 @@ def stratified_indices(y, n: int = REP_SAMPLES, seed: int = SEED) -> np.ndarray:
     y = np.asarray(y).astype(int)
     rng = np.random.default_rng(seed)
     idx = []
-    for kelas in (0, 1):
-        pool = np.flatnonzero(y == kelas)
+    for label in (0, 1):
+        pool = np.flatnonzero(y == label)
         if len(pool) == 0:
-            raise ValueError(f"class {kelas} is missing from the calibration data (PITFALL #4)")
+            raise ValueError(f"class {label} is missing from the calibration data (PITFALL #4)")
         pull = max(1, round(n * len(pool) / len(y)))
         idx.append(rng.choice(pool, size=min(pull, len(pool)), replace=False))
     return np.sort(np.concatenate(idx))

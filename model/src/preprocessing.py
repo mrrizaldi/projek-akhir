@@ -114,15 +114,15 @@ def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
 
     if model == "empiris":
         jitter_pool = np.load(RESIDUAL_DS1)
-        geser = rng.choice(jitter_pool, size=len(r)).astype(np.int64)
+        shift = rng.choice(jitter_pool, size=len(r)).astype(np.int64)
     elif model == "seragam":
-        geser = rng.integers(-delta, delta + 1, size=len(r))
+        shift = rng.integers(-delta, delta + 1, size=len(r))
     elif model == "normal":
-        geser = np.rint(rng.normal(0.0, float(delta), size=len(r))).astype(np.int64)
+        shift = np.rint(rng.normal(0.0, float(delta), size=len(r))).astype(np.int64)
     else:
         raise ValueError(f"unknown jitter model: {model}")
 
-    return np.maximum.accumulate(r + geser)
+    return np.maximum.accumulate(r + shift)
 
 
 def resample_to_fs(signal: np.ndarray, r_locations: np.ndarray,

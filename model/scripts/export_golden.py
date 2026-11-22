@@ -39,10 +39,10 @@ H_PREPROC = os.path.join(ROOT, "firmware", "include", "ecg_preproc.h")
 H_GOLDEN = os.path.join(ROOT, "firmware", "test", "golden_ref.h")
 
 
-def _c_array(nama: str, data, per_row: int = 6, fmt: str = "%.8ef") -> str:
+def _c_array(array_name: str, data, per_row: int = 6, fmt: str = "%.8ef") -> str:
     cells = [fmt % v for v in np.asarray(data).ravel()]
-    baris = [", ".join(cells[i:i + per_row]) for i in range(0, len(cells), per_row)]
-    return f"const float {nama}[{len(cells)}] = {{\n  " + ",\n  ".join(baris) + "\n};\n"
+    rows = [", ".join(cells[i:i + per_row]) for i in range(0, len(cells), per_row)]
+    return f"const float {array_name}[{len(cells)}] = {{\n  " + ",\n  ".join(rows) + "\n};\n"
 
 
 def main() -> None:
@@ -56,15 +56,15 @@ def main() -> None:
         "filter is not causal: the test vector cannot stand alone"
 
     idx = valid_beat_indices(len(sig), r)
-    dipakai = [i for i in idx if r[i] - WIN_PRE >= 0 and r[i] + WIN_POST <= N_SAMPLES]
-    if not dipakai:
+    used = [i for i in idx if r[i] - WIN_PRE >= 0 and r[i] + WIN_POST <= N_SAMPLES]
+    if not used:
         raise ValueError("no beat fits in the excerpt")
 
-    windows = zscore_per_window(segment_beats(filtered, r[dipakai]))
-    label = [to_binary_label(to_aami_class(sym[i])) for i in dipakai]
+    windows = zscore_per_window(segment_beats(filtered, r[used]))
+    label = [to_binary_label(to_aami_class(sym[i])) for i in used]
 
-    r_excerpt = np.asarray(r)[dipakai]
-    rr = assemble_rhythm_features(r_excerpt, windows, np.arange(len(dipakai)))
+    r_excerpt = np.asarray(r)[used]
+    rr = assemble_rhythm_features(r_excerpt, windows, np.arange(len(used)))
     clean_rr = np.nan_to_num(rr, nan=0.0)
 
     keras = tf.keras.models.load_model(os.path.join(ARTIFACT_DIR, "model_fp32.keras"))
@@ -80,7 +80,7 @@ def main() -> None:
     sos_pt = butter(PT_BAND_ORDER, [PT_BAND_LOW, PT_BAND_HIGH],
                     btype="bandpass", fs=FS, output="sos")
     mwi_len = max(1, round(PT_MWI_WINDOW_MS / 1000 * FS))
-    refraktori = max(1, round(PT_REFRACTORY_MS / 1000 * FS))
+    refractory_samples = max(1, round(PT_REFRACTORY_MS / 1000 * FS))
     n_sos_pt = len(sos_pt)
     pt_sos_array = _c_array("ecg_pt_sos", sos_pt, 6)
     r_detected = pan_tompkins_detect(filtered, FS)
@@ -108,7 +108,7 @@ def main() -> None:
 #define ECG_QRSW_SEARCH {QRSW_SEARCH}
 
 #define ECG_PT_MWI_LEN {mwi_len}
-#define ECG_PT_REFRACTORY {refraktori}
+#define ECG_PT_REFRACTORY {refractory_samples}
 #define ECG_PT_N_SOS {n_sos_pt}
 {pt_sos_array}
 #define ECG_PT_OFFSET {PT_DETECTOR_OFFSET}
@@ -128,7 +128,7 @@ def main() -> None:
 #define GOLDEN_REF_H
 
 #define GOLDEN_N {N_SAMPLES}
-#define GOLDEN_N_BEAT {len(dipakai)}
+#define GOLDEN_N_BEAT {len(used)}
 #define GOLDEN_WIN_LEN {WIN_LEN}
 #define GOLDEN_N_RR {N_RR_FEATURES}
 #define GOLDEN_THRESHOLD {THRESHOLD}f
@@ -141,8 +141,8 @@ def main() -> None:
 
 {_c_array("golden_raw", excerpts)}
 {_c_array("golden_filtered", filtered)}
-const int golden_r[GOLDEN_N_BEAT] = {{{", ".join(str(int(r[i])) for i in dipakai)}}};
-const char *golden_sym[GOLDEN_N_BEAT] = {{{", ".join(f'"{sym[i]}"' for i in dipakai)}}};
+const int golden_r[GOLDEN_N_BEAT] = {{{", ".join(str(int(r[i])) for i in used)}}};
+const char *golden_sym[GOLDEN_N_BEAT] = {{{", ".join(f'"{sym[i]}"' for i in used)}}};
 const int golden_label[GOLDEN_N_BEAT] = {{{", ".join(str(v) for v in label)}}};
 
 {_c_array("golden_window", windows)}
@@ -156,9 +156,9 @@ const int golden_r_detection[GOLDEN_N_DETECTION] = {{{detection_content}}};
 """)
 
     print(f"Pan-Tompkins over the excerpt: {len(r_detected)} R-peak -> {list(map(int, r_detected))}")
-    print(f"record {RECORD}, {N_SAMPLES} samples, {len(dipakai)} beats: "
-          f"{', '.join(sym[i] for i in dipakai)}")
-    for n, (i, pf, pi) in enumerate(zip(dipakai, p_fp32, p_int8)):
+    print(f"record {RECORD}, {N_SAMPLES} samples, {len(used)} beats: "
+          f"{', '.join(sym[i] for i in used)}")
+    for n, (i, pf, pi) in enumerate(zip(used, p_fp32, p_int8)):
         print(f"  beat {n}  r={int(r[i]):>5}  {sym[i]}  label={label[n]}  "
               f"fp32 {pf:.4f}  int8 {pi:.4f}")
     for path in (H_PREPROC, H_GOLDEN):

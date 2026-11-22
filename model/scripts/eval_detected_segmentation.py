@@ -23,9 +23,9 @@ from src.preprocessing import (
 TOLERANCE_WINDOW_MS = 150
 
 
-def refine_peaks(r_kasar, filtered):
+def refine_peaks(r_coarse, filtered):
     refined = []
-    for lo in r_kasar:
+    for lo in r_coarse:
         a = max(0, lo - PT_REFINE_WIN)
         b = lo + PT_REFINE_WIN + 1
         refined.append(a + int(np.argmax(filtered[a:b])))
@@ -33,22 +33,22 @@ def refine_peaks(r_kasar, filtered):
 
 
 def deteksi(record_id: str, sos):
-    signal, r_annotated, simbol, _ = load_record(record_id)
+    signal, r_annotated, symbols, _ = load_record(record_id)
     filtered = apply_bandpass(signal, sos)
-    return signal, filtered, r_annotated, simbol, pan_tompkins_detect(filtered, FS)
+    return signal, filtered, r_annotated, symbols, pan_tompkins_detect(filtered, FS)
 
 
 def calibrate_offset(sos, tolerance: int) -> int:
-    selisih = []
+    offsets = []
     for rec in DS1:
         try:
-            _, _, r_anot, _, r_det = deteksi(str(rec), sos)
+            _, _, r_ref, _, r_det = deteksi(str(rec), sos)
         except ValueError:
             continue
-        pasangan = pair_detected(r_det, r_anot, tolerance)
-        cocok = pasangan >= 0
-        selisih.extend((r_det[cocok] - r_anot[pasangan[cocok]]).tolist())
-    return int(np.median(selisih)), len(selisih)
+        pairing = pair_detected(r_det, r_ref, tolerance)
+        matched = pairing >= 0
+        offsets.extend((r_det[matched] - r_ref[pairing[matched]]).tolist())
+    return int(np.median(offsets)), len(offsets)
 
 
 def main() -> None:
@@ -68,43 +68,43 @@ def main() -> None:
     tot = {}
 
     for rec in DS2:
-        signal, filtered, r_anot, simbol, r_det = deteksi(str(rec), sos)
-        label_anot = np.array([to_binary_label(to_aami_class(s)) for s in simbol])
-        n_arrhythmia_total += int(label_anot.sum())
+        signal, filtered, r_ref, symbols, r_det = deteksi(str(rec), sos)
+        annotated_labels = np.array([to_binary_label(to_aami_class(s)) for s in symbols])
+        n_arrhythmia_total += int(annotated_labels.sum())
 
         r_used = refine_peaks(r_det - offset, filtered)
-        pasangan = pair_detected(r_det, r_anot, tolerance)
+        pairing = pair_detected(r_det, r_ref, tolerance)
 
-        det_tp += int((pasangan >= 0).sum())
-        det_fn += len(r_anot) - int((pasangan >= 0).sum())
+        det_tp += int((pairing >= 0).sum())
+        det_fn += len(r_ref) - int((pairing >= 0).sum())
 
-        terdeteksi = np.zeros(len(r_anot), dtype=bool)
-        terdeteksi[pasangan[pasangan >= 0]] = True
-        for symbol_short, ok in zip(simbol, terdeteksi):
-            kelas = to_aami_class(symbol_short)
-            tot[kelas] = tot.get(kelas, 0) + 1
-            hit[kelas] = hit.get(kelas, 0) + int(ok)
+        detected = np.zeros(len(r_ref), dtype=bool)
+        detected[pairing[pairing >= 0]] = True
+        for symbol_short, ok in zip(symbols, detected):
+            aami_class = to_aami_class(symbol_short)
+            tot[aami_class] = tot.get(aami_class, 0) + 1
+            hit[aami_class] = hit.get(aami_class, 0) + int(ok)
 
         i = np.arange(len(r_used))
-        muat = (r_used - WIN_PRE >= 0) & (r_used + WIN_POST <= len(signal))
-        idx = i[muat & (i >= 2)]
+        fits = (r_used - WIN_PRE >= 0) & (r_used + WIN_POST <= len(signal))
+        idx = i[fits & (i >= 2)]
         if len(idx) == 0:
             continue
 
         windows = zscore_per_window(segment_beats(filtered, r_used[idx]))
         rr = compute_rr_features(r_used)[idx]
-        pas = pasangan[idx]
+        pas = pairing[idx]
 
-        cocok = pas >= 0
-        n_detected += int(cocok.sum())
-        n_palsu += int((~cocok).sum())
+        matched = pas >= 0
+        n_detected += int(matched.sum())
+        n_palsu += int((~matched).sum())
 
-        W.append(windows[cocok])
-        R.append(rr[cocok])
-        Y.append(label_anot[pas[cocok]])
-        if (~cocok).any():
+        W.append(windows[matched])
+        R.append(rr[matched])
+        Y.append(annotated_labels[pas[matched]])
+        if (~matched).any():
             false_prob.append(model.predict(
-                [windows[~cocok].reshape(-1, WIN_LEN, 1), rr[~cocok]], verbose=0).ravel())
+                [windows[~matched].reshape(-1, WIN_LEN, 1), rr[~matched]], verbose=0).ravel())
 
     X_morph = np.concatenate(W).reshape(-1, WIN_LEN, 1)
     X_rr = np.concatenate(R)

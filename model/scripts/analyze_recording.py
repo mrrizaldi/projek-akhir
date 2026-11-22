@@ -26,9 +26,9 @@ def autocorrelation_pulse(x, fs):
     lo, hi = int(0.4 * fs), int(1.5 * fs)
     lag = lo + int(np.argmax(ac[lo:hi]))
 
-    puncak = [ac[i] for i in range(lo + 1, hi - 1)
+    peaks = [ac[i] for i in range(lo + 1, hi - 1)
               if ac[i] > ac[i - 1] and ac[i] >= ac[i + 1]]
-    rival_peaks = sum(1 for v in puncak if v >= 0.8 * ac[lag])
+    rival_peaks = sum(1 for v in peaks if v >= 0.8 * ac[lag])
     return float(ac[lag]), 60.0 * fs / lag, rival_peaks
 
 
@@ -39,8 +39,8 @@ CLIPPING_PERCENT_THRESHOLD = 0.1
 
 def compute_clipping(mentah):
     n_clip = int((mentah >= ADC_UPPER).sum() + (mentah <= ADC_LOWER).sum())
-    persen = 100.0 * n_clip / len(mentah)
-    return n_clip, persen, persen <= CLIPPING_PERCENT_THRESHOLD
+    percent = 100.0 * n_clip / len(mentah)
+    return n_clip, percent, percent <= CLIPPING_PERCENT_THRESHOLD
 
 
 def pulse_per_window(x, fs):
@@ -55,23 +55,23 @@ def pulse_per_window(x, fs):
 def muat(path: str):
     fs, lewat = FS, None
     segmen = [[]]
-    for baris in open(path):
-        baris = baris.strip()
-        if not baris:
+    for line in open(path):
+        line = line.strip()
+        if not line:
             continue
-        if baris.startswith("#"):
-            kata = baris.lstrip("# ").split()
-            if kata and kata[0] == "jeda":
+        if line.startswith("#"):
+            words = line.lstrip("# ").split()
+            if words and words[0] == "jeda":
                 segmen.append([])
                 continue
-            for token in kata:
+            for token in words:
                 k, _, v = token.partition("=")
                 if k == "fs":
                     fs = int(v)
                 elif k == "lewat":
                     lewat = int(v)
             continue
-        segmen[-1].append(int(baris))
+        segmen[-1].append(int(line))
     return [np.asarray(v, dtype=np.float32) for v in segmen if v], fs, lewat
 
 
@@ -95,8 +95,8 @@ def analyze_segment(mentah, fs):
 
 
 def combine(analyses, fs):
-    awal = np.cumsum([0] + [h["n"] for h in analyses])
-    r = np.concatenate([h["r"] + a for h, a in zip(analyses, awal)]).astype(int)
+    offsets = np.cumsum([0] + [h["n"] for h in analyses])
+    r = np.concatenate([h["r"] + a for h, a in zip(analyses, offsets)]).astype(int)
     rr = np.concatenate([h["rr"] for h in analyses])
     ecg_band, hum, hf, drift = np.sum([h["pita"] for h in analyses], axis=0)
     ac = [(h["n"], h["ac"]) for h in analyses if h["ac"] is not None]
@@ -109,13 +109,13 @@ def combine(analyses, fs):
         rival_peaks = int(round(rival_peaks))
     else:
         strength, bpm_ac, rival_peaks = 0.0, 0.0, 0
-    return r, rr, (ecg_band, hum, hf, drift), (float(strength), float(bpm_ac), rival_peaks), awal
+    return r, rr, (ecg_band, hum, hf, drift), (float(strength), float(bpm_ac), rival_peaks), offsets
 
 
 def main() -> None:
     path = sys.argv[1]
-    nama = sys.argv[2] if len(sys.argv) > 2 else "device"
-    judul = sys.argv[3] if len(sys.argv) > 3 else nama
+    name = sys.argv[2] if len(sys.argv) > 2 else "device"
+    title = sys.argv[3] if len(sys.argv) > 3 else name
     segmen, fs, lewat = muat(path)
     mentah = np.concatenate(segmen)
     n = len(mentah)
@@ -124,11 +124,11 @@ def main() -> None:
     analyses = [analyze_segment(m, fs) for m in segmen]
     x = np.concatenate([h["x"] for h in analyses])
     filtered = np.concatenate([h["filtered"] for h in analyses])
-    r, rr, (ecg_band, hum, hf, drift), (strength, bpm_ac, rival_peaks), awal = combine(analyses, fs)
+    r, rr, (ecg_band, hum, hf, drift), (strength, bpm_ac, rival_peaks), offsets = combine(analyses, fs)
     bpm = 60 / rr if len(rr) else np.array([])
     plausible_fraction = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 
-    print(f"{nama}: {n} samples = {n / fs:.1f} seconds @ {fs} Hz"
+    print(f"{name}: {n} samples = {n / fs:.1f} seconds @ {fs} Hz"
           + (f", {lewat} samples missed" if lewat is not None else "")
           + (f", {len(segmen)} segments (split by pauses)" if len(segmen) > 1 else ""))
     if len(segmen) > 1:
@@ -147,14 +147,14 @@ def main() -> None:
           f"{'OK' if hf / ecg_band < 0.5 else 'TOO LARGE'}")
     print(f"  drift <0.5Hz {100 * drift / ecg_band:6.1f}% of ECG band")
     if strength <= 0.25:
-        vonis = "NO clear pulse"
+        verdict = "NO clear pulse"
     elif rival_peaks > 2:
-        vonis = f"FALSE: {rival_peaks} equal peaks (periodic interference, not a pulse)"
+        verdict = f"FALSE: {rival_peaks} equal peaks (periodic interference, not a pulse)"
     else:
-        vonis = "pulse PRESENT"
+        verdict = "pulse PRESENT"
     windowed = any(h["n"] >= 2 * AUTOCORRELATION_WINDOW_S * fs for h in analyses)
     method_note = f" (median per {AUTOCORRELATION_WINDOW_S} s)" if windowed else ""
-    print(f"  pulse        autocorrelation {strength:.2f} @ {bpm_ac:.0f} bpm{method_note}   {vonis}")
+    print(f"  pulse        autocorrelation {strength:.2f} @ {bpm_ac:.0f} bpm{method_note}   {verdict}")
     print(f"  R-peak       {len(r)} in {n / fs:.1f} seconds")
     if len(bpm):
         print(f"  BPM          mean {bpm.mean():.0f}  min {bpm.min():.0f}  max {bpm.max():.0f}"
@@ -163,14 +163,14 @@ def main() -> None:
 
     acquisition_dir = os.path.join(METRICS_DIR, "akuisisi")
     os.makedirs(acquisition_dir, exist_ok=True)
-    out = os.path.join(acquisition_dir, f"akuisisi_{nama}.png")
+    out = os.path.join(acquisition_dir, f"akuisisi_{name}.png")
     t = np.arange(n) / fs
     shown = slice(0, min(n, int(6 * fs)))
-    boundaries = awal[1:-1] / fs
+    boundaries = offsets[1:-1] / fs
     fig, ax = plt.subplots(3 + (len(segmen) > 1), 1,
                            figsize=(13, 8 + 2.7 * (len(segmen) > 1)))
     ax[0].plot(t[shown], mentah[shown], lw=0.7)
-    ax[0].set_title(f"{judul} — ADC mentah (6 detik pertama)")
+    ax[0].set_title(f"{title} — ADC mentah (6 detik pertama)")
     ax[0].set_ylabel("counts")
     ax[1].plot(t[shown], filtered[shown], lw=0.7, color="tab:green")
     for pos in r[r < shown.stop]:

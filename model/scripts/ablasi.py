@@ -34,19 +34,19 @@ SEED_DS2 = (11, 12, 13)
 
 
 def training_pairs(db_list) -> list:
-    pasangan = [("mitdb", str(r)) for r in DS1]
+    pairs = [("mitdb", str(r)) for r in DS1]
     for db in db_list:
         if db == "mitdb":
             continue
-        tersedia = available_records(db)
+        available = available_records(db)
         n_expected = DATASETS[db]["n_record"]
-        if len(tersedia) != n_expected:
+        if len(available) != n_expected:
             raise ValueError(
-                f"{db}: {len(tersedia)}/{n_expected} records: held-out `[::4]` would "
+                f"{db}: {len(available)}/{n_expected} records: held-out `[::4]` would "
                 f"DIFFER. Finish the download first (see n_record in config.py)."
             )
-        pasangan += [(db, r) for r in split_train_test(tersedia)[0]]
-    return pasangan
+        pairs += [(db, r) for r in split_train_test(available)[0]]
+    return pairs
 
 
 def assemble_ds1(sos, model_jitter: str, delta: int, salinan: int, rng,
@@ -116,8 +116,8 @@ def kalibrasi(model, va: dict) -> float:
     prob = model.predict([va["X_morph"], va["X_rr"]], verbose=0, batch_size=4096).ravel()
     rows = sweep_thresholds(va["y"], prob, np.arange(0.05, 0.96, 0.05))
     f1_max = max(r["f1"] for r in rows)
-    kandidat = [r for r in rows if f1_max - r["f1"] < F1_TIE_MARGIN]
-    return float(max(kandidat, key=lambda r: r["recall"])["threshold"])
+    candidates = [r for r in rows if f1_max - r["f1"] < F1_TIE_MARGIN]
+    return float(max(candidates, key=lambda r: r["recall"])["threshold"])
 
 
 def ukur(model, cache, thr: float, model_jitter, seed: int) -> dict:
@@ -189,39 +189,39 @@ def main() -> None:
     cache = load_ds2(sos)
     clean_metrics = ukur(model, cache, thr, None, 0)
     jittered = [ukur(model, cache, thr, "empiris", s) for s in SEED_DS2]
-    rerata = {k: float(np.mean([m[k] for m in jittered])) for k in clean_metrics}
+    jitter_mean = {k: float(np.mean([m[k] for m in jittered])) for k in clean_metrics}
 
     if args.seed == SEED:
         model.save(os.path.join(ARTIFACT_DIR, f"model_fp32_{args.tag}.keras"))
 
-    baris = {"tag": args.tag, "seed": args.seed,
+    row = {"tag": args.tag, "seed": args.seed,
              "win_pre": WIN_PRE, "win_post": WIN_POST,
              "hos": int(USE_HOS), "jitter": args.jitter, "salinan": args.copies,
              "threshold": thr, "n_train": len(tr["y"]),
              "menit": round((time.time() - t0) / 60, 1)}
-    baris.update({f"anot_{k}": v for k, v in clean_metrics.items()})
-    baris.update({f"jit_{k}": v for k, v in rerata.items()})
+    row.update({f"anot_{k}": v for k, v in clean_metrics.items()})
+    row.update({f"jit_{k}": v for k, v in jitter_mean.items()})
 
     out = os.path.join(OUT_DIR, "ablasi.csv")
     fresh_csv = not os.path.exists(out)
     with open(out, "a") as f:
         if fresh_csv:
-            f.write(",".join(baris) + "\n")
+            f.write(",".join(row) + "\n")
         f.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v)
-                         for v in baris.values()) + "\n")
+                         for v in row.values()) + "\n")
 
     print(f"[{args.tag}] DS2 annotation: recall {clean_metrics['recall']:.4f}  "
           f"prec {clean_metrics['precision']:.4f}  F1 {clean_metrics['f1']:.4f}  AUC {clean_metrics['auc']:.4f}")
-    print(f"[{args.tag}] DS2 jitter     : recall {rerata['recall']:.4f}  "
-          f"prec {rerata['precision']:.4f}  F1 {rerata['f1']:.4f}  AUC {rerata['auc']:.4f}")
+    print(f"[{args.tag}] DS2 jitter     : recall {jitter_mean['recall']:.4f}  "
+          f"prec {jitter_mean['precision']:.4f}  F1 {jitter_mean['f1']:.4f}  AUC {jitter_mean['auc']:.4f}")
     print(out)
 
     if args.cross_db:
         out2 = os.path.join(OUT_DIR, "lintas_db.csv")
-        for db, nama in (("svdb", "TEST-B"), ("incartdb", "TEST-C")):
+        for db, held_out_set in (("svdb", "TEST-B"), ("incartdb", "TEST-C")):
             d = assemble_heldout(sos, db)
             m = measure_arrays(model, d, thr)
-            r = {"tag": args.tag, "seed": args.seed, "db": db, "set": nama,
+            r = {"tag": args.tag, "seed": args.seed, "db": db, "set": held_out_set,
                  "n_beat": len(d["y"]), "n_aritmia": int(d["y"].sum()),
                  "threshold": thr, **m}
             is_new_file = not os.path.exists(out2)
@@ -230,7 +230,7 @@ def main() -> None:
                     f.write(",".join(r) + "\n")
                 f.write(",".join(f"{v:.6f}" if isinstance(v, float) else str(v)
                                  for v in r.values()) + "\n")
-            print(f"[{args.tag}] {nama} {db:<9}: recall {m['recall']:.4f}  "
+            print(f"[{args.tag}] {held_out_set} {db:<9}: recall {m['recall']:.4f}  "
                   f"prec {m['precision']:.4f}  F1 {m['f1']:.4f}  AUC {m['auc']:.4f}  "
                   f"({len(d['y']):,} beats)")
 

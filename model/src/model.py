@@ -50,7 +50,7 @@ def build_deploy_model(trained: Model) -> Model:
         [np.full((time_steps, channels, 1), 1.0 / time_steps, dtype=np.float32)])
 
     dense = [l for l in trained.layers if isinstance(l, layers.Dense)]
-    for l, nama in zip(dense, ("dense_1x1", "arrhythmia")):
+    for l, layer_name in zip(dense, ("dense_1x1", "arrhythmia")):
         w, b = l.get_weights()
-        deploy.get_layer(nama).set_weights([w[np.newaxis, ...], b])
+        deploy.get_layer(layer_name).set_weights([w[np.newaxis, ...], b])
     return deploy

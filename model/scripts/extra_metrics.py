@@ -17,18 +17,18 @@ INT8_PER_RECORD_FILE = "fase7_per_record_int8.csv"
 
 
 def aami_symbols_ds2() -> np.ndarray:
-    simbol = []
+    symbols = []
     for rec in DS2:
         with np.load(os.path.join(PER_RECORD_DIR, f"{rec}.npz")) as z:
-            simbol.append(z["symbols"])
-    return np.array([AAMI_MAP[s] for s in np.concatenate(simbol)])
+            symbols.append(z["symbols"])
+    return np.array([AAMI_MAP[s] for s in np.concatenate(symbols)])
 
 
 def digest(y, prob, records, aami) -> dict:
     metrics = evaluate_probabilities(y, prob, THRESHOLD)
-    prediksi = prob >= THRESHOLD
-    baris = per_record_metrics(y, prob, records, THRESHOLD)
-    recall_recording = [r["recall"] for r in baris if r["n_aritmia"] > 0]
+    predicted = prob >= THRESHOLD
+    per_record = per_record_metrics(y, prob, records, THRESHOLD)
+    recall_recording = [r["recall"] for r in per_record if r["n_aritmia"] > 0]
     summary_metrics = {
         "pr_auc": average_precision(y, prob),
         "prevalensi": float(np.mean(y)),
@@ -39,10 +39,10 @@ def digest(y, prob, records, aami) -> dict:
         "recall_median_rekaman": float(np.median(recall_recording)),
         "n_rekaman_aritmia": len(recall_recording),
     }
-    for kelas in ARRHYTHMIA_CLASSES:
-        members = aami == kelas
-        summary_metrics[f"recall_{kelas}"] = float(prediksi[members].mean())
-        summary_metrics[f"n_{kelas}"] = int(members.sum())
+    for aami_class in ARRHYTHMIA_CLASSES:
+        members = aami == aami_class
+        summary_metrics[f"recall_{aami_class}"] = float(predicted[members].mean())
+        summary_metrics[f"n_{aami_class}"] = int(members.sum())
     return summary_metrics
 
 
@@ -63,25 +63,25 @@ def main() -> None:
 
     fp32 = digest(ds2["y"], prob_fp32, ds2["records"], aami)
     int8 = digest(ds2["y"], prob_int8, ds2["records"], aami)
-    berubah = (prob_fp32 >= THRESHOLD) != (prob_int8 >= THRESHOLD)
+    flipped = (prob_fp32 >= THRESHOLD) != (prob_int8 >= THRESHOLD)
 
     print(f"\n{'Metrik':<24} {'Float32':>10} {'INT8':>10} {'Delta':>10}")
     for k in fp32:
         print(f"{k:<24} {fp32[k]:>10.4f} {int8[k]:>10.4f} {int8[k] - fp32[k]:>+10.4f}")
-    print(f"labels changed float32 -> INT8: {int(berubah.sum())} of {len(berubah)} "
-          f"({100 * berubah.mean():.2f}%)")
+    print(f"labels changed float32 -> INT8: {int(flipped.sum())} of {len(flipped)} "
+          f"({100 * flipped.mean():.2f}%)")
 
     with open(os.path.join(METRICS_DIR, OUTPUT_FILE), "w") as f:
         f.write("metrik,float32,int8,delta\n")
         for k in fp32:
             f.write(f"{k},{fp32[k]:.6f},{int8[k]:.6f},{int8[k] - fp32[k]:+.6f}\n")
-        f.write(f"label_berubah,,{int(berubah.sum())},\n")
+        f.write(f"label_berubah,,{int(flipped.sum())},\n")
         f.write(f"threshold,{THRESHOLD},{THRESHOLD},0\n")
 
-    baris = per_record_metrics(ds2["y"], prob_int8, ds2["records"], THRESHOLD)
+    per_record = per_record_metrics(ds2["y"], prob_int8, ds2["records"], THRESHOLD)
     with open(os.path.join(METRICS_DIR, INT8_PER_RECORD_FILE), "w") as f:
         f.write("record,n_beat,n_aritmia,tp,fn,fp,tn,recall,precision,specificity\n")
-        for r in baris:
+        for r in per_record:
             f.write("%d,%d,%d,%d,%d,%d,%d,%.6f,%.6f,%.6f\n" % (
                 r["record"], r["n_beat"], r["n_aritmia"], r["tp"], r["fn"], r["fp"],
                 r["tn"], r["recall"], r["precision"], r["specificity"]))

@@ -5,15 +5,15 @@ from tensorflow import keras
 from src.train import BestWeightAverage, make_class_weights
 
 
-def _model_satu_bobot():
+def _single_weight_model():
     return keras.Sequential([keras.layers.Input(shape=(1,)),
                              keras.layers.Dense(1, use_bias=False)])
 
 
-def _jalankan(cb, riwayat):
-    m = _model_satu_bobot()
+def _run_epochs(cb, auc_history):
+    m = _single_weight_model()
     cb.set_model(m)
-    for auc, w in riwayat:
+    for auc, w in auc_history:
         m.set_weights([np.array([[w]], dtype=np.float32)])
         cb.on_epoch_end(0, {"val_auc": auc})
     cb.on_train_end()
@@ -45,18 +45,18 @@ def test_empty_class_errors_not_division_by_zero():
 
 
 def test_weight_average_averages_best_n_not_picking_argmax():
-    averaged_weight = _jalankan(BestWeightAverage("val_auc", 3),
+    averaged_weight = _run_epochs(BestWeightAverage("val_auc", 3),
                                 [(0.90, 4.0), (0.80, 50.0), (0.92, 3.0),
                                  (0.50, 99.0), (0.91, 5.0)])
     assert np.isclose(averaged_weight, 4.0)
 
 
 def test_bad_epoch_excluded_from_average():
-    averaged_weight = _jalankan(BestWeightAverage("val_auc", 2),
+    averaged_weight = _run_epochs(BestWeightAverage("val_auc", 2),
                                 [(0.9, 1.0), (0.1, 1000.0), (0.8, 3.0)])
     assert np.isclose(averaged_weight, 2.0)
 
 
 def test_n_larger_than_epoch_count_uses_all():
-    averaged_weight = _jalankan(BestWeightAverage("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
+    averaged_weight = _run_epochs(BestWeightAverage("val_auc", 10), [(0.9, 2.0), (0.8, 4.0)])
     assert np.isclose(averaged_weight, 3.0)

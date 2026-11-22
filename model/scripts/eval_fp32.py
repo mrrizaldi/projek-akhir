@@ -14,7 +14,7 @@ from config import ARTIFACT_DIR, METRICS_DIR, PROCESSED_DIR, THRESHOLD
 from src.evaluate import evaluate_probabilities, per_record_metrics, roc_auc
 
 
-def plot_confusion(counts: dict, out_path: str, judul: str) -> None:
+def plot_confusion(counts: dict, out_path: str, title: str) -> None:
     cm = np.array([[counts["tn"], counts["fp"]], [counts["fn"], counts["tp"]]])
     fig, ax = plt.subplots(figsize=(5, 4.5))
     ax.imshow(cm, cmap="Blues")
@@ -25,7 +25,7 @@ def plot_confusion(counts: dict, out_path: str, judul: str) -> None:
                     color="white" if cm[i, j] > cm.max() / 2 else "black", fontsize=13)
     ax.set_xticks([0, 1], ["pred Normal", "pred Aritmia"])
     ax.set_yticks([0, 1], ["asli Normal", "asli Aritmia"])
-    ax.set_title(judul)
+    ax.set_title(title)
     fig.tight_layout()
     fig.savefig(out_path, dpi=120)
     plt.close(fig)
@@ -70,13 +70,13 @@ def main() -> None:
                 r["record"], r["n_beat"], r["n_aritmia"], r["tp"], r["fn"], r["fp"],
                 r["tn"], r["recall"], r["precision"], r["specificity"]))
 
-    ada = [r for r in rows if r["n_aritmia"] > 0]
-    terburuk = sorted(ada, key=lambda r: r["recall"])[:4]
+    with_arrhythmia = [r for r in rows if r["n_aritmia"] > 0]
+    worst = sorted(with_arrhythmia, key=lambda r: r["recall"])[:4]
     print("\nrecall per patient (4 worst with arrhythmia):")
-    for r in terburuk:
+    for r in worst:
         print(f"  rec {r['record']}  {r['n_aritmia']:>5} arrhythmia  recall {r['recall']:.4f}")
-    print(f"  median recall {np.median([r['recall'] for r in ada]):.4f} "
-          f"over {len(ada)} patients with arrhythmia")
+    print(f"  median recall {np.median([r['recall'] for r in with_arrhythmia]):.4f} "
+          f"over {len(with_arrhythmia)} patients with arrhythmia")
 
 
 if __name__ == "__main__":

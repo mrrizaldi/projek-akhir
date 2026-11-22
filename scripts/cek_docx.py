@@ -23,27 +23,27 @@ def pdf_pages(pdf):
     return pages
 
 
-def page_words(teks):
-    sambung = re.sub(r"-\n(?=\w)", "", teks)
-    kata = [re.sub(r"\W", "", k.lower()) for k in sambung.split()]
-    return [k for k in kata if k and not PAGE_NUMBER_PATTERN.match(k)]
+def page_words(page_text):
+    joined = re.sub(r"-\n(?=\w)", "", page_text)
+    words = [re.sub(r"\W", "", k.lower()) for k in joined.split()]
+    return [k for k in words if k and not PAGE_NUMBER_PATTERN.match(k)]
 
 
-def tanda(teks):
-    return page_words(teks)[:PAGE_SIGNATURE_WORDS]
+def signature(page_text):
+    return page_words(page_text)[:PAGE_SIGNATURE_WORDS]
 
 
 def chapter_starts(pages):
-    awal = {}
-    for page_number, teks in enumerate(pages, start=1):
-        cocok = CHAPTER_PATTERN.search(teks)
-        if cocok and cocok.group(1) not in awal:
-            awal[cocok.group(1)] = page_number
-    return awal
+    chapter_start = {}
+    for page_number, page_text in enumerate(pages, start=1):
+        chapter_match = CHAPTER_PATTERN.search(page_text)
+        if chapter_match and chapter_match.group(1) not in chapter_start:
+            chapter_start[chapter_match.group(1)] = page_number
+    return chapter_start
 
 
-def page_excerpt(teks):
-    return " ".join(teks.split())[:EXCERPT_MAX_CHARS]
+def page_excerpt(page_text):
+    return " ".join(page_text.split())[:EXCERPT_MAX_CHARS]
 
 
 def render_docx(docx, wordcraft, folder):
@@ -59,17 +59,17 @@ def bandingkan(pdf_latex, docx, wordcraft):
     latex_chapters, docx_chapters = chapter_starts(latex_pages), chapter_starts(docx_pages)
     print(f"Pages: PDF {len(latex_pages)}, DOCX {len(docx_pages)}")
     print(f"{'Section':<16}{'PDF':>6}{'DOCX':>6}{'Delta':>9}")
-    for nama, page_count_at in latex_chapters.items():
-        docx_page = docx_chapters.get(nama)
-        selisih = "-" if docx_page is None else f"{docx_page - page_count_at:+d}"
-        print(f"{nama:<16}{page_count_at:>6}{docx_page if docx_page else '-':>6}{selisih:>9}")
-    beda = [n for n, (a, b) in enumerate(zip(latex_pages, docx_pages), start=1) if tanda(a) != tanda(b)]
-    sama = min(len(latex_pages), len(docx_pages)) - len(beda)
-    print(f"Pages with matching start: {sama} of {len(latex_pages)}")
-    for page_number in beda[:SHOW_DIFF_MAX]:
+    for chapter, page_count_at in latex_chapters.items():
+        docx_page = docx_chapters.get(chapter)
+        offset = "-" if docx_page is None else f"{docx_page - page_count_at:+d}"
+        print(f"{chapter:<16}{page_count_at:>6}{docx_page if docx_page else '-':>6}{offset:>9}")
+    differing = [n for n, (a, b) in enumerate(zip(latex_pages, docx_pages), start=1) if signature(a) != signature(b)]
+    matching = min(len(latex_pages), len(docx_pages)) - len(differing)
+    print(f"Pages with matching start: {matching} of {len(latex_pages)}")
+    for page_number in differing[:SHOW_DIFF_MAX]:
         print(f"  p{page_number} PDF : {page_excerpt(latex_pages[page_number - 1])}")
         print(f"  p{page_number} DOCX: {page_excerpt(docx_pages[page_number - 1])}")
-    return not beda and len(latex_pages) == len(docx_pages)
+    return not differing and len(latex_pages) == len(docx_pages)
 
 
 def main():

@@ -1,8 +1,8 @@
 import os
 
 
-def _env_int(nama: str, bawaan: int) -> int:
-    return int(os.environ.get(nama, bawaan))
+def _env_int(name: str, default: int) -> int:
+    return int(os.environ.get(name, default))
 
 
 FS = 360

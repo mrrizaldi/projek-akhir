@@ -19,8 +19,8 @@ def combine(*ds) -> dict:
             for k in ("X_morph", "X_rr", "y", "records")}
 
 
-def load_npz(nama: str) -> dict:
-    with np.load(os.path.join(PROCESSED_DIR, nama)) as z:
+def load_npz(name: str) -> dict:
+    with np.load(os.path.join(PROCESSED_DIR, name)) as z:
         return {k: z[k] for k in ("X_morph", "X_rr", "y", "records")}
 
 
@@ -67,12 +67,12 @@ def main() -> None:
             p, r = tp / (tp + fp), tp / pos
             return 2 * p * r / (p + r)
 
-        baris = f"{tag:16}"
+        line = f"{tag:16}"
         for d in SET.values():
             t = kalibrasi(tf.keras.models.load_model(path), d)
-            baris += f"  thr {t:.2f} -> {f1_at(t):.4f}"
+            line += f"  thr {t:.2f} -> {f1_at(t):.4f}"
         to = float(grid[np.argmax([f1_at(t) for t in grid])])
-        print(baris + f"{'':>4}{to:.2f} -> {f1_at(to):.4f}")
+        print(line + f"{'':>4}{to:.2f} -> {f1_at(to):.4f}")
 
 
 if __name__ == "__main__":

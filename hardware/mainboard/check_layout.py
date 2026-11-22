@@ -33,21 +33,21 @@ def celah(a, c):
 def netclass_lookup():
     ns = json.loads(PRO.read_text())["net_settings"]
     track_widths = {c["name"]: c["track_width"] for c in ns["classes"]}
-    pola = [(p["pattern"], p["netclass"]) for p in ns["netclass_patterns"]]
+    patterns = [(p["pattern"], p["netclass"]) for p in ns["netclass_patterns"]]
 
-    def kelas(net):
-        return next((k for p, k in pola if fnmatch.fnmatchcase(net, p)), "Default")
+    def netclass_of(net):
+        return next((k for p, k in patterns if fnmatch.fnmatchcase(net, p)), "Default")
 
-    return track_widths, kelas
+    return track_widths, netclass_of
 
 
 def check_track_width(b):
-    track_widths, kelas = netclass_lookup()
+    track_widths, netclass_of = netclass_lookup()
     temuan = []
     for t in b.GetTracks():
         if t.Type() == pcbnew.PCB_VIA_T:
             continue
-        k = kelas(t.GetNetname())
+        k = netclass_of(t.GetNetname())
         w = mm(t.GetWidth())
         min_width = track_widths[k]
         if w >= min_width - 1e-6:
@@ -88,47 +88,47 @@ def header_direction(f):
 
 def check_text(b):
     edge = box(b.GetBoardEdgesBoundingBox())
-    teks, pads, temuan = [], [], []
+    texts, pads, temuan = [], [], []
     for f in b.GetFootprints():
-        r, arah = f.GetReference(), header_direction(f)
+        r, direction = f.GetReference(), header_direction(f)
         for t in list(f.GetFields()) + [g for g in f.GraphicalItems() if isinstance(g, pcbnew.PCB_TEXT)]:
             if not t.IsVisible() or t.GetLayer() not in (pcbnew.F_SilkS, pcbnew.F_Fab):
                 continue
             j, k = text_kind(t), box(t.GetBoundingBox())
-            teks.append((r, j, t.GetLayer(), k))
+            texts.append((r, j, t.GetLayer(), k))
             if t.GetLayer() == pcbnew.F_SilkS and mm(t.GetTextHeight()) < SILK_HEIGHT_MIN - 1e-6:
                 temuan.append(f"{r} {j}: silk height {mm(t.GetTextHeight()):.2f} mm")
             rotation_deg = round(t.GetDrawRotation().AsDegrees()) % 180
-            if j in ("ref", "val") and arah != "-" and (arah == "H") != (rotation_deg == 0) and (r, j) not in TEXT_ALLOWED_ACROSS:
+            if j in ("ref", "val") and direction != "-" and (direction == "H") != (rotation_deg == 0) and (r, j) not in TEXT_ALLOWED_ACROSS:
                 temuan.append(f"{r} {j}: not aligned with header")
             if not (k[0] >= edge[0] and k[1] >= edge[1] and k[2] <= edge[2] and k[3] <= edge[3]):
                 temuan.append(f"{r} {j}: outside board edge")
         pads += [(r, box(p.GetBoundingBox())) for p in f.Pads()]
-    for i, a in enumerate(teks):
-        for c in teks[i + 1:]:
+    for i, a in enumerate(texts):
+        for c in texts[i + 1:]:
             one_owns_fab = a[0] == c[0] and a[2] == c[2] == pcbnew.F_Fab and "val" in (a[1], c[1])
             if intersects(a[3], c[3]) and not one_owns_fab:
                 temuan.append(f"{a[0]} {a[1]} overlaps {c[0]} {c[1]}")
-    temuan += [f"{a[0]} {a[1]} over pad {p[0]}" for a in teks if a[2] == pcbnew.F_SilkS
+    temuan += [f"{a[0]} {a[1]} over pad {p[0]}" for a in texts if a[2] == pcbnew.F_SilkS
                for p in pads if intersects(a[3], p[1], 0)]
     vias = [box(v.GetBoundingBox()) for v in b.GetTracks() if v.Type() == pcbnew.PCB_VIA_T]
     for d in b.GetDrawings():
         if isinstance(d, pcbnew.PCB_TEXT) and d.GetLayer() == pcbnew.B_SilkS:
             k = box(d.GetBoundingBox())
-            nama = d.GetText().splitlines()[0][:20]
+            label = d.GetText().splitlines()[0][:20]
             if not (k[0] >= edge[0] and k[1] >= edge[1] and k[2] <= edge[2] and k[3] <= edge[3]):
-                temuan.append(f"back text '{nama}': outside board edge")
-            temuan += [f"back text '{nama}' over pad {p[0]}" for p in pads if intersects(k, p[1], 0)]
-            temuan += [f"back text '{nama}' over via" for v in vias if intersects(k, v, 0)]
+                temuan.append(f"back text '{label}': outside board edge")
+            temuan += [f"back text '{label}' over pad {p[0]}" for p in pads if intersects(k, p[1], 0)]
+            temuan += [f"back text '{label}' over via" for v in vias if intersects(k, v, 0)]
     return temuan
 
 
 def main():
     b = pcbnew.LoadBoard(str(PCB))
     failures = 0
-    for nama, check_function in (("track width", check_track_width), ("courtyard gap", check_courtyard), ("text", check_text)):
+    for label, check_function in (("track width", check_track_width), ("courtyard gap", check_courtyard), ("text", check_text)):
         temuan = check_function(b)
-        print(f"{nama}: {len(temuan)} findings")
+        print(f"{label}: {len(temuan)} findings")
         for t in temuan[:20]:
             print(f"  {t}")
         failures += bool(temuan)

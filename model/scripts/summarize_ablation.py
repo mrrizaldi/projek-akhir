@@ -15,7 +15,7 @@ CROSS_DB_COLUMNS = [("f1", "F1"), ("recall_S", "recall S"),
                 ("auc", "AUC"), ("threshold", "thr")]
 
 
-def rerata_rentang(values: list) -> tuple:
+def mean_half_range(values: list) -> tuple:
     return sum(values) / len(values), (max(values) - min(values)) / 2
 
 
@@ -24,10 +24,10 @@ def read_file(path: str) -> tuple:
     with open(path, newline="") as f:
         r = csv.DictReader(f)
         kolom = ABLATION_COLUMNS if "anot_f1" in (r.fieldnames or []) else CROSS_DB_COLUMNS
-        pakai_db = "db" in (r.fieldnames or [])
+        has_db = "db" in (r.fieldnames or [])
         for baris in r:
-            kunci = f"{baris['tag']}|{baris['db']}" if pakai_db else baris["tag"]
-            per_key.setdefault(kunci, []).append(baris)
+            group_key = f"{baris['tag']}|{baris['db']}" if has_db else baris["tag"]
+            per_key.setdefault(group_key, []).append(baris)
     return per_key, kolom
 
 
@@ -35,7 +35,7 @@ def digest(baris: list, COLUMNS) -> dict:
     out = {"n_seed": len(baris)}
     for kolom, _ in COLUMNS:
         values = [float(b[kolom]) for b in baris if b.get(kolom) not in (None, "")]
-        out[kolom] = rerata_rentang(values) if values else None
+        out[kolom] = mean_half_range(values) if values else None
     return out
 
 
@@ -57,9 +57,9 @@ def main() -> None:
     if missing:
         raise SystemExit(f"tag not in {args.csv}: {', '.join(missing)}")
 
-    judul = f"{'tag':<20}{'n':>3}  " + "  ".join(f"{n:>17}" for _, n in COLUMNS)
-    print(judul)
-    print("-" * len(judul))
+    header = f"{'tag':<20}{'n':>3}  " + "  ".join(f"{n:>17}" for _, n in COLUMNS)
+    print(header)
+    print("-" * len(header))
     digests = {}
     for t in tags:
         s = digests[t] = digest(per_tag[t], COLUMNS)
@@ -67,8 +67,8 @@ def main() -> None:
         for kolom, _ in COLUMNS:
             sel.append("        -        " if s[kolom] is None
                        else f"{s[kolom][0]:8.4f} +-{s[kolom][1]:6.4f}")
-        tanda = "" if s["n_seed"] >= MIN_SEEDS else "  <- seed < 3, NOT YET VALID"
-        print(f"{t:<20}{s['n_seed']:>3}  " + "  ".join(sel) + tanda)
+        seed_note = "" if s["n_seed"] >= MIN_SEEDS else "  <- seed < 3, NOT YET VALID"
+        print(f"{t:<20}{s['n_seed']:>3}  " + "  ".join(sel) + seed_note)
 
     if not args.vs:
         return
@@ -80,13 +80,13 @@ def main() -> None:
         k_f1 = COLUMNS[0][0]
         d_f1 = digests[t][k_f1][0] - baseline[k_f1][0]
         d_ren = digests[t][k_f1][1] - baseline[k_f1][1]
-        vonis = "SIGNAL" if abs(d_f1) >= F1_SIGNAL_THRESHOLD else "not a signal"
-        arah = "narrows" if d_ren < 0 else "widens"
-        print(f"  {t:<20} dF1 {d_f1:+.4f} ({vonis})   "
-              f"range F1 {arah} {abs(d_ren):.4f}")
-        for kolom, nama in COLUMNS[1:]:
+        verdict = "SIGNAL" if abs(d_f1) >= F1_SIGNAL_THRESHOLD else "not a signal"
+        direction = "narrows" if d_ren < 0 else "widens"
+        print(f"  {t:<20} dF1 {d_f1:+.4f} ({verdict})   "
+              f"range F1 {direction} {abs(d_ren):.4f}")
+        for kolom, label in COLUMNS[1:]:
             if digests[t][kolom] and baseline[kolom]:
-                print(f"{'':>18} d{nama} {digests[t][kolom][0] - baseline[kolom][0]:+.4f}   "
+                print(f"{'':>18} d{label} {digests[t][kolom][0] - baseline[kolom][0]:+.4f}   "
                       f"range {baseline[kolom][1]:.4f} -> {digests[t][kolom][1]:.4f}")
 
 

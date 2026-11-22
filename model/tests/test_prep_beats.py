@@ -31,5 +31,5 @@ def test_process_record_alignment_rec100():
 
 def test_process_record_r_peak_at_fixed_position():
     out = process_record("100", design_bandpass_sos())
-    puncak = np.median(np.argmax(out["windows"], axis=1))
-    assert WIN_PRE <= puncak <= WIN_PRE + 8
+    peak = np.median(np.argmax(out["windows"], axis=1))
+    assert WIN_PRE <= peak <= WIN_PRE + 8

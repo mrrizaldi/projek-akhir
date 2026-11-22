@@ -13,10 +13,10 @@ TAG_PATTERN = re.compile(r"^rilis/(?P<proyek>[^/]+)/v(?P<nomor>\d+)$")
 LOG_ERROR_PATTERN = re.compile(r"undefined|Overfull")
 
 
-def git(*argumen, cwd=REPO_ROOT):
-    result = subprocess.run(["git", *argumen], cwd=cwd, capture_output=True, text=True)
+def git(*git_args, cwd=REPO_ROOT):
+    result = subprocess.run(["git", *git_args], cwd=cwd, capture_output=True, text=True)
     if result.returncode:
-        gagal(f"git {' '.join(argumen)}: {result.stderr.strip()}")
+        gagal(f"git {' '.join(git_args)}: {result.stderr.strip()}")
     return result.stdout.strip()
 
 
@@ -28,9 +28,9 @@ def gagal(msg):
 def existing_versions(proyek):
     result = {}
     for tag in git("tag", "--list", f"rilis/{proyek}/v*").splitlines():
-        cocok = TAG_PATTERN.match(tag)
-        if cocok:
-            result[int(cocok["nomor"])] = tag
+        tag_match = TAG_PATTERN.match(tag)
+        if tag_match:
+            result[int(tag_match["nomor"])] = tag
     return result
 
 
@@ -47,22 +47,22 @@ def build_in_tree(worktree_dir, proyek):
 
 
 def page_count(pdf):
-    for baris in subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True).stdout.splitlines():
-        if baris.startswith("Pages:"):
-            _, value = baris.split()
+    for line in subprocess.run(["pdfinfo", str(pdf)], capture_output=True, text=True).stdout.splitlines():
+        if line.startswith("Pages:"):
+            _, value = line.split()
             return int(value)
     return 0
 
 
 def count_log_errors(log):
-    return sum(1 for baris in log.read_text(errors="replace").splitlines() if LOG_ERROR_PATTERN.search(baris))
+    return sum(1 for line in log.read_text(errors="replace").splitlines() if LOG_ERROR_PATTERN.search(line))
 
 
 def flatten(folder):
     return subprocess.run(["latexpand", "main.tex"], cwd=folder, capture_output=True, text=True).stdout
 
 
-def banding(old_tree, new_tree, proyek, tujuan):
+def banding(old_tree, new_tree, proyek, out_dir):
     lama = old_tree / "laporan" / proyek
     baru = new_tree / "laporan" / proyek
     (baru / "datar-lama.tex").write_text(flatten(lama))
@@ -78,8 +78,8 @@ def banding(old_tree, new_tree, proyek, tujuan):
     pdf = baru / "output" / "banding.pdf"
     if not pdf.exists():
         return None
-    shutil.copy(pdf, tujuan)
-    return tujuan
+    shutil.copy(pdf, out_dir)
+    return out_dir
 
 
 def main():
@@ -94,35 +94,35 @@ def main():
     rev = git("rev-parse", "--short", f"{args.rev}^{{commit}}")
     if args.rev == "HEAD" and git("status", "--porcelain", "--", "laporan"):
         gagal("laporan/ has uncommitted changes; the release is built from a commit, commit first")
-    ada = existing_versions(args.proyek)
-    nomor = max(ada) + 1 if ada else 0
+    versions = existing_versions(args.proyek)
+    nomor = max(versions) + 1 if versions else 0
     content_paths = [f"laporan/{args.proyek}", "laporan/shared"]
-    if ada and not git("diff", "--name-only", ada[max(ada)], rev, "--", *content_paths):
-        gagal(f"no changes in {args.proyek} since {ada[max(ada)]}")
-    nama = f"{args.proyek}-v{nomor}"
-    tujuan = RELEASES_FOLDER / args.proyek / f"v{nomor}"
-    if tujuan.exists():
-        gagal(f"{tujuan} already exists")
+    if versions and not git("diff", "--name-only", versions[max(versions)], rev, "--", *content_paths):
+        gagal(f"no changes in {args.proyek} since {versions[max(versions)]}")
+    release_name = f"{args.proyek}-v{nomor}"
+    out_dir = RELEASES_FOLDER / args.proyek / f"v{nomor}"
+    if out_dir.exists():
+        gagal(f"{out_dir} already exists")
 
     with tempfile.TemporaryDirectory(prefix="rilis-") as scratch:
         new_tree = Path(scratch, "baru")
         git("worktree", "add", "--detach", str(new_tree), rev)
         try:
-            keluaran = build_in_tree(new_tree, args.proyek)
-            tujuan.mkdir(parents=True)
-            shutil.copy(keluaran / "main.pdf", tujuan / f"{nama}.pdf")
-            shutil.copy(keluaran / "main.docx", tujuan / f"{nama}.docx")
-            pages = page_count(tujuan / f"{nama}.pdf")
-            fault = count_log_errors(keluaran / "main.log")
-            print(f"version=v{nomor}\nrev={rev}\npdf={tujuan / f'{nama}.pdf'}\npages={pages}\nlog_errors={fault}")
-            if ada:
-                sebelumnya = max(ada)
+            build_dir = build_in_tree(new_tree, args.proyek)
+            out_dir.mkdir(parents=True)
+            shutil.copy(build_dir / "main.pdf", out_dir / f"{release_name}.pdf")
+            shutil.copy(build_dir / "main.docx", out_dir / f"{release_name}.docx")
+            pages = page_count(out_dir / f"{release_name}.pdf")
+            fault = count_log_errors(build_dir / "main.log")
+            print(f"version=v{nomor}\nrev={rev}\npdf={out_dir / f'{release_name}.pdf'}\npages={pages}\nlog_errors={fault}")
+            if versions:
+                previous = max(versions)
                 old_tree = Path(scratch, "lama")
-                git("worktree", "add", "--detach", str(old_tree), ada[sebelumnya])
+                git("worktree", "add", "--detach", str(old_tree), versions[previous])
                 try:
                     diff_pdf = banding(
                         old_tree, new_tree, args.proyek,
-                        tujuan / f"banding-v{sebelumnya}-v{nomor}.pdf",
+                        out_dir / f"banding-v{previous}-v{nomor}.pdf",
                     )
                 finally:
                     git("worktree", "remove", "--force", str(old_tree))

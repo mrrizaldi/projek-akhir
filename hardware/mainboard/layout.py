@@ -45,8 +45,8 @@ class BoardEditor:
         p = self.fp(ref).FindPadByNumber(pad_number).GetPosition()
         return (mm(p.x), mm(p.y))
 
-    def net(self, nama):
-        return self.b.GetNetsByName()[nama]
+    def net(self, net_name):
+        return self.b.GetNetsByName()[net_name]
 
     def jalur(self, net, copper_layer, points, width_mm):
         for (x1, y1), (x2, y2) in zip(points, points[1:]):
@@ -59,11 +59,11 @@ class BoardEditor:
             t.SetLocked(True)
             self.b.Add(t)
 
-    def via(self, net, x, y, ukuran):
+    def via(self, net, x, y, via_size):
         v = pcbnew.PCB_VIA(self.b)
         v.SetPosition(point(x, y))
-        v.SetWidth(pcbnew.F_Cu, MM(ukuran[0]))
-        v.SetDrill(MM(ukuran[1]))
+        v.SetWidth(pcbnew.F_Cu, MM(via_size[0]))
+        v.SetDrill(MM(via_size[1]))
         v.SetLayerPair(pcbnew.F_Cu, pcbnew.B_Cu)
         v.SetNet(self.net(net))
         v.SetLocked(True)
@@ -186,9 +186,9 @@ def solid():
     p = BoardEditor()
     for f in p.b.GetFootprints():
         for q in f.Pads():
-            sambung = pcbnew.ZONE_CONNECTION_FULL if (f.GetReference(), q.GetNumber()) in PAD_GND_SOLID \
+            zone_connection = pcbnew.ZONE_CONNECTION_FULL if (f.GetReference(), q.GetNumber()) in PAD_GND_SOLID \
                 else pcbnew.ZONE_CONNECTION_INHERITED
-            q.SetLocalZoneConnection(sambung)
+            q.SetLocalZoneConnection(zone_connection)
     p.save_item()
     print(f"solid: {len(PAD_GND_SOLID)} solid pads, the rest thermal")
 
@@ -230,7 +230,7 @@ class TextPlacer:
         k = box(t.GetBoundingBox(), 0.15)
         if not (k[0] >= self.edge[0] and k[1] >= self.edge[1] and k[2] <= self.edge[2] and k[3] <= self.edge[3]):
             return False
-        if any(intersects(k, o) for r, jenis, o in self.obstacles if not (r == ref and jenis == "silk")):
+        if any(intersects(k, o) for r, kind, o in self.obstacles if not (r == ref and kind == "silk")):
             return False
         return not any(intersects(k, o) for o in self.placed)
 
@@ -248,33 +248,33 @@ class TextPlacer:
         k = box(f.GetBoundingBox(False, False))
         cx, cy = (k[0] + k[2]) / 2, (k[1] + k[3]) / 2
         text_offset = u / 2 + 0.35
-        baris = [text_offset + i * u * 1.3 for i in range(8) if text_offset + i * u * 1.3 <= 4.0]
+        row_offsets = [text_offset + i * u * 1.3 for i in range(8) if text_offset + i * u * 1.3 <= 4.0]
         if rotation_deg == 0:
-            near = [(cx, k[1] - j) for j in baris]
-            far = [(cx, k[3] + j) for j in baris]
+            near = [(cx, k[1] - j) for j in row_offsets]
+            far = [(cx, k[3] + j) for j in row_offsets]
         else:
-            near = [(k[0] - j, cy) for j in baris]
-            far = [(k[2] + j, cy) for j in baris]
-        semua = (far + near) if far_first else (near + far)
+            near = [(k[0] - j, cy) for j in row_offsets]
+            far = [(k[2] + j, cy) for j in row_offsets]
+        spots = (far + near) if far_first else (near + far)
         if f.GetReference().startswith(("Q", "H", "SW")):
             n = len(t.GetShownText(False)) * u * 0.45
-            semua += [(k[0] - text_offset - n, cy), (k[2] + text_offset + n, cy)]
+            spots += [(k[0] - text_offset - n, cy), (k[2] + text_offset + n, cy)]
         span = max(max(xs) - min(xs), max(ys) - min(ys)) if xs else 0
         max_shift = max(1.5, span / 2)
-        geser = [0] + [v * d for d in (0.75, 1.5, 2.25, 3, 4, 5, 6) for v in (1, -1) if d <= max_shift]
-        for x, y in semua:
-            for d in geser:
+        shifts = [0] + [v * d for d in (0.75, 1.5, 2.25, 3, 4, 5, 6) for v in (1, -1) if d <= max_shift]
+        for x, y in spots:
+            for d in shifts:
                 yield (x + d, y) if rotation_deg == 0 and y != cy else (x, y + d)
 
-    def put_text(self, f, t, ukuran, far_first):
+    def put_text(self, f, t, via_size, far_first):
         xs = [mm(q.GetPosition().x) for q in f.Pads()]
         ys = [mm(q.GetPosition().y) for q in f.Pads()]
-        bebas_arah = f.GetReference().startswith(("Q", "H", "SW"))
+        free_orientation = f.GetReference().startswith(("Q", "H", "SW"))
         horizontal = (max(xs) - min(xs)) >= (max(ys) - min(ys))
-        primary = 0 if horizontal or bebas_arah else 90
+        primary = 0 if horizontal or free_orientation else 90
         rotations = [primary] + ([90 - primary] if t.IsReference() else [])
         for rotation_deg in rotations:
-            for u in ukuran:
+            for u in via_size:
                 self.configure_text(t, u, rotation_deg, 0, 0)
                 for x, y in self.calon(f, t, u, rotation_deg, far_first):
                     t.SetPosition(point(x, y))
@@ -298,9 +298,9 @@ def teks():
     for f in p.b.GetFootprints():
         if f.GetReference() == "U1":
             placer.placed += [box(x.GetBoundingBox(), 0.15) for x in (f.Reference(), f.Value()) if x.IsVisible()]
-    urut = sorted([f for f in p.b.GetFootprints() if f.GetReference() != "U1"], key=lambda f: -len(f.Pads()))
-    placements = {f.GetReference(): [placer.put_text(f, f.Reference(), [1.0], 0)] for f in urut}
-    for f in urut:
+    by_pad_count = sorted([f for f in p.b.GetFootprints() if f.GetReference() != "U1"], key=lambda f: -len(f.Pads()))
+    placements = {f.GetReference(): [placer.put_text(f, f.Reference(), [1.0], 0)] for f in by_pad_count}
+    for f in by_pad_count:
         v = f.Value()
         v.SetLayer(pcbnew.F_Fab)
         v.SetVisible(True)

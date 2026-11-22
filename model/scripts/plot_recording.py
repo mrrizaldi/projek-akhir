@@ -33,8 +33,8 @@ def window_scores(x, r, fs, mulai, n):
     inside = r[(r >= mulai) & (r < mulai + n)]
     bpm = 60.0 * fs / np.diff(inside) if len(inside) > 2 else np.array([])
     odd_rr = int(((bpm < BPM_PLAUSIBLE_MIN) | (bpm > BPM_PLAUSIBLE_MAX)).sum()) if len(bpm) else n
-    potong = x[mulai:mulai + n]
-    muscle = band_energy(potong, fs, MUSCLE_BAND_MIN_HZ, fs / 2) / band_energy(potong, fs, *ECG_BAND_HZ)
+    excerpt = x[mulai:mulai + n]
+    muscle = band_energy(excerpt, fs, MUSCLE_BAND_MIN_HZ, fs / 2) / band_energy(excerpt, fs, *ECG_BAND_HZ)
     return odd_rr, muscle
 
 
@@ -44,8 +44,8 @@ def select_window(analyses, fs, n, start_s):
         if h["n"] < n:
             continue
         r = r_peaks(h)
-        awal = [int(start_s * fs)] if start_s is not None else range(0, h["n"] - n + 1, SEARCH_STEP_S * fs)
-        for mulai in awal:
+        starts = [int(start_s * fs)] if start_s is not None else range(0, h["n"] - n + 1, SEARCH_STEP_S * fs)
+        for mulai in starts:
             if mulai + n <= h["n"]:
                 calon.append((*window_scores(h["x"], r, fs, mulai, n), k, mulai, r))
     if not calon:
@@ -53,13 +53,13 @@ def select_window(analyses, fs, n, start_s):
     return min(calon, key=lambda c: (c[0], c[1]))
 
 
-def draw_rows(h, r, fs, mulai, n, judul, tujuan):
-    baris = n // (SECONDS_PER_ROW * fs)
-    fig, ax = plt.subplots(baris + 1, 1, figsize=(WIDTH_IN, ROW_HEIGHT_IN * (baris + 1)))
+def draw_rows(h, r, fs, mulai, n, title, out_path):
+    n_rows = n // (SECONDS_PER_ROW * fs)
+    fig, ax = plt.subplots(n_rows + 1, 1, figsize=(WIDTH_IN, ROW_HEIGHT_IN * (n_rows + 1)))
     y = h["filtered"]
     lim = np.percentile(np.abs(y[mulai:mulai + n]), 99.9) * 1.1
     row_width = SECONDS_PER_ROW * fs
-    for i in range(baris):
+    for i in range(n_rows):
         a, b = mulai + i * row_width, mulai + (i + 1) * row_width
         t = np.arange(a, b) / fs
         ax[i].plot(t, y[a:b], lw=0.6, color="tab:blue")
@@ -69,16 +69,16 @@ def draw_rows(h, r, fs, mulai, n, judul, tujuan):
         ax[i].set_ylim(-lim, lim)
         ax[i].set_yticks([])
         ax[i].grid(True, which="both", alpha=0.3)
-    ax[baris - 1].set_xlabel("detik sejak mulai rekam")
+    ax[n_rows - 1].set_xlabel("detik sejak mulai rekam")
     rw = r[(r >= mulai) & (r < mulai + n)]
     bpm = 60.0 * fs / np.diff(rw)
     ax[-1].plot(rw[1:] / fs, bpm, ".-", lw=0.8)
     ax[-1].set_ylabel("HR (bpm)")
     ax[-1].set_xlim(mulai / fs, (mulai + n) / fs)
     ax[-1].grid(True, alpha=0.3)
-    fig.suptitle(judul)
+    fig.suptitle(title)
     fig.tight_layout()
-    fig.savefig(tujuan, dpi=DPI)
+    fig.savefig(out_path, dpi=DPI)
     return bpm
 
 
@@ -94,18 +94,18 @@ def main() -> None:
     n = arg.duration * fs
     odd_rr, muscle, k, mulai, r = select_window(analyses, fs, n, arg.start)
 
-    nama = os.path.splitext(os.path.basename(arg.file))[0]
+    name = os.path.splitext(os.path.basename(arg.file))[0]
     folder = os.path.join(METRICS_DIR, "akuisisi")
     os.makedirs(folder, exist_ok=True)
-    tujuan = os.path.join(folder, f"rekaman_{nama}_detik-{mulai // fs:03d}.png")
+    out_path = os.path.join(folder, f"rekaman_{name}_detik-{mulai // fs:03d}.png")
     segment_text = f", segmen {k + 1}" if len(segmen) > 1 else ""
-    judul = (f"{nama}{segment_text}: detik {mulai // fs}-{(mulai + n) // fs} "
+    title = (f"{name}{segment_text}: detik {mulai // fs}-{(mulai + n) // fs} "
              f"(bandpass 0,5-40 Hz, ▼ = R terdeteksi)")
-    bpm = draw_rows(analyses[k], r, fs, mulai, n, judul, tujuan)
+    bpm = draw_rows(analyses[k], r, fs, mulai, n, title, out_path)
     print(f"window seconds {mulai // fs}-{(mulai + n) // fs}{segment_text}: "
           f"odd RR {odd_rr}, noise >{MUSCLE_BAND_MIN_HZ} Hz {100 * muscle:.1f}% of ECG band, "
           f"HR median {np.median(bpm):.0f} bpm ({bpm.min():.0f}-{bpm.max():.0f}), {len(bpm) + 1} R")
-    print(tujuan)
+    print(out_path)
 
 
 if __name__ == "__main__":

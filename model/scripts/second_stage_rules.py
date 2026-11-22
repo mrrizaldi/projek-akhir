@@ -26,20 +26,20 @@ def rule_features(windows: np.ndarray, rr: np.ndarray) -> dict:
 
 
 def calibrate_stage_thresholds(f: dict, aami: np.ndarray, flagged: np.ndarray,
-                     min_presisi: float = MIN_NAMED_PRECISION) -> dict:
+                     min_precision: float = MIN_NAMED_PRECISION) -> dict:
     v = (aami == "V") & flagged
-    kandidat = []
+    candidates = []
     for chosen_thresholds in np.arange(10, 121, 2.0):
         pred = flagged & (f["qrsw2_ms"] > chosen_thresholds)
         n = int(pred.sum())
         if n < 20:
             continue
         p = int((pred & v).sum()) / n
-        if p >= min_presisi:
-            kandidat.append((float(chosen_thresholds), p, int((pred & v).sum()) / max(int(v.sum()), 1)))
-    if not kandidat:
+        if p >= min_precision:
+            candidates.append((float(chosen_thresholds), p, int((pred & v).sum()) / max(int(v.sum()), 1)))
+    if not candidates:
         return {"qrsw2_ms": None, "presisi_val": float("nan"), "cakupan_val": 0.0}
-    chosen_thresholds, p, c = kandidat[0]
+    chosen_thresholds, p, c = candidates[0]
     return {"qrsw2_ms": chosen_thresholds, "presisi_val": p, "cakupan_val": c}
 
 
