@@ -1,7 +1,7 @@
 schema_version: "1.1"
 name: plan-save-continue
 expected_outcome: |
-  The plan uses a second buffer (PSRAM) with a pointer swap on the sample path, saves per chunk
+  The plan shows a second buffer (PSRAM) with a pointer swap on the sample path and names the IRAM-safe ISR prerequisite (it may recommend the single-buffer design while that is unmet), saves per chunk
   from loop() only when acquisition_fill() == 0, compares the time constants with 711 ms, has an
   options block with at least two options and a recommendation (no option deletes data), and
   records the pitfall in firmware/README.md §Pitfalls.
