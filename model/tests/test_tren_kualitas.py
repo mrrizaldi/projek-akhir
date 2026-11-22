@@ -1,6 +1,6 @@
 import numpy as np
 
-from scripts.tren_kualitas import FREK_JALA_HZ, nilai_per_detik, tenang_per_detik
+from scripts.tren_kualitas import FREQUENCY_MAINS_HZ, nilai_per_detik, tenang_per_detik
 
 FS = 360
 
@@ -15,7 +15,7 @@ def _ekg(detik, waktu_beat, dasar=2000):
 
 def test_dengung_50hz_terukur_puncak_ke_puncak():
     t = np.arange(5 * FS) / FS
-    _, hum50, _, clipping = nilai_per_detik(2000 + 100 * np.sin(2 * np.pi * FREK_JALA_HZ * t))
+    _, hum50, _, clipping = nilai_per_detik(2000 + 100 * np.sin(2 * np.pi * FREQUENCY_MAINS_HZ * t))
     assert np.allclose(hum50, 200, rtol=0.01)
     assert not clipping.any()
 

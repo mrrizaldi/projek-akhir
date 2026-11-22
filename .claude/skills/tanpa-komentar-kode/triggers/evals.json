@@ -1,6 +1,6 @@
 [
   {"query": "tambahin fitur bip tolak di firmware, dua bip pendek kalau tombol ditolak", "should_trigger": true},
-  {"query": "ubah ambang ayunan di gerbang.h jadi 80 terus build ulang", "should_trigger": true},
+  {"query": "ubah ambang ayunan di gate.h jadi 80 terus build ulang", "should_trigger": true},
   {"query": "tulis skrip Python di model/scripts buat plot histogram RR dari rekaman", "should_trigger": true},
   {"query": "edit main.cpp supaya menu Sumber sinyal punya opsi baru", "should_trigger": true},
   {"query": "add a function to firmware/src/tampilan.cpp that shows the battery percent", "should_trigger": true},
@@ -9,7 +9,7 @@
   {"query": "write a shell script in scripts/ that renames recordings with timestamps", "should_trigger": true},
   {"query": "kasih prompt ke subagen buat nambah perintah serial baru di firmware", "should_trigger": true},
   {"query": "tambah opsi upload_speed di platformio.ini", "should_trigger": true},
-  {"query": "jelaskan apa fungsi AMBANG_AYUN di gerbang.h tanpa mengubah kode", "should_trigger": false},
+  {"query": "jelaskan apa fungsi THRESHOLD_SWING di gate.h tanpa mengubah kode", "should_trigger": false},
   {"query": "rapikan paragraf Bab 3 buku-pa biar tidak kedengaran seperti tulisan AI", "should_trigger": false},
   {"query": "flash firmware ke board dan baca log serialnya", "should_trigger": false},
   {"query": "explain how the golden reference test works in firmware/test", "should_trigger": false},

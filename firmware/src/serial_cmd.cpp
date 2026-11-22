@@ -7,7 +7,7 @@
 #include "akuisisi.h"
 #include "daya.h"
 #include "ecg_mqtt.h"
-#include "gerbang.h"
+#include "gate.h"
 #include "klasifikasi.h"
 #include "konfig.h"
 #include "menu.h"
@@ -35,7 +35,7 @@ static int angka()
 
 static void status()
 {
-    const gerbang_kualitas_t &q = gerbang_kualitas();
+    const gate_quality_t &q = gate_quality();
     const klasifikasi_hitung_t &h = klasifikasi_hitung();
     Serial.printf("status: rekam=%d n=%u | replay=%d | kualitas %s | beat %d "
                   "(%d aritmia, %d ditahan) | antrean %u | sampel hilang %u (tick %u) | "
@@ -46,10 +46,10 @@ static void status()
                   "        INA219 %s | bisu %d | beku %d | lewati %d | daya %d | "
                   "sumber %s %d | menu %d | jeda %d\n",
                   (int)rekam_aktif(), (unsigned)rekam_n(), (int)akuisisi_replay(),
-                  gerbang_nama_fase(), h.total, h.aritmia, h.ditahan,
+                  gate_phase_name(), h.total, h.aritmia, h.ditahan,
                   (unsigned)akuisisi_isi(), (unsigned)akuisisi_lewat(), (unsigned)akuisisi_tick_hilang(),
                   digitalRead(PIN_LOP), digitalRead(PIN_LON),
-                  q.mentah_min, q.mentah_maks, q.ayun_bersih, (int)q.clipping,
+                  q.raw_min, q.raw_max, q.swing_clean, (int)q.clipping,
                   ecg_mqtt_status(), (unsigned)ecg_mqtt_terkirim(),
                   (unsigned)ecg_mqtt_antre_n(), (unsigned)ecg_mqtt_antre_kapasitas(),
                   (unsigned)ecg_mqtt_antre_hilang(), (unsigned)ecg_mqtt_gagal(),
@@ -60,7 +60,7 @@ static void status()
                   (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
                   ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
                   daya_ina_teks(), (int)tampilan_bisu(), (int)tampilan_beku(),
-                  (int)gerbang_lewati(), daya_mode(),
+                  (int)gate_skip(), daya_mode(),
                   akuisisi_sumber() == SUMBER_ADC ? "adc"
                   : akuisisi_sumber() == SUMBER_ACUAN ? "acuan" : "rekaman",
                   akuisisi_sumber_rekam(), (int)menu_terbuka(), (int)rekam_dijeda());
@@ -104,15 +104,15 @@ void serial_cmd_layani(void)
         daya_set_mode(d >= '0' && d <= '5' ? d - '0' : -1);
     }
     else if (c == 'k') {
-        gerbang_set_lewati(!gerbang_lewati());
+        gate_set_skip(!gate_skip());
         Serial.printf("lewati gerbang kalibrasi %s (bench saja — bab3 menuntut "
                       "stabilisasi 10-15 menit + RR tenang 30 s)\n",
-                      gerbang_lewati() ? "ON" : "OFF");
+                      gate_skip() ? "ON" : "OFF");
     }
     else if (c == 'm') konfig_set_wifi_aktif(!konfig_wifi_aktif());
     else if (c == 'q') {
-        gerbang_set_lapor(!gerbang_lapor());
-        Serial.printf("laporan kualitas %s\n", gerbang_lapor() ? "ON" : "OFF");
+        gate_set_report(!gate_report());
+        Serial.printf("laporan kualitas %s\n", gate_report() ? "ON" : "OFF");
     }
     else if (c == 's') status();
     else if (c == 'v' || c == 'V') {

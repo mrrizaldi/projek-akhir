@@ -7,10 +7,10 @@ from scripts.analyze_recording import (
 FS = 360
 
 
-def _ekg(detik, fase, dasar):
+def _ekg(detik, phase, dasar):
     t = np.arange(int(detik * FS)) / FS
     x = np.full_like(t, dasar)
-    for tb in np.arange(fase, detik, 1.0):
+    for tb in np.arange(phase, detik, 1.0):
         x += 1500 * np.exp(-0.5 * ((t - tb) / 0.012) ** 2)
     return x.astype(int)
 

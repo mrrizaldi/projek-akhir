@@ -39,7 +39,7 @@ static uint32_t t_simpan;
 struct penulis_t {
     File f;
     const uint16_t *data;
-    size_t n, i, lepas, byte;
+    size_t n, i, leadoff, byte;
     size_t batas[BATAS_MAKS];
     int n_batas, k, bagian, n_bagian, nomor_awal;
     unsigned lewat;
@@ -131,14 +131,14 @@ static bool buka_bagian(int k)
     tulis.n = min(n - awal, REKAM_N);
     tulis.i = 0;
     tulis.k = 0;
-    tulis.lepas = lepas_bagian[k];
+    tulis.leadoff = lepas_bagian[k];
     tulis.lewat = lewat_bagian(k);
     tulis.n_batas = 0;
     for (int j = 0; j < n_batas; j++)
         if (batas[j] > awal && batas[j] < awal + tulis.n) tulis.batas[tulis.n_batas++] = batas[j] - awal;
-    const float persen = tulis.n ? 100.0f * tulis.lepas / tulis.n : 0.0f;
+    const float persen = tulis.n ? 100.0f * tulis.leadoff / tulis.n : 0.0f;
     tulis.byte = tulis.f.printf("# fs=%u n=%u lewat=%u lepas=%u (%.0f%%)", ECG_FS, (unsigned)tulis.n,
-                                tulis.lewat, (unsigned)tulis.lepas, persen);
+                                tulis.lewat, (unsigned)tulis.leadoff, persen);
     if (k) tulis.byte += tulis.f.printf(" lanjutan=%03d celah=0", nomor - 1);
     tulis.byte += tulis.f.print("\n");
     menulis = true;
@@ -150,7 +150,7 @@ static void tutup_tulis(bool gagal)
 {
     tulis.f.close();
     const size_t ukuran = LittleFS.open(tulis.path, "r").size();
-    const float persen = tulis.n ? 100.0f * tulis.lepas / tulis.n : 0.0f;
+    const float persen = tulis.n ? 100.0f * tulis.leadoff / tulis.n : 0.0f;
     if (gagal) Serial.printf("GAGAL: LittleFS penuh setelah %u sampel, %s terpotong\n",
                              (unsigned)tulis.i, tulis.path);
     if (ukuran != tulis.byte)
@@ -159,7 +159,7 @@ static void tutup_tulis(bool gagal)
     Serial.printf("SIMPAN %u sampel (%.1f detik, %d segmen), %u terlewat, elektroda lepas %.0f%% -> %s\n",
                   (unsigned)tulis.n, (float)tulis.n / ECG_FS, tulis.n_batas + 1, tulis.lewat, persen,
                   tulis.path);
-    if (tulis.lepas > tulis.n / 10)
+    if (tulis.leadoff > tulis.n / 10)
         Serial.println("PERINGATAN: elektroda lepas >10% — rekaman ini kemungkinan besar kosong.");
     no_simpan = tulis.nomor_awal + tulis.bagian;
     t_simpan = millis();

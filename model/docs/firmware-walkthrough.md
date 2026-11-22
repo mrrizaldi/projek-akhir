@@ -545,7 +545,7 @@ kecil (ayun 15 counts) tetap punya puncak, dan Pan-Tompkins berambang adaptif
 selalu menemukan sesuatu — ambangnya relatif terhadap sinyal yang ada, jadi
 "tidak ada sinyal" bukan kondisi yang ia kenali.
 
-Karena itu publikasi MQTT digerbangi penilai kualitas sinyal (`AMBANG_AYUN`)
+Karena itu publikasi MQTT digerbangi penilai kualitas sinyal (`THRESHOLD_SWING`)
 dan fase kalibrasi, bukan ada-tidaknya beat
 ([`mqtt-walkthrough.md`](mqtt-walkthrough.md) §3.1). Tanpa gerbang itu,
 elektroda lepas = banjir alarm palsu ke broker.

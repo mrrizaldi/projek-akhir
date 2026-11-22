@@ -99,7 +99,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 |---|---|
 | `src/main.cpp` | Firmware utama: hanya merangkai modul di bawah (`setup()`/`loop()`) dan memetakan event tombol mode monitor; selama menu terbuka event diteruskan ke `menu.cpp` |
 | `src/akuisisi.cpp` | Timer ISR 360 Hz → antrean → `loop()`; sumber sinyal ADC AD8232, replay acuan `golden_raw`, atau replay rekaman `/rekam/NNN.csv`; pilihan tersimpan di NVS |
-| `src/gerbang.cpp` | Kualitas sinyal per detik (ayunan, dengung 50 Hz Goertzel, LO±, clipping), penilaian kontak, dan fase kalibrasi (pemanasan 60 s) → pemantauan |
+| `src/gate.cpp` | Kualitas sinyal per detik (ayunan, dengung 50 Hz Goertzel, LO±, clipping), penilaian kontak, dan fase kalibrasi (pemanasan 60 s) → pemantauan |
 | `src/klasifikasi.cpp` | Inferensi TFLM INT8 per beat dan publikasi hasilnya ke antrean MQTT |
 | `src/tampilan.cpp` | Layar TFT (monitor dan layar menu), NeoPixel, buzzer (klik, bip detak, bip kalibrasi) |
 | `src/buttons.cpp` | Debounce dan event tekan/pendek/lama (ambang 800 ms) per tombol B1–B3; event suntikan dari serial `t`/`T` |
@@ -221,7 +221,7 @@ pengukuran ada di walkthrough yang dirujuk.
   `numpy.std()`). Di `ecg_rr_features`, varians RR lokal yang negatif akibat
   galat pembulatan dijepit ke 0.
 - Ayunan kualitas diukur pada sinyal setelah bandpass, dikurangi kontribusi
-  50 Hz (`FREK_JALA_HZ`) yang diukur dengan Goertzel (akuisisi-walkthrough §2).
+  50 Hz (`FREQUENCY_MAINS_HZ`) yang diukur dengan Goertzel (akuisisi-walkthrough §2).
   Clipping tetap dinilai dari ADC mentah karena sinyal yang terpotong di rail
   sudah kehilangan informasi sebelum filter.
 - Kriteria RR (300–1500 ms, |dRR| ≤ 200 ms) adalah gerbang masuk fase
@@ -602,7 +602,7 @@ sinyal dan menu tidak dapat diubah:
 
 Pemeriksaan ada di satu fungsi, `rekam_tolak()` (`rekam.h`), yang dipanggil di
 fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `akuisisi_set_sumber`,
-`daya_set_mode`, `daya_tangga_mulai`, `gerbang_set_lewati`,
+`daya_set_mode`, `daya_tangga_mulai`, `gate_set_skip`,
 `konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu
 otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,
 mengukur daya, atau mengganti jaringan, simpan rekaman lebih dulu.

@@ -339,7 +339,7 @@ Tabel ini = LAMPIRAN B PRD versi hidup. Isi begitu ketok palu, jangan tunda.
   Sebab: ambang Pan-Tompkins adaptif relatif terhadap sinyal yang ada, jadi
   "tidak ada sinyal" bukan kondisi yang ia kenali — derau 15 counts pun punya
   puncak. Konsekuensi untuk HW-6: **publikasi MQTT wajib digerbangi penilai
-  kualitas sinyal (fase BAIK dari kontak: LO±, `AMBANG_AYUN`, `AMBANG_DENGUNG`), bukan oleh ada-tidaknya beat.** Kalau tidak,
+  kualitas sinyal (fase BAIK dari kontak: LO±, `THRESHOLD_SWING`, `THRESHOLD_HUM`), bukan oleh ada-tidaknya beat.** Kalau tidak,
   elektroda lepas = banjir alarm palsu ke broker.
 - **"Epoch" menyesatkan sebagai satuan lama latih — model produksi adalah
   hasil SATU epoch.** Gejala: tidak ada. Training selesai normal, metrik wajar,

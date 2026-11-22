@@ -5,7 +5,7 @@
 #include "driver/adc.h"
 #include "esp_cpu.h"
 
-#include "gerbang.h"
+#include "gate.h"
 #include "klasifikasi.h"
 #include "konfig.h"
 #include "board.h"
@@ -127,7 +127,7 @@ bool akuisisi_set_sumber(int s, int nomor, bool simpan)
     akuisisi_timer(true);
     if (!ok) return false;
     if (simpan) konfig_set_sumber(sumber, sumber_rekam);
-    gerbang_mulai_sesi();
+    gate_begin_session();
     klasifikasi_reset();
     if (sumber == SUMBER_REKAM)
         Serial.printf("replay ON (rekaman %03d, %u sampel)\n", sumber_rekam, (unsigned)rp_n);

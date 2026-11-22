@@ -12,7 +12,7 @@
 #endif
 
 #include "ecg_mqtt.h"
-#include "gerbang.h"
+#include "gate.h"
 #include "model_int8.h"
 #include "tampilan.h"
 
@@ -74,11 +74,11 @@ static float klasifikasi(const ecg_beat_t &beat)
 static void publikasi(const ecg_beat_t &beat, float p, bool aritmia)
 {
     if (!ecg_mqtt_aktif()) return;
-    if (gerbang_fase() != FASE_BAIK) { h.ditahan++; return; }
+    if (gate_phase() != PHASE_GOOD) { h.ditahan++; return; }
     if (beat.sinyal_hilang) { h.ditahan++; return; }
 
     ecg_mqtt_beat_t t;
-    t.ms = gerbang_t_sesi_ms() + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
+    t.ms = gate_t_session_ms() + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
     t.rr_ms = beat.rr[0] * 1000.0f;
     t.bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
     t.label = aritmia ? 1 : 0;

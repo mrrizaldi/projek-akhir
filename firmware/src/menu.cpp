@@ -6,7 +6,7 @@
 
 #include "akuisisi.h"
 #include "ecg_mqtt.h"
-#include "gerbang.h"
+#include "gate.h"
 #include "ina219.h"
 #include "klasifikasi.h"
 #include "konfig.h"
@@ -77,29 +77,29 @@ static const halaman_t H_SUMBER = DAFTAR("Sumber sinyal", I_SUMBER);
 static const char *on_off(bool on) { return on ? "ON" : "OFF"; }
 static void kalib_ulang()
 {
-    gerbang_mulai_sesi();
+    gate_begin_session();
     klasifikasi_reset();
     Serial.println("kalibrasi: sesi baru");
 }
 static void kalib_lewati()
 {
-    gerbang_set_lewati(!gerbang_lewati());
-    Serial.printf("lewati gerbang kalibrasi %s\n", on_off(gerbang_lewati()));
+    gate_set_skip(!gate_skip());
+    Serial.printf("lewati gerbang kalibrasi %s\n", on_off(gate_skip()));
 }
-static const char *n_lewati() { return on_off(gerbang_lewati()); }
+static const char *n_lewati() { return on_off(gate_skip()); }
 static void kalib_status(baris_t *b)
 {
-    const gerbang_kualitas_t &q = gerbang_kualitas();
-    const int f = gerbang_fase();
-    snprintf(b[0], sizeof *b, "Fase %s", f == FASE_KALIBRASI ? "KALIBRASI" : f == FASE_BAIK ? "BAIK" : "BURUK");
+    const gate_quality_t &q = gate_quality();
+    const int f = gate_phase();
+    snprintf(b[0], sizeof *b, "Fase %s", f == PHASE_CALIBRATION ? "KALIBRASI" : f == PHASE_GOOD ? "BAIK" : "BURUK");
     snprintf(b[1], sizeof *b, "Kontak %lu/%lu s",
-             (unsigned long)min<uint32_t>(gerbang_kontak_ms() / 1000, 99999),
-             (unsigned long)(PEMANASAN_MS / 1000));
+             (unsigned long)min<uint32_t>(gate_contact_ms() / 1000, 99999),
+             (unsigned long)(WARMUP_MS / 1000));
     snprintf(b[2], sizeof *b, "RR tenang %lu/%lu s",
-             (unsigned long)min<uint32_t>(gerbang_tenang_ms() / 1000, 99999),
-             (unsigned long)(RR_TENANG_MS / 1000));
-    snprintf(b[3], sizeof *b, "Ayun %d/%d 50Hz %d/%d", q.ayun_bersih, AMBANG_AYUN, q.hum50, AMBANG_DENGUNG);
-    snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gerbang_lewati()), on_off(akuisisi_replay()));
+             (unsigned long)min<uint32_t>(gate_quiet_ms() / 1000, 99999),
+             (unsigned long)(RR_QUIET_MS / 1000));
+    snprintf(b[3], sizeof *b, "Ayun %d/%d 50Hz %d/%d", q.swing_clean, THRESHOLD_SWING, q.hum50, THRESHOLD_HUM);
+    snprintf(b[4], sizeof *b, "Lewati %s  Replay %s", on_off(gate_skip()), on_off(akuisisi_replay()));
     snprintf(b[5], sizeof *b, "Sampel hilang %u", (unsigned)akuisisi_lewat());
 }
 static const halaman_t H_KALIB_STATUS = TEKS("Status kalibrasi", kalib_status);

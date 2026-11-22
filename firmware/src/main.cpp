@@ -5,7 +5,7 @@
 #include "daya.h"
 #include "ecg_live.h"
 #include "ecg_mqtt.h"
-#include "gerbang.h"
+#include "gate.h"
 #include "ina219.h"
 #include "klasifikasi.h"
 #include "konfig.h"
@@ -63,7 +63,7 @@ void setup()
     rekam_siapkan();
 
     klasifikasi_mulai();
-    gerbang_mulai_sesi();
+    gate_begin_session();
     konfig_mulai();
     setenv("TZ", "WIB-7", 1);
     tzset();
@@ -91,13 +91,13 @@ void loop()
 
         const bool dsp = daya_tahap(2), cnn = daya_tahap(3), ui = daya_tahap(4);
         const int ada_beat = dsp ? ecg_live_push(sampel, &beat) : 0;
-        if (dsp) gerbang_nilai_kualitas(sampel);
+        if (dsp) gate_assess_quality(sampel);
 
         bool aritmia = false;
         if (ada_beat) {
             daya_hitung_beat();
-            gerbang_nilai_fase(beat);
-            if (gerbang_fase() == FASE_KALIBRASI) gerbang_lapor_kalibrasi(beat);
+            gate_assess_phase(beat);
+            if (gate_phase() == PHASE_CALIBRATION) gate_report_calibration(beat);
             else if (cnn) aritmia = klasifikasi_proses(beat);
             if (ui) tampilan_beat(beat, aritmia);
         }

@@ -8,11 +8,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config import FS, METRICS_DIR
 from src.preprocessing import apply_bandpass, design_bandpass_sos, pan_tompkins_detect
 
-AMBANG_AYUN = 60
+THRESHOLD_SWING = 60
 GAIN_50HZ = 0.342
-FREK_JALA_HZ = 50.0
-ADC_ATAS, ADC_BAWAH = 4090, 5
-RR_MIN_S, RR_MAKS_S, DRR_MAKS_S = 0.300, 1.500, 0.200
+FREQUENCY_MAINS_HZ = 50.0
+ADC_UPPER, ADC_LOWER = 4090, 5
+RR_MIN_S, RR_MAX_S, DRR_MAX_S = 0.300, 1.500, 0.200
 RR_TENANG_S = 30
 STABIL_S = 600
 DETIK_PER_MENIT = 60
@@ -55,11 +55,11 @@ def nilai_per_detik(mentah):
     blok = mentah[: n_detik * FS].reshape(n_detik, FS)
     tersaring = apply_bandpass(mentah, design_bandpass_sos())[: n_detik * FS].reshape(n_detik, FS)
     ayun = tersaring.max(axis=1) - tersaring.min(axis=1)
-    bin_jala = int(np.argmin(np.abs(np.fft.rfftfreq(FS, 1.0 / FS) - FREK_JALA_HZ)))
+    bin_jala = int(np.argmin(np.abs(np.fft.rfftfreq(FS, 1.0 / FS) - FREQUENCY_MAINS_HZ)))
     amp50 = PUNCAK_KE_PUNCAK * np.abs(np.fft.rfft(blok, axis=1)[:, bin_jala]) / FS
     hum50 = PUNCAK_KE_PUNCAK * amp50
     ayun_bersih = np.maximum(ayun - GAIN_50HZ * hum50, 0.0)
-    clipping = (blok.max(axis=1) >= ADC_ATAS) | (blok.min(axis=1) <= ADC_BAWAH)
+    clipping = (blok.max(axis=1) >= ADC_UPPER) | (blok.min(axis=1) <= ADC_LOWER)
     return ayun, hum50, ayun_bersih, clipping
 
 
@@ -68,7 +68,7 @@ def tenang_per_detik(mentah, n_detik):
     r = pan_tompkins_detect(apply_bandpass(x, design_bandpass_sos()), FS)
     rr = np.diff(r) / FS
     drr = np.abs(np.ediff1d(rr, to_begin=0.0))
-    wajar = (rr >= RR_MIN_S) & (rr <= RR_MAKS_S) & (drr <= DRR_MAKS_S)
+    wajar = (rr >= RR_MIN_S) & (rr <= RR_MAX_S) & (drr <= DRR_MAX_S)
     detik_beat = r[BEAT_PERTAMA_BER_RR:] // FS
     langgar = np.zeros(n_detik, dtype=bool)
     langgar[detik_beat[~wajar & (detik_beat < n_detik)]] = True
@@ -107,12 +107,12 @@ def main() -> None:
               f" | {np.median(hum50[s]):16.0f} | {clipping[s].sum():14d} | {beat[s].sum():4d}"
               f" | {persen_wajar:7.1f}% | {tenang[s].max():8.0f} s")
 
-    ayun_ok = ayun_bersih >= AMBANG_AYUN
-    rr_tenang = tenang >= RR_TENANG_S
-    print(f"\nayun_bersih >= {AMBANG_AYUN} pertama        : {lulus_pertama(ayun_ok)}")
-    print(f"RR tenang >= {RR_TENANG_S} s pertama          : {lulus_pertama(rr_tenang)}")
-    print(f"gerbang tanpa syarat {STABIL_S} s lulus     : {lulus_pertama(ayun_ok & rr_tenang)}")
-    print(f"gerbang firmware (dengan {STABIL_S} s) lulus: {lulus_pertama(ayun_ok & rr_tenang & (waktu >= STABIL_S))}")
+    ayun_ok = ayun_bersih >= THRESHOLD_SWING
+    rr_quiet = tenang >= RR_TENANG_S
+    print(f"\nayun_bersih >= {THRESHOLD_SWING} pertama        : {lulus_pertama(ayun_ok)}")
+    print(f"RR tenang >= {RR_TENANG_S} s pertama          : {lulus_pertama(rr_quiet)}")
+    print(f"gerbang tanpa syarat {STABIL_S} s lulus     : {lulus_pertama(ayun_ok & rr_quiet)}")
+    print(f"gerbang firmware (dengan {STABIL_S} s) lulus: {lulus_pertama(ayun_ok & rr_quiet & (waktu >= STABIL_S))}")
 
     os.makedirs(FOLDER_KELUARAN, exist_ok=True)
     nama = os.path.splitext(os.path.basename(paths[0]))[0] + f"-sesi{len(paths)}"

@@ -5,7 +5,7 @@ timeout_seconds: 600
 allowed_tools: [Read, Skill, Write]
 ---
 
-Kita di `/home/mrrizaldi/dev/projek-akhir`. Di `firmware/include/gerbang.h` sudah ada `constexpr int AMBANG_AYUN = 60;`. Aku punya potongan ini di `firmware/src/sinyal.cpp`:
+Kita di `/home/mrrizaldi/dev/projek-akhir`. Di `firmware/include/gate.h` sudah ada `constexpr int THRESHOLD_SWING = 60;`. Aku punya potongan ini di `firmware/src/sinyal.cpp`:
 
 ```c
 // Ambang ayunan minimum (count ADC) agar sinyal dianggap tersambung.

@@ -6,7 +6,7 @@
 
 #include "akuisisi.h"
 #include "daya.h"
-#include "gerbang.h"
+#include "gate.h"
 #include "ina219.h"
 #include "board.h"
 #include "rekam.h"
@@ -112,11 +112,11 @@ void tampilan_sampel(void)
 
 void tampilan_beat(const ecg_beat_t &beat, bool aritmia)
 {
-    if (gerbang_kualitas().ayun_bersih < AMBANG_AYUN) return;
+    if (gate_quality().swing_clean < THRESHOLD_SWING) return;
     hr_tampil = (beat.rr[0] > 0.05f) ? (int)lroundf(60.0f / beat.rr[0]) : 0;
     hr_aritmia = aritmia;
     t_hr = millis();
-    if (gerbang_fase() != FASE_KALIBRASI) jadwalkan_bip(beat, aritmia);
+    if (gate_phase() != PHASE_CALIBRATION) jadwalkan_bip(beat, aritmia);
 }
 
 void tampilan_gambar_tombol(int i)
@@ -158,8 +158,8 @@ static void perbarui_led()
     t_led = millis();
 
     if (!daya_tahap(4))                    tampilan_led(0, 0, 0);
-    else if (gerbang_fase() == FASE_KALIBRASI) tampilan_led(0, 16, 64);
-    else if (gerbang_fase() == FASE_BURUK) tampilan_led(64, 24, 0);
+    else if (gate_phase() == PHASE_CALIBRATION) tampilan_led(0, 16, 64);
+    else if (gate_phase() == PHASE_BAD) tampilan_led(64, 24, 0);
     else                                   tampilan_led(0, 48, 0);
 }
 

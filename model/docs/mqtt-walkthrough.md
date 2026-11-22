@@ -31,7 +31,7 @@ dibekukan 24 detik, deret waktu di dashboard **tidak berlubang** (jeda maksimum
                                    │
                                    v
                       ┌──── publikasi(): GERBANG ────┐
-                      │ ayun_bersih_1s >= AMBANG_AYUN │
+                      │ ayun_bersih_1s >= THRESHOLD_SWING │
                       │ && !beat.sinyal_hilang        │
                       └──────────────┬────────────────┘
                                      v
@@ -60,7 +60,7 @@ kalibrasi (§3.1).
 | Broker + rule engine + dashboard | `dashboard/` (ThingsBoard CE) |
 | Kontrak payload (7 field, QoS 1, topic) | `dashboard/README.md`, `bab3.tex` |
 | Referensi kawat MQTT yang terbukti | `dashboard/smoke_test.py` |
-| Penilai kualitas sinyal | `gerbang.cpp` `gerbang_nilai_kualitas()`, `AMBANG_AYUN` |
+| Penilai kualitas sinyal | `gate.cpp` `gate_assess_quality()`, `THRESHOLD_SWING` |
 
 Modul MQTT **tidak menduplikasi satu pun** dari daftar itu. Yang ditambahkan
 hanya klien MQTT, ring backlog, dan gerbangnya.
@@ -71,15 +71,15 @@ hanya klien MQTT, ring backlog, dan gerbangnya.
 
 ### 3.1 Dua gerbang: fase kalibrasi, lalu kontak elektroda
 
-Penilaian kontak berjalan tiap detik di `nilai_kontak()` (dipanggil
-`gerbang_nilai_kualitas()` sesudah jendela 1 detik), fase kalibrasi dinilai per
-detak di `gerbang_nilai_fase()`:
+Penilaian kontak berjalan tiap detik di `assess_contact()` (dipanggil
+`gate_assess_quality()` sesudah jendela 1 detik), fase kalibrasi dinilai per
+detak di `gate_assess_phase()`:
 
 ```
 kontak (tiap detik)   LO+ = LO- = 0 sepanjang detik itu (diabaikan saat replay)
-                      dan ayun_bersih >= AMBANG_AYUN (60)
-                      dan dengung50 <= AMBANG_DENGUNG (500)
-KALIBRASI -> BAIK     kontak bertahan >= PEMANASAN_MS (60 detik, dihitung sejak
+                      dan ayun_bersih >= THRESHOLD_SWING (60)
+                      dan dengung50 <= THRESHOLD_HUM (500)
+KALIBRASI -> BAIK     kontak bertahan >= WARMUP_MS (60 detik, dihitung sejak
                       kontak terakhir terbentuk, bukan sejak boot)
                       dan RR 300-1500 ms dengan |dRR| <= 200 ms tenang 30 detik
                       dan kontak saat itu
@@ -117,7 +117,7 @@ Gerbang publikasi per detak:
 
 ```c
 if (!ecg_mqtt_aktif()) return;
-if (fase != FASE_BAIK)  { beat_ditahan++; return; }
+if (fase != PHASE_GOOD)  { beat_ditahan++; return; }
 if (beat.sinyal_hilang) { beat_ditahan++; return; }
 ```
 
@@ -139,15 +139,15 @@ pengumuman. Bypass itu **diturunkan dari sumber sinyal**, bukan disimpan sebagai
 flag:
 
 ```c
-if ((lewati_kalibrasi || replay || (hangat && rr_tenang)) && q.kontak)
-    fase = FASE_BAIK;
+if ((skip_calibration || replay || (hangat && rr_quiet)) && q.kontak)
+    fase = PHASE_GOOD;
 ```
 
 `replay` bernilai benar untuk kedua sumber replay, acuan maupun rekaman
 (`akuisisi_replay()` = sumber bukan ADC). Selama replay, gerbang waktu dan RR
 dilewati dan serial mencetak `GERBANG DILEWATI (replay)` saat fase berpindah.
 Kembali ke Sensor (ADC), lewat menu Sumber sinyal atau `y` kedua, memanggil
-`gerbang_mulai_sesi()` sehingga sinyal tubuh kembali ke `calibrating` dan
+`gate_begin_session()` sehingga sinyal tubuh kembali ke `calibrating` dan
 harus memenuhi gerbang penuh (kontak 60 detik + RR tenang 30 detik).
 Tidak ada keadaan tersisa dari replay yang bisa membuka gerbang untuk sinyal
 tubuh.
@@ -156,7 +156,7 @@ Toggle `k` (menu Kalibrasi → Lewati (bench)) adalah override manual untuk
 bench, terpisah dari replay: `k` ON melewati syarat pemanasan dan RR untuk
 jalur ADC (`GERBANG DILEWATI (bench)`), tetapi tidak melewati kontak (LO±,
 ayunan, dengung). Tanpa elektroda LO bernilai 1, jadi `k` tidak lagi membuka
-gerbang untuk derau ADC; uji meja tanpa elektroda memakai replay. `k` OFF memanggil `gerbang_mulai_sesi()` sehingga fase kembali ke `calibrating` dengan gerbang
+gerbang untuk derau ADC; uji meja tanpa elektroda memakai replay. `k` OFF memanggil `gate_begin_session()` sehingga fase kembali ke `calibrating` dengan gerbang
 penuh, termasuk bila fase sudah `good`. Status `k` terbaca di baris status
 (`lewati 0/1`, §4.4).
 
@@ -237,7 +237,7 @@ beat yang tertahan 40 detik di backlog tetap membawa waktu **kejadian**-nya.
 `millis()` saat beat keluar:
 
 ```c
-t.ms = t_sesi_ms + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
+t.ms = t_session_ms + (uint32_t)((uint64_t)beat.r_abs * 1000ULL / ECG_FS);
 ```
 
 Deteksi berjalan tiap 1 detik atas ring 4 detik sehingga beberapa beat keluar
@@ -383,7 +383,7 @@ Prasyarat: broker hidup (`docker compose up -d` di `dashboard/`) dan
 | 6 | buka `http://localhost:8080` | telemetri masuk di dashboard |
 
 **Kenapa replay lolos gerbang kontak tanpa perlakuan khusus di jalur publikasi:** ayunannya
-~2700 counts, jauh di atas `AMBANG_AYUN` 60, dengungnya ±10–19, dan status LO± diabaikan selama replay. Jadi dummy dan sinyal tubuh
+~2700 counts, jauh di atas `THRESHOLD_SWING` 60, dengungnya ±10–19, dan status LO± diabaikan selama replay. Jadi dummy dan sinyal tubuh
 melewati **gerbang per detak dan jalur publikasi yang sama persis** — tidak ada
 cabang `if (dummy)` di `publikasi()` maupun `ecg_mqtt.cpp`. Satu-satunya
 perlakuan replay adalah melewati gerbang kalibrasi selama replay menyala, dan
@@ -820,7 +820,7 @@ yang tidak padat dan laporkan n run — bukan tambal di firmware.
   ada karena INA219 belum berada di jalur arus alat
   ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5d).
 - **Sinyal tubuh.** Seluruh angka di dokumen ini diukur dengan replay. Dua hal
-  hanya dapat diuji dengan sinyal tubuh: (a) apakah `AMBANG_AYUN` 60 memisahkan
+  hanya dapat diuji dengan sinyal tubuh: (a) apakah `THRESHOLD_SWING` 60 memisahkan
   elektroda lepas dari sinyal tubuh lemah — replay ~2700 counts terlalu jauh di
   atas ambang; (b) **gerbang kalibrasi penuh** (kontak 60 detik + RR tenang 30
   detik) beserta publikasinya, yang dilewati replay karena record 208 memang

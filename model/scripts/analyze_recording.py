@@ -33,12 +33,12 @@ def denyut_autokorelasi(x, fs):
 
 
 JENDELA_AUTOKORELASI_S = 30
-ADC_ATAS, ADC_BAWAH = 4090, 5
+ADC_UPPER, ADC_LOWER = 4090, 5
 AMBANG_CLIPPING_PERSEN = 0.1
 
 
 def hitung_clipping(mentah):
-    n_clip = int((mentah >= ADC_ATAS).sum() + (mentah <= ADC_BAWAH).sum())
+    n_clip = int((mentah >= ADC_UPPER).sum() + (mentah <= ADC_LOWER).sum())
     persen = 100.0 * n_clip / len(mentah)
     return n_clip, persen, persen <= AMBANG_CLIPPING_PERSEN
 
