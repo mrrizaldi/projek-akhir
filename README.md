@@ -1,4 +1,6 @@
-# Final Project: Continuous Heart Rate Monitoring System (IoT Edge Computing)
+# Implementasi Sistem Monitoring Detak Jantung Kontinu Berbasis IoT Edge Computing untuk Deteksi Dini Aritmia
+
+*Final Project: Implementation of a Continuous Heart Rate Monitoring System Based on IoT Edge Computing for Early Arrhythmia Detection*
 
 Final Project monorepo for continuous ECG monitoring with arrhythmia classification
 **at the edge**. A single-lead ECG signal is acquired by the AD8232, processed and
