@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: confusion-matrix-dipisah
+expected_outcome: |
+  The table holds only metrics (or the confusion matrix is split out with a clear reason), because fig:cm-ds2 already exists. Uniform 4 decimals, Accuracy last, and the "bukan acuan" note in Keterangan, not in a cell. The explanatory paragraph repeats at most half of the table numbers.

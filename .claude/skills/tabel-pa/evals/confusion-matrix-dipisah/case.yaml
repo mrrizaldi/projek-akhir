@@ -1,4 +1,0 @@
-schema_version: "1.1"
-name: confusion-matrix-dipisah
-expected_outcome: |
-  Tabel hanya berisi metrik (atau confusion matrix dipisah dengan alasan jelas), karena fig:cm-ds2 sudah ada. Desimal seragam 4, Accuracy di urutan akhir, keterangan "bukan acuan" di Keterangan bukan di sel. Paragraf penjelas mengulang paling banyak setengah angka tabel.
