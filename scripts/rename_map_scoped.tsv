@@ -273,3 +273,15 @@ dashboard/ukur_pipeline.py	mulai	start_index
 model/scripts/pull_recording.py	mulai	started
 model/scripts/window_quality.py	mulai	start
 model/tests/test_plot_recording.py	mulai	window_start
+hardware/mainboard/check_board.py	gagal	failures
+hardware/mainboard/check_board.py	hasil	pin_nets
+hardware/mainboard/check_layout.py	batas	min_width
+hardware/mainboard/check_layout.py	gagal	failures
+hardware/mainboard/check_layout.py	lebar	track_widths
+hardware/mainboard/layout.py	batas	max_shift
+hardware/mainboard/layout.py	daftar	rotations
+hardware/mainboard/layout.py	gagal	failed
+hardware/mainboard/layout.py	hasil	placements
+hardware/mainboard/layout.py	lama	old_texts
+hardware/mainboard/layout.py	lebar	width_mm
+hardware/mainboard/layout.py	nomor	pad_number

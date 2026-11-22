@@ -32,27 +32,27 @@ def celah(a, c):
 
 def netclass_lookup():
     ns = json.loads(PRO.read_text())["net_settings"]
-    lebar = {c["name"]: c["track_width"] for c in ns["classes"]}
+    track_widths = {c["name"]: c["track_width"] for c in ns["classes"]}
     pola = [(p["pattern"], p["netclass"]) for p in ns["netclass_patterns"]]
 
     def kelas(net):
         return next((k for p, k in pola if fnmatch.fnmatchcase(net, p)), "Default")
 
-    return lebar, kelas
+    return track_widths, kelas
 
 
 def check_track_width(b):
-    lebar, kelas = netclass_lookup()
+    track_widths, kelas = netclass_lookup()
     temuan = []
     for t in b.GetTracks():
         if t.Type() == pcbnew.PCB_VIA_T:
             continue
         k = kelas(t.GetNetname())
         w = mm(t.GetWidth())
-        batas = lebar[k]
-        if w >= batas - 1e-6:
+        min_width = track_widths[k]
+        if w >= min_width - 1e-6:
             continue
-        temuan.append(f"{t.GetNetname()} {w:.2f} mm < {k} {batas} mm")
+        temuan.append(f"{t.GetNetname()} {w:.2f} mm < {k} {min_width} mm")
     return temuan
 
 
@@ -125,14 +125,14 @@ def check_text(b):
 
 def main():
     b = pcbnew.LoadBoard(str(PCB))
-    gagal = 0
+    failures = 0
     for nama, check_function in (("track width", check_track_width), ("courtyard gap", check_courtyard), ("text", check_text)):
         temuan = check_function(b)
         print(f"{nama}: {len(temuan)} findings")
         for t in temuan[:20]:
             print(f"  {t}")
-        gagal += bool(temuan)
-    return 1 if gagal else 0
+        failures += bool(temuan)
+    return 1 if failures else 0
 
 
 if __name__ == "__main__":
