@@ -21,41 +21,41 @@ class Board:
         while self.status()["rekam"] is None and time.time() < deadline:
             time.sleep(1.0)
 
-    def kirim(self, perintah, wait_s=1.0, until=None):
+    def kirim(self, command, wait_s=1.0, until=None):
         self.s.reset_input_buffer()
-        self.s.write(perintah.encode())
+        self.s.write(command.encode())
         self.s.flush()
-        sisa, baris, deadline = b"", [], time.time() + wait_s
+        remainder, received_lines, deadline = b"", [], time.time() + wait_s
         nudge_at = time.time() + NUDGE_AFTER_S if until else deadline
         while time.time() < deadline:
             if time.time() >= nudge_at:
                 self.s.write(NUDGE)
                 nudge_at = deadline
-            sisa += self.s.read(self.s.in_waiting or 1)
-            *lengkap, sisa = sisa.split(b"\n")
-            baris += [t for t in (x.decode(errors="replace").rstrip() for x in lengkap) if t]
-            if until and ada(baris, until):
+            remainder += self.s.read(self.s.in_waiting or 1)
+            *complete, remainder = remainder.split(b"\n")
+            received_lines += [t for t in (x.decode(errors="replace").rstrip() for x in complete) if t]
+            if until and ada(received_lines, until):
                 break
-        return baris
+        return received_lines
 
     def status(self):
-        teks = "\n".join(self.kirim("s", 1.0, r"sumber \w+ -?\d+ \| menu"))
-        def m(pola):
-            return (re.search(pola, teks) or [None, None])[1]
+        text = "\n".join(self.kirim("s", 1.0, r"sumber \w+ -?\d+ \| menu"))
+        def m(pattern):
+            return (re.search(pattern, text) or [None, None])[1]
         return {"rekam": m(r"rekam=(\d)"), "n": int(m(r"rekam=\d n=(\d+)") or -1),
                 "hilang": int(m(r"sampel hilang (\d+)") or -1), "lewati": m(r"lewati (\d)"),
                 "daya": m(r"daya (-?\d)"), "sumber": m(r"sumber (\w+)"),
                 "menu": m(r"menu (\d)"), "jeda": m(r"jeda (\d)")}
 
 
-def ada(baris, pola):
-    return any(re.search(pola, b) for b in baris)
+def ada(received_lines, pattern):
+    return any(re.search(pattern, b) for b in received_lines)
 
 
-def periksa(nama, conditions):
+def periksa(title, conditions):
     failed = [k for k, ok in conditions if not ok]
     hasil.append(not failed)
-    print(f"{'PASS' if not failed else 'FAIL'}  {nama}")
+    print(f"{'PASS' if not failed else 'FAIL'}  {title}")
     for k in failed:
         print(f"         x {k}")
 
@@ -95,11 +95,11 @@ def main():
 
         n0 = b.status()["n"]
         conditions = []
-        for cmd, pola in [("y", "change source"), ("V", "power sweep"), ("p3", "power mode"),
+        for cmd, pattern in [("y", "change source"), ("V", "power sweep"), ("p3", "power mode"),
                           ("k", "skip calibration"), ("w0\n", "change WiFi"),
                           ("b0\n", "change broker"), ("m", "WiFi")]:
-            o = b.kirim(cmd, 3.0, f"REJECTED: {pola}")
-            conditions.append((f"{cmd.strip()} -> 'REJECTED: {pola}'", ada(o, f"REJECTED: {pola}")))
+            o = b.kirim(cmd, 3.0, f"REJECTED: {pattern}")
+            conditions.append((f"{cmd.strip()} -> 'REJECTED: {pattern}'", ada(o, f"REJECTED: {pattern}")))
             conditions.append((f"{cmd.strip()} has no effect", not ada(o, r"^replay |^sweep: start|"
                                                                 r"^power: mode|not found, see|^wifi (ON|OFF)")))
         st = b.status(); lost_during_recording.append(st["hilang"])
@@ -139,13 +139,13 @@ def main():
         o = b.kirim("y", 2.0)
         o3 = b.kirim("t3", 1.5); o_r = b.kirim("r", 1.0)
         st = b.status()
-        o4 = b.kirim("y", 2.0); akhir = b.status()["sumber"]
+        o4 = b.kirim("y", 2.0); final_source = b.status()["sumber"]
         periksa("d. REPLAY 208 -> t3 / r rejected", [
             ("replay ON (golden_raw)", ada(o, r"replay ON \(golden_raw\)")),
             ("t3 -> 'REC only from the sensor'", ada(o3, r"REC only from the sensor")),
             ("r -> 'REC only from the sensor'", ada(o_r, r"REC only from the sensor")),
             ("rekam=0", st["rekam"] == "0"),
-            ("back to ADC (status sumber adc)", akhir == "adc")])
+            ("back to ADC (status sumber adc)", final_source == "adc")])
 
         b.kirim("T2", 1.5)
         o = b.kirim("r", 1.0); st = b.status()

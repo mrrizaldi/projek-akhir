@@ -39,44 +39,44 @@ def main() -> None:
         s.flush()
         deadline = time.time() + 15
         while time.time() < deadline:
-            baris = s.readline().decode(errors="replace").rstrip()
-            if baris:
-                print(baris)
-            if baris.startswith("SIMPAN"):
+            line = s.readline().decode(errors="replace").rstrip()
+            if line:
+                print(line)
+            if line.startswith("SIMPAN"):
                 break
 
     s.reset_input_buffer()
     s.write(f"d{file_number}\n".encode() if file_number else b"d")
     s.flush()
 
-    lines, mulai = [], False
+    lines, started = [], False
     deadline = time.time() + 60
     while time.time() < deadline:
-        baris = s.readline().decode(errors="replace").rstrip()
-        if not baris:
+        line = s.readline().decode(errors="replace").rstrip()
+        if not line:
             continue
-        if "---MULAI---" in baris:
-            mulai = True
+        if "---MULAI---" in line:
+            started = True
             continue
-        if "---SELESAI---" in baris:
+        if "---SELESAI---" in line:
             break
-        if mulai:
-            lines.append(baris)
+        if started:
+            lines.append(line)
     s.close()
 
     if not lines:
         sys.exit("No recording on the board. Press REC to record first.")
 
     os.makedirs(TUJUAN, exist_ok=True)
-    nama = datetime.datetime.now().strftime("%Y%m%d-%H%M")
+    name = datetime.datetime.now().strftime("%Y%m%d-%H%M")
     if file_number:
-        nama += f"-rekam-{file_number:03d}"
-    path = os.path.join(TUJUAN, f"{nama}.csv")
+        name += f"-rekam-{file_number:03d}"
+    path = os.path.join(TUJUAN, f"{name}.csv")
     with open(path, "w") as f:
         f.write("\n".join(lines) + "\n")
 
     print(f"\n{len(lines)} lines -> {path}")
-    print(f"{lines[0]}\n\nContinue with analysis:\n  .venv/bin/python scripts/analyze_recording.py {path} {nama}")
+    print(f"{lines[0]}\n\nContinue with analysis:\n  .venv/bin/python scripts/analyze_recording.py {path} {name}")
 
 
 if __name__ == "__main__":

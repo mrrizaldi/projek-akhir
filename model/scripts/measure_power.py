@@ -17,9 +17,9 @@ MODE_NAMES = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ 
         4: "+ UI (TFT, beep, LED)", 5: "+ WiFi/MQTT"}
 
 
-def tunggu(s, expected_text, detik):
-    akhir = time.time() + detik
-    while time.time() < akhir:
+def tunggu(s, expected_text, seconds):
+    deadline = time.time() + seconds
+    while time.time() < deadline:
         b = s.readline().decode("utf-8", "replace").rstrip()
         if b:
             print("  " + b)
@@ -48,41 +48,41 @@ def main():
     st = tunggu(s, "replay=", 3)
     if st is None:
         sys.exit("Board did not answer 's'.")
-    replay_awal = "replay=1" in st
-    if not replay_awal:
+    replay_was_on = "replay=1" in st
+    if not replay_was_on:
         s.write(b"y")
         if not tunggu(s, "replay ON", 3):
             sys.exit("Replay failed to turn on.")
 
-    baris = []
+    rows = []
     try:
         for m in map(int, a.mode):
             s.write(f"p{m}".encode())
             if not tunggu(s, f"power: mode p{m}", 3):
                 sys.exit(f"Mode p{m} was not confirmed by the board.")
-            dapat = 0
-            akhir = time.time() + (a.blocks + 3) * 10 + 5
-            while dapat <= a.blocks and time.time() < akhir:
+            received = 0
+            deadline = time.time() + (a.blocks + 3) * 10 + 5
+            while received <= a.blocks and time.time() < deadline:
                 b = s.readline().decode("utf-8", "replace").rstrip()
                 g = POWER_LINE_PATTERN.search(b)
                 if not g or int(g.group(1)) != m:
                     continue
                 print("  " + b)
-                dapat += 1
+                received += 1
                 if not a.force and float(g.group(5)) < 1.0:
                     sys.exit(f"\nBus voltage {g.group(5)} V: INA219 is not in the device current path "
                              "(VIN- is not connected to the flowing supply).\nNothing was "
                              "written. Build the measurement path as in docs/firmware-walkthrough.md "
                              "§5d Prosedur ukur daya, then repeat.")
-                if dapat == 1:
+                if received == 1:
                     continue
-                baris.append([datetime.datetime.now().isoformat(timespec="seconds"), m,
+                rows.append([datetime.datetime.now().isoformat(timespec="seconds"), m,
                               *g.groups()[1:]])
-            if dapat <= a.blocks:
-                sys.exit(f"Mode p{m}: only {dapat} windows received.")
+            if received <= a.blocks:
+                sys.exit(f"Mode p{m}: only {received} windows received.")
     finally:
         s.write(b"px")
-        if not replay_awal:
+        if not replay_was_on:
             time.sleep(0.6)
             s.write(b"y")
         s.close()
@@ -90,12 +90,12 @@ def main():
     os.makedirs(a.output, exist_ok=True)
     berkas = os.path.join(a.output, datetime.datetime.now().strftime("%Y%m%d-%H%M") + ".csv")
     with open(berkas, "w", newline="") as f:
-        csv.writer(f).writerows([COLUMNS] + baris)
+        csv.writer(f).writerows([COLUMNS] + rows)
     print(f"\nCSV: {berkas}\n")
 
     ring = {}
     for m in map(int, a.mode):
-        r = [x for x in baris if x[1] == m]
+        r = [x for x in rows if x[1] == m]
         i = [float(x[3]) for x in r]
         ring[m] = dict(I=statistics.mean(i), sd=statistics.stdev(i) if len(i) > 1 else 0.0,
                        V=statistics.mean(float(x[5]) for x in r),
@@ -103,23 +103,23 @@ def main():
                        beat=sum(int(x[7]) for x in r), lewat=sum(int(x[8]) for x in r))
     print(f"{'mode':<26}{'I (mA)':>16}{'V':>8}{'P (mW)':>9}{'delta I':>9}{'beat':>6}{'missed':>6}")
     failures = []
-    lalu = None
+    previous_mode = None
     for m, r in ring.items():
-        d = "" if lalu is None else f"{r['I'] - ring[lalu]['I']:+.2f}"
+        d = "" if previous_mode is None else f"{r['I'] - ring[previous_mode]['I']:+.2f}"
         print(f"p{m} {MODE_NAMES[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
               f"{d:>9}{r['beat']:>6}{r['lewat']:>6}")
         if m >= 1 and r["lewat"]:
             failures.append(f"p{m}: {r['lewat']} samples lost, load not representative")
         if m >= 2 and not r["beat"]:
             failures.append(f"p{m}: no beats, replay not running")
-        if lalu is not None:
-            dI, sd = r["I"] - ring[lalu]["I"], max(r["sd"], ring[lalu]["sd"])
+        if previous_mode is not None:
+            dI, sd = r["I"] - ring[previous_mode]["I"], max(r["sd"], ring[previous_mode]["sd"])
             if dI < 0:
-                failures.append(f"p{lalu}->p{m}: current dropped {dI:+.2f} mA (not monotonic)")
+                failures.append(f"p{previous_mode}->p{m}: current dropped {dI:+.2f} mA (not monotonic)")
             elif dI <= 2 * sd:
-                failures.append(f"p{lalu}->p{m}: difference {dI:+.2f} mA <= 2 x std {sd:.2f} "
+                failures.append(f"p{previous_mode}->p{m}: difference {dI:+.2f} mA <= 2 x std {sd:.2f} "
                              "(this stage is not yet measurable)")
-        lalu = m
+        previous_mode = m
     print("\nCheck: " + ("PASS" if not failures else "FAIL\n  " + "\n  ".join(failures)))
     sys.exit(1 if failures else 0)
 
