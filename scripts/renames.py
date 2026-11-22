@@ -27,6 +27,7 @@ SKIP = (
     "firmware/include/model_int8.h",
 )
 TEXT_SUFFIXES = {".md", ".sh", ".yml", ".yaml", ".ini", ".json", ".txt", ".inc", ""}
+ONE_OFF = ("scripts/rename_map.tsv", "scripts/glossary.tsv", "docs/2026-11-22-english-codebase.md")
 C_SUFFIXES = {".cpp", ".h", ".c"}
 FROZEN = {"WIFI_DAFTAR", "BROKER_DAFTAR"}
 C_TOKEN = re.compile(r'#include "[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*')
@@ -154,13 +155,36 @@ def is_text(name):
         return False
 
 
+def parameter_names(function):
+    spec = function.args
+    return {a.arg for a in spec.posonlyargs + spec.args + spec.kwonlyargs}
+
+
+def collect_parameters(tree, accepts):
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            accepts.setdefault(node.name, set()).update(parameter_names(node))
+        elif isinstance(node, ast.ClassDef):
+            for member in node.body:
+                if isinstance(member, (ast.FunctionDef, ast.AsyncFunctionDef)) and member.name == "__init__":
+                    accepts.setdefault(node.name, set()).update(parameter_names(member))
+
+
+def terminal_name(func):
+    if isinstance(func, ast.Name):
+        return func.id
+    if isinstance(func, ast.Attribute):
+        return func.attr
+    return None
+
+
 def guard(sources, every_py, pairs):
     ids = identifiers(pairs)
     errors = []
-    strings, params = set(), set()
+    strings, accepts = set(), {}
     for text in every_py.values():
         strings |= py_strings(text)
-        params |= {n.arg for n in ast.walk(ast.parse(text)) if isinstance(n, ast.arg)}
+        collect_parameters(ast.parse(text), accepts)
     pool = {"c": set(), "py": set()}
     used_all = {"c": set(), "py": set()}
     for path, text in sorted(sources.items()):
@@ -177,8 +201,11 @@ def guard(sources, every_py, pairs):
             if in_strings:
                 errors.append(f"{path}: names also in string literals {sorted(in_strings)}")
             for node in ast.walk(ast.parse(text)):
-                if isinstance(node, ast.keyword) and node.arg in used and node.arg not in params:
-                    errors.append(f"EXTERNAL-KWARG {path}:{node.lineno} {node.arg}")
+                if isinstance(node, ast.Call):
+                    callee = terminal_name(node.func)
+                    for keyword in node.keywords:
+                        if keyword.arg in used and keyword.arg not in accepts.get(callee, set()):
+                            errors.append(f"EXTERNAL-KWARG {path}:{keyword.lineno} {keyword.arg}")
     for language in pool:
         clash = {ids[k] for k in used_all[language]} & pool[language]
         if clash:
@@ -188,15 +215,23 @@ def guard(sources, every_py, pairs):
 
 def report_stale(pairs):
     keys = [k for k in pairs if not WORD.fullmatch(k)]
+    hits = 0
     if not keys:
-        return
+        return hits
     pattern = re.compile(r"(?:(?<=-D)|(?<![\w-]))(" + "|".join(map(re.escape, sorted(keys, key=len, reverse=True))) + r")(?![\w-])")
     for name in tracked(["."], skip=False, quiet=True):
-        if name in ("scripts/rename_map.tsv", "scripts/glossary.tsv"):
+        if name in ONE_OFF:
             continue
+        label = "stale-laporan" if name.startswith("laporan/") else "stale"
         for number, line in enumerate(read(name).split("\n"), 1):
             for match in pattern.finditer(line):
-                print(f"stale {name}:{number} {match.group(1)}")
+                print(f"{label} {name}:{number} {match.group(1)}")
+                hits += label == "stale"
+    return hits
+
+
+def stale(paths):
+    sys.exit(1 if report_stale(load_pairs(MAP)) else 0)
 
 
 def apply(paths):
@@ -223,8 +258,7 @@ def apply(paths):
         if new != text:
             write(name, new)
             print(f"renamed {name}")
-    report_stale(pairs)
-    sys.exit(0)
+    sys.exit(1 if report_stale(pairs) else 0)
 
 
 def leftovers(paths):
@@ -289,8 +323,6 @@ def same_python(rev_a, rev_b):
     compared = 0
     for old in files_a:
         new = counterpart(old, pairs)
-        if new not in files_b:
-            new = old
         if new not in files_b or new in claimed:
             failed = True
             print(f"UNPAIRED {old} -> None")
@@ -390,11 +422,12 @@ def same_firmware(rev_a, rev_b):
 COMMANDS = {
     "apply": lambda args: apply(args or ["."]),
     "leftovers": lambda args: leftovers(args or ["."]),
+    "stale": stale,
     "python": lambda args: same_python(*args),
     "firmware": lambda args: same_firmware(*args),
 }
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
-        sys.exit("usage: renames.py apply [paths] | leftovers [paths] | python <rev-a> <rev-b> | firmware <rev-a> <rev-b>")
+        sys.exit("usage: renames.py apply [paths] | stale | leftovers [paths] | python <rev-a> <rev-b> | firmware <rev-a> <rev-b>")
     COMMANDS[sys.argv[1]](sys.argv[2:])
