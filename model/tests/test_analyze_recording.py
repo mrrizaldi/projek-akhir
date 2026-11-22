@@ -7,10 +7,10 @@ from scripts.analyze_recording import (
 FS = 360
 
 
-def _synthetic_ecg(detik, phase, baseline):
-    t = np.arange(int(detik * FS)) / FS
+def _synthetic_ecg(seconds, phase, baseline):
+    t = np.arange(int(seconds * FS)) / FS
     x = np.full_like(t, baseline)
-    for tb in np.arange(phase, detik, 1.0):
+    for tb in np.arange(phase, seconds, 1.0):
         x += 1500 * np.exp(-0.5 * ((t - tb) / 0.012) ** 2)
     return x.astype(int)
 
@@ -22,10 +22,10 @@ def test_rr_does_not_cross_pause(tmp_path):
                       + "\n".join(map(str, s1)) + "\n# jeda\n"
                       + "\n".join(map(str, s2)) + "\n")
 
-    segmen, fs, _ = muat(str(berkas))
-    assert fs == FS and [len(s) for s in segmen] == [len(s1), len(s2)]
+    segments, fs, _ = muat(str(berkas))
+    assert fs == FS and [len(s) for s in segments] == [len(s1), len(s2)]
 
-    analyses = [analyze_segment(s, fs) for s in segmen]
+    analyses = [analyze_segment(s, fs) for s in segments]
     r, rr, *_ = combine(analyses, fs)
     assert all(len(h["r"]) > 10 for h in analyses)
     assert len(rr) == len(r) - 2
@@ -50,9 +50,9 @@ def test_long_autocorrelation_median_per_window():
 def test_clipping_judged_by_fraction_of_samples_at_firmware_rail():
     x = np.full(100000, 2000.0)
     x[:5] = 4093
-    n, persen, ok = compute_clipping(x)
+    n, percent, ok = compute_clipping(x)
     assert (n, ok) == (5, True)
     x[:200] = 4090
     x[200:201] = 5
-    n, persen, ok = compute_clipping(x)
-    assert n == 201 and persen > CLIPPING_PERCENT_THRESHOLD and not ok
+    n, percent, ok = compute_clipping(x)
+    assert n == 201 and percent > CLIPPING_PERCENT_THRESHOLD and not ok

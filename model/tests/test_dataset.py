@@ -33,8 +33,8 @@ def test_shape_and_count_conservation():
         assert not np.isnan(d["X_rr"]).any()
         assert set(np.unique(d["y"])) <= {0, 1}
     assert len(test["y"]) == 49656
-    lipat = JITTER_COPIES + 1
-    assert abs(len(train["y"]) - lipat * 50968) < 0.01 * lipat * 50968
+    multiplier = JITTER_COPIES + 1
+    assert abs(len(train["y"]) - multiplier * 50968) < 0.01 * multiplier * 50968
 
 
 def test_val_taken_per_patient_not_per_beat():

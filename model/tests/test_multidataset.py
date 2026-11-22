@@ -7,20 +7,20 @@ import pytest
 import config
 from src.dataset import split_train_test, record_int_id, available_records
 
-SEBARAN = {
+CLASS_COUNTS = {
     "svdb":     {"N": 162339, "S": 12198, "V":  9943, "F":  23, "Q": 79},
     "incartdb": {"N": 153676, "S":  1960, "V": 20013, "F": 219, "Q":  6},
 }
-N_RECORD_BERKELAS = {
+N_RECORDS_WITH_CLASS = {
     "svdb":     {"N": 78, "S": 73, "V": 67, "F":  6, "Q": 20},
     "incartdb": {"N": 75, "S": 36, "V": 70, "F": 22, "Q":  5},
 }
-JUMLAH_RECORD = {"svdb": 78, "incartdb": 75}
+RECORD_COUNT = {"svdb": 78, "incartdb": 75}
 
-SVDB_SEMUA = (
+SVDB_ALL = (
     [str(x) for x in range(800, 813)] + [str(x) for x in range(820, 830)]
     + [str(x) for x in range(840, 895)])
-INCART_SEMUA = [f"I{i:02d}" for i in range(1, 76)]
+INCART_ALL = [f"I{i:02d}" for i in range(1, 76)]
 
 HELDOUT_SVDB = ["800", "804", "808", "812", "823", "827", "841", "845", "849",
                 "853", "857", "861", "865", "869", "873", "877", "881", "885",
@@ -30,7 +30,7 @@ HELDOUT_INCART = ["I01", "I05", "I09", "I13", "I17", "I21", "I25", "I29", "I33",
                   "I73"]
 
 
-def _ada(db: str) -> bool:
+def _present(db: str) -> bool:
     return len(available_records(db)) > 0
 
 
@@ -55,15 +55,15 @@ def test_datasets_complete_and_consistent():
 
 
 def test_id_ranges_do_not_overlap():
-    rentang = {
+    id_ranges = {
         "mitdb": {record_int_id(r) for r in config.DS1 + config.DS2 + config.PACED_EXCLUDED},
-        "svdb": {record_int_id(r, "svdb") for r in SVDB_SEMUA},
-        "incartdb": {record_int_id(r, "incartdb") for r in INCART_SEMUA},
+        "svdb": {record_int_id(r, "svdb") for r in SVDB_ALL},
+        "incartdb": {record_int_id(r, "incartdb") for r in INCART_ALL},
     }
-    for a in rentang:
-        for b in rentang:
+    for a in id_ranges:
+        for b in id_ranges:
             if a < b:
-                assert not (rentang[a] & rentang[b]), f"id bertumpuk: {a} vs {b}"
+                assert not (id_ranges[a] & id_ranges[b]), f"id bertumpuk: {a} vs {b}"
 
 
 def test_record_int_id_maps_alphanumeric_names():
@@ -76,16 +76,16 @@ def test_record_int_id_maps_alphanumeric_names():
 
 
 def test_split_every_4th_deterministic():
-    for semua, heldout in [(SVDB_SEMUA, HELDOUT_SVDB), (INCART_SEMUA, HELDOUT_INCART)]:
-        train, test = split_train_test(semua)
+    for all_records, heldout in [(SVDB_ALL, HELDOUT_SVDB), (INCART_ALL, HELDOUT_INCART)]:
+        train, test = split_train_test(all_records)
         assert test == heldout, "aturan sorted()[::4] berubah — split tidak lagi sama"
         assert set(train) & set(test) == set(), "pasien bocor lintas split"
-        assert sorted(train + test) == sorted(semua), "ada record hilang/dobel"
-        assert 0.2 < len(test) / len(semua) < 0.3, "held-out harus ~25%"
+        assert sorted(train + test) == sorted(all_records), "ada record hilang/dobel"
+        assert 0.2 < len(test) / len(all_records) < 0.3, "held-out harus ~25%"
 
 
 def test_split_twice_same_result():
-    assert split_train_test(INCART_SEMUA) == split_train_test(INCART_SEMUA)
+    assert split_train_test(INCART_ALL) == split_train_test(INCART_ALL)
 
 
 def test_ds2_mitdb_untouched_by_phase_a():
@@ -98,33 +98,33 @@ def test_ds2_mitdb_untouched_by_phase_a():
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_class_distribution_matches_measured(db):
-    n_ada = len(available_records(db))
-    if n_ada == 0:
+    n_present = len(available_records(db))
+    if n_present == 0:
         pytest.skip(f"{db} belum di-download (python scripts/download_data.py {db})")
-    if n_ada < JUMLAH_RECORD[db]:
-        pytest.skip(f"{db} baru {n_ada}/{JUMLAH_RECORD[db]} record — download belum selesai")
+    if n_present < RECORD_COUNT[db]:
+        pytest.skip(f"{db} baru {n_present}/{RECORD_COUNT[db]} record — download belum selesai")
     import wfdb
 
-    per_kelas = collections.Counter()
-    per_kelas_record = collections.defaultdict(set)
+    per_class = collections.Counter()
+    records_per_class = collections.defaultdict(set)
     for rec in available_records(db):
         ann = wfdb.rdann(os.path.join(config.raw_dir(db), rec), "atr")
         for sym in ann.symbol:
             if sym in config.BEAT_SYMBOLS:
                 kelas = config.AAMI_MAP[sym]
-                per_kelas[kelas] += 1
-                per_kelas_record[kelas].add(rec)
+                per_class[kelas] += 1
+                records_per_class[kelas].add(rec)
 
-    assert len(available_records(db)) == JUMLAH_RECORD[db]
-    for kelas, n in SEBARAN[db].items():
-        assert per_kelas[kelas] == n, f"{db} kelas {kelas}: {per_kelas[kelas]} != {n}"
-        assert len(per_kelas_record[kelas]) == N_RECORD_BERKELAS[db][kelas], \
-            f"{db} kelas {kelas} tersebar di {len(per_kelas_record[kelas])} record"
+    assert len(available_records(db)) == RECORD_COUNT[db]
+    for kelas, n in CLASS_COUNTS[db].items():
+        assert per_class[kelas] == n, f"{db} kelas {kelas}: {per_class[kelas]} != {n}"
+        assert len(records_per_class[kelas]) == N_RECORDS_WITH_CLASS[db][kelas], \
+            f"{db} kelas {kelas} tersebar di {len(records_per_class[kelas])} record"
 
 
 @pytest.mark.parametrize("db", ["svdb", "incartdb"])
 def test_resample_contract(db):
-    if not _ada(db):
+    if not _present(db):
         pytest.skip(f"{db} belum di-download")
     from src.io_mitdb import load_record
     rec = available_records(db)[0]
@@ -135,31 +135,31 @@ def test_resample_contract(db):
     assert len(r) == len(sym), "R-peak & simbol harus tetap sejajar"
     assert np.all(np.diff(r) > 0), "R-peak harus urut menaik (RR > 0)"
     assert r.max() < len(signal), "indeks R keluar dari sinyal hasil resample"
-    durasi_asal = wfdb_sig_len(db, rec) / fs_source
-    assert abs(len(signal) / config.FS - durasi_asal) / durasi_asal < 0.01, \
-        f"durasi berubah: {len(signal)/config.FS:.1f}s vs {durasi_asal:.1f}s"
+    source_duration = wfdb_sig_len(db, rec) / fs_source
+    assert abs(len(signal) / config.FS - source_duration) / source_duration < 0.01, \
+        f"durasi berubah: {len(signal)/config.FS:.1f}s vs {source_duration:.1f}s"
 
 
 def test_align_puts_peak_at_win_pre():
     from src.preprocessing import align_r
     n = 4000
     x = np.zeros(n, dtype=np.float32)
-    anot = np.arange(400, n - 400, 400)
-    puncak = anot + 9
-    x[puncak] = 1.0
-    r = align_r(anot, x)
-    assert np.all(r == puncak - config.GROUP_DELAY_SAMPLES)
-    assert np.all(puncak - (r - config.WIN_PRE)
+    annotated = np.arange(400, n - 400, 400)
+    peaks = annotated + 9
+    x[peaks] = 1.0
+    r = align_r(annotated, x)
+    assert np.all(r == peaks - config.GROUP_DELAY_SAMPLES)
+    assert np.all(peaks - (r - config.WIN_PRE)
                   == config.WIN_PRE + config.GROUP_DELAY_SAMPLES)
 
 
 def test_align_does_not_jump_to_t_wave():
     from src.preprocessing import align_r
     x = np.zeros(2000, dtype=np.float32)
-    anot = np.array([500])
+    annotated = np.array([500])
     x[504] = 1.0
     x[504 + 90] = 3.0
-    assert align_r(anot, x)[0] == 504 - config.GROUP_DELAY_SAMPLES
+    assert align_r(annotated, x)[0] == 504 - config.GROUP_DELAY_SAMPLES
 
 
 def test_mitdb_never_aligned():
@@ -181,10 +181,10 @@ def test_build_split_multi_no_leak_and_ds2_intact():
         assert np.array_equal(h["ds2"][k], test_old[k]), f"ds2 {k} bergeser"
 
     r_train = set(np.unique(h["train"]["records"]))
-    for nama, d in h.items():
-        if nama == "train":
+    for name, d in h.items():
+        if name == "train":
             continue
-        assert not (set(np.unique(d["records"])) & r_train), f"bocor train <-> {nama}"
+        assert not (set(np.unique(d["records"])) & r_train), f"bocor train <-> {name}"
         n = len(d["y"])
         assert d["X_morph"].shape == (n, config.WIN_LEN, 1)
         assert not np.isnan(d["X_rr"]).any()
@@ -196,10 +196,10 @@ def test_val_stays_ds2_mirror_not_train_mirror():
 
     h = build_split_multi()
     _, val = split_train_val(h["train"])
-    rasio_val = float(val["y"].mean())
-    rasio_ds2 = float(h["ds2"]["y"].mean())
-    assert abs(rasio_val - rasio_ds2) < 0.03, \
-        f"VAL {rasio_val:.4f} vs DS2 {rasio_ds2:.4f} — kalibrasi threshold jadi bias"
+    val_ratio = float(val["y"].mean())
+    ds2_ratio = float(h["ds2"]["y"].mean())
+    assert abs(val_ratio - ds2_ratio) < 0.03, \
+        f"VAL {val_ratio:.4f} vs DS2 {ds2_ratio:.4f} — kalibrasi threshold jadi bias"
     assert set(np.unique(val["records"])) == set(config.VAL_RECORDS)
 
 
@@ -211,9 +211,9 @@ def test_incartdb_test_only_not_train():
 
     h = build_split_multi()
     assert "incartdb_test" in h, "TEST-C hilang — itu pemakaian terbaik incartdb"
-    latih_incart = {record_int_id(r, "incartdb")
+    incart_train = {record_int_id(r, "incartdb")
                     for r in split_train_test(available_records("incartdb"))[0]}
-    assert not (latih_incart & set(np.unique(h["train"]["records"]).tolist())), \
+    assert not (incart_train & set(np.unique(h["train"]["records"]).tolist())), \
         "porsi train incartdb bocor ke train"
 
 
@@ -222,7 +222,7 @@ def test_split_multi_rejects_half_built_database(monkeypatch):
     from src.dataset import build_split_multi
 
     db = next((d for d in ("svdb", "incartdb")
-               if _ada(d) and os.path.exists(
+               if _present(d) and os.path.exists(
                    os.path.join(config.PER_RECORD_DIR, f"{available_records(d)[0]}.npz"))), None)
     if db is None:
         pytest.skip("belum ada database tambahan yang ter-prep")
