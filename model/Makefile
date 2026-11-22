@@ -12,12 +12,12 @@ data-all: ## + svdb & incartdb (Phase A, ~1 GB) -> data/raw/<db>/
 	$(PY) scripts/download_data.py --all
 check: ## check .hea/.dat/.atr completeness
 	$(PY) scripts/check_dataset.py
-plot0: ## verify Phase 0 — annotated R-peak overlay (REC=<record>, default 100)
+plot0: ## verify Phase 0: annotated R-peak overlay (REC=<record>, default 100)
 	$(PY) scripts/plot_phase0.py $(REC)
 
-plot1: ## verify Phase 1a — raw vs bandpass (time domain + PSD)
+plot1: ## verify Phase 1a: raw vs bandpass (time domain + PSD)
 	$(PY) scripts/plot_phase1.py $(REC)
-plot1seg: ## verify Phase 1b — segmentation + per-window z-score
+plot1seg: ## verify Phase 1b: segmentation + per-window z-score
 	$(PY) scripts/plot_phase1_segment.py $(REC)
 
 data/processed/per_record/.stamp: config.py src/preprocessing.py src/features_rr.py

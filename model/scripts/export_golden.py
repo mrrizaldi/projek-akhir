@@ -53,7 +53,7 @@ def main() -> None:
     filtered_full = apply_bandpass(sig, sos)
     filtered = apply_bandpass(excerpts, sos)
     assert np.allclose(filtered, filtered_full[:N_SAMPLES], atol=1e-6), \
-        "filter is not causal — the test vector cannot stand alone"
+        "filter is not causal: the test vector cannot stand alone"
 
     idx = valid_beat_indices(len(sig), r)
     dipakai = [i for i in idx if r[i] - WIN_PRE >= 0 and r[i] + WIN_POST <= N_SAMPLES]

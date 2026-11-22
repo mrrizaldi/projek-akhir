@@ -96,7 +96,7 @@ def main() -> None:
     f = rule_features(Xm[:, :, 0], Xr)
     label = name_label(f, flagged, chosen_thresholds)
 
-    print(f"\n[{args.tag}] DS2 — what the device SHOWS vs the annotation truth")
+    print(f"\n[{args.tag}] DS2: what the device SHOWS vs the annotation truth")
     print(f"{'':14}" + "".join(f"{k:>10}" for k in ("N","S","V","F","Q")) + f"{'total':>8}")
     for set_name in ("Normal", "V", "tak dinamai"):
         sel = label == set_name

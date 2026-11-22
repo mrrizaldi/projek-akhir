@@ -149,7 +149,7 @@ def main() -> None:
     if strength <= 0.25:
         vonis = "NO clear pulse"
     elif rival_peaks > 2:
-        vonis = f"FALSE — {rival_peaks} equal peaks (periodic interference, not a pulse)"
+        vonis = f"FALSE: {rival_peaks} equal peaks (periodic interference, not a pulse)"
     else:
         vonis = "pulse PRESENT"
     windowed = any(h["n"] >= 2 * AUTOCORRELATION_WINDOW_S * fs for h in hasil)

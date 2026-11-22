@@ -54,7 +54,7 @@ def main() -> None:
     for db, lead in plan:
         recs = available_records(db)
         if not recs:
-            print(f"{db:10} {'-':6} no complete record yet — skipped")
+            print(f"{db:10} {'-':6} no complete record yet: skipped")
             continue
         asli = DATASETS[db]["leads"]
         nilai = []
@@ -78,7 +78,7 @@ def main() -> None:
             digest[f"{db}/{lead or asli[0]}"] = (a[:, 0].mean(), a[:, 1].mean(),
                                                  (a[:, 0] > 0).mean(), len(a))
 
-    print("\n── POLARITY verdict (from the RAW column — not from ALIGNED) ──")
+    print("\n── POLARITY verdict (from the RAW column, not from ALIGNED) ──")
     acuan = digest.get("mitdb/MLII", (None,))[0]
     for k, (mentah, selaras, konsisten, n) in digest.items():
         vonis = ""

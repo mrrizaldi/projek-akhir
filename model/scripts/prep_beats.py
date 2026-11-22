@@ -86,12 +86,12 @@ def main() -> None:
     rng = np.random.default_rng(SEED)
     ds1 = {str(r) for r in DS1}
 
-    print(f"augmentation: {args.jitter} x{args.copies} — DS1 mitdb only")
+    print(f"augmentation: {args.jitter} x{args.copies}: DS1 mitdb only")
     total_n = total_arr = total_drop = total_rec = 0
     for db in args.db:
         records = available_records(db)
         if not records:
-            print(f"\n[{db}] not downloaded — skipped (make data DB={db})")
+            print(f"\n[{db}] not downloaded: skipped (make data DB={db})")
             continue
         role = "" if db == "mitdb" else (
             f"  train {len(split_train_test(records)[0])} / held-out "

@@ -42,7 +42,7 @@ def training_pairs(db_list) -> list:
         n_expected = DATASETS[db]["n_record"]
         if len(tersedia) != n_expected:
             raise ValueError(
-                f"{db}: {len(tersedia)}/{n_expected} records — held-out `[::4]` would "
+                f"{db}: {len(tersedia)}/{n_expected} records: held-out `[::4]` would "
                 f"DIFFER. Finish the download first (see n_record in config.py)."
             )
         pasangan += [(db, r) for r in split_train_test(tersedia)[0]]
@@ -141,11 +141,11 @@ def main() -> None:
                     help="number of jittered copies on top of the clean copy")
     ap.add_argument("--epochs", type=int, default=None)
     ap.add_argument("--seed", type=int, default=SEED,
-                    help="repeat the same variant with another seed — an F1 difference "
+                    help="repeat the same variant with another seed: an F1 difference "
                          "of a few points can be initialization noise only")
     ap.add_argument("--no-class-weight", action="store_true",
                     help="ablation K1/T1: class_weight=None. The locked value "
-                         "(balanced) is unchanged — this is an ablation flag only.")
+                         "(balanced) is unchanged: this is an ablation flag only.")
     ap.add_argument("--swa", type=int, default=0, metavar="N",
                     help="ablation T7: average the weights of the N epochs with the best "
                          "val_auc instead of picking the argmax. 0 = locked path.")
@@ -155,7 +155,7 @@ def main() -> None:
     ap.add_argument("--cross-db", action="store_true",
                     help="T8: also measure on held-out svdb (TEST-B) and incartdb "
                          "(TEST-C), 39 patients. Threshold stays from VAL. Results "
-                         "go to a separate lintas_db.csv — the ablasi.csv schema does not shift.")
+                         "go to a separate lintas_db.csv: the ablasi.csv schema does not shift.")
     ap.add_argument("--db", nargs="+", default=["mitdb"], choices=list(DATASETS),
                     help="TRAINING databases. Default mitdb only = locked path, "
                          "byte-identical to the ablation before Phase A. DS2 stays "

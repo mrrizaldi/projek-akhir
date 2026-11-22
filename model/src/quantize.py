@@ -54,7 +54,7 @@ def assert_rhythm_scale_sane(blob: bytes, cutoff: float = MAX_RHYTHM_SCALE) -> f
         input_scale = float(d["quantization_parameters"]["scales"][0])
         if input_scale > cutoff:
             raise ValueError(
-                f"rhythm input quantization scale {input_scale:.4f} > threshold {cutoff} — "
+                f"rhythm input quantization scale {input_scale:.4f} > threshold {cutoff}: "
                 f"almost certainly a beat with an extreme RR entered the calibration pool "
                 f"(check |X_rr|.max(); record 207 has RR_prev = 100 s). The rhythm "
                 f"branch would die without an error: change the calibration SEED or filter "
