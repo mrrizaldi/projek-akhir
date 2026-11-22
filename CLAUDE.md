@@ -80,6 +80,14 @@ C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
    meninjau setelahnya. Satu revert lebih murah daripada agen yang tertahan.
    Push ke remote tetap hanya atas permintaan eksplisit.
 
+### Refactor
+10. Refactor commits must not change behavior; never mix with feature or bugfix changes.
+11. Each commit must leave all tests green.
+12. If the area lacks test coverage, stop and ask before refactoring. A rename-only
+    commit counts as covered when `python3 scripts/renames.py firmware|python <rev-a> <rev-b>`
+    passes. A commit that changes a string literal, CLI flag, make target or printed
+    text is not a refactor.
+
 ## Skill, muat sebelum mulai
 
 Skill sering tidak terpicu sendiri; muat skill di tabel ini sebelum mulai
@@ -105,7 +113,8 @@ atau diekstrak.
 1. **Non-destruktif.** Jangan hapus/pindah/rename file yang sudah ada. Semua
    pembuatan file pola "buat jika belum ada", jangan overwrite. Dokumen rencana
    dan alat sekali pakai yang selesai dihapus sesuai **Dokumentasi**, hanya
-   dengan persetujuan user.
+   dengan persetujuan user. Rename lewat `git mv` yang tercantum di rencana yang
+   disetujui user diperbolehkan.
 2. **`laporan/` read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
    jangan diutak-atik tanpa konfirmasi. Path relatif rapuh. Aturan detail
    (gaya tulis, konvensi tabel/gambar, struktur bab) ada di `laporan/CLAUDE.md`
@@ -199,10 +208,12 @@ terbukti tidak membeku jadi dogma.
   tidak dirujuk lagi.
 - **Yang usang dibuang dari dokumen aktif dan kode**, bukan ditandai "lama"
   (contoh: buzzer aktif yang sudah tidak dipakai).
-- **Bahasa:** Indonesia baku, ringkas; desimal koma (0,6594), ribuan titik
-  (85.812); istilah teknis Inggris tetap. Hal yang dijalankan (build, rekam,
-  flash, kalibrasi) ditulis sebagai prosedur: langkah bernomor, perintah di blok
-  kode, hasil yang diharapkan.
+- **Language:** English for everything developers and agents read: docs, README,
+  `CLAUDE.md` files, skills, commit messages, identifiers, file names, script output,
+  serial log text. Indonesian stays for `laporan/` text, `presentasi/`, TFT strings
+  and the data contracts frozen in `docs/2026-11-22-english-codebase.md`. English docs
+  use decimal point and comma thousands; laporan keeps decimal comma (0,6594) and dot
+  thousands (85.812).
 - **Berkas hasil** (rekaman, grafik) bernama ber-timestamp dan dikelompokkan per
   folder kategori, bukan nama generik seperti "percobaan".
 
@@ -270,6 +281,8 @@ env `native` = test di PC). Jalankan dari `firmware/`.
   repo bukan ilustrasi: rujuk berkas yang sudah di-export. Kalau belum ada →
   placeholder + sebut skrip penghasilnya, jangan tulis skrip plot baru tanpa diminta.
 - Label requirement `RM1..RM4` **TIDAK boleh muncul** di diagram apa pun.
+
+Larangan ini berlaku untuk `laporan/`. Dokumen dev di `docs/features/` boleh memuat Mermaid buatan Claude dengan nama nyata (fungsi, topik MQTT, berkas).
 
 ## Menulis laporan (progres / buku PA)
 
