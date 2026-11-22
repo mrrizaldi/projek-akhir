@@ -16,8 +16,8 @@ Reproduction:
 
 ```
 cd model
-python scripts/calibrate_threshold.py   # kalibrasi di VAL (DS1)
-make eval                               # evaluasi di DS2
+python scripts/calibrate_threshold.py   # calibrate on VAL (DS1)
+make eval                               # evaluate on DS2
 ```
 
 > **This is the most decisive phase in the entire PA.** The numbers here are the primary
@@ -29,15 +29,15 @@ make eval                               # evaluasi di DS2
 ## 0. An order that must not be reversed
 
 ```
-Fase 5 selesai → model_fp32.keras beku
+Phase 5 done → model_fp32.keras frozen
         │
         ▼
-calibrate_threshold.py   ← pakai VAL (5 record DS1). Threshold ditetapkan DI SINI.
+calibrate_threshold.py   ← uses VAL (5 DS1 records). The threshold is set HERE.
         │
-        ▼  config.THRESHOLD = 0.80   (dikunci)
+        ▼  config.THRESHOLD = 0.80   (locked)
         │
         ▼
-    make eval            ← DS2 dibuka. SEKALI. Dilapor apa adanya.
+    make eval            ← DS2 opened. ONCE. Reported as is.
 ```
 
 **The PRD trap (JEBAKAN) for Phase 6:** if the threshold is tuned by looking at DS2 results, DS2
@@ -264,9 +264,9 @@ flagged by stage 1, so it cannot change F1, only rename existing TP/FP.
 Its ceiling is the stage 1 recall. Only two axes:
 
 ```
-                  QRS sempit            QRS lebar
-prematur+jeda     S                     V (PVC prematur)
-tepat waktu       N / tak dinamai       V atau F
+                  narrow QRS            wide QRS
+premature+pause   S                     V (premature PVC)
+on time           N / unnamed           V or F
 ```
 
 - **F has no branch.** A fusion beat is a collision of normal and
