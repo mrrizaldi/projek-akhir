@@ -1,4 +1,4 @@
 schema_version: "1.1"
 name: format-rumah-pa
 expected_outcome: |
-  Proposals: decimal comma (98,2), remove the script name from the printed text, semicolon becomes a period or comma plus conjunction; one proposal per finding, waiting for confirmation, without rewriting the sentence content. Checkers cek_tabel.py and check_slop.py --summary.
+  Proposals: decimal comma (98,2), remove the script name from the printed text, semicolon becomes a period or comma plus conjunction; one proposal per finding, waiting for confirmation, without rewriting the sentence content. Checkers cek_tabel.py and check_slop.py in full form (without --summary).
