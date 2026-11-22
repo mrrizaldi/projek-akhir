@@ -379,7 +379,8 @@ def build(root, rev, where):
 def listing(obj):
     stripped = obj.with_name(obj.name + ".nodebug")
     run([OBJCOPY, "--strip-debug", "-R", ".comment", str(obj), str(stripped)])
-    lines = [line for line in run([OBJDUMP, "-dr", "-s", "-h", "-t", str(stripped)]).splitlines() if "file format" not in line]
+    dump = run([OBJDUMP, "-dr", "-s", "-h", "-t", str(stripped)]) + run([OBJDUMP, "-r", str(stripped)])
+    lines = [line for line in dump.splitlines() if "file format" not in line]
     text = re.sub(r"(_Z\w+)(\.str\d+\.\d+)", r"\1 \2", "\n".join(lines).replace("._Z", ". _Z"))
     text = re.sub(r"(_GLOBAL__sub_[ID]_)(?=[A-Za-z_])", r"\1 ", text)
     text = re.sub(r"(_Z[A-Za-z0-9_]+?)(\$\w+\$\d+)", r"\1 \2", text)
@@ -398,16 +399,37 @@ def renamed(text, ids):
     )
 
 
-def load_scoped():
+def firmware_sources():
+    found = set()
+    for pattern in ("firmware/src/*.cpp", "firmware/include/*.h", "firmware/test/**/*"):
+        found |= {p.name for p in Path(".").glob(pattern) if p.is_file()}
+    return found
+
+
+def load_scoped(pairs=None):
     scoped = {}
-    if SCOPED.exists():
-        for number, line in enumerate(read(SCOPED).split("\n"), 1):
-            if not line.strip():
-                continue
-            if line.count("\t") != 2:
-                sys.exit(f"{SCOPED}:{number}: need exactly two TABs")
-            source, old, new = line.split("\t")
-            scoped.setdefault(source, {})[old] = new
+    if not SCOPED.exists():
+        return scoped
+    pairs = load_pairs(MAP) if pairs is None else pairs
+    forbidden = set(pairs) | set(pairs.values())
+    sources = firmware_sources()
+    for number, line in enumerate(read(SCOPED).split("\n"), 1):
+        line = line.rstrip("\r")
+        if not line.strip():
+            continue
+        if line.count("\t") != 2:
+            sys.exit(f"{SCOPED}:{number}: need exactly two TABs")
+        source, old, new = line.split("\t")
+        if source not in sources:
+            sys.exit(f"{SCOPED}:{number}: {source} is not a firmware source file")
+        rows = scoped.setdefault(source, {})
+        if old in rows:
+            sys.exit(f"{SCOPED}:{number}: duplicate {source} {old}")
+        if new in rows.values():
+            sys.exit(f"{SCOPED}:{number}: {source}: two names become {new}")
+        if new in forbidden:
+            sys.exit(f"{SCOPED}:{number}: scoped target {new} equals a global key or target")
+        rows[old] = new
     return scoped
 
 
@@ -422,7 +444,7 @@ def scoped_ids(scoped, name, pairs):
 def same_firmware(rev_a, rev_b):
     pairs = load_pairs(MAP)
     ids = identifiers(pairs)
-    scoped = load_scoped()
+    scoped = load_scoped(pairs)
     root = run(["git", "rev-parse", "--show-toplevel"]).strip()
     work = Path(tempfile.mkdtemp())
     trees = [work / "a", work / "b"]
@@ -441,7 +463,7 @@ def same_firmware(rev_a, rev_b):
                 continue
             a = renamed(listing(objs_a[name]), {**ids, **scoped_ids(scoped, name, pairs)})
             b = listing(objs_b[target])
-            if [" ".join(l.split()) for l in a.splitlines()] == [" ".join(l.split()) for l in b.splitlines()]:
+            if [" ".join(l.split()) for l in a.splitlines() if l.strip()] == [" ".join(l.split()) for l in b.splitlines() if l.strip()]:
                 print(f"same {name} -> {target}")
             else:
                 failed = True
@@ -458,15 +480,90 @@ def same_firmware(rev_a, rev_b):
         shutil.rmtree(work, ignore_errors=True)
 
 
+TOKEN = re.compile(r'#include\s*"[^"]+"|"(?:\\.|[^"\\\n])*"|\'(?:\\.|[^\'\\\n])*\'|[A-Za-z_]\w*|\S')
+
+
+def revision_text(rev, path):
+    done = subprocess.run(["git", "show", f"{rev}:{path}"], capture_output=True, text=True)
+    return done.stdout if done.returncode == 0 else None
+
+
+def revision_sources(rev):
+    listing_ = run(["git", "ls-tree", "-r", "--name-only", rev, "--", "firmware/src", "firmware/include", "firmware/test"])
+    return [n for n in listing_.split() if n.endswith((".cpp", ".h")) and not n.endswith("model_int8.h")]
+
+
+def counterpart_path(path, pairs):
+    parts = Path(path).parts
+    return "/".join(pairs.get(part, part) if i < len(parts) - 1 else pairs.get(part, part) for i, part in enumerate(parts))
+
+
+def mapped_tokens(text, mapping, pairs):
+    out = []
+    for match in TOKEN.finditer(text):
+        token = match.group(0)
+        if token.startswith("#include"):
+            name = re.search(r'"([^"]+)"', token).group(1)
+            out.append(f'#include "{pairs.get(name, name)}"')
+        elif token[0] in "\"\'":
+            out.append(token)
+        else:
+            out.append(mapping.get(token, token))
+    return out
+
+
+def same_tokens(rev_a, rev_b):
+    pairs = load_pairs(MAP)
+    ids = identifiers(pairs)
+    scoped = load_scoped(pairs)
+    failed = False
+    paired = set()
+    for old in revision_sources(rev_a):
+        new = counterpart_path(old, pairs)
+        paired.add(new)
+        text_a, text_b = revision_text(rev_a, old), revision_text(rev_b, new)
+        if text_b is None:
+            failed = True
+            print(f"UNPAIRED {old} -> {new}")
+            continue
+        base_old, base_new = Path(old).name, Path(new).name
+        mapping = {**ids, **scoped.get(base_old, {}), **scoped.get(base_new, {})}
+        tokens_a = mapped_tokens(text_a, mapping, pairs)
+        tokens_b = [m.group(0) for m in TOKEN.finditer(text_b)]
+        if tokens_a != tokens_b:
+            failed = True
+            where = next((i for i, (x, y) in enumerate(zip(tokens_a, tokens_b)) if x != y), min(len(tokens_a), len(tokens_b)))
+            print(f"DIFF {old} -> {new} at token {where}: {tokens_a[where:where + 6]} vs {tokens_b[where:where + 6]}")
+            continue
+        names_a = [m.group(0) for m in TOKEN.finditer(text_a) if WORD.fullmatch(m.group(0)) and not m.group(0)[0].isdigit()]
+        names_b = [m.group(0) for m in TOKEN.finditer(text_b) if WORD.fullmatch(m.group(0)) and not m.group(0)[0].isdigit()]
+        forward, backward = {}, {}
+        for x, y in zip(names_a, names_b):
+            forward.setdefault(x, set()).add(y)
+            backward.setdefault(y, set()).add(x)
+        broken = [(k, v) for k, v in {**forward, **backward}.items() if len(v) > 1]
+        if broken:
+            failed = True
+            print(f"BIJECTION-FAIL {new}: {broken[:4]}")
+            continue
+        print(f"same {old} -> {new}")
+    for extra in revision_sources(rev_b):
+        if extra not in paired:
+            failed = True
+            print(f"UNPAIRED {extra}")
+    sys.exit(1 if failed else 0)
+
+
 COMMANDS = {
     "apply": lambda args: apply(args or ["."]),
     "leftovers": lambda args: leftovers(args or ["."]),
     "stale": stale,
     "python": lambda args: same_python(*args),
     "firmware": lambda args: same_firmware(*args),
+    "tokens": lambda args: same_tokens(*args),
 }
 
 if __name__ == "__main__":
     if len(sys.argv) < 2 or sys.argv[1] not in COMMANDS:
-        sys.exit("usage: renames.py apply [paths] | stale | leftovers [paths] | python <rev-a> <rev-b> | firmware <rev-a> <rev-b>")
+        sys.exit("usage: renames.py apply [paths] | stale | leftovers [paths] | python <rev-a> <rev-b> | firmware <rev-a> <rev-b> | tokens <rev-a> <rev-b>")
     COMMANDS[sys.argv[1]](sys.argv[2:])
