@@ -81,12 +81,14 @@ C. **Kalau tidak bisa diverifikasi, berhenti dan katakan.** Sebutkan persis apa
    Push ke remote tetap hanya atas permintaan eksplisit.
 
 ### Refactor
-10. Refactor commits must not change behavior; never mix with feature or bugfix changes.
-11. Each commit must leave all tests green.
-12. If the area lacks test coverage, stop and ask before refactoring. A rename-only
-    commit counts as covered when `python3 scripts/renames.py firmware|python <rev-a> <rev-b>`
-    passes. A commit that changes a string literal, CLI flag, make target or printed
-    text is not a refactor.
+10. **Refactor tanpa ubah perilaku.** Refactor commits must not change behavior; never mix with feature or bugfix changes.
+11. **Tiap commit hijau.** Each commit must leave all tests green.
+12. **Area tanpa test: berhenti dan tanya.** If the area lacks test coverage, stop and
+    ask before refactoring. A rename-only
+    commit (only identifiers and file names change, every string literal stays) counts
+    as covered when `python3 scripts/renames.py firmware <rev-a> <rev-b>` (C/C++) or
+    `python3 scripts/renames.py python <rev-a> <rev-b>` (Python) passes. A commit that
+    changes a string literal, CLI flag, make target or printed text is not a refactor.
 
 ## Skill, muat sebelum mulai
 
@@ -114,7 +116,7 @@ atau diekstrak.
    pembuatan file pola "buat jika belum ada", jangan overwrite. Dokumen rencana
    dan alat sekali pakai yang selesai dihapus sesuai **Dokumentasi**, hanya
    dengan persetujuan user. Rename lewat `git mv` yang tercantum di rencana yang
-   disetujui user diperbolehkan.
+   disetujui user diperbolehkan, kecuali di `laporan/` (tetap gate point).
 2. **`laporan/` read-only by default.** `.tex`, `.bib`, `bab/`, `gambar/`
    jangan diutak-atik tanpa konfirmasi. Path relatif rapuh. Aturan detail
    (gaya tulis, konvensi tabel/gambar, struktur bab) ada di `laporan/CLAUDE.md`
@@ -213,7 +215,9 @@ terbukti tidak membeku jadi dogma.
   serial log text. Indonesian stays for `laporan/` text, `presentasi/`, TFT strings
   and the data contracts frozen in `docs/2026-11-22-english-codebase.md`. English docs
   use decimal point and comma thousands; laporan keeps decimal comma (0,6594) and dot
-  thousands (85.812).
+  thousands (85.812). Things that are run (build, record, flash, calibrate) are
+  written as procedures: numbered steps, commands in code blocks, expected result.
+  Files not yet migrated stay as they are until their task in that plan runs.
 - **Berkas hasil** (rekaman, grafik) bernama ber-timestamp dan dikelompokkan per
   folder kategori, bukan nama generik seperti "percobaan".
 
@@ -269,7 +273,7 @@ env `native` = test di PC). Jalankan dari `firmware/`.
 
 ## Diagrams & gambar laporan
 
-- **Claude TIDAK membuat diagram/gambar ilustrasi sendiri**: tidak ada Mermaid,
+- **Claude TIDAK membuat diagram/gambar ilustrasi sendiri** (untuk `laporan/`; dokumen dev di `docs/features/` boleh memuat Mermaid buatan Claude dengan nama nyata): tidak ada Mermaid,
   TikZ, PlantUML, Graphviz, SVG/draw.io, skrip gambar baru, atau gambar AI.
   Di posisi gambar, taruh
   **placeholder** + kartu spesifikasi isi (jenis, pesan, elemen wajib, alur
@@ -281,8 +285,6 @@ env `native` = test di PC). Jalankan dari `firmware/`.
   repo bukan ilustrasi: rujuk berkas yang sudah di-export. Kalau belum ada →
   placeholder + sebut skrip penghasilnya, jangan tulis skrip plot baru tanpa diminta.
 - Label requirement `RM1..RM4` **TIDAK boleh muncul** di diagram apa pun.
-
-Larangan ini berlaku untuk `laporan/`. Dokumen dev di `docs/features/` boleh memuat Mermaid buatan Claude dengan nama nyata (fungsi, topik MQTT, berkas).
 
 ## Menulis laporan (progres / buku PA)
 
@@ -324,3 +326,5 @@ AFIB (keputusan user 19 Okt 2026, skill `struktur-pa` aturan 2).
 - Mengubah nilai final di `model/config.py` (FS, bandpass, window, label map)
   → milik user, konfirmasi dulu.
 - Push ke remote → hanya atas permintaan eksplisit.
+- Refactor di area tanpa test yang tidak bisa dibuktikan setara dengan
+  `scripts/renames.py` → tanya dulu (Aturan keras 12).
