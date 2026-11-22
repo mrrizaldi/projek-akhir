@@ -58,7 +58,8 @@ During a recording session (recording or paused) `y`, `p0`-`p5`, `V`, `k`, `w<n>
 ## Limits and out of scope
 
 - `read_number` blocks the loop for at most 1.5 s (three digits at 500 ms each) while waiting for digits; `p` waits up to 500 ms for its one character.
-- The text each command prints is diagnostic output, not an interface; the exceptions are the tokens `---MULAI---`, `---SELESAI---`, `SIMPAN` and `rekam=1` that the pull scripts parse.
+- The text each command prints is English diagnostic output, not an interface, except the tokens scripts parse, which stay byte for byte: `---MULAI---`, `---SELESAI---`, `SIMPAN` and the `DAYA` line (wire protocol); the three status lines, whose fields `pull_recording.py` (`rekam=1`), `record_flow_check.py`, `measure_power.py` and `dashboard/ukur_pipeline.py` read; and `replay ON`, `kualitas:`, `backlog:` and `epoch_ms`, which `dashboard/ukur_pipeline.py` matches. `record_flow_check.py` matches English lines (`REC start`, `REJECTED: <what>`, `menu: close`), so changing one of them changes the script in the same commit.
+- A reply can stay in the board's USB Serial/JTAG transmit buffer until the board prints something else. `record_flow_check.py` therefore sends `h` and a newline (it prints a usage hint and changes nothing) when the expected line has not arrived after 0.5 s.
 - The startup banner lists the available letters.
 
 **Code:** `firmware/include/serial_cmd.h` · `firmware/src/serial_cmd.cpp` · `model/scripts/pull_recording.py` · `model/scripts/pull_power.py` · `model/Makefile`

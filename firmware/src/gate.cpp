@@ -47,7 +47,7 @@ void gate_begin_session(void)
 
 void gate_set_skip(bool on)
 {
-    if (recorder_reject("lewati kalibrasi")) return;
+    if (recorder_reject("skip calibration")) return;
     skip_calibration = on;
     if (!on) gate_begin_session();
 }
@@ -72,9 +72,9 @@ void gate_assess_phase(const ecg_beat_t &beat)
     if ((skip_calibration || replay || (warm && rr_quiet)) && q.contact) {
         phase = PHASE_GOOD;
         display_sound(BEEP_CALIBRATION_MS);
-        Serial.printf("kualitas: calibrating -> good (%s, kontak %lu s, RR tenang %lu s, ayun %d, dengung %d)\n",
-                      replay ? "GERBANG DILEWATI (replay)"
-                      : skip_calibration ? "GERBANG DILEWATI (bench)" : "gerbang penuh",
+        Serial.printf("kualitas: calibrating -> good (%s, contact %lu s, calm RR %lu s, swing %d, hum %d)\n",
+                      replay ? "GATE SKIPPED (replay)"
+                      : skip_calibration ? "GATE SKIPPED (bench)" : "full gate",
                       (unsigned long)(gate_contact_ms() / 1000),
                       (unsigned long)((millis() - t_rr_violation) / 1000), q.swing_clean, q.hum50);
     }
@@ -89,7 +89,7 @@ static void assess_contact(void)
     if (phase == PHASE_CALIBRATION) return;
     const int next_phase = good ? PHASE_GOOD : PHASE_BAD;
     if (next_phase != phase)
-        Serial.printf("kualitas: %s -> %s (lepas %d, ayun %d, dengung %d)\n", gate_phase_name(),
+        Serial.printf("kualitas: %s -> %s (leadoff %d, swing %d, hum %d)\n", gate_phase_name(),
                       good ? "good" : "poor", (int)q.leadoff, q.swing_clean, q.hum50);
     phase = next_phase;
 }
@@ -99,9 +99,9 @@ void gate_report_calibration(const ecg_beat_t &beat)
     static uint32_t t_report;
     if (millis() - t_report <= 5000) return;
     t_report = millis();
-    Serial.printf("calibrating | RR=%.3fs dRR=%+.3fs | tenang %lu/%lu s | "
-                  "ayun %d (ambang %d) | dengung %d (ambang %d) | lepas %d | kontak %lu/%lu s | "
-                  "lewati=%d replay=%d\n",
+    Serial.printf("calibrating | RR=%.3fs dRR=%+.3fs | calm %lu/%lu s | "
+                  "swing %d (threshold %d) | hum %d (threshold %d) | leadoff %d | contact %lu/%lu s | "
+                  "skip=%d replay=%d\n",
                   beat.rr[0], beat.rr[2],
                   (unsigned long)((millis() - t_rr_violation) / 1000),
                   (unsigned long)(RR_QUIET_MS / 1000), q.swing_clean, THRESHOLD_SWING,
@@ -145,8 +145,8 @@ void gate_assess_quality(float raw)
     q.leadoff = n_leadoff > 0;
     assess_contact();
     if (report_quality)
-        Serial.printf("kualitas | mentah %4d..%4d | ayun %4d - dengung50 %4d = "
-                      "BERSIH %4d (ambang %d) | clipping %d | LO %d %d\n",
+        Serial.printf("quality | raw %4d..%4d | swing %4d - hum50 %4d = "
+                      "CLEAN %4d (threshold %d) | clipping %d | LO %d %d\n",
                       q.raw_min, q.raw_max, q.swing, q.hum50,
                       q.swing_clean, THRESHOLD_SWING,
                       (int)q.clipping, digitalRead(PIN_LOP), digitalRead(PIN_LON));

@@ -55,7 +55,7 @@ bool recorder_writing(void) { return writing; }
 bool recorder_reject(const char *what)
 {
     if (!active) return false;
-    Serial.printf("DITOLAK: %s selama sesi rekam, simpan dulu (tahan B3 / r)\n", what);
+    Serial.printf("REJECTED: %s during a recording session, save first (hold B3 / r)\n", what);
     return true;
 }
 int recorder_newly_saved(void) { return saved_number && millis() - t_saved < 3000 ? saved_number : 0; }
@@ -94,15 +94,15 @@ static int last()
 void recorder_prepare(void)
 {
     buf = (uint16_t *)ps_malloc(SESSION_N * sizeof(uint16_t));
-    if (!buf) Serial.println("PERINGATAN: PSRAM gagal, perekaman mentah nonaktif");
-    if (!LittleFS.begin(true)) { Serial.println("PERINGATAN: LittleFS gagal mount"); return; }
+    if (!buf) Serial.println("WARNING: PSRAM failed, raw recording disabled");
+    if (!LittleFS.begin(true)) { Serial.println("WARNING: LittleFS mount failed"); return; }
     LittleFS.mkdir(RECORDER_DIR);
     struct stat st;
     if (stat("/littlefs/rekaman.csv", &st) == 0 && !last()) {
         char p[24];
         file_name(1, p, sizeof p);
         if (LittleFS.rename("/rekaman.csv", p))
-            Serial.printf("rekam: /rekaman.csv lama dipindah ke %s\n", p);
+            Serial.printf("recorder: old /rekaman.csv moved to %s\n", p);
     }
 }
 
@@ -121,7 +121,7 @@ static bool open_part(int k)
     if (!writer.f) {
         writing = false;
         held_back = true;
-        Serial.printf("GAGAL membuka %s: bagian %d-%d tetap di PSRAM, ulangi simpan dengan r / tahan B3\n",
+        Serial.printf("FAILED to open %s: parts %d-%d kept in PSRAM, retry the save with r / hold B3\n",
                       writer.path, k + 1, writer.n_parts);
         display_message("GAGAL SIMPAN", "tekan r ulangi");
         return false;
@@ -151,16 +151,16 @@ static void close_write(bool failed)
     writer.f.close();
     const size_t file_size = LittleFS.open(writer.path, "r").size();
     const float percent = writer.n ? 100.0f * writer.leadoff / writer.n : 0.0f;
-    if (failed) Serial.printf("GAGAL: LittleFS penuh setelah %u sampel, %s terpotong\n",
+    if (failed) Serial.printf("FAILED: LittleFS full after %u samples, %s truncated\n",
                              (unsigned)writer.i, writer.path);
     if (file_size != writer.byte)
-        Serial.printf("PERINGATAN: %s berukuran %u B, tertulis %u B\n", writer.path, (unsigned)file_size,
+        Serial.printf("WARNING: %s is %u B on flash, %u B written\n", writer.path, (unsigned)file_size,
                       (unsigned)writer.byte);
-    Serial.printf("SIMPAN %u sampel (%.1f detik, %d segmen), %u terlewat, elektroda lepas %.0f%% -> %s\n",
+    Serial.printf("SIMPAN %u samples (%.1f s, %d segments), %u missed, electrode off %.0f%% -> %s\n",
                   (unsigned)writer.n, (float)writer.n / ECG_FS, writer.n_breaks + 1, writer.missed, percent,
                   writer.path);
     if (writer.leadoff > writer.n / 10)
-        Serial.println("PERINGATAN: elektroda lepas >10% — rekaman ini kemungkinan besar kosong.");
+        Serial.println("WARNING: electrode off >10%, this recording is most likely empty.");
     saved_number = writer.first_number + writer.part;
     t_saved = millis();
     writing = false;
@@ -197,9 +197,9 @@ static void save_session()
     missed_start[RECORDER_PART_MAX] = acquisition_missed();
     if (n_breaks && breaks[n_breaks - 1] >= n) n_breaks--;
     writer.n_parts = (int)((n + RECORDER_N - 1) / RECORDER_N);
-    if (!writer.n_parts) { Serial.println("REKAM: sesi kosong, tidak ada yang disimpan"); return; }
+    if (!writer.n_parts) { Serial.println("REC: empty session, nothing saved"); return; }
     writer.first_number = last() + 1;
-    Serial.printf("REKAM berhenti: %u sampel (%.1f detik), menulis %d berkas dari PSRAM\n", (unsigned)n,
+    Serial.printf("REC stopped: %u samples (%.1f s), writing %d files from PSRAM\n", (unsigned)n,
                   (float)n / ECG_FS, writer.n_parts);
     open_part(0);
 }
@@ -208,13 +208,13 @@ void recorder_service(void)
 {
     if (active && recorder_part() != part_reported) {
         part_reported = recorder_part();
-        Serial.printf("REKAM lanjut bagian %d (di PSRAM, ditulis saat berhenti)\n", part_reported);
+        Serial.printf("REC part %d (in PSRAM, written on stop)\n", part_reported);
     }
     if (stopped_full) {
         stopped_full = false;
         const bool has_room = part_max < RECORDER_PART_MAX;
-        Serial.printf("REKAM berhenti: batas sesi %d bagian (%u detik) tercapai%s\n", part_max,
-                      (unsigned)(session_limit / ECG_FS), has_room ? ", LittleFS tidak cukup untuk bagian berikutnya" : "");
+        Serial.printf("REC stopped: session limit of %d parts (%u s) reached%s\n", part_max,
+                      (unsigned)(session_limit / ECG_FS), has_room ? ", LittleFS cannot hold the next part" : "");
         display_message(has_room ? "RUANG PENUH" : "BATAS SESI", "menyimpan...");
         save_session();
     }
@@ -238,13 +238,13 @@ void recorder_toggle(void)
     const int last_number = last();
     part_max = (int)min<size_t>(RECORDER_PART_MAX, free_space() / FULL_FILE_SPACE);
     part_max = min(part_max, RECORDER_NUMBER_MAX - last_number);
-    const char *reject = acquisition_source() != SOURCE_ADC ? "REKAM hanya dari sensor"
-                      : power_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
-                      : menu_is_open() ? "REKAM ditolak: tutup menu dulu"
-                      : writing ? "REKAM ditolak: masih menyimpan sesi sebelumnya"
-                      : !buf ? "REKAM ditolak: PSRAM tidak tersedia"
-                      : last_number >= RECORDER_NUMBER_MAX ? "REKAM ditolak: nomor rekaman habis, hapus dulu (h<n>)"
-                      : part_max <= 0 ? "REKAM ditolak: LittleFS penuh, tarik data dulu" : nullptr;
+    const char *reject = acquisition_source() != SOURCE_ADC ? "REC only from the sensor"
+                      : power_mode() >= 0 ? "REC rejected: power mode pN active ('p' = normal)"
+                      : menu_is_open() ? "REC rejected: close the menu first"
+                      : writing ? "REC rejected: still saving the previous session"
+                      : !buf ? "REC rejected: PSRAM not available"
+                      : last_number >= RECORDER_NUMBER_MAX ? "REC rejected: recording numbers used up, delete first (h<n>)"
+                      : part_max <= 0 ? "REC rejected: LittleFS full, pull the data first" : nullptr;
     if (reject) {
         Serial.println(reject);
         const bool waiting = writing;
@@ -262,18 +262,18 @@ void recorder_toggle(void)
     memset(missed_start, 0, sizeof missed_start);
     acquisition_zero_missed();
     active = true;
-    Serial.printf("REKAM mulai (maks %d bagian = %u detik)\n", part_max, (unsigned)(session_limit / ECG_FS));
+    Serial.printf("REC start (max %d parts = %u s)\n", part_max, (unsigned)(session_limit / ECG_FS));
 }
 
 void recorder_pause(void)
 {
-    if (!active) { Serial.println("REKAM: tidak sedang merekam"); return; }
+    if (!active) { Serial.println("REC: not recording"); return; }
     paused = !paused;
     if (paused && n && (!n_breaks || breaks[n_breaks - 1] < n)) {
         if (n_breaks < BREAKS_MAX) breaks[n_breaks++] = n;
-        else Serial.println("PERINGATAN: batas jeda penuh, segmen ini lebur dengan berikutnya");
+        else Serial.println("WARNING: pause limit reached, this segment merges with the next");
     }
-    Serial.printf("REKAM %s n=%u (%.1f detik)\n", paused ? "jeda" : "lanjut", (unsigned)n,
+    Serial.printf("REC %s n=%u (%.1f s)\n", paused ? "pause" : "resume", (unsigned)n,
                   (float)n / ECG_FS);
 }
 
@@ -284,7 +284,7 @@ bool recorder_dump(int number)
     char p[24];
     file_name(number, p, sizeof p);
     File f = number > 0 ? LittleFS.open(p, "r") : File();
-    if (!f) { Serial.println("Belum ada rekaman."); return false; }
+    if (!f) { Serial.println("No recording yet."); return false; }
     Serial.println("---MULAI---");
     while (f.available()) Serial.write(f.read());
     Serial.println("---SELESAI---");
@@ -298,7 +298,7 @@ bool recorder_delete(int number)
     char p[24];
     file_name(number, p, sizeof p);
     const bool ok = LittleFS.remove(p);
-    Serial.printf("rekam: hapus %s %s\n", p, ok ? "OK" : "GAGAL (tidak ada)");
+    Serial.printf("recorder: delete %s %s\n", p, ok ? "OK" : "FAILED (not found)");
     return ok;
 }
 
@@ -306,7 +306,7 @@ void recorder_print_list(void)
 {
     int numbers[LIST_MAX];
     const int k = recorder_list(numbers, LIST_MAX);
-    Serial.printf("rekam: %d berkas, LittleFS %u/%u KB\n", k,
+    Serial.printf("recorder: %d files, LittleFS %u/%u KB\n", k,
                   (unsigned)(LittleFS.usedBytes() / 1024), (unsigned)(LittleFS.totalBytes() / 1024));
     for (int i = 0; i < k; i++) {
         char p[24];

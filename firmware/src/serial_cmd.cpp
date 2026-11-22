@@ -88,13 +88,13 @@ void serial_cmd_service(void)
     else if (c == 'd') {
         const int n = read_number();
         if (!recorder_active()) recorder_dump(n);
-        else Serial.println("Sedang merekam.");
+        else Serial.println("Recording in progress.");
     }
     else if (c == 'l') recorder_print_list();
     else if (c == 'h') {
         const int n = read_number();
         if (n > 0) recorder_delete(n);
-        else Serial.println("h<n>: nomor rekaman, lihat 'l'");
+        else Serial.println("h<n>: recording number, see 'l'");
     }
     else if (c == 'y') acquisition_switch_source();
     else if (c == 'p') {
@@ -105,14 +105,14 @@ void serial_cmd_service(void)
     }
     else if (c == 'k') {
         gate_set_skip(!gate_skip());
-        Serial.printf("lewati gerbang kalibrasi %s (bench saja — bab3 menuntut "
-                      "stabilisasi 10-15 menit + RR tenang 30 s)\n",
+        Serial.printf("skip calibration gate %s (bench only: the method requires "
+                      "10-15 min of stabilisation + 30 s of calm RR)\n",
                       gate_skip() ? "ON" : "OFF");
     }
     else if (c == 'm') settings_set_wifi_active(!settings_wifi_active());
     else if (c == 'q') {
         gate_set_report(!gate_report());
-        Serial.printf("laporan kualitas %s\n", gate_report() ? "ON" : "OFF");
+        Serial.printf("quality report %s\n", gate_report() ? "ON" : "OFF");
     }
     else if (c == 's') status();
     else if (c == 'v' || c == 'V') {
@@ -124,19 +124,19 @@ void serial_cmd_service(void)
     else if (c == 'w') {
         const int n = read_number();
         if (n < 0) list_wifi();
-        else if (!settings_choose_wifi(n) && !recorder_active()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
+        else if (!settings_choose_wifi(n) && !recorder_active()) Serial.printf("wifi %d not found, see 'w'\n", n);
     }
     else if (c == 't' || c == 'T') {
         const uint32_t t0 = millis();
         while (!Serial.available() && millis() - t0 < WAIT_DIGIT_MS) {}
         const int n = Serial.peek() - '0';
-        if (n < 1 || n > 3) Serial.println("t<1-3> / T<1-3>: B1-B3 pendek / tahan");
+        if (n < 1 || n > 3) Serial.println("t<1-3> / T<1-3>: B1-B3 short / hold");
         else { Serial.read(); buttons_inject(n - 1, c == 'T' ? BUTTON_LONG : BUTTON_SHORT); }
     }
     else if (c == 'b') {
         const int n = read_number();
         if (n < 0) list_brokers();
-        else if (!settings_choose_broker(n) && !recorder_active()) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
+        else if (!settings_choose_broker(n) && !recorder_active()) Serial.printf("broker %d not found, see 'b'\n", n);
     }
 }
 #endif

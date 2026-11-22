@@ -42,14 +42,14 @@ const char *power_ina_text(void)
     if (ina_present && ina219_read(R_SHUNT, &mA, &V))
         snprintf(text, sizeof text, "I=%.1f mA V=%.3f V P=%.0f mW", mA, V, mA * V);
     else
-        snprintf(text, sizeof text, "tidak menjawab");
+        snprintf(text, sizeof text, "not responding");
     return text;
 }
 
 void power_set_mode(int m)
 {
     static bool wifi_off;
-    if (recorder_reject("mode daya")) return;
+    if (recorder_reject("power mode")) return;
     current_mode = m;
     acquisition_timer(m != 0);
     if (m >= 0 && m < 5) {
@@ -64,8 +64,8 @@ void power_set_mode(int m)
         wifi_off = false;
     }
     restart_window = true;
-    if (m < 0) Serial.println("daya: mode normal");
-    else       Serial.printf("daya: mode p%d, jendela %lu s\n", m, (unsigned long)(WINDOW_DURATION_MS / 1000));
+    if (m < 0) Serial.println("power: mode normal");
+    else       Serial.printf("power: mode p%d, window %lu s\n", m, (unsigned long)(WINDOW_DURATION_MS / 1000));
 }
 
 void power_service(void)
@@ -141,8 +141,8 @@ static void sweep_record(int n, double i, double sd, double v, unsigned beat, un
 {
     if (step < 0 || current_mode != step) return;
     const int k = step_window++;
-    Serial.printf("tangga: p%d jendela %d/%d%s\n", step, k + 1, POWER_BLOCK + 1,
-                  k ? "" : " (transien, dibuang)");
+    Serial.printf("sweep: p%d window %d/%d%s\n", step, k + 1, POWER_BLOCK + 1,
+                  k ? "" : " (transient, discarded)");
     if (!k || windows_n >= SWEEP_N * POWER_BLOCK) return;
     window_t &j = windows[windows_n++];
     const uint64_t ep = ecg_mqtt_epoch_ms();
@@ -163,21 +163,21 @@ static void begin_step(int m)
     step = m;
     step_window = 0;
     t_step = millis();
-    Serial.printf("tangga: langkah %d/%d (p%d), buang 1 + ambil %d jendela %lu s\n", m + 1,
+    Serial.printf("sweep: step %d/%d (p%d), discard 1 + keep %d windows of %lu s\n", m + 1,
                   SWEEP_N, m, POWER_BLOCK, (unsigned long)(WINDOW_DURATION_MS / 1000));
     power_set_mode(m);
 }
 
 void power_sweep_begin(void)
 {
-    if (recorder_reject("tangga daya")) return;
-    if (step >= 0) { Serial.println("tangga: sudah berjalan"); return; }
-    if (!ina_present) { Serial.println("tangga: INA219 tidak terdeteksi, batal"); return; }
+    if (recorder_reject("power sweep")) return;
+    if (step >= 0) { Serial.println("sweep: already running"); return; }
+    if (!ina_present) { Serial.println("sweep: INA219 not detected, cancelled"); return; }
     windows_n = results_n = 0;
     source_start = acquisition_source();
     recording_start = acquisition_source_recording();
     if (source_start != SOURCE_REFERENCE) acquisition_set_source(SOURCE_REFERENCE, 0, false);
-    Serial.printf("tangga: mulai, perkiraan %lu s\n",
+    Serial.printf("sweep: start, estimated %lu s\n",
                   (unsigned long)(SWEEP_N * (POWER_BLOCK + 1) * WINDOW_DURATION_MS / 1000));
     begin_step(0);
 }
@@ -187,7 +187,7 @@ static void finish(const char *cancel)
     step = -1;
     power_set_mode(-1);
     if (acquisition_source() != source_start) acquisition_set_source(source_start, recording_start, false);
-    if (cancel) Serial.printf("tangga: BATAL, %s\n", cancel);
+    if (cancel) Serial.printf("sweep: CANCELLED, %s\n", cancel);
 
     bool valid[SWEEP_N] = {};
     int failed = 0;
@@ -211,21 +211,21 @@ static void finish(const char *cancel)
         char reasons[4][72];
         int n_reasons = 0;
         if (vmin < 1.0)
-            snprintf(reasons[n_reasons++], 72, "V bus %.3f V < 1 V, INA219 tidak di jalur catu", vmin);
-        if (m >= 1 && missed) snprintf(reasons[n_reasons++], 72, "%u sampel hilang, beban tidak mewakili", missed);
-        if (m >= 2 && !beat) snprintf(reasons[n_reasons++], 72, "tidak ada beat, replay tidak berjalan");
+            snprintf(reasons[n_reasons++], 72, "V bus %.3f V < 1 V, INA219 not in the supply path", vmin);
+        if (m >= 1 && missed) snprintf(reasons[n_reasons++], 72, "%u samples lost, load not representative", missed);
+        if (m >= 2 && !beat) snprintf(reasons[n_reasons++], 72, "no beats, replay not running");
         if (m >= 1) {
             const power_row_t &l = results[m - 1];
             const double dI = h.i_ma - l.i_ma, sd = fmax(h.sd_ma, l.sd_ma);
-            if (dI < 0) snprintf(reasons[n_reasons++], 72, "arus turun %+.2f mA dari p%d", dI, m - 1);
+            if (dI < 0) snprintf(reasons[n_reasons++], 72, "current dropped %+.2f mA from p%d", dI, m - 1);
             else if (dI <= 2 * sd)
-                snprintf(reasons[n_reasons++], 72, "selisih %+.2f mA dari p%d <= 2 x sd %.2f", dI, m - 1, sd);
+                snprintf(reasons[n_reasons++], 72, "difference %+.2f mA from p%d <= 2 x sd %.2f", dI, m - 1, sd);
         }
-        for (int a = 0; a < n_reasons; a++) Serial.printf("tangga: TIDAK SAH p%d: %s\n", m, reasons[a]);
+        for (int a = 0; a < n_reasons; a++) Serial.printf("sweep: INVALID p%d: %s\n", m, reasons[a]);
         if (n_reasons) { valid[m] = false; failed++; }
         snprintf(h.mode, sizeof h.mode, valid[m] ? "p%d" : "p%d!", m);
         Serial.printf("tangga: p%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW %s\n", m, h.i_ma, h.sd_ma,
-                      h.v, h.p_mw, valid[m] ? "sah" : "TIDAK SAH");
+                      h.v, h.p_mw, valid[m] ? "valid" : "INVALID");
     }
     if (!windows_n) return;
 
@@ -233,7 +233,7 @@ static void finish(const char *cancel)
     char p[24];
     snprintf(p, sizeof p, "/daya/%03d.csv", number);
     File f = LittleFS.open(p, "w");
-    if (!f) { Serial.printf("tangga: GAGAL membuka %s\n", p); return; }
+    if (!f) { Serial.printf("sweep: FAILED to open %s\n", p); return; }
     f.println("waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah");
     for (int r = 0; r < windows_n; r++) {
         const window_t &j = windows[r];
@@ -244,29 +244,29 @@ static void finish(const char *cancel)
     f.close();
     last_file_number = number;
     const bool all_valid = !cancel && !failed && results_n == SWEEP_N;
-    Serial.printf("tangga: %s -> %s\n", all_valid ? "SAH" : "TIDAK SAH", p);
+    Serial.printf("sweep: %s -> %s\n", all_valid ? "VALID" : "INVALID", p);
 }
 
 void power_sweep_tick(void)
 {
     if (step < 0) return;
-    if (current_mode != step) { finish("mode diubah dari luar tangga"); return; }
+    if (current_mode != step) { finish("mode changed outside the sweep"); return; }
     if (step_window > POWER_BLOCK) {
         if (step < SWEEP_N - 1) begin_step(step + 1);
         else finish(nullptr);
     } else if (millis() - t_step > 2 * (POWER_BLOCK + 1) * WINDOW_DURATION_MS + 5000) {
-        finish("jendela tidak datang (INA219 tidak menjawab?)");
+        finish("window did not arrive (INA219 not responding?)");
     }
 }
 
 static void list_files(void)
 {
     File d = open_dir();
-    Serial.println("daya: berkas tangga");
+    Serial.println("power: sweep files");
     if (d && d.isDirectory())
         for (File f = d.openNextFile(); f; f = d.openNextFile())
             Serial.printf("  %3d  %5u B\n", atoi(f.name()), (unsigned)f.size());
-    Serial.println("daya: akhir daftar");
+    Serial.println("power: end of list");
 }
 
 bool power_serial(const char *c)
@@ -277,7 +277,7 @@ bool power_serial(const char *c)
     char p[24];
     snprintf(p, sizeof p, "/daya/%03d.csv", atoi(c + 1));
     File f = LittleFS.open(p, "r");
-    if (!f) { Serial.printf("daya: %s tidak ada, lihat 'v'\n", p); return true; }
+    if (!f) { Serial.printf("power: %s not found, see 'v'\n", p); return true; }
     Serial.println("---MULAI---");
     while (f.available()) Serial.write(f.read());
     Serial.println("---SELESAI---");

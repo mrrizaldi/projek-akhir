@@ -23,7 +23,7 @@ static diag_result_t result(bool pass, const char *fmt, ...)
     va_start(ap, fmt);
     vsnprintf(h.summary, sizeof h.summary, fmt, ap);
     va_end(ap);
-    Serial.printf("[diag] %s: %s\n", pass ? "LULUS" : "GAGAL", h.summary);
+    Serial.printf("[diag] %s: %s\n", pass ? "PASS" : "FAIL", h.summary);
     return h;
 }
 
@@ -65,7 +65,7 @@ diag_result_t diag_buzzer(void)
     if (fabsf(p - 0.5f) > 0.15f)
         return result(false, "Buzzer nada bukan kotak: LOW %d%%", percent);
 
-    Serial.println("DENGARKAN: tiga bip pendek.");
+    Serial.println("LISTEN: three short beeps.");
     for (int i = 0; i < 3; i++) {
         buzzer(true);
         delay(80);
@@ -94,7 +94,7 @@ diag_result_t diag_screen(void)
     tft.setTextColor(ST77XX_BLACK, ST77XX_YELLOW);
     tft.setCursor(80, 70);
     tft.print("TFT OK");
-    Serial.println("LIHAT LAYAR: pita merah-hijau-biru-putih dan tulisan \"TFT OK\".");
+    Serial.println("LOOK AT THE SCREEN: red, green, blue and white bands and the text \"TFT OK\".");
     delay(2000);
 
     const unsigned ms = (us + 500) / 1000;
@@ -132,7 +132,7 @@ diag_result_t diag_ina219(void)
     if (!ina219_read(R_SHUNT, &mA, &V) || !ina219_read_reg(INA219_REG_SHUNT, &sh)
         || !ina219_read_reg(INA219_REG_BUS, &bus))
         return result(false, "INA219 baca register gagal");
-    Serial.printf("INA219 mentah: shunt 0x%04X (%d x 10 uV) | bus 0x%04X, CNVR %d OVF %d\n",
+    Serial.printf("INA219 raw: shunt 0x%04X (%d x 10 uV) | bus 0x%04X, CNVR %d OVF %d\n",
                   sh, (int16_t)sh, bus, (bus >> 1) & 1, bus & 1);
 
     const int mV = (int)lroundf(V * 1000), iA = (int)lroundf(mA);
@@ -151,7 +151,7 @@ diag_result_t diag_button(uint32_t limit_ms)
     bool pressed[3], done[3] = {};
     uint32_t t_change[3] = {};
     for (int k = 0; k < 3; k++) pressed[k] = digitalRead(PIN_BTN[k]) == LOW;
-    Serial.printf("TEKAN B1, B2, B3 masing-masing sekali (batas %u ms).\n", (unsigned)limit_ms);
+    Serial.printf("PRESS B1, B2, B3 once each (limit %u ms).\n", (unsigned)limit_ms);
 
     int n = 0;
     const uint32_t t0 = millis();

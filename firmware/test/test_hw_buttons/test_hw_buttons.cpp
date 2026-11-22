@@ -6,7 +6,7 @@
 void test_pin_idle_high(void)
 {
     for (int k = 0; k < 3; k++)
-        TEST_ASSERT_EQUAL_MESSAGE(HIGH, digitalRead(PIN_BTN[k]), "tombol terbaca ditekan saat diam");
+        TEST_ASSERT_EQUAL_MESSAGE(HIGH, digitalRead(PIN_BTN[k]), "button reads pressed while idle");
 }
 
 void test_does_not_hang(void)

@@ -120,6 +120,13 @@ feature page. Pitfalls owned by one feature are on its page.
   100 ms. The on-chip calibration register is unused: `R_SHUNT` divides in
   software and is the calibration knob against a multimeter
   ([firmware walkthrough](../model/docs/firmware-walkthrough.md) §5d).
+- Serial output over the built-in USB Serial/JTAG (Arduino `HWCDC`) can stall
+  in the board's transmit buffer until the board prints again. Measured
+  23 Nov 2026: in `record_flow_check.py` scenario c the reply to `V` did not
+  reach the host within 3 s and came out only with the reply to the next
+  command; a newline sent by the host did not release it, a command that prints
+  (`h` without a number) did. Scripts that wait for a line send such a harmless
+  printing command instead of waiting longer.
 
 **Acquisition and pipeline**: ISR, queue, lost ticks and replay are in
 [acquisition](../docs/features/acquisition.md); beat emission, Pan-Tompkins

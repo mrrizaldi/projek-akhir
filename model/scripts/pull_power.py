@@ -74,7 +74,7 @@ def main() -> None:
         time.sleep(1.0)
         s.reset_input_buffer()
         s.write(b"v")
-        daftar = read_until(s, "daya: akhir daftar", 3)
+        daftar = read_until(s, "power: end of list", 3)
         if daftar:
             break
     if not daftar:

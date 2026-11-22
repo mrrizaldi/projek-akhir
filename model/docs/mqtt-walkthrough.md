@@ -95,13 +95,13 @@ the warm-up count starts again from zero when contact returns.
 While `calibrating`, **the CNN is not run** (bab3: *"inferensi CNN belum
 dijalankan"*, "CNN inference not yet run"), nothing is published, and the LED is lit blue. The detector
 keeps running; its RR is in fact what is used to assess eligibility. Serial prints the
-line `calibrating | RR=… dRR=… | tenang …/30 s | ayun … | dengung … | lepas … |
-kontak …/60 s` every 5 seconds.
+line `calibrating | RR=… dRR=… | calm …/30 s | swing … | hum … | leadoff … |
+contact …/60 s` every 5 seconds.
 
 After the monitoring phase begins, the phase alternates between `good` and `poor` every
 second according to contact (LO±, swing, hum), without waiting for a beat and without
-repeating the warm-up; serial prints `kualitas: good -> poor (lepas …, ayun …,
-dengung …)` and the reverse. Swing alone is not enough: in the morning session of 22 Oct 2026
+repeating the warm-up; serial prints `kualitas: good -> poor (leadoff …, swing …,
+hum …)` and the reverse. Swing alone is not enough: in the morning session of 22 Oct 2026
 swing stayed ≥ 1,400 and 97–100% of RR was plausible while hum spiked to 2,800
 and LO recorded the electrode as detached 41–62% per file. The hum threshold of 500 sits
 between the values of a clean session (per-minute median ≤ 370) and the spike of bad contact
@@ -145,7 +145,7 @@ if ((skip_calibration || replay || (warm && rr_quiet)) && q.contact)
 
 `replay` is true for both replay sources, reference and recording
 (`acquisition_replay()` = a source that is not ADC). During replay, the time and RR gates
-are skipped and serial prints `GERBANG DILEWATI (replay)` when the phase changes.
+are skipped and serial prints `GATE SKIPPED (replay)` when the phase changes.
 Returning to Sensor (ADC), through the "Sumber sinyal" menu or a second `y`, calls
 `gate_begin_session()` so that body signals return to `calibrating` and
 must meet the full gate (60 seconds of contact + 30 seconds of calm RR).
@@ -154,7 +154,7 @@ signal.
 
 The `k` toggle (the "Kalibrasi" → "Lewati (bench)" menu, i.e. Calibration → Skip (bench)) is a manual override for
 the bench, separate from replay: `k` ON skips the warm-up and RR conditions for the
-ADC path (`GERBANG DILEWATI (bench)`), but does not skip contact (LO±,
+ADC path (`GATE SKIPPED (bench)`), but does not skip contact (LO±,
 swing, hum). Without electrodes LO is 1, so `k` no longer opens the
 gate for ADC noise; bench tests without electrodes use replay. `k` OFF calls `gate_begin_session()` so that the phase returns to `calibrating` with the full
 gate, including when the phase is already `good`. The `k` status is read in the status line
@@ -170,7 +170,7 @@ The buzzer follows the phase: the beat beep is silent during `calibrating`, and 
 **Gated on signal quality, not on whether a beat exists.** The reason is measured and
 already in the pitfall list of `../CLAUDE.md`:
 
-> Without electrodes, the device fabricates arrhythmia: **~2 beats/second, 57% "ARITMIA"**.
+> Without electrodes, the device fabricates arrhythmia: **~2 beats/second, 57% "ARRHYTHMIA"**.
 > The Pan-Tompkins threshold is adaptive relative to the signal present, so "no
 > signal" is not a condition it recognizes: even 15 counts of noise has peaks.
 
@@ -353,11 +353,11 @@ The full format, servers other than the laptop, and SSID/IP/port troubleshooting
 | Key | Meaning | Output |
 |---|---|---|
 | **`y`** | **signal source: ADC ⇄ reference replay** (the "Sumber sinyal" menu chooses among all three sources, including recording replay) | `replay ON (golden_raw)` / `replay OFF (ADC)` |
-| **`m`** | **MQTT publication: on ⇄ off** | `mqtt ON` / `mqtt OFF` |
-| **`k`** | **skip the calibration gate** (bench only); OFF starts a new session with the full gate | `lewati gerbang kalibrasi ON` / `OFF` |
-| `q` | toggle the per-second quality report | `kualitas \| mentah … ayun … BERSIH …` |
+| **`m`** | **MQTT publication: on ⇄ off** | `wifi ON (saved)` / `wifi OFF (saved)` |
+| **`k`** | **skip the calibration gate** (bench only); OFF starts a new session with the full gate | `skip calibration gate ON` / `OFF` |
+| `q` | toggle the per-second quality report | `quality \| raw … swing … CLEAN …` |
 | `s` | instantaneous status (including MQTT) | see below |
-| `r` | record raw to LittleFS `/rekam/NNN.csv` (equivalent to button B3) | `REKAM mulai` / `SIMPAN … -> /rekam/NNN.csv` |
+| `r` | record raw to LittleFS `/rekam/NNN.csv` (equivalent to button B3) | `REC start` / `SIMPAN … -> /rekam/NNN.csv` |
 | `d` / `d<n>` | dump the last recording / number `<n>` over serial | `---MULAI--- … ---SELESAI---` |
 | `w` / `b` | WiFi / broker list; `w<n>` / `b<n>` chooses an entry | `wifi *0 …` / `broker *0 nama  IP:port` |
 
@@ -376,10 +376,10 @@ Prerequisites: the broker is up (`docker compose up -d` in `dashboard/`) and
 
 | Step | Action | Expected result on serial |
 |---|---|---|
-| 1 | boot, wait | `mqtt: WiFi "…" -> 192.168.x.x:1883`, then `mqtt: jam tersinkron, epoch_ms …` and `mqtt tersambung, backlog 0 beat` |
-| 2 | press `m` (if not yet ON) | `mqtt ON` |
+| 1 | boot, wait | `mqtt: WiFi "…" -> 192.168.x.x:1883`, then `mqtt: clock synced, epoch_ms …` and `mqtt connected, backlog 0 beats` |
+| 2 | press `m` (if not yet ON) | `wifi ON (saved)` |
 | 3 | press `y`, or the menu **Sumber sinyal → REPLAY 208** (Signal source → REPLAY 208) | `replay ON (golden_raw)`; yellow `RP 208` in the top right corner of the screen |
-| 4 | wait ~7 seconds | `kualitas: calibrating -> good (GERBANG DILEWATI (replay), …)`, then `beat …` lines start to appear |
+| 4 | wait ~7 seconds | `kualitas: calibrating -> good (GATE SKIPPED (replay), …)`, then `beat …` lines start to appear |
 | 5 | press `s` | `mqtt online \| terkirim N \| backlog 0/27000 …` |
 | 6 | open `http://localhost:8080` | telemetry arrives on the dashboard |
 
@@ -440,7 +440,7 @@ on the board ([`firmware-walkthrough.md`](firmware-walkthrough.md) §5c, "Teruku
 | Location of dummy data | **signal source (ADC)** | *dummy in the publisher*: bypasses the bandpass, detector, and inference. Only JSON + WiFi are tested, while this PA's claim is "classification at the edge". The closer the injection point is to the edge of the system, the more real code gets tested |
 | Form of toggle | **runtime (`y`, `m`)** | *compile-time `#ifdef DUMMY`*: two binaries, and what is demonstrated is not what is flashed for operation |
 | MQTT client | **written in-house, 4 packets** | *PubSubClient*: a CLAUDE.md gate point (do not add a dependency for something a few lines solve); the wire format is already proven in `smoke_test.py`; precedent in `ina219.cpp`, which also has no library. **If QoS 2, retained, or subscribe is needed, move to PubSubClient: that is the upper limit of this choice** |
-| Publication gate | **signal swing** | *whether a beat exists*: even noise produces beats, 57% "ARITMIA" |
+| Publication gate | **signal swing** | *whether a beat exists*: even noise produces beats, 57% "ARRHYTHMIA" |
 | `ts` | **event time** (`base + millis`) | *send time*: the backlog piles up in one second, and `smoke_test.py` still passes so it goes unnoticed |
 | Advancing the ring | **after PUBACK** | *at send time*: QoS 1 becomes decoration |
 | Ring full | **drop the oldest** | *reject the new one*: a monitoring device needs the last minute |

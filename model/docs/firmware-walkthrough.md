@@ -743,7 +743,7 @@ Its content is the same as `measure_power.py`, moved to `power.cpp`:
 then `v<n>` (default: the last file; `N=<n>` for others), saves to
 `model/artifacts/metrics/daya/<YYYYmmdd-HHMM>-board-NNN.csv`, and repeats
 validation with the `measure_power.py` criteria so that the board's and the laptop's assessments
-can be compared. The script exits with code 1 if any step is INVALID (TIDAK SAH).
+can be compared. The script exits with code 1 if any step is INVALID.
 
 ## 6. Device numbers
 

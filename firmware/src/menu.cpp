@@ -79,12 +79,12 @@ static void calibration_restart()
 {
     gate_begin_session();
     classifier_reset();
-    Serial.println("kalibrasi: sesi baru");
+    Serial.println("calibration: new session");
 }
 static void calibration_skip()
 {
     gate_set_skip(!gate_skip());
-    Serial.printf("lewati gerbang kalibrasi %s\n", on_off(gate_skip()));
+    Serial.printf("skip calibration gate %s\n", on_off(gate_skip()));
 }
 static const char *n_skip() { return on_off(gate_skip()); }
 static void calibration_status(row_t *b)
@@ -120,7 +120,7 @@ static void test_run(const char *name, diag_result_t (*f)(void))
     acquisition_timer(power_mode() != 0);
     int i;
     while (buttons_event(&i) != BUTTON_NONE) {}
-    Serial.printf("tes %s: %s | %s\n", name, test_result.pass ? "LULUS" : "GAGAL", test_result.summary);
+    Serial.printf("test %s: %s | %s\n", name, test_result.pass ? "PASS" : "FAIL", test_result.summary);
 }
 static diag_result_t button_10s()
 {
@@ -311,7 +311,7 @@ static void report()
         return;
     }
     const int n = count(t.h);
-    row_t s = "(kosong)";
+    row_t s = "(empty)";
     if (n) label(t.h, t.sel, s, sizeof s);
     Serial.printf("menu: %s [%d/%d] %s\n", t.h->title, n ? t.sel + 1 : 0, n, s);
 }
@@ -337,7 +337,7 @@ static void close_menu()
 {
     depth = -1;
     display_set_monitor(true);
-    Serial.println("menu: tutup");
+    Serial.println("menu: close");
 }
 
 static void back()

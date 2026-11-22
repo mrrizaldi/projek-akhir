@@ -50,7 +50,7 @@ electrodes → AD8232 → ESP32-S3 (360 Hz timer)
 
 The OUTPUT pin must be on **ADC1 (GPIO1–10)**; ADC2 (GPIO11–20) goes completely dead
 as soon as WiFi is on. A broken OUTPUT line leaves the ADC pin floating and picking up
-mains hum; the symptom is `dengung50` ~930 counts in the `q` report even though the
+mains hum; the symptom is `hum50` ~930 counts in the `q` report even though the
 electrodes are attached (see §7).
 
 This pin table is the acquisition part of the PCB rev1 pin map
@@ -103,7 +103,7 @@ swing_clean = swing_filtered − 0,342 × hum50_peak_to_peak
 ```
 
 This `swing_clean` value is what is judged against the threshold of 60, and what `q`
-prints as `BERSIH`. The peak-to-peak 50 Hz hum (`dengung50` in `q`)
+prints as `CLEAN`. The peak-to-peak 50 Hz hum (`hum50` in `q`)
 is judged against the threshold of 500, and LO± is judged detached if even one sample within
 that second shows detached.
 
@@ -139,8 +139,8 @@ ADC sensor is **never** skipped):
 | State | Warm-up & calm RR | Notes |
 |---|---|---|
 | source = ADC, `k` OFF | **fully applies** | the official recording condition |
-| source = reference replay or recording replay (the **Sumber sinyal** (Signal source) menu; `y` for reference replay) | **skipped automatically** while replay is active; LO± is also ignored | record 208 is arrhythmic and will never be calm in RR; a replayed recording is not an electrode contact that is stabilizing, so the stabilization condition is meaningless; both are without electrodes. Serial: `GERBANG DILEWATI (replay)`. The bypass disappears as soon as the source returns to Sensor (ADC) |
-| skip ON (`k`, or menu **Kalibrasi → Lewati (bench)** (Calibration → Skip (bench))) | skipped: **manual override for the bench** | serial: `GERBANG DILEWATI (bench)`. The contact condition still applies, so without electrodes the gate does not open. Turning it off starts a **new session**, so the full gate applies again from zero |
+| source = reference replay or recording replay (the **Sumber sinyal** (Signal source) menu; `y` for reference replay) | **skipped automatically** while replay is active; LO± is also ignored | record 208 is arrhythmic and will never be calm in RR; a replayed recording is not an electrode contact that is stabilizing, so the stabilization condition is meaningless; both are without electrodes. Serial: `GATE SKIPPED (replay)`. The bypass disappears as soon as the source returns to Sensor (ADC) |
+| skip ON (`k`, or menu **Kalibrasi → Lewati (bench)** (Calibration → Skip (bench))) | skipped: **manual override for the bench** | serial: `GATE SKIPPED (bench)`. The contact condition still applies, so without electrodes the gate does not open. Turning it off starts a **new session**, so the full gate applies again from zero |
 
 Do not record official data with `k` ON: the gate guarantees nothing.
 
@@ -182,20 +182,20 @@ when recording, and `B3 LANJUT` when paused, with the hint `tahan=SIMPAN`.
    so a previously chosen replay stays active after boot; change it via the
    menu **Sumber sinyal → Sensor (ADC)** (hold B2 to open the menu).
    Recording can only be started from the sensor: if the source is still replay, B3 and
-   serial `r` are rejected with `TOLAK` on the screen and `REKAM hanya dari sensor` on
+   serial `r` are rejected with `TOLAK` on the screen and `REC only from the sensor` on
    serial.
 2. Make sure signal quality is good: the LED is **green**, or during the calibration phase (blue)
-   `BERSIH ≥ 60` and `clipping 0` in the `q` report.
+   `CLEAN ≥ 60` and `clipping 0` in the `q` report.
 3. From the monitor screen (menu closed), press **B3** briefly (GPIO 6). The top right corner
    shows a running red `REC00:00`, and serial prints
-   `REKAM mulai`. The LED continues to show signal quality. While the menu is open, B3
-   is a navigation button and serial `r` is rejected (`REKAM ditolak: tutup menu
-   dulu`) so recording is always started from the monitor screen.
+   `REC start`. The LED continues to show signal quality. While the menu is open, B3
+   is a navigation button and serial `r` is rejected (`REC rejected: close the menu
+   first`) so recording is always started from the monitor screen.
 4. Sit still, arms resting, for **25 seconds**.
 5. If recording needs to be stopped temporarily (the subject moves, a cable
    is bumped), press **B3** briefly to pause. The screen shows a yellow `JEDA`
-   and serial prints `REKAM jeda n=<sampel> (<detik> detik)`. Press
-   **B3** briefly again to resume; serial prints `REKAM lanjut ...`.
+   and serial prints `REC pause n=<samples> (<seconds> s)`. Press
+   **B3** briefly again to resume; serial prints `REC resume ...`.
    The paused part is not stored, and the file records its boundary as a
    `# jeda` line.
 6. Hold **B3** until the long beep (800 ms) to stop and save, from either
@@ -203,18 +203,18 @@ when recording, and `B3 LANJUT` when paused, with the hint `tahan=SIMPAN`.
    the file name. Expected result on serial:
 
    ```
-   SIMPAN <n> sampel (<detik> detik, <k> segmen), 0 terlewat, elektroda lepas 0% -> /rekam/001.csv
+   SIMPAN <n> samples (<seconds> s, <k> segments), 0 missed, electrode off 0% -> /rekam/001.csv
    ```
 
-   If `PERINGATAN: elektroda lepas >10%` appears, the recording is most likely
+   If `WARNING: electrode off >10%` appears, the recording is most likely
    empty; repeat from step 1.
 
-**The menu and signal path are locked during a recording session.** From `REKAM mulai`
+**The menu and signal path are locked during a recording session.** From `REC start`
 until the file is saved, including while paused, holding B2 does not open the menu:
 the screen shows `TERKUNCI` / `tahan B3=simpan` for 2 seconds with a reject
-beep, and serial prints `DITOLAK: menu selama sesi rekam, simpan dulu (tahan
+beep, and serial prints `REJECTED: menu during a recording session, save first (hold
 B3 / r)`. Serial commands that change the signal path (`y`, `V`, `p0`–`p5`, `k`,
-`w<n>`, `b<n>`) are rejected with the same `DITOLAK: ...` message. With this lock
+`w<n>`, `b<n>`) are rejected with the same `REJECTED: ...` message. With this lock
 a single file never mixes sensor and replay, and never has a hole without a
 `# jeda` line (the device tests pause acquisition, the power ladder forces replay 208).
 To change the source, run tests, measure power, or change networks,
@@ -233,8 +233,8 @@ because every flash write holds off the acquisition interrupt and drops samples
 into files of 5 minutes of signal each (`RECORDER_SAMPLE_MAX` = 360 × 300 samples;
 paused time is not counted); the header of a continuation file contains `lanjutan=NNN
 celah=0`, and while recording the screen shows the total session time along with
-`bagian <k>`. The maximum session length is printed at the start (`REKAM mulai (maks 5
-bagian = 1500 detik)` with an empty LittleFS), so pull the data after each
+`bagian <k>`. The maximum session length is printed at the start (`REC start (max 5
+parts = 1500 s)` with an empty LittleFS), so pull the data after each
 subject ([recording](../../docs/features/recording.md)). If `lewat=`
 in the header is greater than 0, some samples were not captured in that file and the RR
 around them is not valid.
@@ -242,7 +242,7 @@ Each recording is stored as a newly numbered file (`/rekam/001.csv`, `002`,
 ...); the list is viewed with serial `l` and old files are deleted with `h<n>`.
 Stored recordings can be replayed on the board via the menu **Sumber sinyal
 → Replay rekaman** (Signal source → Replay recording); replay skips the `#` lines so segments are played
-back to back without a pause. The `elektroda lepas` (electrode detached) percentage comes from the LO+/LO− pins;
+back to back without a pause. The `electrode off` percentage comes from the LO+/LO− pins;
 a value of 0% is not a guarantee that there is a signal (LO is satisfied by a single low-impedance
 path), so the referee remains the swing in §6.
 
@@ -501,9 +501,9 @@ whether a biopotential exists; the SQI judges beat regularity on top of it.
 | `make pull` → "Tidak ada rekaman" (no recording) | never recorded and saved | record first (§3) |
 | hum > 200% | laptop USB plugged in while recording | power bank |
 | small amplitude, low hum | LA & RL swapped | swap yellow and green |
-| `dengung50` ~930 counts in `q` even though electrodes are attached | OUTPUT line broken, ADC pin floating | check the OUTPUT cable → GPIO1; make sure the pin is on ADC1 |
+| `hum50` ~930 counts in `q` even though electrodes are attached | OUTPUT line broken, ADC pin floating | check the OUTPUT cable → GPIO1; make sure the pin is on ADC1 |
 | swing stuck at 40–55 counts (noise floor, ~38 µV input-referred) | the AD8232 module header connection is not soldered / intermittent | solder the module header, record again |
-| `elektroda lepas 0%` but the recording is empty | LO satisfied by a single path (e.g. RL only) | judge from the swing, not from LO |
+| `electrode off 0%` but the recording is empty | LO satisfied by a single path (e.g. RL only) | judge from the swing, not from LO |
 | ADC absolute 0 | pin/line shorted or module unpowered | `s` on serial, look at the status |
 | LED blue all the time | calibration phase not yet passed (60 seconds contact + 30 seconds calm RR) | check **Kalibrasi → Status**: `Kontak 0/60 s` means contact has not formed (new electrodes, clip fully clamped); hum above 500 → use the power bank supply (22 Oct 2026 test: bad signal when plugged into the laptop USB, good with a power bank) |
 

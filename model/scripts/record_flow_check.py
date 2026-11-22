@@ -6,6 +6,8 @@ import time
 
 import serial
 
+NUDGE_AFTER_S = 0.5
+NUDGE = b"h\n"
 hasil = []
 
 
@@ -24,7 +26,11 @@ class Board:
         self.s.write(perintah.encode())
         self.s.flush()
         sisa, baris, deadline = b"", [], time.time() + wait_s
+        nudge_at = time.time() + NUDGE_AFTER_S if until else deadline
         while time.time() < deadline:
+            if time.time() >= nudge_at:
+                self.s.write(NUDGE)
+                nudge_at = deadline
             sisa += self.s.read(self.s.in_waiting or 1)
             *lengkap, sisa = sisa.split(b"\n")
             baris += [t for t in (x.decode(errors="replace").rstrip() for x in lengkap) if t]
@@ -74,28 +80,28 @@ def main():
         o = b.kirim("r", 1.0) + b.kirim("T2", 1.5)
         st = b.status(); lost_during_recording.append(st["hilang"])
         periksa("a. recording -> T2: menu locked", [
-            ("REKAM mulai printed", ada(o, r"^REKAM mulai")),
-            ("message 'DITOLAK: menu'", ada(o, r"DITOLAK: menu")),
+            ("REC start printed", ada(o, r"^REC start")),
+            ("message 'REJECTED: menu'", ada(o, r"REJECTED: menu")),
             ("menu not opened", not ada(o, r"^menu: MENU")),
             ("status menu 0, rekam=1", st["menu"] == "0" and st["rekam"] == "1")])
 
         o = b.kirim("j", 1.0) + b.kirim("T2", 1.5)
         st = b.status(); lost_during_recording.append(st["hilang"])
         periksa("b. pause -> T2: menu stays locked", [
-            ("REKAM jeda printed", ada(o, r"^REKAM jeda")),
-            ("message 'DITOLAK: menu'", ada(o, r"DITOLAK: menu")),
+            ("REC pause printed", ada(o, r"^REC pause")),
+            ("message 'REJECTED: menu'", ada(o, r"REJECTED: menu")),
             ("status menu 0, jeda 1", st["menu"] == "0" and st["jeda"] == "1")])
         b.kirim("j", 1.0)
 
         n0 = b.status()["n"]
         conditions = []
-        for cmd, pola in [("y", "ganti sumber"), ("V", "tangga daya"), ("p3", "mode daya"),
-                          ("k", "lewati kalibrasi"), ("w0\n", "ganti WiFi"),
-                          ("b0\n", "ganti broker"), ("m", "WiFi")]:
-            o = b.kirim(cmd, 1.2)
-            conditions.append((f"{cmd.strip()} -> 'DITOLAK: {pola}'", ada(o, f"DITOLAK: {pola}")))
-            conditions.append((f"{cmd.strip()} has no effect", not ada(o, r"^replay |^tangga: mulai|"
-                                                                r"^daya: mode|tidak ada, lihat|^wifi (ON|OFF)")))
+        for cmd, pola in [("y", "change source"), ("V", "power sweep"), ("p3", "power mode"),
+                          ("k", "skip calibration"), ("w0\n", "change WiFi"),
+                          ("b0\n", "change broker"), ("m", "WiFi")]:
+            o = b.kirim(cmd, 3.0, f"REJECTED: {pola}")
+            conditions.append((f"{cmd.strip()} -> 'REJECTED: {pola}'", ada(o, f"REJECTED: {pola}")))
+            conditions.append((f"{cmd.strip()} has no effect", not ada(o, r"^replay |^sweep: start|"
+                                                                r"^power: mode|not found, see|^wifi (ON|OFF)")))
         st = b.status(); lost_during_recording.append(st["hilang"])
         periksa("c. recording -> y/V/p3/k/w0/b0/m rejected", conditions + [
             ("sumber adc", st["sumber"] == "adc"), ("daya -1", st["daya"] == "-1"),
@@ -105,7 +111,7 @@ def main():
 
         b.kirim("j", 1.0); b.kirim("j", 2.0)
         st = b.status(); lost_during_recording.append(st["hilang"])
-        o = b.kirim("T3", 20.0, r"^SIMPAN|GAGAL")
+        o = b.kirim("T3", 20.0, r"^SIMPAN|FAILED")
         save_item = next((x for x in o if x.startswith("SIMPAN")), "")
         m = re.search(r"/rekam/(\d+)\.csv", save_item)
         file_number = int(m.group(1)) if m else None
@@ -128,7 +134,7 @@ def main():
         o2 = b.kirim("T3", 1.5); m0 = b.status()["menu"]
         periksa("g. after save: T2 opens menu, T3 leaves", [
             ("menu: MENU", ada(o, r"^menu: MENU")), ("menu 1", m1 == "1"),
-            ("menu: tutup", ada(o2, r"^menu: tutup")), ("menu 0", m0 == "0")])
+            ("menu: close", ada(o2, r"^menu: close")), ("menu 0", m0 == "0")])
 
         o = b.kirim("y", 2.0)
         o3 = b.kirim("t3", 1.5); o_r = b.kirim("r", 1.0)
@@ -136,8 +142,8 @@ def main():
         o4 = b.kirim("y", 2.0); akhir = b.status()["sumber"]
         periksa("d. REPLAY 208 -> t3 / r rejected", [
             ("replay ON (golden_raw)", ada(o, r"replay ON \(golden_raw\)")),
-            ("t3 -> 'REKAM hanya dari sensor'", ada(o3, r"REKAM hanya dari sensor")),
-            ("r -> 'REKAM hanya dari sensor'", ada(o_r, r"REKAM hanya dari sensor")),
+            ("t3 -> 'REC only from the sensor'", ada(o3, r"REC only from the sensor")),
+            ("r -> 'REC only from the sensor'", ada(o_r, r"REC only from the sensor")),
             ("rekam=0", st["rekam"] == "0"),
             ("back to ADC (status sumber adc)", akhir == "adc")])
 
@@ -145,7 +151,7 @@ def main():
         o = b.kirim("r", 1.0); st = b.status()
         b.kirim("T3", 1.5); m0 = b.status()["menu"]
         periksa("e. menu open -> r rejected", [
-            ("'REKAM ditolak: tutup menu dulu'", ada(o, r"REKAM ditolak: tutup menu dulu")),
+            ("'REC rejected: close the menu first'", ada(o, r"REC rejected: close the menu first")),
             ("rekam=0, menu 1", st["rekam"] == "0" and st["menu"] == "1"),
             ("menu closed again", m0 == "0")])
     finally:
@@ -153,7 +159,7 @@ def main():
         if st["menu"] == "1":
             b.kirim("T3", 1.5)
         if st["rekam"] == "1":
-            o = b.kirim("r", 20.0, r"^SIMPAN|GAGAL")
+            o = b.kirim("r", 20.0, r"^SIMPAN|FAILED")
             m = re.search(r"/rekam/(\d+)\.csv", " ".join(o))
             if m and file_number is None:
                 file_number = int(m.group(1))

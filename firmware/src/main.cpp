@@ -27,7 +27,7 @@ static void service_buttons()
         if (e == BUTTON_PRESS) display_sound(CLICK_MS);
         if (e == BUTTON_LONG) display_sound(BEEP_LONG_MS);
         if (e == BUTTON_SHORT || e == BUTTON_LONG)
-            Serial.printf("tombol B%d %s\n", i + 1, e == BUTTON_LONG ? "tahan" : "pendek");
+            Serial.printf("button B%d %s\n", i + 1, e == BUTTON_LONG ? "hold" : "short");
         if (menu_is_open()) { menu_button(i, e); continue; }
         if (e == BUTTON_SHORT) {
             if (i == 0) display_set_mute(!display_mute());
@@ -52,12 +52,12 @@ void setup()
         ECG_MQTT_QUEUE_TARGET * sizeof(ecg_mqtt_beat_t));
     if (ring) {
         ecg_mqtt_queue_attach(ring, ECG_MQTT_QUEUE_TARGET);
-        Serial.printf("backlog: %u beat di PSRAM (%u KB, %u entri x %u B)\n",
+        Serial.printf("backlog: %u beats in PSRAM (%u KB, %u entries x %u B)\n",
                       ECG_MQTT_QUEUE_TARGET,
                       (unsigned)(ECG_MQTT_QUEUE_TARGET * sizeof(ecg_mqtt_beat_t) / 1024),
                       ECG_MQTT_QUEUE_TARGET, (unsigned)sizeof(ecg_mqtt_beat_t));
     } else {
-        Serial.printf("PERINGATAN: PSRAM ring gagal, backlog turun ke %u beat\n",
+        Serial.printf("WARNING: PSRAM ring failed, backlog reduced to %u beats\n",
                       ECG_MQTT_QUEUE_MIN);
     }
     recorder_prepare();
@@ -69,14 +69,14 @@ void setup()
     tzset();
     acquisition_begin();
 
-    Serial.printf("\n=== MONITOR ARITMIA SIAP ===\n"
-                  "fs=%u Hz  antrean=%u  arena=%u B  threshold=%.2f\n"
-                  "tombol B1/B2/B3 = GPIO%d/%d/%d (bisu, beku, rekam/jeda/lanjut; tahan B3 = simpan, "
-                  "tahan B2 = menu)  |  serial: r/j/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
+    Serial.printf("\n=== ARRHYTHMIA MONITOR READY ===\n"
+                  "fs=%u Hz  queue=%u  arena=%u B  threshold=%.2f\n"
+                  "buttons B1/B2/B3 = GPIO%d/%d/%d (mute, freeze, record/pause/resume; hold B3 = save, "
+                  "hold B2 = menu)  |  serial: r/j/d/l/h/s/q/y/m/k/p/w/b/v/V/t/T\n"
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
                   ECG_FS, (unsigned)QUEUE_N, (unsigned)classifier_arena(),
                   classifier_threshold(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
-                  I2C_SDA, I2C_SCL, INA219_ADDRESS, power_ina_present() ? "siap" : "TIDAK TERDETEKSI",
+                  I2C_SDA, I2C_SCL, INA219_ADDRESS, power_ina_present() ? "ready" : "NOT DETECTED",
                   TFT_W, TFT_H, PIN_BUZZ, (unsigned)TONE_HZ);
 }
 

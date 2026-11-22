@@ -101,7 +101,7 @@ static bool attach_source(int s, int number)
         if (!recording_buf) recording_buf = (uint16_t *)ps_malloc(RECORDER_SAMPLE_MAX * sizeof(uint16_t));
         const size_t n = recording_buf ? recorder_load(number, recording_buf, RECORDER_SAMPLE_MAX) : 0;
         if (n < ECG_FS) {
-            Serial.printf("replay rekaman %d GAGAL dimuat (%u sampel)\n", number, (unsigned)n);
+            Serial.printf("replay recording %d FAILED to load (%u samples)\n", number, (unsigned)n);
             return false;
         }
         rp_n = n;
@@ -121,7 +121,7 @@ static bool attach_source(int s, int number)
 
 bool acquisition_set_source(int s, int number, bool save)
 {
-    if (recorder_reject("ganti sumber")) return false;
+    if (recorder_reject("change source")) return false;
     acquisition_timer(false);
     const bool ok = attach_source(s, number);
     acquisition_timer(true);
@@ -130,7 +130,7 @@ bool acquisition_set_source(int s, int number, bool save)
     gate_begin_session();
     classifier_reset();
     if (source == SOURCE_RECORDING)
-        Serial.printf("replay ON (rekaman %03d, %u sampel)\n", source_recording, (unsigned)rp_n);
+        Serial.printf("replay ON (recording %03d, %u samples)\n", source_recording, (unsigned)rp_n);
     else
         Serial.printf("replay %s\n", source == SOURCE_REFERENCE ? "ON (golden_raw)" : "OFF (ADC)");
     return true;

@@ -192,7 +192,7 @@ static void draw_middle()
     const bool synced = t.tm_year + 1900 > 2020;
     if (synced && !clock_logged) {
         clock_logged = true;
-        Serial.printf("jam: %02d:%02d:%02d WIB %d %s %d\n", t.tm_hour, t.tm_min, t.tm_sec,
+        Serial.printf("clock: %02d:%02d:%02d WIB %d %s %d\n", t.tm_hour, t.tm_min, t.tm_sec,
                       t.tm_mday, MONTHS[t.tm_mon], t.tm_year + 1900);
     }
 

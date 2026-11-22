@@ -148,11 +148,11 @@ void test_run_replay_without_lost_samples(void)
     timerEnd(timer);
     buzzer(false);
 
-    Serial.printf("diproses %u sampel, beat %d, cocok %d, benar %d, HR meleset %d, "
-                  "sampel hilang %u, loop terlama %u us\n",
+    Serial.printf("processed %u samples, beats %d, matched %d, correct %d, HR off %d, "
+                  "samples lost %u, longest loop %u us\n",
                   (unsigned)n_processed, beat_emitted, matched, prediction_correct, hr_mismatch,
                   (unsigned)n_missed, (unsigned)loop_max_us);
-    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0, n_missed, "antrean ISR penuh: loop (TFT/inferensi) terlalu lama");
+    TEST_ASSERT_EQUAL_UINT32_MESSAGE(0, n_missed, "ISR queue full: loop (TFT/inference) too slow");
 }
 
 void test_beat_detected_each_round(void)
@@ -162,13 +162,13 @@ void test_beat_detected_each_round(void)
 
 void test_hr_equals_annotation(void)
 {
-    TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, "terlalu sedikit beat cocok anotasi");
-    TEST_ASSERT_EQUAL_MESSAGE(0, hr_mismatch, "HR beda > 3 bpm dari RR anotasi");
+    TEST_ASSERT_GREATER_THAN_MESSAGE(3, matched, "too few beats match the annotation");
+    TEST_ASSERT_EQUAL_MESSAGE(0, hr_mismatch, "HR differs > 3 bpm from the annotated RR");
 }
 
 void test_prediction_equals_pc(void)
 {
-    TEST_ASSERT_EQUAL_MESSAGE(matched, prediction_correct, "label alat beda dari label PC");
+    TEST_ASSERT_EQUAL_MESSAGE(matched, prediction_correct, "device label differs from the PC label");
 }
 
 void setUp(void) {}

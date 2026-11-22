@@ -27,7 +27,7 @@ void test_timer_360hz(void)
     delay(2000);
     timerAlarmDisable(timer);
     timerEnd(timer);
-    Serial.printf("timer: %u sampel ADC dalam 2 detik\n", (unsigned)n_isr);
+    Serial.printf("timer: %u ADC samples in 2 seconds\n", (unsigned)n_isr);
     TEST_ASSERT_UINT32_WITHIN(4, 2 * ECG_FS, n_isr);
 }
 

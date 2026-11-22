@@ -41,7 +41,7 @@ def main():
     s.port, s.baudrate, s.timeout = a.port, 115200, 0.2
     s.dtr = s.rts = False
     s.open()
-    tunggu(s, "MONITOR ARITMIA SIAP", 6)
+    tunggu(s, "ARRHYTHMIA MONITOR READY", 6)
     time.sleep(1.0)
 
     s.write(b"s")
@@ -58,7 +58,7 @@ def main():
     try:
         for m in map(int, a.mode):
             s.write(f"p{m}".encode())
-            if not tunggu(s, f"daya: mode p{m}", 3):
+            if not tunggu(s, f"power: mode p{m}", 3):
                 sys.exit(f"Mode p{m} was not confirmed by the board.")
             dapat = 0
             akhir = time.time() + (a.blocks + 3) * 10 + 5

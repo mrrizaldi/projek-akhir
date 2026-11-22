@@ -62,7 +62,7 @@ as printed by `printf("DAYA p%d n=%d I=%.2f sd=%.2f mA V=%.3f P=%.1f mW beat=%u 
 
 **Standalone sweep.** `power_sweep_begin` (`power.cpp:171`; menu item "Ukur daya" > "Mulai tangga p0-p5", or serial `V`) runs all six steps on the board without a laptop, so no USB cable powers the board. It needs the INA219 to be detected. If the signal source is the ADC it switches to the reference replay for the sweep and restores the source at the end. Each step discards its first window (transient) and keeps `POWER_BLOCK` (6) windows of 10 s, so the sweep lasts `SWEEP_N` x (`POWER_BLOCK` + 1) x 10 s = 420 s. `power_sweep_tick` (`power.cpp:250`) advances steps from `loop()` and cancels the sweep if a window does not arrive in time or the mode is changed from outside. The menu closes while the sweep runs so the `p4` step measures the real UI load; no button should be pressed.
 
-`finish` (`power.cpp:185`) averages the windows of each step and applies the validity rules; any failed rule prints a `TIDAK SAH` reason and a `!` suffix marks the step (`p3!`):
+`finish` (`power.cpp:185`) averages the windows of each step and applies the validity rules; any failed rule prints an `INVALID` reason and a `!` suffix marks the step (`p3!`):
 
 | Rule | Applies to |
 |---|---|

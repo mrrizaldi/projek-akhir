@@ -43,7 +43,7 @@ void classifier_begin(void)
 #endif
     interp = &it;
     if (interp->AllocateTensors() != kTfLiteOk) {
-        Serial.println("FATAL: AllocateTensors gagal");
+        Serial.println("FATAL: AllocateTensors failed");
         while (true) { display_led(64, 0, 0); delay(200); display_led(0, 0, 0); delay(200); }
     }
     TfLiteTensor *a = interp->input(0), *b = interp->input(1);
@@ -102,8 +102,8 @@ bool classifier_process(const ecg_beat_t &beat)
     h.total++;
     if (arrhythmia) h.arrhythmia++;
     const float bpm = (beat.rr[0] > 0.05f) ? 60.0f / beat.rr[0] : 0.0f;
-    Serial.printf("beat %4d  p=%.4f  %-7s  RR=%.3fs  %3.0f bpm\n",
-                  h.total, p, arrhythmia ? "ARITMIA" : "normal", beat.rr[0], bpm);
+    Serial.printf("beat %4d  p=%.4f  %-10s  RR=%.3fs  %3.0f bpm\n",
+                  h.total, p, arrhythmia ? "ARRHYTHMIA" : "normal", beat.rr[0], bpm);
     publish(beat, p, arrhythmia);
     return arrhythmia;
 }

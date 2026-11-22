@@ -59,7 +59,7 @@ static void apply_selection()
     const wifi_t &w = WIFI[i_wifi];
     const broker_t &b = BROKER[i_broker];
     ecg_mqtt_configure(w.ssid, w.pass, b.host, b.port, b.token);
-    Serial.printf("konfig: wifi %d/%d \"%s\" %s | broker %d/%d %s (%s:%u)\n",
+    Serial.printf("config: wifi %d/%d \"%s\" %s | broker %d/%d %s (%s:%u)\n",
                   i_wifi, N_WIFI, w.ssid, wifi_active ? "ON" : "OFF", i_broker, N_BROKER, b.name,
                   b.host, (unsigned)b.port);
 }
@@ -91,7 +91,7 @@ int settings_broker(void) { return i_broker; }
 
 bool settings_choose_wifi(int i)
 {
-    if (i < 0 || i >= N_WIFI || recorder_reject("ganti WiFi")) return false;
+    if (i < 0 || i >= N_WIFI || recorder_reject("change WiFi")) return false;
     i_wifi = i;
     write_stored("wifi", i);
     apply_selection();
@@ -114,13 +114,13 @@ bool settings_set_wifi_active(bool on)
         ecg_mqtt_set_active(0);
         esp_wifi_stop();
     }
-    Serial.printf("wifi %s (tersimpan)\n", on ? "ON" : "OFF");
+    Serial.printf("wifi %s (saved)\n", on ? "ON" : "OFF");
     return true;
 }
 
 bool settings_choose_broker(int i)
 {
-    if (i < 0 || i >= N_BROKER || recorder_reject("ganti broker")) return false;
+    if (i < 0 || i >= N_BROKER || recorder_reject("change broker")) return false;
     i_broker = i;
     write_stored("broker", i);
     apply_selection();

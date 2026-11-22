@@ -127,7 +127,7 @@ static size_t varlen(uint8_t *out, size_t n)
 
 static void disconnect(const char *reason)
 {
-    if (is_connected) Serial.printf("mqtt putus (%s)\n", reason);
+    if (is_connected) Serial.printf("mqtt disconnected (%s)\n", reason);
     sock.stop();
     is_connected = false;
     waiting_ack = waiting_connack = false;
@@ -167,7 +167,7 @@ static void send_connect()
     memcpy(packet + q, cid, lc); q += lc;
     packet[q++] = (uint8_t)(lu >> 8); packet[q++] = (uint8_t)(lu & 0xFF);
     memcpy(packet + q, user, lu); q += lu;
-    if (!send_all(packet, q)) { disconnect("write CONNECT tidak habis"); return; }
+    if (!send_all(packet, q)) { disconnect("CONNECT write incomplete"); return; }
 
     t_send = millis();
     waiting_connack = true;
@@ -180,13 +180,13 @@ static void poll_connack()
         sock.readBytes(ack, 4);
         waiting_connack = false;
         if (ack[0] != 0x20 || ack[3] != 0x00) {
-            Serial.printf("mqtt CONNACK ditolak kode %u\n", ack[3]);
+            Serial.printf("mqtt CONNACK rejected, code %u\n", ack[3]);
             disconnect("CONNACK");
             return;
         }
         is_connected = true;
         t_ping = millis();
-        Serial.printf("mqtt tersambung, backlog %u beat\n", (unsigned)ecg_mqtt_queue_n());
+        Serial.printf("mqtt connected, backlog %u beats\n", (unsigned)ecg_mqtt_queue_n());
         return;
     }
     if (millis() - t_send > 2000) disconnect("CONNACK timeout");
@@ -196,7 +196,7 @@ static bool send_batch(const ecg_mqtt_beat_t *b, size_t nb, uint64_t base)
 {
     char *payload = (char *)packet_buf + ECG_HDR_MAX;
     const size_t n = ecg_mqtt_payload(payload, sizeof packet_buf - ECG_HDR_MAX, b, nb, base);
-    if (!n) { failed++; disconnect("payload tidak muat"); return false; }
+    if (!n) { failed++; disconnect("payload does not fit"); return false; }
 
     const size_t lt = strlen(TOPIC);
     pid = (uint16_t)(pid % 65535) + 1;
@@ -213,7 +213,7 @@ static bool send_batch(const ecg_mqtt_beat_t *b, size_t nb, uint64_t base)
     uint8_t *start = packet_buf + ECG_HDR_MAX - q;
     memcpy(start, h, q);
 
-    if (!send_all(start, q + n)) { failed++; disconnect("write tidak habis"); return false; }
+    if (!send_all(start, q + n)) { failed++; disconnect("write incomplete"); return false; }
 
     packet_send++;
     t_ping = t_send = millis();
@@ -226,19 +226,19 @@ static void poll_incoming()
     while (sock.available() >= 2) {
         uint8_t h[2];
         if (sock.readBytes(h, 2) != 2) return;
-        if (h[1] & MQTT_LENGTH_CONTINUE) { disconnect("panjang sisa > 127"); return; }
+        if (h[1] & MQTT_LENGTH_CONTINUE) { disconnect("remaining length > 127"); return; }
         size_t rem = h[1];
 
         if ((h[0] & 0xF0) == MQTT_PUBACK && rem == 2) {
             uint8_t b[2];
-            if (sock.readBytes(b, 2) != 2) { disconnect("PUBACK pendek"); return; }
+            if (sock.readBytes(b, 2) != 2) { disconnect("short PUBACK"); return; }
             const uint16_t got = (uint16_t)((b[0] << 8) | b[1]);
             if (waiting_ack && got == pid) {
                 const uint32_t rtt = millis() - t_send;
                 if (rtt > rtt_max) rtt_max = rtt;
                 if (rtt > 1000) {
                     rtt_slow++;
-                    Serial.printf("mqtt: PUBACK lambat %lu ms (%u beat)\n",
+                    Serial.printf("mqtt: slow PUBACK %lu ms (%u beats)\n",
                                   (unsigned long)rtt, (unsigned)n_in_flight);
                 }
                 waiting_ack = false;
@@ -257,15 +257,15 @@ void ecg_mqtt_configure(const char *ssid, const char *pass, const char *host, ui
                    const char *token)
 {
     w_ssid = ssid; w_pass = pass; b_host = host; b_port = port; b_token = token;
-    disconnect("ganti target");
+    disconnect("target changed");
     t_try = 0;
 }
 
 void ecg_mqtt_begin(void)
 {
     if (!strlen(w_ssid)) {
-        Serial.println("mqtt NONAKTIF: include/wifi_secrets.h belum ada "
-                       "(salin dari wifi_secrets.example.h)");
+        Serial.println("mqtt DISABLED: include/wifi_secrets.h is missing "
+                       "(copy it from wifi_secrets.example.h)");
         active = false;
         return;
     }
@@ -284,7 +284,7 @@ static void sync_clock()
     if (tv.tv_sec < EPOCH_SNTP_MIN) return;
     const uint64_t now_ms = (uint64_t)tv.tv_sec * 1000ULL + (uint64_t)(tv.tv_usec / 1000);
     ts_base_ms = now_ms - (uint64_t)millis();
-    Serial.printf("mqtt: jam tersinkron, epoch_ms %llu\n", (unsigned long long)now_ms);
+    Serial.printf("mqtt: clock synced, epoch_ms %llu\n", (unsigned long long)now_ms);
 }
 
 uint64_t ecg_mqtt_epoch_ms(void)
@@ -309,7 +309,7 @@ void ecg_mqtt_service(void)
         t_try = millis();
         IPAddress ip;
         if (!ip.fromString(b_host)) {
-            Serial.printf("mqtt: host broker \"%s\" bukan alamat IP\n", b_host);
+            Serial.printf("mqtt: broker host \"%s\" is not an IP address\n", b_host);
             active = false;
             return;
         }
@@ -325,7 +325,7 @@ void ecg_mqtt_service(void)
     if (waiting_ack) {
         if (millis() - t_send > 5000) {
             failed++;
-            Serial.printf("mqtt: PUBACK timeout, %u beat terbang, %d byte menunggu dibaca\n",
+            Serial.printf("mqtt: PUBACK timeout, %u beats in flight, %d bytes waiting to be read\n",
                           (unsigned)n_in_flight, sock.available());
             disconnect("PUBACK timeout");
         }
@@ -347,7 +347,7 @@ void ecg_mqtt_service(void)
 }
 
 int ecg_mqtt_active(void) { return active ? 1 : 0; }
-void ecg_mqtt_set_active(int on) { active = on != 0; if (!on) disconnect("dimatikan"); }
+void ecg_mqtt_set_active(int on) { active = on != 0; if (!on) disconnect("switched off"); }
 uint32_t ecg_mqtt_sent(void) { return sent; }
 uint32_t ecg_mqtt_failed(void) { return failed; }
 uint32_t ecg_mqtt_packet_send(void) { return packet_send; }

@@ -7,7 +7,7 @@ static uint32_t ms_begin;
 
 void test_init_done(void)
 {
-    Serial.printf("perangkat_mulai: %u ms\n", (unsigned)ms_begin);
+    Serial.printf("board_begin: %u ms\n", (unsigned)ms_begin);
     TEST_ASSERT_LESS_THAN_UINT32(2000, ms_begin);
 }
 

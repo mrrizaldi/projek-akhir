@@ -83,17 +83,6 @@ Long write-ups go in a walkthrough or Bab 4 of the laporan, not here.
 List of things that are NOT finished and easy to forget. Items are dated; delete an item
 only after it is truly closed (record the closure in the related walkthrough).
 
-- **(22 Nov 2026) English serial log text needs the board connected.** The last
-  step of the English refactor (root `CLAUDE.md` §Documentation, Language rule):
-  translate the free-form `Serial.print*` text in `firmware/src` and
-  `firmware/test/test_hw_*`, keeping the frozen protocol tokens (`SIMPAN`,
-  `---MULAI---`, `---SELESAI---`, the `DAYA p..` line, `# fs=` header, `# jeda`)
-  byte for byte, and update the matching patterns in
-  `scripts/record_flow_check.py` and `scripts/pull_power.py` in the same commit.
-  Verify on the board: flash, run `scripts/record_flow_check.py`, `make pull` of a
-  short recording, and `pio test -e esp32-s3 -f test_hw_buttons -f test_hw_integration`.
-  It is a behavior change, not a refactor (Hard rule 12): its own commit, with the
-  board output as evidence. TFT strings stay Indonesian.
 - **(22 Nov 2026) A failed save can lose the unsaved parts of a session.** In
   `firmware/src/recorder.cpp`, a failed open (`open_part`, `:121-127`) sets
   `held_back = true`, so the next `r` retries the same part (`recorder_toggle`,
@@ -131,7 +120,7 @@ only after it is truly closed (record the closure in the related walkthrough).
   `p5` are run for now while plugged into USB. Closing, after the user
   sets the converter output to 5.0–5.1 V:
   1. Turn WiFi on: menu **Jaringan → WiFi aktif → ON** or serial `m`
-     (line `wifi ON (tersimpan)`).
+     (line `wifi ON (saved)`).
   2. Power on from the battery without USB: the screen lights up, the full calibration beep once,
      no repeated reset. Then plug in USB and check `s`: RSSI ≠ 0.
   3. Repeat the power ladder **without the TP4056 charger**, laptop on the same SSID
@@ -343,7 +332,7 @@ This table = the living version of PRD APPENDIX B. Fill it in the moment the gav
   `replay` goes back to `false` → the next measurement reports plausible numbers
   (2 beats/second) but from the wrong object (ADC noise, not replay).
 - **How the serial port is opened decides whether the board resets.** Symptom: the board
-  reboots (`=== MONITOR ARITMIA SIAP ===`) as soon as the script opens the port, the toggle
+  reboots (`=== ARRHYTHMIA MONITOR READY ===`) as soon as the script opens the port, the toggle
   that was "already pressed" is lost, and **the recording session in progress is lost
   entirely** (buffered in PSRAM until stopped). Measured 22 Oct 2026 on
   `/dev/ttyACM0` (ESP32-S3 USB-Serial-JTAG): the pattern `s.dtr = s.rts = False`
@@ -352,11 +341,11 @@ This table = the living version of PRD APPENDIX B. Fill it in the moment the gav
   touching DTR/RTS did not reset it 3 out of 3 times and the recording session survived
   (n 1,450 → 3,461 between two openings). `make pull` uses the default pattern, so it is
   safe. The DTR/RTS False pattern is used only when a clean boot is actually wanted
-  (`measure_power.py` waits for `MONITOR ARITMIA SIAP`; `pull_power.py` and
+  (`measure_power.py` waits for `ARRHYTHMIA MONITOR READY`; `pull_power.py` and
   `record_flow_check.py` wait for the board to answer). After opening the port,
   **verify the state** from the board's reply (`replay ON`, `rekam=1`, swing in
   `s`), do not assume it.
-- **Without electrodes, the device invents arrhythmia: ~2 beats/second, 57% "ARITMIA".**
+- **Without electrodes, the device invents arrhythmia: ~2 beats/second, 57% "ARRHYTHMIA".**
   Cause: the adaptive Pan-Tompkins threshold is relative to the signal that is present, so
   "no signal" is not a condition it recognizes: even 15 counts of noise has
   peaks. Consequence for HW-6: **MQTT publishing must be gated by the signal
