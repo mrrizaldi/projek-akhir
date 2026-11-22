@@ -345,8 +345,7 @@ serial `w<n>` / `b<n>` (index starting at 0) and stored in NVS; entry 0 is used
 if nothing has ever been chosen. The old single macros (`WIFI_SSID`, `WIFI_PASS`,
 `TB_HOST`, `TB_PORT`, `TB_TOKEN`) are still accepted as a one-entry list.
 The full format, servers other than the laptop, and SSID/IP/port troubleshooting:
-[`firmware/README.md`](../../firmware/README.md), the section Konfigurasi jaringan dan
-broker (Network and broker configuration).
+[network-settings](../../docs/features/network-settings.md).
 
 ### 4.2 Serial toggles
 

@@ -24,8 +24,7 @@ ThingsBoard di-self-host, bukan memakai `demo.thingsboard.io`, karena registrasi
 demo diarahkan ke ThingsBoard Cloud yang retensi telemetrinya dibatasi paket, dan
 uji resiliensi membutuhkan pemutusan broker secara terkendali tanpa memutus
 koneksi laptop. Pemindahan ke VPS hanya memerlukan penambahan entri broker di
-firmware ([`firmware/README.md`](../firmware/README.md) bagian Konfigurasi jaringan
-dan broker).
+firmware ([network-settings](../docs/features/network-settings.md)).
 
 ## Kontrak dengan firmware
 

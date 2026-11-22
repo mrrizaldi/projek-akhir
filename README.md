@@ -72,7 +72,7 @@ consumption, emergency WiFi OFF, recording to the server, PCB rev2) is listed wi
 | [`CLAUDE.md`](CLAUDE.md) | Repo working rules, gate points, figure policy |
 | [`model/README.md`](model/README.md) | Summary of the model component |
 | [`model/docs/README.md`](model/docs/README.md) | Map of the Phase 0-8 and HW walkthroughs, reference numbers, experiments that were not adopted |
-| [`firmware/README.md`](firmware/README.md) | PlatformIO envs, commands, pin map, serial commands |
+| [`firmware/README.md`](firmware/README.md) | PlatformIO envs, commands, tests, cross-feature pitfalls and limits, measurements |
 | [`dashboard/README.md`](dashboard/README.md) | ThingsBoard, payload contract, pipeline measurement |
 | [`.claude/skills/`](.claude/skills/) | Index of repo skills (laporan: `struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`, `deck-pa`; firmware: `batas-tidak-diam`; code: `tanpa-komentar-kode`; PCB: `kicad-pcb-pa`; `ingest-word`) and the user skills they load |
 | [`scripts/README.md`](scripts/README.md) | Cross-component automation (artifact sync) |

@@ -55,8 +55,8 @@ electrodes are attached (see §7).
 
 This pin table is the acquisition part of the PCB rev1 pin map
 (`firmware/include/board.h`). The full map, including the TFT, buzzer, buttons
-B1/B2, and INA219, as well as the on-screen button and menu map, is in
-[`firmware/README.md`](../../firmware/README.md).
+B1/B2, and INA219, is in [acquisition](../../docs/features/acquisition.md); the
+on-screen button and menu map is in [buttons-and-menu](../../docs/features/buttons-and-menu.md).
 The acquisition path can be checked without electrodes with
 `pio test -e esp32-s3 -f test_hw_adc` (ADC readable, timer exactly 360 samples per
 second, LO status printed).
@@ -229,13 +229,13 @@ The whole session is buffered in PSRAM while recording and only written to Littl
 after stopping; files already written survive a board power-off, whereas a
 session that has not been stopped is lost if power is cut. Flash writes are deferred
 because every flash write holds off the acquisition interrupt and drops samples
-(`firmware/README.md` §Jebakan, Akuisisi). After stopping, the session is split
+([acquisition](../../docs/features/acquisition.md), Lost ticks). After stopping, the session is split
 into files of 5 minutes of signal each (`RECORDER_SAMPLE_MAX` = 360 × 300 samples;
 paused time is not counted); the header of a continuation file contains `lanjutan=NNN
 celah=0`, and while recording the screen shows the total session time along with
 `bagian <k>`. The maximum session length is printed at the start (`REKAM mulai (maks 5
 bagian = 1500 detik)` with an empty LittleFS), so pull the data after each
-subject (`firmware/README.md` section Merekam, Rekaman panjang). If `lewat=`
+subject ([recording](../../docs/features/recording.md)). If `lewat=`
 in the header is greater than 0, some samples were not captured in that file and the RR
 around them is not valid.
 Each recording is stored as a newly numbered file (`/rekam/001.csv`, `002`,

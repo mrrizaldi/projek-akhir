@@ -359,9 +359,9 @@ timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
 
 The PCB rev1 pin map and the device installation order are in
 `firmware/include/board.h` and `firmware/src/board.cpp`, used
-jointly by `main.cpp` and the `test_hw_*` device tests. The pin table, button map,
-and menu tree are in [`firmware/README.md`](../../firmware/README.md) section
-Pemakaian di perangkat.
+jointly by `main.cpp` and the `test_hw_*` device tests. The pin table is in
+[acquisition](../../docs/features/acquisition.md); the button map and menu tree
+are in [buttons-and-menu](../../docs/features/buttons-and-menu.md).
 
 The meaning of the LED and the recording procedure are in
 [`acquisition-walkthrough.md`](acquisition-walkthrough.md) §2–3; the calibration gate and
@@ -670,9 +670,9 @@ modes, and the radio reconnects at `p5`.
 
 The INA219 is installed on the battery side: TP4056 `OUT+` → `VIN+` → `VIN−` → the input of the
 DC-DC converter, whose output powers the board's 5V pin. The circuit, pin table,
-check readings, and what to check on the board regulator:
-[`firmware/README.md`](../../firmware/README.md) section Catu daya dan
-pengukuran arus. Because the current is measured at the cell, the result already includes converter
+and check readings: [power-measurement](../../docs/features/power-measurement.md);
+what to check on the board regulator: [`firmware/README.md`](../../firmware/README.md)
+section Measurements. Because the current is measured at the cell, the result already includes converter
 losses and is directly usable for battery life (mAh capacity divided by current in
 mA), without an efficiency conversion.
 
@@ -715,7 +715,7 @@ stay connected.
 The standalone ladder removes the need for the data cable without VBUS: the board
 runs `p0`–`p5` itself from the battery, stores the result, and the laptop
 pulls it after measurement is finished. Step-by-step procedure:
-[`firmware/README.md`](../../firmware/README.md) section Ukur daya tanpa laptop.
+[power-measurement](../../docs/features/power-measurement.md).
 
 Its content is the same as `measure_power.py`, moved to `power.cpp`:
 
