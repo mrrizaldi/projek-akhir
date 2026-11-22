@@ -37,7 +37,7 @@ Phase 1 produces the **shape** (morphology) of each beat. Phase 2 adds
 ```
  load_record()  →  signal, r_locations, symbols
         │                  │                │
-        │ (Fase 1)         │ (Fase 2a)      │ (Fase 2b)
+        │ (Phase 1)        │ (Phase 2a)     │ (Phase 2b)
         ▼                  ▼                ▼
   bandpass → segment   compute_rr_       to_aami_class
   → z-score            features()        → to_binary_label
@@ -45,7 +45,7 @@ Phase 1 produces the **shape** (morphology) of each beat. Phase 2 adds
    windows [K,256]     rr [K,3]         labels [K]
         └──────────────────┴────────────────┘
                            │
-                  valid_beat_indices()   ◄── prep_beats.py, BUKAN src/
+                  valid_beat_indices()   ◄── prep_beats.py, NOT src/
                            │
                     data/processed/per_record/<rec>.npz
 ```
@@ -69,16 +69,16 @@ def to_binary_label(aami_class: str) -> int:
 Three successive narrowings:
 
 ```
-anotasi wfdb   ~40 simbol   "N" "L" "V" "A" "+" "~" "|" ...
-     │  load_record()  ← whitelist BEAT_SYMBOLS (INI yang memfilter)
+wfdb annotation ~40 symbols  "N" "L" "V" "A" "+" "~" "|" ...
+     │  load_record()  ← BEAT_SYMBOLS whitelist (THIS is what filters)
      ▼
-beat saja      15 simbol   "N" "L" "V" "A" ...
-     │  to_aami_class()   ← memetakan, tidak membuang
+beats only     15 symbols   "N" "L" "V" "A" ...
+     │  to_aami_class()   ← maps, does not drop
      ▼
-superclass AAMI  5 kelas   N  S  V  F  Q
-     │  to_binary_label() ← mengerucutkan
+AAMI superclass 5 classes   N  S  V  F  Q
+     │  to_binary_label() ← narrows down
      ▼
-label biner      2 kelas   0 = Normal, 1 = Aritmia
+binary label    2 classes  0 = Normal, 1 = Arrhythmia
 ```
 
 `to_aami_class` **discards nothing**. One symbol in, one class out.
@@ -87,10 +87,13 @@ The filtering of non-beats is already done in `load_record`.
 ### `AAMI_MAP` is a table, not an algorithm
 
 ```python
-AAMI_MAP = {"N":"N", "L":"N", "R":"N", "e":"N", "j":"N",
-            "A":"S", "a":"S", "J":"S", "S":"S",
-            "V":"V", "E":"V", "F":"F",
-            "/":"Q", "f":"Q", "Q":"Q"}
+AAMI_MAP = {
+    "N": "N", "L": "N", "R": "N", "e": "N", "j": "N",
+    "A": "S", "a": "S", "J": "S", "S": "S",
+    "V": "V", "E": "V",
+    "F": "F",
+    "/": "Q", "f": "Q", "Q": "Q",
+}
 ```
 
 The rule lives as **data in `config.py`**, not as a chain of `if`s in
@@ -159,7 +162,7 @@ not an oversight (§2.5). A record with < 2 beats returns immediately; without t
 `np.diff` produces an empty array and the division below blows up.
 
 ```python
-d = np.diff(r) / fs                      # [1.0, 2.0, 1.0]  detik
+d = np.diff(r) / fs                      # [1.0, 2.0, 1.0]  seconds
 ```
 
 $M$ beats → $M-1$ intervals. The index shift that must be held tightly:
@@ -187,9 +190,9 @@ finishes in two operations: `csum[j+1] - csum[start]`. The zero in front (`[0.0]
 makes `csum[0] = 0` so the formula also holds for `start = 0`.
 
 ```python
-out[1:, 0] = d                           # RR_prev  → baris 1..M-1
-out[1:, 1] = d / local_avg               # RR_ratio → baris 1..M-1
-out[2:, 2] = np.diff(d)                  # dRR      → baris 2..M-1
+out[1:, 0] = d                           # RR_prev  → rows 1..M-1
+out[1:, 1] = d / local_avg               # RR_ratio → rows 1..M-1
+out[2:, 2] = np.diff(d)                  # dRR      → rows 2..M-1
 return out.astype(np.float32)
 ```
 
@@ -200,7 +203,7 @@ above: RR_prev starts to exist at beat 1, dRR only at beat 2 (it needs two RRs).
 
 ```python
 r = [0, 360, 1080, 1440]        # fs = 360
-d = [1.0, 2.0, 1.0]             # detik
+d = [1.0, 2.0, 1.0]             # seconds
 local_avg = [1.000, 1.500, 1.333]
 ```
 
@@ -310,8 +313,8 @@ things.
 The contract: **row index == beat index**, forever. The caller writes
 
 ```python
-rr = compute_rr_features(r)[idx]        # BENAR
-rr = compute_rr_features(r[idx])        # SALAH
+rr = compute_rr_features(r)[idx]        # CORRECT
+rr = compute_rr_features(r[idx])        # WRONG
 ```
 
 The difference is subtle but fatal. `r[idx]` cuts the R-peak list first, so the first
@@ -340,7 +343,10 @@ That is why all beat-drop policy is gathered in a single function,
 r = np.asarray(r_locations)
 i = np.arange(len(r))
 fits = (r - WIN_PRE >= 0) & (r + WIN_POST <= signal_len)
-return i[fits & (i >= 2)]
+ok = fits & (i >= 2)
+if USE_RR_RATIO:
+    ok &= i < len(r) - 1
+return i[ok]
 ```
 
 An intersection (`&`), not a union. `i >= 2` covers the RR_prev and dRR conditions at once:
