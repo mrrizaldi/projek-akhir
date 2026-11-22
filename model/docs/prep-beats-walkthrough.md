@@ -1,15 +1,15 @@
-# Walkthrough `scripts/prep_beats.py` — Fase 2 (eksekusi)
+# Walkthrough `scripts/prep_beats.py`: Phase 2 (execution)
 
-> **Ruang lingkup:** eksekusi Fase 0–2 ke seluruh record: pemilihan beat yang valid, augmentasi jitter DS1, dan penulisan `.npz` per record.
-> **Kode terkait:** `scripts/prep_beats.py`, `src/dataset.py` (`available_records`), `src/features_rr.py` (`assemble_rhythm_features`), `config.py` (`PACED_EXCLUDED`, `JITTER_MODEL`, `JITTER_COPIES`, `DATASETS`), `tests/test_prep_beats.py`
-> **Prasyarat:** [`features-rr-walkthrough.md`](features-rr-walkthrough.md)
+> **Scope:** executing Phases 0–2 over all records: selecting valid beats, DS1 jitter augmentation, and writing one `.npz` per record.
+> **Related code:** `scripts/prep_beats.py`, `src/dataset.py` (`available_records`), `src/features_rr.py` (`assemble_rhythm_features`), `config.py` (`PACED_EXCLUDED`, `JITTER_MODEL`, `JITTER_COPIES`, `DATASETS`), `tests/test_prep_beats.py`
+> **Prerequisite:** [`features-rr-walkthrough.md`](features-rr-walkthrough.md)
 
-Dokumen belajar, bukan spesifikasi. Pasangan dari
-[`features-rr-walkthrough.md`](features-rr-walkthrough.md): kalau dokumen itu
-membahas **rumusnya**, dokumen ini membahas **siapa yang menjalankan rumus itu
-ke 44 record dan menjaga semuanya tetap sejajar**.
+A study document, not a specification. The counterpart of
+[`features-rr-walkthrough.md`](features-rr-walkthrough.md): where that document
+covers **the formulas**, this one covers **who runs those formulas
+over 44 records and keeps everything aligned**.
 
-Reproduksi:
+Reproduction:
 
 ```
 cd model
@@ -18,12 +18,12 @@ make prep       # 44 record mitdb (+ svdb/incartdb bila sudah diunduh) → data/
 
 ---
 
-## 0. Kenapa file ini ada — dan kenapa dia di `scripts/`, bukan `src/`
+## 0. Why this file exists, and why it lives in `scripts/`, not `src/`
 
-`src/` berisi fungsi murni: masuk array, keluar array. Tidak ada satu pun dari
-mereka yang tahu bahwa MIT-BIH punya 48 record, bahwa 4 di antaranya dibuang,
-atau bahwa hasilnya disimpan sebagai `.npz`. Itu semua **kebijakan**, dan
-kebijakan tinggal di sini.
+`src/` holds pure functions: an array goes in, an array comes out. None of
+them knows that MIT-BIH has 48 records, that 4 of them are dropped,
+or that the result is stored as `.npz`. All of that is **policy**, and
+policy lives here.
 
 ```
         src/ (murni, padanannya di C)          scripts/ (eksekusi)
@@ -37,18 +37,18 @@ kebijakan tinggal di sini.
    └────────────────────────────────┘    └──────────────────────────┘
 ```
 
-Pemisahan ini bukan soal kerapian. Fungsi di `src/` punya padanan C di firmware
-ESP32; kalau `np.savez` dan `print` ikut bersarang di dalamnya, porting jadi
-acara bongkar-pasang. Sebaliknya, dengan semua kebijakan buang-beat
-terkumpul di satu fungsi di sini, soal beat mana yang dipakai punya
-**satu** jawaban yang bisa dibaca dalam 4 baris.
+This separation is not about tidiness. Functions in `src/` have C counterparts in the ESP32
+firmware; if `np.savez` and `print` were nested inside them, porting would turn into
+a teardown and reassembly. Conversely, with all the beat-dropping policy
+gathered in one function here, the question of which beats are used has
+**one** answer that can be read in 4 lines.
 
-`prep_beats.py` juga satu-satunya tempat filter Fase 1 dijalankan ke seluruh
-record; skrip plot hanya memanggil `preprocessing.py` untuk satu record.
+`prep_beats.py` is also the only place where the Phase 1 filter is run over all
+records; the plot scripts only call `preprocessing.py` for a single record.
 
 ---
 
-## 1. `valid_beat_indices()` — satu-satunya sumber kebenaran alignment
+## 1. `valid_beat_indices()`: the single source of truth for alignment
 
 ```python
 r = np.asarray(r_locations)
@@ -60,43 +60,43 @@ if USE_RR_RATIO:
 return i[ok]
 ```
 
-Tiga syarat, **irisan** (`&`), bukan gabungan:
+Three conditions, an **intersection** (`&`), not a union:
 
-| Syarat | Asal | Alasan |
+| Condition | Origin | Reason |
 |---|---|---|
-| `r - 128 >= 0` dan `r + 128 <= N` | Fase 1 | window 256 sampel harus muat di sinyal |
-| `i >= 1` | Fase 2 | butuh `r[i-1]` untuk RR_prev |
-| `i >= 2` | Fase 2 | butuh RR_prev beat sebelumnya untuk dRR |
+| `r - 128 >= 0` and `r + 128 <= N` | Phase 1 | the 256-sample window must fit in the signal |
+| `i >= 1` | Phase 2 | needs `r[i-1]` for RR_prev |
+| `i >= 2` | Phase 2 | needs the previous beat's RR_prev for dRR |
 
-Dua syarat terakhir dipadatkan jadi `i >= 2` — beat ke-2 otomatis punya keduanya.
-Syarat keempat (`i < len(r) - 1`) hanya aktif bila knob ablasi `PA_RR_RATIO=1`:
-bentuk rasio butuh RR beat **berikutnya**, jadi beat terakhir tiap record tidak
-punya fitur lengkap. Di konfigurasi terkunci knob ini mati.
+The last two conditions are condensed into `i >= 2`: beat 2 automatically has both.
+The fourth condition (`i < len(r) - 1`) is only active when the ablation knob `PA_RR_RATIO=1` is set:
+the ratio form needs the **next** beat's RR, so the last beat of each record
+lacks complete features. In the locked configuration this knob is off.
 
-Yang dikembalikan **indeks beat**, bukan array data. Itu intinya: satu daftar
-indeks dipakai untuk memotong `windows`, `rr`, `labels`, dan `symbols` sekaligus,
-jadi keempatnya mustahil bergeser satu sama lain.
+What is returned is **beat indices**, not data arrays. That is the point: one list of
+indices is used to slice `windows`, `rr`, `labels`, and `symbols` at once,
+so the four can never drift apart from each other.
 
-### Kenapa bukan "samakan saja panjangnya"
+### Why not "just make the lengths equal"
 
-Ini jebakan termahal di seluruh proyek, dan gejalanya **tidak ada**:
+This is the most expensive pitfall in the whole project, and its symptom is **nothing**:
 
 ```python
 labels = labels[:len(windows)]     # ← assert panjang LOLOS, data rusak
 ```
 
-`segment_beats` membuang beat tepi; `compute_rr_features` tidak bisa mengisi
-beat 0 & 1. Dua himpunan **berbeda** yang panjangnya bisa kebetulan sama.
-Simulasi di record 100: 100% baris tergeser satu beat, 68 label jadi salah
-simbol — padahal aritmia asli di record itu cuma 34 (tiap 1 aritmia merusak 2
-baris). Loss tetap turun mulus. Baru ketahuan di Fase 6 saat recall ~0, tanpa
-petunjuk apa pun tentang penyebabnya.
+`segment_beats` drops edge beats; `compute_rr_features` cannot fill
+beats 0 & 1. Two **different** sets whose lengths can happen to be equal.
+Simulation on record 100: 100% of rows shifted by one beat, 68 labels got the wrong
+symbol, even though the real arrhythmias in that record are only 34 (each 1 arrhythmia corrupts 2
+rows). The loss still decreases smoothly. It is only discovered in Phase 6 when recall is ~0, with no
+clue whatsoever about the cause.
 
-Sejajarkan lewat **indeks**, jangan pernah lewat panjang.
+Align through **indices**, never through length.
 
 ---
 
-## 2. `process_record()` — urutannya menentukan benar/rusak
+## 2. `process_record()`: the order decides right from broken
 
 ```python
 signal, r, sym, _ = load_record(record_id, db=db)
@@ -113,49 +113,49 @@ labels = np.array([to_binary_label(to_aami_class(sym[i])) for i in idx], dtype=n
 symbols = np.array([sym[i] for i in idx], dtype="<U2")
 ```
 
-Dua langkah sebelum `idx` mengubah posisi R, bukan labelnya:
+The two steps before `idx` change the R position, not its label:
 
-- **`align_r`** menggeser anotasi ke puncak sebenarnya, hanya untuk database
-  yang konvensi anotasinya berbeda dari mitdb (`DATASETS[db]["selaraskan"]`:
-  svdb dan incartdb `True`, mitdb `False` karena mitdb acuan golden reference).
-- **`jitter`** menggeser posisi R untuk salinan augmentasi (§4). Posisi tergeser
-  dipakai untuk window **dan** fitur RR, karena detektor yang meleset merusak
-  keduanya sekaligus. Label tetap diambil dari simbol anotasi asli lewat `idx`.
+- **`align_r`** shifts the annotation to the true peak, only for databases
+  whose annotation convention differs from mitdb (`DATASETS[db]["selaraskan"]`:
+  svdb and incartdb `True`, mitdb `False` because mitdb is the golden reference baseline).
+- **`jitter`** shifts the R position for the augmentation copies (§4). The shifted position
+  is used for the window **and** the RR features, because a detector that misses damages
+  both at once. The label is still taken from the original annotation symbol through `idx`.
 
-`assemble_rhythm_features` memanggil `compute_rr_features(r)[idx]` pada konfigurasi
-terkunci (fitur opsional hanya ditambahkan bila knob ablasinya aktif). Perhatikan
-urutan argumennya. Dua bentuk yang terlihat setara:
+`assemble_rhythm_features` calls `compute_rr_features(r)[idx]` in the locked
+configuration (optional features are only added when their ablation knob is active). Note the
+order of its arguments. Two forms that look equivalent:
 
 ```python
 rr = compute_rr_features(r)[idx]     # ✓ BENAR — hitung dari r UTUH, baru potong
 rr = compute_rr_features(r[idx])     # ✗ SALAH — potong dulu, baru hitung
 ```
 
-Bedanya: `RR_prev` beat `idx[0]` butuh posisi beat **sebelumnya**, yang justru
-sudah dibuang dari `idx`. Kalau `r` dipotong duluan, beat pertama yang lolos
-menghitung intervalnya dari tetangga yang salah — dan hasilnya tetap angka yang
-masuk akal, tidak ada error, tidak ada NaN.
+The difference: the `RR_prev` of beat `idx[0]` needs the position of the **previous** beat, which has
+already been dropped from `idx`. If `r` is sliced first, the first beat that passes
+computes its interval from the wrong neighbor, and the result is still a plausible
+number, with no error and no NaN.
 
-Bandingkan dengan baris `windows`: di situ `r[idx]` justru **benar**, karena
-`segment_beats` memotong sinyal di sekitar tiap R-peak secara independen — tidak
-butuh tetangga. Aturannya: **fungsi yang butuh konteks tetangga selalu diberi
-data utuh; penyaringan dilakukan setelahnya.**
+Compare with the `windows` line: there `r[idx]` is actually **correct**, because
+`segment_beats` cuts the signal around each R-peak independently, with no
+need for neighbors. The rule: **a function that needs neighbor context is always given
+the whole data; filtering happens afterwards.**
 
-### Dua assert yang menjaga kontrak
+### Two asserts that guard the contract
 
 ```python
 assert len(windows) == len(rr) == len(labels) == len(symbols) == len(idx)
 assert not np.isnan(rr).any(), f"record {record_id}: NaN lolos ke rr"
 ```
 
-Yang kedua adalah jaring pengaman kedua. NaN dari beat 0 & 1 seharusnya sudah
-tersaring `idx`; kalau lolos, artinya `valid_beat_indices` dan
-`compute_rr_features` **tidak sepakat** soal beat mana yang valid. Ketahuan di
-`make prep` yang jalannya semenit, bukan di Fase 5 saat `loss = nan` tanpa jejak.
+The second is the second safety net. The NaN from beats 0 & 1 should already have been
+filtered out by `idx`; if it gets through, it means `valid_beat_indices` and
+`compute_rr_features` **disagree** about which beats are valid. It is caught in
+`make prep`, which runs in a minute, not in Phase 5 as `loss = nan` with no trace.
 
 ---
 
-## 3. Anatomi keluaran
+## 3. Anatomy of the output
 
 ```python
 {"windows": [K,256] float32,   # morfologi ter-z-score
@@ -165,23 +165,23 @@ tersaring `idx`; kalau lolos, artinya `valid_beat_indices` dan
  "n_dropped":       int32}     # berapa beat dibuang
 ```
 
-Dua field terakhir tidak dipakai model — dan justru itu gunanya.
+The last two fields are not used by the model, and that is exactly their purpose.
 
-**`symbols`** menyimpan informasi yang **hilang permanen** begitu label
-dikerucutkan jadi 0/1. Di Fase 6 dialah yang memungkinkan tabel recall per kelas
-AAMI ([`evaluate-walkthrough.md`](evaluate-walkthrough.md) §5) — temuan paling
-berisi di Bab 4. Kalau tidak disimpan di tahap ini, informasi itu tidak bisa
-direkonstruksi di hilir.
+**`symbols`** stores information that is **permanently lost** once the label
+is narrowed down to 0/1. In Phase 6 it is what makes possible the per-AAMI-class recall table
+([`evaluate-walkthrough.md`](evaluate-walkthrough.md) §5), the most substantive
+finding in Bab 4 (Chapter 4 of the report). If it is not saved at this stage, that information cannot be
+reconstructed downstream.
 
-**`n_dropped`** masuk `.npz`, bukan sekadar di-`print`. Angka "dari 100.624 beat,
-109 dibuang karena ..." adalah baris tabel di laporan; kalau cuma dicetak, dia
-hilang saat terminal ditutup.
+**`n_dropped`** goes into the `.npz`, not merely `print`ed. The figure "of 100,624 beats,
+109 were dropped because ..." is a table row in the report; if it is only printed, it
+is lost when the terminal is closed.
 
 ---
 
-## 4. `available_records()` dan `main()` — lapisan kebijakan
+## 4. `available_records()` and `main()`: the policy layer
 
-`main()` memanggil `available_records(db)` di `src/dataset.py`:
+`main()` calls `available_records(db)` in `src/dataset.py`:
 
 ```python
 ids = sorted(f[:-4] for f in ada if f.endswith(".hea")
@@ -191,53 +191,53 @@ if db == "mitdb":
     ids = [i for i in ids if i not in excluded]
 ```
 
-Daftar record datang dari **isi folder**, bukan dari daftar yang diketik ulang —
-satu tempat lebih sedikit untuk salah ketik. Record baru dihitung bila
-`.hea`, `.dat`, dan `.atr` lengkap, supaya unduhan yang belum selesai gagal di
-sini, bukan sebagai `FileNotFoundError` di `wfdb.rdann`. `PACED_EXCLUDED`
-diambil dari `config.py`, daftar yang sama yang dipakai Fase 3. Satu sumber,
-jangan digandakan.
+The record list comes from the **folder contents**, not from a retyped list:
+one fewer place for a typo. A record only counts if
+`.hea`, `.dat`, and `.atr` are all present, so that an unfinished download fails
+here, not as a `FileNotFoundError` in `wfdb.rdann`. `PACED_EXCLUDED`
+is taken from `config.py`, the same list used by Phase 3. One source,
+do not duplicate it.
 
-`main()` memproses tiap database di `DATASETS` yang sudah diunduh (yang belum
-dilewati dengan pesan `make data DB=<db>`), lalu untuk tiap record:
+`main()` processes each database in `DATASETS` that has been downloaded (those not yet downloaded are
+skipped with the message `make data DB=<db>`), then for each record:
 
-1. Satu salinan bersih selalu diproses.
-2. Khusus record **DS1 mitdb**, ditambah `JITTER_COPIES` (2) salinan ber-jitter
-   model `JITTER_MODEL` (`"empiris"`). Semua salinan ditumpuk ke `.npz` record
-   yang sama oleh `gabung()`.
-3. DS2 dan database tambahan tidak pernah dijitter: DS2 adalah tolok ukur, dan
-   residu empiris diukur dari detektor di mitdb 360 Hz sehingga tidak berlaku
-   untuk sinyal yang di-resample.
+1. One clean copy is always processed.
+2. For **DS1 mitdb** records only, `JITTER_COPIES` (2) jittered copies are added, using the
+   `JITTER_MODEL` model (`"empiris"`). All copies are stacked into the same record `.npz`
+   by `gabung()`.
+3. DS2 and the extra databases are never jittered: DS2 is the benchmark, and the empirical
+   residual was measured from the detector on mitdb at 360 Hz, so it does not apply
+   to resampled signals.
 
-Opsi baris perintah: `--jitter {none,empiris,seragam,normal}`, `--copies N`,
-`--delta` (untuk `seragam`/`normal`), dan `--db <nama...>`.
+Command-line options: `--jitter {none,empiris,seragam,normal}`, `--copies N`,
+`--delta` (for `seragam`/`normal`), and `--db <nama...>`.
 
-`main()` mencetak tabel per record lalu total. Cetakan itu bukan hiasan: PRD
-mensyaratkan distribusi label dicetak per record sebagai DoD, dan ketimpangan
-yang terlihat di situ adalah yang membenarkan `class_weight` di Fase 5.
+`main()` prints a per-record table and then the total. The printout is not decoration: the PRD
+requires the label distribution to be printed per record as a DoD, and the imbalance
+visible there is what justifies `class_weight` in Phase 5.
 
 ---
 
-## 5. Angka nyata — dan apa yang bisa dibaca darinya
+## 5. Real numbers, and what can be read from them
 
-Data bersih mitdb (`python scripts/prep_beats.py --jitter none --db mitdb`):
+Clean mitdb data (`python scripts/prep_beats.py --jitter none --db mitdb`):
 
 ```
 44 record  100.624 beat  Normal 90.023 (89,5%)  Aritmia 10.601 (10,5%)  buang 109
 ```
 
-Dengan bawaan `make prep` (DS1 ×3: satu bersih + dua ber-jitter), mitdb menjadi
-202.560 beat: DS1 152.904, DS2 49.656.
+With the `make prep` defaults (DS1 ×3: one clean + two jittered), mitdb becomes
+202,560 beats: DS1 152,904, DS2 49,656.
 
-### Pembukuan 109 beat yang dibuang (data bersih)
+### Accounting for the 109 dropped beats (clean data)
 
 ```
 sebaran per record: {3 beat: 21 record, 2 beat: 23 record}
 109 = 44×2 (beat 0 & 1, deterministik) + 21 (beat tepi)
 ```
 
-Semua 21 beat tepi itu ada di **akhir** rekaman: R-peak terakhir jatuh setelah
-sampel 649.872 sehingga jendela `+128` tidak muat di 650.000 sampel.
+All 21 of those edge beats are at the **end** of the recording: the last R-peak falls after
+sample 649,872, so the `+128` window does not fit in the 650,000 samples.
 
 ```
 rec 103  r[-1] = 649.875  (butuh <= 649.872)  → dibuang, cuma lewat 3 sampel
@@ -245,9 +245,9 @@ rec 113  r[-1] = 649.994  (butuh <= 649.872)  → dibuang
 rec 223  r[-1] = 649.849  (butuh <= 649.872)  → lolos
 ```
 
-### Yang menarik: beat awal tidak pernah menambah hitungan
+### The interesting part: early beats never add to the count
 
-Beberapa record punya R-peak pertama terlalu dekat ke awal sinyal:
+Some records have a first R-peak too close to the start of the signal:
 
 ```
 rec 220  r[0] = 28   (butuh >= 128)
@@ -256,66 +256,66 @@ rec 100  r[0] = 77
 rec 112  r[0] = 124
 ```
 
-Beat-beat itu **memang** gagal syarat window — tapi mereka sudah dibuang duluan
-oleh syarat `i >= 2`. Karena `valid_beat_indices` memakai **irisan**, satu beat
-yang gagal dua syarat tetap dihitung sekali.
+Those beats **do** fail the window condition, but they were already dropped first
+by the `i >= 2` condition. Because `valid_beat_indices` uses an **intersection**, a single beat
+that fails two conditions is still counted once.
 
-Ini kenapa angkanya bisa serapi 44×2 + 21. Kalau ada kode lain yang diam-diam
-ikut membuang beat, pembukuan sesederhana ini tidak akan cocok — jadi angka
-109 itu sendiri berfungsi sebagai bukti bahwa kebijakan buang-beat benar-benar
-terpusat di satu tempat.
+This is why the number can be as neat as 44×2 + 21. If other code were quietly
+dropping beats too, accounting this simple would not match, so the figure
+109 itself serves as proof that the beat-dropping policy is really
+centralized in one place.
 
-### Sebaran kelas per record itu ekstrem
+### The class distribution per record is extreme
 
 ```
 rec 212 → 0,0% aritmia        rec 232 → 77,7% aritmia
 rec 230 → 0,0%                rec 208 → 46,3%
 ```
 
-Ketimpangan global 10,5% menyembunyikan kenyataan bahwa tiap pasien adalah
-distribusi yang berbeda. Ini pembenaran langsung untuk keputusan Fase 3 (split
-per pasien) — dan penjelasan kenapa metrik DS2 didominasi satu-dua pasien.
+The global imbalance of 10.5% hides the fact that each patient is a different
+distribution. This is a direct justification for the Phase 3 decision (split
+per patient), and the explanation of why the DS2 metrics are dominated by one or two patients.
 
 ---
 
-## 6. Yang sengaja TIDAK dilakukan
+## 6. What is deliberately NOT done
 
-**Tidak menggabungkan jadi satu file besar.** Keluaran tetap satu `.npz` per record.
-Fase 3 membelah per pasien, jadi selama data masih per record, split itu cuma
-soal memilih file. Lihat [dataset-walkthrough](dataset-walkthrough.md) §0.
+**Does not merge into one big file.** The output remains one `.npz` per record.
+Phase 3 splits by patient, so as long as the data is still per record, the split is just
+a matter of choosing files. See [dataset-walkthrough](dataset-walkthrough.md) §0.
 
-**Tidak mengacak apa pun.** Urutan beat mengikuti urutan waktu di rekaman
-(salinan ber-jitter ditumpuk sesudah salinan bersih).
-Pengacakan adalah urusan training, di memori, per epoch.
+**Does not shuffle anything.** The order of beats follows the time order in the recording
+(jittered copies are stacked after the clean copy).
+Shuffling is a training matter, in memory, per epoch.
 
-**Tidak melewati record yang gagal dibaca.** `load_record` melempar `ValueError`
-untuk record tanpa MLII — dan record itu memang sudah ada di `PACED_EXCLUDED`,
-jadi tidak pernah sampai ke sini. Kalau sampai, program berhenti,
-bukan menghasilkan dataset yang diam-diam lebih kecil.
+**Does not skip records that fail to read.** `load_record` raises `ValueError`
+for a record without MLII, and that record is already in `PACED_EXCLUDED`,
+so it never gets here. If it did, the program stops,
+rather than producing a dataset that is quietly smaller.
 
 ---
 
-## 7. Cek pemahaman
+## 7. Comprehension check
 
-1. Baris `rr` diubah jadi `compute_rr_features(r[idx])`. Berapa banyak baris yang
-   nilainya salah, dan kenapa test `assert len(...)` tetap lolos?
-2. `valid_beat_indices` diubah dari irisan (`&`) jadi gabungan (`|`). Berapa beat
-   yang lolos di record 100, dan apa yang terjadi saat `compute_rr_features`
-   di-slice dengan indeks itu?
-3. Record 103 punya `r[-1] = 649.875`, cuma 3 sampel melewati batas. Kalau
-   `WIN_POST` diturunkan 128 → 120, berapa total beat yang terselamatkan di 44
-   record, dan bagian gelombang apa yang hilang dari window?
-4. `symbols` tidak disimpan ke `.npz`. Tabel apa di Bab 4 yang jadi mustahil
-   dibuat, dan kenapa tidak bisa direkonstruksi dari `labels`?
+1. The `rr` line is changed to `compute_rr_features(r[idx])`. How many rows have
+   wrong values, and why does the `assert len(...)` test still pass?
+2. `valid_beat_indices` is changed from an intersection (`&`) to a union (`|`). How many beats
+   pass in record 100, and what happens when `compute_rr_features`
+   is sliced with those indices?
+3. Record 103 has `r[-1] = 649.875`, only 3 samples past the limit. If
+   `WIN_POST` is lowered from 128 → 120, how many beats in total are saved across the 44
+   records, and what part of the waveform is lost from the window?
+4. `symbols` is not saved into the `.npz`. Which table in Bab 4 (Chapter 4 of the report) becomes impossible
+   to make, and why can it not be reconstructed from `labels`?
 
-## 8. Skrip pendukung
+## 8. Supporting scripts
 
-| Perintah | Melihat apa |
+| Command | Looks at |
 |---|---|
-| `make prep` | Jalankan 44 record + tabel distribusi label per record |
-| `make plot1seg REC=n` | Window hasil segmentasi + z-score, verifikasi visual |
-| `make test` | Seluruh test; `tests/test_prep_beats.py` mengunci kontrak alignment |
+| `make prep` | Run the 44 records + the label distribution table per record |
+| `make plot1seg REC=n` | Window from segmentation + z-score, visual verification |
+| `make test` | The whole test suite; `tests/test_prep_beats.py` locks the alignment contract |
 
 ---
 
-**[← Fase 2 — features_rr](features-rr-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[Fase 3 — dataset →](dataset-walkthrough.md)**
+**[← Phase 2: features_rr](features-rr-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[Phase 3: dataset →](dataset-walkthrough.md)**

@@ -157,7 +157,7 @@ return puncak - ECG_GROUP_DELAY;                     // 4: geseran bandpass kaus
 
 The result puts R at index **94** in the window, the same as the training window.
 A miss of 4 samples in either direction and precision falls from 0.479 to 0.124;
-the number was measured in [Phase 6b](segmentasi-deteksi-walkthrough.md) §2.
+the number was measured in [Phase 6b](detection-segmentation-walkthrough.md) §2.
 
 The test `test_align_r_puts_peak_at_r_idx` guards it as a property, not
 as a number: it cuts the window from the `ecg_align_r` result and then makes sure

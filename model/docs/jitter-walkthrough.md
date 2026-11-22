@@ -2,12 +2,12 @@
 
 > **Scope:** measuring the detector's R-peak position error, measuring its impact on the model, then training a model that is robust to it (jitter augmentation) and choosing the window size through ablation.
 > **Related code:** `scripts/measure_jitter.py`, `scripts/sweep_jitter.py`, `scripts/ablasi.py`, `src/preprocessing.py` (`jitter_r`), `scripts/prep_beats.py`, `config.py` (`WIN_PRE`, `WIN_POST`, `JITTER_MODEL`, `JITTER_COPIES`, `USE_HOS`)
-> **Prerequisite:** [`segmentasi-deteksi-walkthrough.md`](segmentasi-deteksi-walkthrough.md) (Phase 6b)
+> **Prerequisite:** [`detection-segmentation-walkthrough.md`](detection-segmentation-walkthrough.md) (Phase 6b)
 
 Phase 6c, outside the PRD. An adaptation of Dias et al. 2021 (*Arrhythmia classification from
 single-lead ECG signals using the inter-patient paradigm*, CMPB 202:105948,
 doi:10.1016/j.cmpb.2021.105948), the part that they ablated themselves.
-`segmentasi-deteksi-walkthrough.md` found the problem; this document measures
+`detection-segmentation-walkthrough.md` found the problem; this document measures
 and fixes it.
 
 ---
@@ -46,7 +46,7 @@ and remains right: the training path must be clean of detector error, otherwise
 we never know whether the model or the detector is what is broken.
 
 But that decision has a consequence. On the device, there is no cardiologist. What exists is `ecg_detect_r` → `ecg_align_r`, and its result misses.
-`segmentasi-deteksi-walkthrough.md` §2 already recorded how sensitive this model is:
+`detection-segmentation-walkthrough.md` §2 already recorded how sensitive this model is:
 **a shift of just 4 samples (11 ms) drops precision 0.479 → 0.124.**
 
 So a metric measured with annotations is an upper bound, not a forecast.

@@ -336,4 +336,4 @@ then explain its distribution.
 
 ---
 
-**[← Phase 5: train](train-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[Phase 6b: detection segmentation →](segmentasi-deteksi-walkthrough.md)**
+**[← Phase 5: train](train-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[Phase 6b: detection segmentation →](detection-segmentation-walkthrough.md)**

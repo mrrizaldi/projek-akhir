@@ -71,7 +71,7 @@ In order 0 → 7. Each document assumes the previous ones have been read.
 | 4 | [model](model-walkthrough.md) | Why two branches, why GAP rather than Flatten, where the 6,417 params come from |
 | 5 | [train](train-walkthrough.md) | Why accuracy is forbidden, how class weight works, why monitor AUC |
 | 6 | [evaluate](evaluate-walkthrough.md) | Why the threshold is locked before DS2, which arrhythmia classes fail & why |
-| 6b | [segmentasi-deteksi](segmentasi-deteksi-walkthrough.md) | The cost of on-device segmentation: why a 4-sample shift drops precision 4×, and why the detector discards arrhythmia |
+| 6b | [segmentasi-deteksi](detection-segmentation-walkthrough.md) | The cost of on-device segmentation: why a 4-sample shift drops precision 4×, and why the detector discards arrhythmia |
 | 6c | [jitter](jitter-walkthrough.md) | How far the R-peak on the device really misses, why the paper's ±18 samples must not be copied, and why training with error actually raises the numbers on clean data |
 | 7 | [quantize](quantize-walkthrough.md) | What changes under INT8, why a metric can "rise" while the model does not improve |
 | HW | [firmware](firmware-walkthrough.md) | The port to C, the Python↔C golden harness, and why the `MEAN` op must be replaced for TFLM |
@@ -94,7 +94,7 @@ The traps that most determined the design:
 | **Patient identity leakage** | A 99% accuracy that means nothing | [3](dataset-walkthrough.md) §1 |
 | **Threshold tuned on DS2** | Good numbers that fall apart when an examiner asks | [6](evaluate-walkthrough.md) §0 |
 | **Same op, different result in TFLM** | Model correct on the PC, confidence collapses on the device | [HW](firmware-walkthrough.md) §5 |
-| **R-peak off by 4 samples** | Precision drops 4×, with no error | [6b](segmentasi-deteksi-walkthrough.md) §2 |
+| **R-peak off by 4 samples** | Precision drops 4×, with no error | [6b](detection-segmentation-walkthrough.md) §2 |
 | **Threshold calibrated under the wrong conditions** | AUC nearly intact but F1 drops 20% | [6c](jitter-walkthrough.md) §4 |
 
 Most of these traps **produce no error at all**. That is the common thread: the

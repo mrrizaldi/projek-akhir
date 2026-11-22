@@ -1,13 +1,13 @@
-# Walkthrough `src/quantize.py` — Fase 7
+# Walkthrough `src/quantize.py`: Phase 7
 
-> **Ruang lingkup:** kuantisasi pasca-latih (PTQ) model ke INT8 penuh dan pengukuran dampaknya terhadap metrik DS2.
-> **Kode terkait:** `src/quantize.py`, `scripts/quantize_int8.py`, `src/model.py` (`build_deploy_model`), `config.py` (`REP_SAMPLES`, `INT8_IO`, `MAX_MODEL_KB`, `MAX_RHYTHM_SCALE`)
-> **Prasyarat:** [`evaluate-walkthrough.md`](evaluate-walkthrough.md) (Fase 6)
+> **Scope:** post-training quantization (PTQ) of the model to full INT8 and measuring its impact on the DS2 metrics.
+> **Related code:** `src/quantize.py`, `scripts/quantize_int8.py`, `src/model.py` (`build_deploy_model`), `config.py` (`REP_SAMPLES`, `INT8_IO`, `MAX_MODEL_KB`, `MAX_RHYTHM_SCALE`)
+> **Prerequisite:** [`evaluate-walkthrough.md`](evaluate-walkthrough.md) (Phase 6)
 
-Dokumen belajar, bukan spesifikasi. Spesifikasi resmi tetap
-`PRD_Model_Aritmia_TinyML.pdf` hal. 16–17.
+A study document, not a specification. The official specification remains
+`PRD_Model_Aritmia_TinyML.pdf` pp. 16–17.
 
-Reproduksi:
+Reproduction:
 
 ```
 cd model
@@ -16,7 +16,7 @@ make quantize     # → artifacts/model_int8.tflite + artifacts/metrics/fase7_de
 
 ---
 
-## 0. Peta besar
+## 0. The big picture
 
 ```
 model_fp32.keras (6.417 param, 25,07 KB float32)
@@ -31,39 +31,39 @@ model_int8.tflite   22,94 KB   ← di bawah batas 25 KB  (varian deploy, §4b)
 tabel delta float32 vs INT8   ← deliverable akhir PA
 ```
 
-Kenapa fase ini ada: device menjalankan INT8, bukan float32. Klaim
-"dampak kuantisasi **diukur**, bukan diasumsikan" cuma bisa dibuat kalau ada
-angka delta nyata.
+Why this phase exists: the device runs INT8, not float32. The claim
+"the impact of quantization is **measured**, not assumed" can only be made if there is
+a real delta number.
 
 ---
 
-## 1. Apa yang sebenarnya terjadi saat kuantisasi
+## 1. What actually happens during quantization
 
-Float32 memakai 32 bit per angka. INT8 memakai 8 bit — 256 nilai saja. Pemetaan
-antara keduanya affine:
+Float32 uses 32 bits per number. INT8 uses 8 bits, only 256 values. The mapping
+between the two is affine:
 
 $$x_{\text{float}} \approx (q_{\text{int8}} - z) \times s$$
 
-dengan $s$ = *scale* (jarak antar-langkah) dan $z$ = *zero point* (bilangan bulat
-yang memetakan nol). Nilai pada model yang berlaku
+with $s$ = *scale* (the step size) and $z$ = *zero point* (the integer
+that maps to zero). Values on the model in force
 (`firmware/include/model_int8.h`):
 
 | Tensor | scale | zero point |
 |---|---|---|
-| input morfologi | 0,042908 | −25 |
-| input ritme | 0,012933 | −70 |
-| output (probabilitas) | 0,00390625 = 1/256 | −128 |
+| morphology input | 0.042908 | −25 |
+| rhythm input | 0.012933 | −70 |
+| output (probability) | 0.00390625 = 1/256 | −128 |
 
-Output scale 1/256 dengan zero −128 masuk akal: sigmoid selalu di $[0,1]$, jadi
-256 langkah dipakai penuh untuk rentang itu — $p = (q + 128)/256$.
+An output scale of 1/256 with zero −128 makes sense: a sigmoid is always in $[0,1]$, so
+the 256 steps are fully used for that range: $p = (q + 128)/256$.
 
-**Yang perlu dikalibrasi bukan bobot, tapi aktivasi.** Bobot sudah diketahui
-rentangnya (tinggal dilihat). Rentang aktivasi tiap layer hanya muncul saat data
-mengalir — makanya butuh *representative dataset*.
+**What needs calibrating is not the weights but the activations.** The weights' range is
+already known (just look at it). The activation range of each layer only appears when data
+flows through, which is why a *representative dataset* is needed.
 
 ---
 
-## 2. `stratified_indices()` — JEBAKAN #4
+## 2. `stratified_indices()`: PITFALL #4
 
 ```python
 for kelas in (0, 1):
@@ -73,31 +73,31 @@ for kelas in (0, 1):
     ambil = max(1, round(n * len(pool) / len(y)))
 ```
 
-Kalau 300 sampel kalibrasi diambil acak dari DS1 tanpa stratifikasi, secara
-statistik memang akan kena ~30 beat Aritmia. Tapi "biasanya kena" bukan jaminan
-— dan kalau meleset, yang rusak justru **kelas yang paling kamu pedulikan**:
-aktivasi khas beat aritmia tidak pernah terlihat kalibrator, rentangnya
-dipotong, dan recall INT8 anjlok tanpa penyebab yang kelihatan.
+If the 300 calibration samples are drawn randomly from DS1 without stratification, statistically
+~30 Arrhythmia beats will indeed be hit. But "usually hit" is not a guarantee,
+and if it misses, what breaks is **the class you care about most**:
+the typical activations of arrhythmia beats are never seen by the calibrator, their range is
+clipped, and INT8 recall collapses with no visible cause.
 
-Stratifikasi membuatnya deterministik: proporsi kelas kalibrasi = proporsi DS1
-(270 Normal : 30 Aritmia), dan kelas kosong → `raise`, bukan diam.
+Stratification makes it deterministic: the calibration class proportion = the DS1 proportion
+(270 Normal : 30 Arrhythmia), and an empty class → `raise`, not silence.
 
-`seed` dikunci supaya `make quantize` dua kali menghasilkan `.tflite` identik —
-syarat reproducibility di checklist Fase 8.
+The `seed` is locked so that running `make quantize` twice yields an identical `.tflite`,
+a reproducibility requirement in the Phase 8 checklist.
 
-### Kenapa 300, bukan 100 atau 500
+### Why 300, not 100 or 500
 
-PRD memberi rentang ~100–500. Makin banyak sampel, estimasi rentang aktivasi
-makin stabil, tapi konversi makin lama. 300 memberi 30 beat Aritmia — cukup
-untuk mencakup ekor distribusi — dan konversinya masih hitungan detik.
+The PRD gives a range of ~100–500. The more samples, the more stable the activation range
+estimate, but the longer the conversion. 300 gives 30 Arrhythmia beats, enough
+to cover the tail of the distribution, and the conversion still takes seconds.
 
 ---
 
-## 3. `representative_dataset_gen()` — JEBAKAN #3, dan versi yang benar-benar jalan
+## 3. `representative_dataset_gen()`: PITFALL #3, and the version that actually runs
 
-Model ini punya **dua** input. PRD memperingatkan generator satu-input akan
-membuat converter gagal. Yang tidak tertulis di PRD: bentuk **list posisional**
-pun bermasalah di TF 2.21.
+This model has **two** inputs. The PRD warns that a single-input generator will
+make the converter fail. What the PRD does not say: the **positional list** form
+is also a problem in TF 2.21.
 
 ```python
 yield [X_morph[i:i+1], X_rr[i:i+1]]        # ← GAGAL
@@ -108,13 +108,13 @@ RuntimeError: tensorflow/lite/kernels/conv.cc:345 input->dims->size != 4 (3 != 4
               Node number 1 (CONV_2D) failed to prepare.
 ```
 
-Kalibrator memasangkan elemen list ke tensor input **menurut urutan internal
-model**, bukan urutan yang kamu tulis. Di model ini urutan internalnya
-`rhythm` lebih dulu, jadi vektor RR `(1,3)` dijejalkan ke input konvolusi.
-Pesan errornya menyebut `conv.cc` dan jumlah dimensi — sama sekali tidak
-menyinggung "urutan input salah".
+The calibrator pairs list elements to input tensors **according to the model's internal
+order**, not the order you wrote. In this model the internal order is
+`rhythm` first, so the RR vector `(1,3)` gets jammed into the convolution input.
+The error message mentions `conv.cc` and the number of dimensions, and says nothing at all about
+"wrong input order".
 
-Bentuk yang benar: **dict bernama**.
+The correct form: a **named dict**.
 
 ```python
 yield {
@@ -123,16 +123,16 @@ yield {
 }
 ```
 
-Nama key = nama layer `Input(..., name=...)` di `src/model.py`. Ini salah satu
-alasan layer input diberi nama sejak Fase 4 — bukan sekadar kerapian.
+The key names = the `Input(..., name=...)` layer names in `src/model.py`. This is one of the
+reasons the input layers have been named since Phase 4, not just tidiness.
 
-Varian deploy (§4b) menerima input ritme berbentuk `(1, 1, 3)`, bukan `(1, 3)`.
-Karena itu `scripts/quantize_int8.py` memanggil generator dengan
-`rr_shape=(1, 3)`, dan generator membentuk ulang vektor RR sebelum di-*yield*.
+The deploy variant (§4b) accepts a rhythm input of shape `(1, 1, 3)`, not `(1, 3)`.
+That is why `scripts/quantize_int8.py` calls the generator with
+`rr_shape=(1, 3)`, and the generator reshapes the RR vector before it is *yield*ed.
 
 ---
 
-## 4. `quantize_int8()` — empat baris yang menentukan
+## 4. `quantize_int8()`: four lines that decide it
 
 ```python
 converter.optimizations = [tf.lite.Optimize.DEFAULT]
@@ -142,41 +142,41 @@ converter.inference_input_type = tf.int8
 converter.inference_output_type = tf.int8
 ```
 
-| Baris | Kalau dilewatkan |
+| Line | If omitted |
 |---|---|
-| `optimizations` | tidak ada kuantisasi sama sekali |
-| `representative_dataset` | jadi *dynamic range quantization* — bobot INT8, aktivasi tetap float |
-| `supported_ops = ..._INT8` | converter boleh menyisipkan kernel float sebagai fallback |
-| `inference_*_type = int8` | I/O tetap float32, ada op quantize/dequantize di ujung |
+| `optimizations` | no quantization at all |
+| `representative_dataset` | becomes *dynamic range quantization*: INT8 weights, activations stay float |
+| `supported_ops = ..._INT8` | the converter may insert float kernels as a fallback |
+| `inference_*_type = int8` | I/O stays float32, with quantize/dequantize ops at the ends |
 
-Keputusan **int8 in / int8 out** (`config.INT8_IO = True`) dikunci agar
-konsisten dengan rencana firmware: tidak ada satu pun kernel float di dalam
-model. Verifikasinya mekanis di `tests/test_quantize.py`:
+The **int8 in / int8 out** decision (`config.INT8_IO = True`) is locked to be
+consistent with the firmware plan: not a single float kernel inside the
+model. Its verification is mechanical in `tests/test_quantize.py`:
 
 ```
 dtype semua tensor: {'int8': 39, 'int32': 16}
 ```
 
-Nol tensor `float32`. Tensor `int32` yang 16 itu terdiri atas dua jenis, dan
-keduanya sah di skema INT8 TFLite: **bias** tiap lapisan konvolusi (akumulator
-perkalian int8×int8 disimpan 32-bit sebelum di-*rescale*) dan **konstanta
-bentuk** statis untuk op `Squeeze`/reshape yang dipakai TFLite saat
-mengimplementasikan `Conv1D` lewat konvolusi 2-D.
+Zero `float32` tensors. The 16 `int32` tensors consist of two kinds,
+and both are legitimate in the TFLite INT8 scheme: the **biases** of each convolution layer (the accumulator
+of int8×int8 multiplication is stored in 32 bits before being *rescale*d) and the static **shape
+constants** for the `Squeeze`/reshape ops that TFLite uses when
+implementing `Conv1D` through 2-D convolution.
 
-### Penjaga skala input ritme
+### Rhythm input scale guard
 
-`quantize_int8` memanggil `assert_rhythm_scale_sane` sebelum mengembalikan
-blob. Skala INT8 input ritme diturunkan dari min/max sampel kalibrasi; satu
-beat ber-RR ekstrem di kolam kalibrasi (record 207 punya `RR_prev` = 100 s)
-melebarkan skala puluhan kali, RR normal tinggal beberapa level int8, dan
-cabang ritme praktis mati. Gejalanya recall S yang buruk, bukan error. Blob
-dengan skala di atas `MAX_RHYTHM_SCALE` (0,05) ditolak dengan `ValueError`;
-nilai pada model yang berlaku 0,0129. Skala sehat secara teori ~0,0197
-(p99,99 |X_rr| = 2,51), yang rusak ~0,78 (disuntik outlier: 0,3952), jadi 0,05
-memberi ~2,5× ruang dari sehat dan ~15× di bawah rusak. Peluang terkena per seed
-terukur 19 Sep: 4,6% (mitdb saja), 1,8% (tiga database).
+`quantize_int8` calls `assert_rhythm_scale_sane` before returning the
+blob. The INT8 scale of the rhythm input is derived from the min/max of the calibration samples; a single
+beat with an extreme RR in the calibration pool (record 207 has `RR_prev` = 100 s)
+widens the scale by tens of times, normal RR is left with a few int8 levels, and
+the rhythm branch is practically dead. The symptom is poor S recall, not an error. A blob
+with a scale above `MAX_RHYTHM_SCALE` (0.05) is rejected with `ValueError`;
+the value on the model in force is 0.0129. A healthy scale is theoretically ~0.0197
+(p99.99 |X_rr| = 2.51), a broken one ~0.78 (outlier injected: 0.3952), so 0.05
+gives ~2.5× headroom from healthy and ~15× below broken. The chance of being hit per seed
+was measured on 19 Sep: 4.6% (mitdb only), 1.8% (three databases).
 
-### Konsekuensi untuk firmware
+### Consequences for the firmware
 
 ```c
 // masuk: hasil z-score (float) → int8
@@ -185,163 +185,163 @@ in[i] = (int8_t)lroundf(x[i] / ECG_IN_MORPH_SCALE + ECG_IN_MORPH_ZERO);
 float p = (out[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 ```
 
-Angka `scale` dan `zero_point` ikut ter-*generate* di `model_int8.h` sebagai
-makro `ECG_*_SCALE`/`ECG_*_ZERO` — jangan di-hardcode manual di firmware,
-karena berubah tiap kali model dilatih ulang.
+The `scale` and `zero_point` values are *generate*d into `model_int8.h` as the
+`ECG_*_SCALE`/`ECG_*_ZERO` macros. Do not hardcode them manually in the firmware,
+because they change every time the model is retrained.
 
 ---
 
-## 4b. Yang dikuantisasi bukan model latih, tapi varian deploy
+## 4b. What gets quantized is not the training model but the deploy variant
 
 ```python
 deploy = build_deploy_model(tf.keras.models.load_model(keras_path))
 blob = quantize_int8(deploy, ...)
 ```
 
-Model latih memakai `GlobalAveragePooling1D` → op `MEAN`, dan **TFLite Micro
-menghitung `MEAN` berbeda dari TFLite biasa**. Di PC hasilnya 0,973; di ESP32-S3
-model yang sama memberi 0,336 — tanpa error apa pun.
+The training model uses `GlobalAveragePooling1D` → the `MEAN` op, and **TFLite Micro
+computes `MEAN` differently from regular TFLite**. On the PC the result is 0.973; on the ESP32-S3
+the same model gives 0.336, without any error.
 
-`build_deploy_model` menukar dua op, bobot disalin apa adanya (identik sampai
-1,19e-07 di float32, jadi **tanpa latih ulang**):
+`build_deploy_model` swaps two ops, and the weights are copied as is (identical down to
+1.19e-07 in float32, so **no retraining**):
 
-| Model latih | Model deploy | Kenapa |
+| Training model | Deploy model | Why |
 |---|---|---|
-| `GlobalAveragePooling1D` (`MEAN`) | `DepthwiseConv1D(L)` bobot 1/L, L = panjang deret (32 pada window 256) | konvolusi = rata-rata yang sama, tapi dapat skala kuantisasi output sendiri |
-| `Dense` | `Conv1D` kernel 1 | tetap 3-D → tidak butuh `Flatten` (yang memunculkan op shape-dinamis) |
+| `GlobalAveragePooling1D` (`MEAN`) | `DepthwiseConv1D(L)` with weights 1/L, L = sequence length (32 at window 256) | a convolution = the same average, but it gets its own output quantization scale |
+| `Dense` | `Conv1D` kernel 1 | stays 3-D → no `Flatten` needed (which brings in a dynamic-shape op) |
 
-Alternatif `AveragePooling1D` **tidak dipakai**: op pooling mewarisi skala
-input (0,332), sedangkan rata-rata 31 nilai jauh lebih kecil dari rentang itu →
-~3 bit resolusi terbuang dan recall DS2 jatuh 0,655 → 0,528 (terukur pada model
-baseline berwindow 250, yang panjang deret di titik ini 31). Konvolusi mendapat
-skala output sendiri (0,0429, sama persis dengan pilihan `MEAN`).
-`build_deploy_model` mengambil panjang kernel dari bentuk tensor, jadi pada
-window 256 yang berlaku kernelnya 32.
+The `AveragePooling1D` alternative is **not used**: the pooling op inherits the input
+scale (0.332), while the average of 31 values is much smaller than that range →
+~3 bits of resolution wasted and DS2 recall drops 0.655 → 0.528 (measured on the
+baseline model with window 250, whose sequence length at this point is 31). The convolution gets its own
+output scale (0.0429, exactly the same as the `MEAN` choice).
+`build_deploy_model` takes the kernel length from the tensor shape, so at the
+window 256 in force the kernel is 32.
 
-Cerita lengkap pengejaran bug ini: [`firmware-walkthrough`](firmware-walkthrough.md) §5.
+The full story of chasing this bug: [`firmware-walkthrough`](firmware-walkthrough.md) §5.
 
 ---
 
-## 5. `predict_tflite()` — jebakan ketiga: lupa dequantize
+## 5. `predict_tflite()`: the third pitfall, forgetting to dequantize
 
 ```python
 inputs = sorted(interp.get_input_details(), key=lambda d: int(np.prod(d["shape"])))
 rr_in, morph_in = inputs[0], inputs[1]
 ```
 
-Urutan input di `.tflite` **tidak dijamin** sama dengan urutan di Keras (persis
-masalah §3). Di sini dibereskan dengan mengurutkan berdasar **jumlah elemen**:
-RR `(1,1,3)` = 3 elemen, morfologi `(1,256,1)` = 256 elemen. Jumlah dimensi
-tidak bisa dipakai pembeda, karena di model deploy keduanya sama-sama 3-D.
-Cara ini tidak bergantung nama maupun urutan.
+The input order in the `.tflite` is **not guaranteed** to match the order in Keras (exactly
+the problem of §3). Here it is handled by sorting on the **number of elements**:
+RR `(1,1,3)` = 3 elements, morphology `(1,256,1)` = 256 elements. The number of dimensions
+cannot be used to tell them apart, because in the deploy model both are 3-D.
+This method depends on neither name nor order.
 
-Lalu kuantisasi manual masuk, dequantisasi manual keluar:
+Then manual quantization on the way in, manual dequantization on the way out:
 
 ```python
 np.clip(np.round(x / scale) + zero, -128, 127)     # masuk
 (q.astype(np.float32) - zero) * scale              # keluar
 ```
 
-`clip` wajib: nilai z-score bisa melewati rentang yang terlihat saat kalibrasi,
-dan tanpa clip hasilnya *wrap around* — angka besar positif jadi negatif ekstrem.
-Kalau langkah dequantize di output dilupakan, metrik dihitung dari bilangan
-bulat −128..127 yang dibandingkan dengan threshold 0,80: setiap q ≥ 1 (p ≳ 0,5)
-jadi Aritmia sehingga titik operasi diam-diam pindah tanpa error apa pun (PRD
-menyebut ini eksplisit: "lupa dequantize → metrik ngawur").
+The `clip` is mandatory: z-score values can exceed the range seen during calibration,
+and without clip the result *wrap around*: a large positive number becomes an extreme negative.
+If the dequantize step on the output is forgotten, the metrics are computed from integers
+−128..127 compared against the 0.80 threshold: every q ≥ 1 (p ≳ 0.5)
+becomes Arrhythmia, so the operating point silently moves without any error (the PRD
+states this explicitly: "forgot to dequantize → nonsense metrics").
 
 ---
 
-## 6. Tabel delta — hasil akhir
+## 6. Delta table: the final result
 
-Ukuran: **23.488 byte = 22,94 KB** (< 25 KB), dari 25,07 KB float32.
+Size: **23,488 bytes = 22.94 KB** (< 25 KB), from 25.07 KB float32.
 
-| Metrik | Float32 | INT8 | Delta |
+| Metric | Float32 | INT8 | Delta |
 |---|---|---|---|
-| accuracy | 0,9207 | 0,9198 | −0,0009 |
-| precision | 0,6235 | 0,6169 | −0,0067 |
-| **recall** | 0,6996 | 0,7105 | **+0,0108** |
-| F1 | 0,6594 | 0,6604 | +0,0010 |
-| specificity | 0,9479 | 0,9456 | −0,0023 |
-| AUC | 0,9334 | 0,9344 | +0,0010 |
-| TP/FN/FP/TN | 3813/1637/2302/41904 | 3872/1578/2405/41801 | — |
+| accuracy | 0.9207 | 0.9198 | −0.0009 |
+| precision | 0.6235 | 0.6169 | −0.0067 |
+| **recall** | 0.6996 | 0.7105 | **+0.0108** |
+| F1 | 0.6594 | 0.6604 | +0.0010 |
+| specificity | 0.9479 | 0.9456 | −0.0023 |
+| AUC | 0.9334 | 0.9344 | +0.0010 |
+| TP/FN/FP/TN | 3813/1637/2302/41904 | 3872/1578/2405/41801 | - |
 
-**|Delta recall| 1,08 poin** — di bawah ambang "ideal < 1–2%" yang disebut PRD.
-Kelayakannya terbukti dengan angka, bukan asumsi.
+**|Delta recall| 1.08 points**, below the "ideal < 1–2%" threshold stated in the PRD.
+Its viability is proven with numbers, not assumed.
 
-### Cara membaca angka yang bergeser
+### How to read the numbers that shifted
 
-Recall naik, precision dan specificity turun. Itu bukan bukti INT8 "lebih
-peka". AUC bergeser +0,001 — kemampuan model mengurutkan praktis tidak berubah,
-dan itulah ukuran yang jujur.
+Recall rises, precision and specificity fall. That is not evidence that INT8 is "more
+sensitive". AUC shifts +0.001: the model's ability to rank is practically unchanged,
+and that is the honest measure.
 
-Yang terjadi: kuantisasi menggeser distribusi probabilitas sedikit. Dengan
-threshold tetap 0,80, sebagian beat berpindah sisi: 59 aritmia tambahan
-tertangkap (FN 1.637 → 1.578) dan 103 alarm palsu tambahan muncul (FP 2.302 →
-2.405). Arah pergeseran ini tidak tetap: pada model baseline (window 250,
-threshold 0,35) arahnya terbalik — recall −0,0112, precision +0,0383, AUC
-−0,0004. Yang tetap adalah besarnya: kecil, dan AUC nyaris diam.
+What happens: quantization shifts the probability distribution slightly. With a
+fixed threshold of 0.80, some beats move sides: 59 more arrhythmias
+are caught (FN 1,637 → 1,578) and 103 more false alarms appear (FP 2,302 →
+2,405). The direction of this shift is not fixed: on the baseline model (window 250,
+threshold 0.35) the direction is reversed: recall −0.0112, precision +0.0383, AUC
+−0.0004. What stays constant is the magnitude: small, and AUC barely moves.
 
-Ini pengingat penting: **selisih metrik pada threshold tetap mencampur dua hal**
-— perubahan kualitas model dan pergeseran kalibrasi probabilitas. AUC yang
-memisahkan keduanya, dan AUC bilang model INT8 setara.
+This is an important reminder: **a metric difference at a fixed threshold mixes two things**:
+a change in model quality and a shift in probability calibration. AUC
+separates the two, and AUC says the INT8 model is equivalent.
 
-### Delta per kelas dan label yang berubah
+### Per-class delta and changed labels
 
-Dampak INT8 pada aritmia ECG di literatur cenderung terpusat di kelas S (Busia
-2024), jadi selisih agregat bisa menyembunyikan satu kelas yang jatuh. Diukur
-dengan `scripts/extra_metrics.py` (1 Nov 2026, *threshold* 0,80):
+The impact of INT8 on ECG arrhythmia in the literature tends to concentrate in class S (Busia
+2024), so an aggregate difference can hide one class that drops. Measured
+with `scripts/extra_metrics.py` (1 Nov 2026, *threshold* 0.80):
 
 | *Recall* | Float32 | INT8 | Delta |
 |---|---|---|---|
-| S (1.836 detak) | 0,4390 | 0,4630 | +0,0240 |
-| V (3.219 detak) | 0,9248 | 0,9282 | +0,0034 |
-| F (388 detak) | 0,0670 | 0,0773 | +0,0103 |
-| PR-AUC | 0,7445 | 0,7663 | +0,0218 |
-| MCC | 0,6160 | 0,6171 | +0,0011 |
+| S (1,836 beats) | 0.4390 | 0.4630 | +0.0240 |
+| V (3,219 beats) | 0.9248 | 0.9282 | +0.0034 |
+| F (388 beats) | 0.0670 | 0.0773 | +0.0103 |
+| PR-AUC | 0.7445 | 0.7663 | +0.0218 |
+| MCC | 0.6160 | 0.6171 | +0.0011 |
 
-Ketiga kelas bergeser ke arah yang sama dengan *recall* agregat (+0,0108), dan
-tidak ada kelas yang turun. Yang terbesar S, +0,0240, sedikit di atas ambang
-agregat 0,02 tetapi searah perbaikan. Label berubah pada **272 dari 49.656
-detak (0,55%)**. Pergeseran ini konsisten dengan penjelasan di atas:
-probabilitas INT8 sedikit naik di sekitar *threshold* sehingga lebih banyak
-detak melewati 0,80 di semua kelas.
-
----
-
-## 7. Yang sengaja TIDAK dilakukan
-
-**Tidak mengubah threshold untuk INT8.** Kalau threshold ikut disetel ulang,
-yang terukur bukan lagi efek kuantisasi murni. Prosedur evaluasi harus identik
-Fase 6 — DS2 yang sama, threshold yang sama, fungsi metrik yang sama.
-
-**Tidak memakai DS2 sebagai representative dataset.** Kalibrasi mengambil dari
-DS1. Menyentuh DS2 di sini akan membocorkan statistik test set ke dalam model.
-
-**Tidak memakai QAT** (Quantization-Aware Training). PTQ sudah memenuhi target
-(|delta recall| 0,0108 < 0,02; 22,94 KB < 25 KB); QAT berarti melatih ulang dan
-menambah satu sumber variasi baru untuk keuntungan yang belum tentu ada.
+All three classes shift in the same direction as the aggregate *recall* (+0.0108), and
+no class falls. The largest is S, +0.0240, slightly above the aggregate
+threshold of 0.02 but in the improving direction. Labels change on **272 of 49,656
+beats (0.55%)**. This shift is consistent with the explanation above:
+INT8 probabilities rise slightly around the *threshold*, so more
+beats cross 0.80 in every class.
 
 ---
 
-## 8. Cek pemahaman
+## 7. What is deliberately NOT done
 
-1. `converter.representative_dataset` tidak diisi tapi `optimizations` diisi.
-   Model tetap jadi dan lebih kecil — apa yang sebenarnya terkuantisasi, dan
-   kenapa itu tidak cukup untuk ESP32?
-2. Kenapa ada 16 tensor `int32` di model "full-INT8", dan kenapa itu bukan
-   pelanggaran klaim?
-3. `np.clip(..., -128, 127)` dihapus dari `_quantize`. Kapan bug-nya muncul, dan
-   kenapa tidak muncul di sebagian besar beat?
-4. Recall INT8 naik 1,1 poin dan precision turun 0,7 poin, sementara AUC hanya
-   bergeser +0,001. Jelaskan kenapa fakta-fakta itu tidak bertentangan.
+**Does not change the threshold for INT8.** If the threshold were retuned as well,
+what is measured is no longer the pure effect of quantization. The evaluation procedure must be identical to
+Phase 6: the same DS2, the same threshold, the same metric functions.
 
-## 9. Skrip pendukung
+**Does not use DS2 as the representative dataset.** Calibration draws from
+DS1. Touching DS2 here would leak test set statistics into the model.
 
-| Perintah | Keluaran |
+**Does not use QAT** (Quantization-Aware Training). PTQ already meets the target
+(|delta recall| 0.0108 < 0.02; 22.94 KB < 25 KB); QAT means retraining and
+adding one more source of variation for a gain that may not exist.
+
+---
+
+## 8. Comprehension check
+
+1. `converter.representative_dataset` is not set but `optimizations` is.
+   The model is still produced and is smaller: what is actually quantized, and
+   why is that not enough for the ESP32?
+2. Why are there 16 `int32` tensors in a "full-INT8" model, and why is that not a
+   violation of the claim?
+3. `np.clip(..., -128, 127)` is removed from `_quantize`. When does the bug show up, and
+   why does it not show up in most beats?
+4. INT8 recall rises 1.1 points and precision falls 0.7 points, while AUC only
+   shifts +0.001. Explain why those facts do not contradict each other.
+
+## 9. Supporting scripts
+
+| Command | Output |
 |---|---|
 | `make quantize` | `model_int8.tflite`, `fase7_delta.csv`, `fase7_confusion_int8.png` |
-| `make test` | seluruh suite pytest; 9 test di `tests/test_quantize.py` mengunci kalibrasi, klaim full-INT8, dan skala input ritme |
+| `make test` | the whole pytest suite; 9 tests in `tests/test_quantize.py` lock calibration, the full-INT8 claim, and the rhythm input scale |
 
 ---
 
-**[← Fase 6b — segmentasi deteksi](segmentasi-deteksi-walkthrough.md)**  ·  [Peta walkthrough](README.md)  ·  **[firmware — port ke ESP32-S3 →](firmware-walkthrough.md)**
+**[← Phase 6b: detection segmentation](detection-segmentation-walkthrough.md)**  ·  [Walkthrough map](README.md)  ·  **[firmware: port to ESP32-S3 →](firmware-walkthrough.md)**
