@@ -15,22 +15,22 @@ and fixes it.
 ## 0. One-screen map
 
 ```
-                    anotasi kardiolog          Pan-Tompkins di alat
+                    cardiologist annotation     Pan-Tompkins on the device
                            │                          │
-                           └──── selisihnya? ─────────┘
+                           └──── the difference? ───────┘
                                       │
-                         scripts/measure_jitter.py        ← Task 1: UKUR
+                         scripts/measure_jitter.py        ← Task 1: MEASURE
                                       │
-                       residu_ds1.npy (kolam 50.601 selisih)
+                       residu_ds1.npy (pool of 50.601 differences)
                                       │
                     ┌─────────────────┴─────────────────┐
                     ▼                                   ▼
         src/preprocessing.jitter_r()            scripts/sweep_jitter.py
-        (dipakai melatih)                       (dipakai mengukur)  ← Task 2
+        (used to train)                         (used to measure)  ← Task 2
                     │                                   │
                     ▼                                   ▼
-        scripts/ablasi.py  ← Task 3-5            kurva metrik vs δ
-        (latih varian, bandingkan)
+        scripts/ablasi.py  ← Task 3-5            metric vs δ curve
+        (train variants, compare)
 ```
 
 In one sentence: **all Phase 6 numbers are cut from perfect annotated R-peaks,
@@ -69,11 +69,11 @@ We have the detector. So the first step is not to imitate δ=18, but to measure.
 The chain measured is exactly the chain the firmware runs:
 
 ```python
-r_kasar  = pan_tompkins_detect(filtered)        # punya delay ~38 sampel
-r_used  = haluskan(r_kasar - PT_DETECTOR_OFFSET, filtered)
-#          haluskan = cari puncak dalam ±PT_REFINE_WIN, lalu - GROUP_DELAY
-pasangan = pair_detected(r_used, r_annotated, toleransi 150 ms)
-residu   = r_used[cocok] - r_annotated[pasangan[cocok]]
+r_used = refine_peaks(pan_tompkins_detect(filtered, FS) - PT_DETECTOR_OFFSET, filtered)
+pasangan = pair_detected(r_used, r_anot, tolerance)
+
+cocok = pasangan >= 0
+residu = r_used[cocok] - r_anot[pasangan[cocok]]
 ```
 
 `refine_peaks()` and `pair_detected()` are **not rewritten**: both already exist
@@ -139,18 +139,27 @@ period blocks premature beats, see the trap in `../CLAUDE.md`).
 ## 3. `src/preprocessing.jitter_r()`: three models, one default
 
 ```python
-def jitter_r(r_locations, delta=0, rng=None, model="empiris"):
+def jitter_r(r_locations: np.ndarray, delta: int = 0, rng=None,
+             model: str = "empiris") -> np.ndarray:
+    r = np.asarray(r_locations, dtype=np.int64)
+    if model != "empiris" and delta == 0:
+        return r
+    rng = np.random.default_rng() if rng is None else rng
+
     if model == "empiris":
-        kolam = np.load(RESIDUAL_DS1)
-        geser = rng.choice(kolam, size=len(r))       # ambil ulang residu asli
+        jitter_pool = np.load(RESIDUAL_DS1)
+        geser = rng.choice(jitter_pool, size=len(r)).astype(np.int64)
     elif model == "seragam":
-        geser = rng.integers(-delta, delta + 1, size=len(r))   # protokol paper
+        geser = rng.integers(-delta, delta + 1, size=len(r))
     elif model == "normal":
-        geser = np.rint(rng.normal(0.0, float(delta), size=len(r)))
+        geser = np.rint(rng.normal(0.0, float(delta), size=len(r))).astype(np.int64)
+    else:
+        raise ValueError(f"unknown jitter model: {model}")
+
     return np.maximum.accumulate(r + geser)
 ```
 
-Three decisions in those nine lines:
+Three decisions in those lines:
 
 **(a) Default `empiris`, not `seragam`.** The real distribution is sharp-core-heavy-tail;
 uniform ±18 would shift the 80% of beats that are actually locked on. Resampling
@@ -179,10 +188,10 @@ In `prep_beats.process_record`, the jittered positions are used **entirely**:
 ```python
 if jitter is not None:
     r = jitter(r)
-idx     = valid_beat_indices(len(signal), r)
+idx = valid_beat_indices(len(signal), r)
 windows = zscore_per_window(segment_beats(filtered, r[idx]))
-rr      = compute_rr_features(r)[idx]       # ikut rusak — memang harus
-labels  = [to_binary_label(to_aami_class(sym[i])) for i in idx]   # TIDAK ikut
+rr = assemble_rhythm_features(r, windows, idx)
+labels = np.array([to_binary_label(to_aami_class(sym[i])) for i in idx], dtype=np.int8)
 ```
 
 If only the window is jittered while RR is still computed from the annotation,
@@ -247,8 +256,8 @@ fixed threshold of 0.35 would mislead.
 ## 5. `scripts/ablasi.py`: one variant, one process, the same chain
 
 ```
-rakit DS1 (+salinan ber-jitter) → pisah val per pasien → latih →
-kalibrasi threshold di VAL → ukur DS2 (anotasi DAN jitter empiris)
+assemble DS1 (+ jittered copies) → split val per patient → train →
+calibrate threshold on VAL → measure DS2 (annotation AND empirical jitter)
 ```
 
 All variants pass through an identical chain; only one knob differs. Results
@@ -442,7 +451,7 @@ not falling. Statistical moments do not care if the window shifts a little.
 In this repo the cost is almost zero, because the incoming window is **already z-scored**:
 
 ```
-mean = 0, std = 1  →  penyebut Pers. 12-13 tinggal 1
+mean = 0, std = 1  →  denominator of Eq. 12-13 becomes 1
 kurtosis = mean(s⁴)      skewness = mean(s³)
 ```
 

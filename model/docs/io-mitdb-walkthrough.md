@@ -12,9 +12,9 @@ Reproduction:
 
 ```
 cd model
-make data                 # sekali: unduh MIT-BIH
-make check                # kelengkapan .hea/.dat/.atr
-make plot0 REC=114        # overlay R-peak anotasi
+make data                 # once: download MIT-BIH
+make check                # .hea/.dat/.atr completeness
+make plot0 REC=114        # annotated R-peak overlay
 ```
 
 ---
@@ -66,9 +66,9 @@ is still the standard for evaluating arrhythmia classification.
 spec = DATASETS[db]
 if record.fs != spec["fs"]:
     raise ValueError(
-        f"record {record_id} ({db}): fs={record.fs}, DATASETS menjanjikan {spec['fs']}"
+        f"record {record_id} ({db}): fs={record.fs}, DATASETS promises {spec['fs']}"
     )
-channel = select_lead(record_id, record.sig_name, spec["leads"])   # raise kalau nihil
+channel = select_lead(record_id, record.sig_name, spec["leads"])   # raises if none match
 ```
 
 For mitdb (`db="mitdb"`, the default), `DATASETS["mitdb"]` promises `fs = 360`
@@ -112,8 +112,8 @@ It looks trivial, and this is exactly where the trap is. Almost all MIT-BIH reco
 put MLII in column 0:
 
 ```
-record 100 → sig_name = ['MLII', 'V5']    → MLII di index 0
-record 114 → sig_name = ['V5', 'MLII']    → MLII di index 1  ←
+record 100 → sig_name = ['MLII', 'V5']    → MLII at index 0
+record 114 → sig_name = ['V5', 'MLII']    → MLII at index 1  ←
 ```
 
 `p_signal[:, 0]` will work smoothly for 45 records and **silently take the wrong
@@ -153,7 +153,7 @@ QRS-like artifact. All are **events**, not beats: if they were included, they wo
 The way that looks most natural is to use wfdb's built-in table:
 
 ```python
-is_beat = [wfdb.io.annotation.is_qrs[s] for s in symbols]   # ← JANGAN
+is_beat = [wfdb.io.annotation.is_qrs[s] for s in symbols]   # ← DO NOT
 ```
 
 The symptom: `[`, `]`, `x`, `)` get through as "beats". The cause is that the wfdb table marks

@@ -10,9 +10,9 @@ Reproduction:
 
 ```
 cd firmware
-pio test -e native      # preprocessing, INA219, payload & ring MQTT di PC, tanpa board
-pio test -e esp32-s3    # preprocessing, inferensi, dan perangkat PCB di board sungguhan
-pio run                 # build firmware utama (env esp32-s3)
+pio test -e native      # preprocessing, INA219, payload & MQTT ring on the PC, no board
+pio test -e esp32-s3    # preprocessing, inference, and PCB peripherals on the real board
+pio run                 # build the main firmware (env esp32-s3)
 ```
 
 `platformio.ini` contains two envs:
@@ -35,14 +35,14 @@ model/src/features_rr.py    ─┤
         ┌────────────────────┴────────────────────┐
         ▼                                         ▼
 firmware/include/ecg_preproc.h          firmware/test/golden_ref.h
-  koefisien SOS, konstanta                sinyal + hasil tiap tahap
+  SOS coefficients, constants             signal + result of each stage
         │                                         │
         ▼                                         ▼
-firmware/src/ecg_pipeline.cpp  ──── diuji oleh ──── test_preproc/
+firmware/src/ecg_pipeline.cpp  ──── tested by ──── test_preproc/
         │                                          test_inference/
         ▼                                              ▲
 firmware/include/model_int8.h ─────────────────────────┘
-  (dari model/scripts/export_model_h.py)
+  (from model/scripts/export_model_h.py)
 ```
 
 Its single rule: **Python is the truth.** If C and Python differ,
@@ -95,7 +95,7 @@ stand on their own.
 float y = c[0]*x + s[0];          // b0*x + state0
 s[0] = c[1]*x - c[4]*y + s[1];    // b1*x - a1*y + state1
 s[1] = c[2]*x - c[5]*y;           // b2*x - a2*y
-x = y;                            // masuk ke section berikutnya
+x = y;                            // feed the next section
 ```
 
 `ecg_sos` is stored `{b0,b1,b2,a0,a1,a2}` per row; `a0` is always 1 (scipy already
@@ -108,7 +108,7 @@ delivers samples flowing, never 2,400 at once.
 ### `ecg_window_zscore`: divisor N, not N−1
 
 ```c
-const double std_pop = sqrt(kuadrat / ECG_WIN_LEN_);
+const double std_pop = sqrt(squares / ECG_WIN_LEN_);
 ```
 
 numpy `std()` defaults to the divisor $N$ (population). Using $N-1$ (sample)
@@ -127,11 +127,11 @@ Python and C just silently compute different rhythms.
 ### `ecg_detect_r`: Pan-Tompkins, five stages
 
 ```c
-pt_bandpass(filtered, scratch, n);        // 5-15 Hz, 2 biquad, kausal
+pt_bandpass(filtered, scratch, n);        // 5-15 Hz, 2 biquads, causal
 pt_derivative(scratch, n);                // (x[i] + 2x[i-1] - 2x[i-3] - x[i-4]) * fs/8
-for (...) scratch[i] *= scratch[i];       // kuadrat
-pt_mwi(scratch, n);                       // rata-rata bergerak 54 sampel (150 ms)
-// lalu ambang adaptif + refraktori 200 ms
+for (...) scratch[i] *= scratch[i];       // square
+pt_mwi(scratch, n);                       // 54-sample moving average (150 ms)
+// then adaptive threshold + 200 ms refractory period
 ```
 
 `scratch` is provided by the caller (n floats): **no dynamic allocation**, a reasonable requirement
@@ -150,9 +150,9 @@ The C detection matches Python on 11 of 11 peaks in `golden_raw`.
 ### `ecg_align_r`: three corrections that must not be missed
 
 ```c
-int lo = r_kasar - ECG_PT_OFFSET;                    // 38: median delay (kalibrasi DS1)
-int puncak = argmax(filtered, lo - 25 .. lo + 25);   // puncak R sebenarnya
-return puncak - ECG_GROUP_DELAY;                     // 4: geseran bandpass kausal
+int lo = r_coarse - ECG_PT_OFFSET;                   // 38: median delay (DS1 calibration)
+int peak = argmax(filtered, lo - 25 .. lo + 25);     // the actual R peak
+return peak - ECG_GROUP_DELAY;                       // 4: causal bandpass shift
 ```
 
 The result puts R at index **94** in the window, the same as the training window.
@@ -198,7 +198,9 @@ device.
 ## 4. `test_bandpass_streaming`: a test with no counterpart in Python
 
 ```c
-for (size_t i = 0; i < GOLDEN_N; i += 64) {
+const size_t block = 64;
+for (size_t i = 0; i < GOLDEN_N; i += block) {
+    size_t n = (i + block <= GOLDEN_N) ? block : (GOLDEN_N - i);
     ecg_bandpass(golden_raw + i, buf_filtered + i, n, state);
 }
 ```
@@ -286,12 +288,12 @@ int ecg_live_push(float sample_raw, ecg_beat_t *beat);
 Inside it:
 
 ```
-sampel mentah
-   → ecg_bandpass (state bertahan)  → ring 4 detik
-   → tiap 1 detik: ecg_detect_r atas seluruh ring
-   → ecg_align_r  (R mendarat di ECG_WIN_PRE + ECG_GROUP_DELAY = 132)
+raw sample
+   → ecg_bandpass (state persists)  → 4-second ring
+   → every 1 second: ecg_detect_r over the whole ring
+   → ecg_align_r  (R lands at ECG_WIN_PRE + ECG_GROUP_DELAY = 132)
    → ecg_window_zscore + ecg_rr_features
-   → beat keluar
+   → beat out
 ```
 
 **Inference is deliberately NOT inside this module.** The caller runs it
@@ -344,17 +346,17 @@ so the queue can be sized with a number, not a guess.
 ## 5c. The production firmware (`main.cpp`)
 
 ```
-timer ISR 360 Hz ──► antrean 256 sampel ──► loop utama
-   adc1_get_raw()                             ├─ ecg_live_push + nilai_kualitas
-   (atau rp_data[] saat replay)               ├─ nilai_fase (gerbang kalibrasi)
-                                              ├─ inferensi tiap beat (fase pemantauan)
-                                              ├─ publikasi → ring backlog MQTT
+360 Hz timer ISR ──► 256-sample queue ──► main loop
+   adc1_get_raw()                             ├─ ecg_live_push + gate_assess_quality
+   (or rp_data[] during replay)               ├─ gate_assess_phase (calibration gate)
+                                              ├─ inference per beat (monitoring phase)
+                                              ├─ publish → MQTT backlog ring
                                               ├─ ecg_mqtt_service (non-blocking)
-                                              ├─ LED kualitas sinyal (biru/oranye/hijau)
-                                              ├─ TFT: HR, INA219 ⇄ jam, REC/JEDA/replay, gelombang
-                                              ├─ buzzer: bip per detak (terjadwal, senyap saat kalibrasi)
-                                              ├─ tombol B1/B2/B3: monitor (bisu, beku, rekam/jeda; tahan B3 simpan) / menu
-                                              └─ menu di layar (bila terbuka)
+                                              ├─ signal quality LED (blue/orange/green)
+                                              ├─ TFT: HR, INA219 ⇄ clock, REC/PAUSE/replay, waveform
+                                              ├─ buzzer: beep per beat (scheduled, silent during calibration)
+                                              ├─ buttons B1/B2/B3: monitor (mute, freeze, record/pause; long B3 saves) / menu
+                                              └─ on-screen menu (when open)
 ```
 
 The PCB rev1 pin map and the device installation order are in
@@ -454,10 +456,10 @@ use a single branch in the ISR that reads whichever array `rp_data` points to:
 
 ```cpp
 if (rp_data) {
-    antre[tulis] = rp_data[replay_i];      // integer saja: golden dikonversi sekali di acquisition_begin()
+    queue[write_index] = rp_data[replay_i];      // integers only: golden converted once in acquisition_begin()
     if (++replay_i >= rp_n) replay_i = 0;
 } else {
-    antre[tulis] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
+    queue[write_index] = (uint16_t)adc1_get_raw(CHANNEL_ECG);
 }
 ```
 
@@ -494,7 +496,7 @@ The consequence: pipeline resilience tests do not need to wait for electrodes.
 Multiplying directly in `on_timer()` looks reasonable:
 
 ```cpp
-float v = golden_raw[replay_i] * SCALE_REPLAY + OFFSET_REPLAY;   // SALAH
+float v = golden_raw[replay_i] * SCALE_REPLAY + OFFSET_REPLAY;   // WRONG
 ```
 
 That code builds cleanly and runs for about 20 seconds, then:

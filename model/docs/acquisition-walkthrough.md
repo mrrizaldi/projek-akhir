@@ -21,17 +21,17 @@ assessing quality, making plots.
 ## 0. One-screen flow
 
 ```
-elektroda → AD8232 → ESP32-S3 (timer 360 Hz)
+electrodes → AD8232 → ESP32-S3 (360 Hz timer)
                           │
-   tombol B3 (pendek: rekam/jeda/lanjut, tahan: simpan) → PSRAM → LittleFS  (/rekam/NNN.csv)
+   button B3 (short: record/pause/resume, long: save) → PSRAM → LittleFS  (/rekam/NNN.csv)
                           │
-                     make pull                      ← colok USB ke laptop
+                     make pull                      ← plug USB into the laptop
                           ▼
-              model/data/recordings/<tanggal-jam>.csv
+              model/data/recordings/<date-time>.csv
                           │
                      make analyze FILE=...
                           ▼
-     angka kualitas per segmen di terminal + grafik di artifacts/metrics/akuisisi/akuisisi_*.png
+     per-segment quality numbers in the terminal + plot in artifacts/metrics/akuisisi/akuisisi_*.png
 ```
 
 ---
@@ -99,10 +99,10 @@ even though the content was mains, not ECG. That is why the firmware measures th
 (1 second = 50 whole cycles, the bin is exact) and then **subtracts** its contribution:
 
 ```
-ayun_bersih = ayun_tersaring − 0,342 × dengung50_puncak-ke-puncak
+swing_clean = swing_filtered − 0,342 × hum50_peak_to_peak
 ```
 
-This `ayun_bersih` value is what is judged against the threshold of 60, and what `q`
+This `swing_clean` value is what is judged against the threshold of 60, and what `q`
 prints as `BERSIH`. The peak-to-peak 50 Hz hum (`dengung50` in `q`)
 is judged against the threshold of 500, and LO± is judged detached if even one sample within
 that second shows detached.
@@ -150,8 +150,8 @@ measures swing, and a clipped signal swings widely. Clipping is still
 counted, check it via serial:
 
 ```
-q   laporan kualitas tiap detik (toggle), kolom `clipping`
-s   status sesaat, kolom `clipping`
+q   per-second quality report (toggle), `clipping` column
+s   instant status, `clipping` column
 ```
 
 Before starting to record, enable `q` and make sure `clipping 0`. Green alone is
@@ -249,11 +249,11 @@ path), so the referee remains the swing in §6.
 ### Recording file format
 
 ```
-# fs=360 n=<total sampel> lewat=<hilang> lepas=<LO aktif> (<persen>%)
-<counts ADC, satu sampel per baris>
+# fs=360 n=<total samples> lewat=<missed> lepas=<LO active> (<percent>%)
+<ADC counts, one sample per line>
 ...
 # jeda
-<counts ADC segmen berikutnya>
+<ADC counts of the next segment>
 ...
 ```
 
