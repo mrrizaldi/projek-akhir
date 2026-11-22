@@ -3,8 +3,10 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import unquote
 
-LINK = re.compile(r"\[[^\]]*\]\(([^)\s]+)\)")
+INLINE = re.compile(r"\[[^\]]*\]\(\s*(?:<([^>]*)>|([^)\s>]+))")
+REFERENCE = re.compile(r"^\s*\[[^\]]+\]:\s*<?(\S+?)>?(\s|$)")
 CODE_SPAN = re.compile(r"`[^`]*`")
 EXTERNAL = ("http://", "https://", "mailto:", "#")
 
@@ -14,6 +16,14 @@ def tracked_markdown(root):
         ["git", "ls-files", "*.md"], cwd=root, capture_output=True, text=True, check=True
     ).stdout.split("\n")
     return [p for p in out if p and not p.startswith("laporan/") and "/evals/" not in p]
+
+
+def line_targets(line):
+    found = [angle or plain for angle, plain in INLINE.findall(line)]
+    reference = REFERENCE.match(line)
+    if reference:
+        found.append(reference.group(1))
+    return found
 
 
 def missing_targets(root, page):
@@ -26,10 +36,10 @@ def missing_targets(root, page):
             continue
         if in_fence:
             continue
-        for target in LINK.findall(CODE_SPAN.sub("", line)):
+        for target in line_targets(CODE_SPAN.sub("", line)):
             if target.startswith(EXTERNAL):
                 continue
-            path = target.split("#", 1)[0]
+            path = unquote(re.split(r"[#?]", target, maxsplit=1)[0])
             if path and not (base / path).exists():
                 found.append(f"{page}:{number}: missing target {target}")
     return found

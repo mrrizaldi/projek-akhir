@@ -93,7 +93,9 @@ A pointer is a promise that the line shows the thing named. Line numbers drift w
   .claude/skills/feature-docs/scripts/pointers.sh docs/features/<feature>.md
   ```
 
-  Read the output: a pointer whose printed line is not the named symbol is stale (fix it in update mode for sections you touch, report the rest); `MISSING` means the file was renamed or removed; `AMBIGUOUS` means the short name matches several files, so write a longer path.
+  The script only audits pointers that include a file name, so short `:NN` pointers (after the file is named once) must be re-verified by hand with grep.
+
+  Read the output: a pointer whose printed line is not the named symbol is stale (fix it in update mode for sections you touch, report the rest); `MISSING` means the file was renamed or removed; `OUT_OF_RANGE` means the line is past the end of the file; `AMBIGUOUS` means the short name matches several files, so write a longer path.
 
 ## Mermaid
 

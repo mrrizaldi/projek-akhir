@@ -15,6 +15,8 @@ for page in "$@"; do
       printf '%s\t%s:%s\tMISSING\n' "$page" "$ref" "$range"
     elif [ "$count" -gt 1 ]; then
       printf '%s\t%s:%s\tAMBIGUOUS %s\n' "$page" "$ref" "$range" "$(echo $matches)"
+    elif [ "$line" -gt "$(wc -l < "$matches")" ]; then
+      printf '%s\t%s:%s\tOUT_OF_RANGE\n' "$page" "$matches" "$range"
     else
       printf '%s\t%s:%s\t%s\n' "$page" "$matches" "$range" "$(sed -n "${line}p" "$matches" | sed 's/^[[:space:]]*//' | cut -c1-100)"
     fi
