@@ -24,9 +24,9 @@ def _r_teratur():
 
 def test_regular_beats_pass_all_rules():
     r = _r_teratur()
-    hasil = window_scores(_sinyal_detak(r), r, FS)
-    assert hasil["lolos_aturan"] and hasil["lolos"]
-    assert hasil["korelasi"] > TEMPLATE_CORRELATION_THRESHOLD
+    scores = window_scores(_sinyal_detak(r), r, FS)
+    assert scores["lolos_aturan"] and scores["lolos"]
+    assert scores["korelasi"] > TEMPLATE_CORRELATION_THRESHOLD
 
 
 def test_pause_over_three_seconds_rejected():
@@ -39,8 +39,8 @@ def test_pause_over_three_seconds_rejected():
 def test_noise_without_repeating_shape_fails_template():
     rng = np.random.default_rng(0)
     r = _r_teratur()
-    hasil = window_scores(rng.standard_normal(SQI_WINDOW_S * FS), r, FS)
-    assert hasil["lolos_aturan"] and not hasil["lolos"]
+    scores = window_scores(rng.standard_normal(SQI_WINDOW_S * FS), r, FS)
+    assert scores["lolos_aturan"] and not scores["lolos"]
 
 
 def test_no_beats_does_not_pass():

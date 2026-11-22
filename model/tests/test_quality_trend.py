@@ -5,9 +5,9 @@ from scripts.quality_trend import FREQUENCY_MAINS_HZ, scores_per_second, quiet_p
 FS = 360
 
 
-def _synthetic_ecg(detik, waktu_beat, dasar=2000):
+def _synthetic_ecg(detik, waktu_beat, baseline=2000):
     t = np.arange(int(detik * FS)) / FS
-    x = np.full_like(t, dasar)
+    x = np.full_like(t, baseline)
     for tb in waktu_beat:
         x += 1500 * np.exp(-0.5 * ((t - tb) / 0.012) ** 2)
     return x

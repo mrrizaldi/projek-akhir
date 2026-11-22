@@ -202,3 +202,9 @@ model/src/features_rr.py	bawah	below_cutoff
 model/src/features_rr.py	lebar	widths
 model/src/model.py	lama	old_layer
 model/src/model.py	baru	new_layer
+model/tests/test_analyze_recording.py	dasar	baseline
+model/tests/test_analyze_recording.py	hasil	analyses
+model/tests/test_plot_recording.py	hasil	analyses
+model/tests/test_quality_trend.py	dasar	baseline
+model/tests/test_train.py	hasil	averaged_weight
+model/tests/test_window_quality.py	hasil	scores
