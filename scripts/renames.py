@@ -382,6 +382,7 @@ def listing(obj):
     lines = [line for line in run([OBJDUMP, "-dr", "-s", "-h", "-t", str(stripped)]).splitlines() if "file format" not in line]
     text = re.sub(r"(_Z\w+)(\.str\d+\.\d+)", r"\1 \2", "\n".join(lines).replace("._Z", ". _Z"))
     text = re.sub(r"(_GLOBAL__sub_[ID]_)(_Z\w+)", r"\1 \2", text)
+    text = re.sub(r"(_Z[A-Za-z0-9_]+?)(\$\w+\$\d+)", r"\1 \2", text)
     return run([CPPFILT], stdin=text)
 
 
@@ -440,7 +441,7 @@ def same_firmware(rev_a, rev_b):
                 continue
             a = renamed(listing(objs_a[name]), {**ids, **scoped_ids(scoped, name, pairs)})
             b = listing(objs_b[target])
-            if a.splitlines() == b.splitlines():
+            if [" ".join(l.split()) for l in a.splitlines()] == [" ".join(l.split()) for l in b.splitlines()]:
                 print(f"same {name} -> {target}")
             else:
                 failed = True
