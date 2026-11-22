@@ -162,7 +162,7 @@ The per-recording mean is the EC57 "average" statistic (the mean of the per-reco
 statistic); beat-level *recall* is the "gross" statistic. The mean of 0.7402 is below
 the median of 0.9167 because recordings 232 and 213 pull it down (§5).
 Reference for the choice of metrics: Saito & Rehmsmeier 2015, Chicco & Jurman 2020/2023
-(`docs/2026-11-01-crosscheck-metrik-bab4/klasifikasi.md` at the repo root).
+(`docs/2026-11-01-bab4-metrics-crosscheck/klasifikasi.md` at the repo root).
 
 ---
 
@@ -291,7 +291,7 @@ tepat waktu       N / tak dinamai       V atau F
   but must not say "V" if it is wrong 6 times out of 10. On DS2 a threshold of 40 ms gives
   precision 91.7% with coverage 40.4% (30 ms: 51.7%), but the threshold is calibrated
   on VAL, and VAL's maximum is only 43.9%; DS2 must not certify, so
-  stage 2 is not shipped (`model/CLAUDE.md`, row Tahap 2).
+  stage 2 is not shipped (`model/CLAUDE.md`, row Stage 2 (naming V/S)).
 
 ---
 
