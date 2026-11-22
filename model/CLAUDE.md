@@ -97,9 +97,10 @@ only after it is truly closed (record the closure in the related walkthrough).
   The measurement path is ready: from the laptop (serial `p0`-`p5`, `scripts/measure_power.py`
   -> `artifacts/metrics/daya/<ts>.csv`) or standalone from the battery (menu Ukur daya
   / serial `V`, then `make pull-power`; procedure in
-  [`docs/features/power-measurement.md`](../docs/features/power-measurement.md)). The INA219 is already on the battery path (ladder of 14 Oct 2026
-  read 3.69 V, ±137–154 mA without WiFi; the battery lasted almost 1 hour).
-  **Blocked by the supply:** `p5` needs WiFi ON, which waits for the 5 V converter (the
+  [`docs/features/power-measurement.md`](../docs/features/power-measurement.md)). **Blocked by the module:** the INA219 is not fitted on the board yet
+  (`test_hw_ina219` fails with `INA219 0x40 tidak menjawab (SDA17 SCL18)`, `s` prints
+  `INA219 not responding`), so power numbers need the module fitted on the battery path
+  first. **Blocked by the supply:** `p5` needs WiFi ON, which waits for the 5 V converter (the
   WiFi OFF item below). After that, run the ladder without the charger, then fill
   `PLACEHOLDER-DATA daya` in bab4 of buku-pa.
 - **(14 Oct 2026) Board WiFi deliberately OFF: emergency state, return it to ON.**

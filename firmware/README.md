@@ -68,6 +68,10 @@ and the `test_hw_*` device suites, which share the `diag_*` functions with the
 on-device menu "Tes perangkat" (device test). Suite contents, pass criteria and
 counts: [diagnostics](../docs/features/diagnostics.md).
 
+The INA219 module is not fitted on the board yet, so `test_hw_ina219` fails with
+`INA219 0x40 tidak menjawab (SDA17 SCL18)` and a full `pio test -e esp32-s3` run reports that
+one failure until the module is fitted ([power measurement](../docs/features/power-measurement.md)).
+
 ## Structure
 
 | Code | Feature page |

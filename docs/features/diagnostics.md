@@ -35,7 +35,7 @@ flowchart LR
 | `test_hw_buzzer` | 1 | `diag_buzzer` passes |
 | `test_hw_tft` | 2 | Board init under 2000 ms; `diag_screen` passes |
 | `test_hw_adc` | 2 | `diag_adc` passes; a 360 Hz timer yields 2 x `ECG_FS` samples in 2 s within 4 |
-| `test_hw_ina219` | 1 | `diag_ina219` passes three times in a row |
+| `test_hw_ina219` | 1 | `diag_ina219` passes three times in a row. The INA219 module is not fitted on the board yet, so this suite fails with `INA219 0x40 tidak menjawab (SDA17 SCL18)` until it is |
 | `test_hw_buttons` | 2 | B1 to B3 read high when idle; `diag_button(300)` returns within 50 ms of 300 ms and does not pass. No button may be pressed during this suite |
 | `test_hw_integration` | 5 | Replays `golden_raw` through the 360 Hz ISR, queue, `ecg_live`, heart rate and TFLM with TFT, INA219 and buzzer active: zero missed samples, at least `ROUNDS` x `GOLDEN_N_BEAT` - 4 beats, heart rate within 3 bpm of the annotated RR, and every label equal to the PC label |
 | `test_inference` | 5 | INT8 model loads with golden tensor sizes; probabilities within `GOLDEN_TOL_PROB` of the PC interpreter and identical labels; golden diagnostic input; lifecycle; latency and arena within bounds |
