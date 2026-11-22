@@ -128,38 +128,38 @@ def main() -> None:
     bpm = 60 / rr if len(rr) else np.array([])
     masuk_akal = float(((bpm >= 30) & (bpm <= 200)).mean()) if len(bpm) else 0.0
 
-    print(f"{nama}: {n} sampel = {n / fs:.1f} detik @ {fs} Hz"
-          + (f", {lewat} sampel terlewat" if lewat is not None else "")
-          + (f", {len(segmen)} segmen (dipisah jeda)" if len(segmen) > 1 else ""))
+    print(f"{nama}: {n} samples = {n / fs:.1f} seconds @ {fs} Hz"
+          + (f", {lewat} samples missed" if lewat is not None else "")
+          + (f", {len(segmen)} segments (split by pauses)" if len(segmen) > 1 else ""))
     if len(segmen) > 1:
         for i, h in enumerate(hasil, 1):
-            ac = ((f"autokorelasi {h['ac'][0]:.2f} @ {h['ac'][1]:.0f} bpm"
-                   f", {h['ac'][2]} puncak setara")
-                  if h["ac"] else "autokorelasi - (segmen < 1,5 detik)")
-            print(f"  segmen {i:<3}  {h['n'] / fs:6.1f} detik   R-peak {len(h['r']):4d}"
+            ac = ((f"autocorrelation {h['ac'][0]:.2f} @ {h['ac'][1]:.0f} bpm"
+                   f", {h['ac'][2]} equal peaks")
+                  if h["ac"] else "autocorrelation - (segment < 1.5 seconds)")
+            print(f"  segment {i:<3} {h['n'] / fs:6.1f} seconds  R-peak {len(h['r']):4d}"
                   f"   RR {len(h['rr']):4d}   {ac}")
     print(f"  ADC          {int(mentah.min())}..{int(mentah.max())}   "
-          f"clipping {clip} sampel ({persen_clip:.3f}%, ambang {AMBANG_CLIPPING_PERSEN}%) "
-          f"{'OK' if clip_ok else '← RUSAK'}")
-    print(f"  dengung 50Hz {100 * hum / ekg:6.1f}% dari pita EKG   "
-          f"{'OK' if hum / ekg < 0.15 else 'TERLALU BESAR'}")
-    print(f"  derau >60Hz  {100 * hf / ekg:6.1f}% dari pita EKG   "
-          f"{'OK' if hf / ekg < 0.5 else 'TERLALU BESAR'}")
-    print(f"  drift <0.5Hz {100 * drift / ekg:6.1f}% dari pita EKG")
+          f"clipping {clip} samples ({persen_clip:.3f}%, threshold {AMBANG_CLIPPING_PERSEN}%) "
+          f"{'OK' if clip_ok else '← BROKEN'}")
+    print(f"  50Hz hum     {100 * hum / ekg:6.1f}% of ECG band   "
+          f"{'OK' if hum / ekg < 0.15 else 'TOO LARGE'}")
+    print(f"  noise >60Hz  {100 * hf / ekg:6.1f}% of ECG band   "
+          f"{'OK' if hf / ekg < 0.5 else 'TOO LARGE'}")
+    print(f"  drift <0.5Hz {100 * drift / ekg:6.1f}% of ECG band")
     if kuat <= 0.25:
-        vonis = "TIDAK ADA denyut jelas"
+        vonis = "NO clear pulse"
     elif saingan > 2:
-        vonis = f"PALSU — {saingan} puncak setara (gangguan periodik, bukan denyut)"
+        vonis = f"FALSE — {saingan} equal peaks (periodic interference, not a pulse)"
     else:
-        vonis = "ADA denyut"
+        vonis = "pulse PRESENT"
     berjendela = any(h["n"] >= 2 * JENDELA_AUTOKORELASI_S * fs for h in hasil)
     cara = f" (median per {JENDELA_AUTOKORELASI_S} s)" if berjendela else ""
-    print(f"  denyut       autokorelasi {kuat:.2f} @ {bpm_ac:.0f} bpm{cara}   {vonis}")
-    print(f"  R-peak       {len(r)} dalam {n / fs:.1f} detik")
+    print(f"  pulse        autocorrelation {kuat:.2f} @ {bpm_ac:.0f} bpm{cara}   {vonis}")
+    print(f"  R-peak       {len(r)} in {n / fs:.1f} seconds")
     if len(bpm):
         print(f"  BPM          mean {bpm.mean():.0f}  min {bpm.min():.0f}  max {bpm.max():.0f}"
-              f"   masuk akal {100 * masuk_akal:.0f}%"
-              f"   {'OK' if masuk_akal > 0.9 else 'TIDAK KONSISTEN'}")
+              f"   plausible {100 * masuk_akal:.0f}%"
+              f"   {'OK' if masuk_akal > 0.9 else 'INCONSISTENT'}")
 
     akuisisi_dir = os.path.join(METRICS_DIR, "akuisisi")
     os.makedirs(akuisisi_dir, exist_ok=True)

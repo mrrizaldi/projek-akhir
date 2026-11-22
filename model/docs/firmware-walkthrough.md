@@ -663,7 +663,7 @@ Tegangan bus (VIN− terhadap GND) 0–4 mV, sedangkan tegangan shunt melompat
 beban; kedua pin VIN mengambang. INA219 belum berada di jalur arus alat, dan
 board menerima daya langsung dari konektor USB. Angka arus di layar dan di baris
 status pada kondisi ini bukan konsumsi alat. Jalur ukur (firmware + skrip) sudah diuji
-ujung ke ujung dengan `--paksa`: keenam mode terkonfirmasi, `lewat = 0` di semua
+ujung ke ujung dengan `--force`: keenam mode terkonfirmasi, `lewat = 0` di semua
 mode, dan radio kembali tersambung di `p5`.
 
 ### Prosedur ukur daya

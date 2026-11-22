@@ -29,7 +29,7 @@ def baca_header(path):
         if not baris.startswith("#"):
             break
         if baris.strip() == "# jeda":
-            sys.exit(f"{path}: berisi '# jeda', sesi berjeda tidak bisa dinilai per detik")
+            sys.exit(f"{path}: contains '# jeda', a paused session cannot be scored per second")
         for kata in baris.lstrip("# ").split():
             k, _, v = kata.partition("=")
             kunci[k] = v
@@ -41,11 +41,11 @@ def muat_sesi(paths):
     for urutan, path in enumerate(paths):
         kunci = baca_header(path)
         if int(kunci.get("fs", FS)) != FS:
-            sys.exit(f"{path}: fs={kunci['fs']}, bukan {FS}")
+            sys.exit(f"{path}: fs={kunci['fs']}, not {FS}")
         if int(kunci.get("lewat", 0)):
-            print(f"PERINGATAN {path}: lewat={kunci['lewat']}")
+            print(f"WARNING {path}: lewat={kunci['lewat']}")
         if urutan and int(kunci.get("celah", -1)) != 0:
-            print(f"PERINGATAN {path}: bukan lanjutan tanpa celah (celah={kunci.get('celah')})")
+            print(f"WARNING {path}: not a gapless continuation (celah={kunci.get('celah')})")
         potongan.append(np.loadtxt(path, comments="#", dtype=np.float64))
     return np.concatenate(potongan)
 
@@ -82,23 +82,23 @@ def tenang_per_detik(mentah, n_detik):
 def lulus_pertama(syarat):
     indeks = np.flatnonzero(syarat)
     if not len(indeks):
-        return "tidak pernah"
+        return "never"
     pertama = indeks.min()
-    return f"{pertama} s ({pertama / DETIK_PER_MENIT:.1f} menit)"
+    return f"{pertama} s ({pertama / DETIK_PER_MENIT:.1f} minutes)"
 
 
 def main() -> None:
     paths = sys.argv[1:]
     if not paths:
-        sys.exit("pakai: python scripts/tren_kualitas.py <berkas-sesi-1.csv> [<berkas-lanjutan.csv> ...]")
+        sys.exit("usage: python scripts/tren_kualitas.py <session-1-file.csv> [<continuation-file.csv> ...]")
     mentah = muat_sesi(paths)
     ayun, hum50, ayun_bersih, clipping = nilai_per_detik(mentah)
     n_detik = len(ayun)
     beat, wajar, detik_beat, tenang = tenang_per_detik(mentah, n_detik)
     waktu = np.arange(n_detik)
 
-    print(f"sesi {len(paths)} berkas, {n_detik} detik ({n_detik / DETIK_PER_MENIT:.1f} menit)\n")
-    print("menit | ayun_bersih median p10 | dengung50 median | detik clipping | beat | RR wajar | tenang maks")
+    print(f"session {len(paths)} files, {n_detik} seconds ({n_detik / DETIK_PER_MENIT:.1f} minutes)\n")
+    print("minute | clean_swing median p10 | hum50 median | clipping seconds | beat | RR plausible | quiet max")
     for m in range(0, n_detik, DETIK_PER_MENIT):
         s = slice(m, m + DETIK_PER_MENIT)
         di_menit = (detik_beat >= m) & (detik_beat < m + DETIK_PER_MENIT)
@@ -109,10 +109,10 @@ def main() -> None:
 
     ayun_ok = ayun_bersih >= AMBANG_AYUN
     rr_tenang = tenang >= RR_TENANG_S
-    print(f"\nayun_bersih >= {AMBANG_AYUN} pertama        : {lulus_pertama(ayun_ok)}")
-    print(f"RR tenang >= {RR_TENANG_S} s pertama          : {lulus_pertama(rr_tenang)}")
-    print(f"gerbang tanpa syarat {STABIL_S} s lulus     : {lulus_pertama(ayun_ok & rr_tenang)}")
-    print(f"gerbang firmware (dengan {STABIL_S} s) lulus: {lulus_pertama(ayun_ok & rr_tenang & (waktu >= STABIL_S))}")
+    print(f"\nclean_swing >= {AMBANG_AYUN} first        : {lulus_pertama(ayun_ok)}")
+    print(f"quiet RR >= {RR_TENANG_S} s first          : {lulus_pertama(rr_tenang)}")
+    print(f"gate without {STABIL_S} s condition passes: {lulus_pertama(ayun_ok & rr_tenang)}")
+    print(f"firmware gate (with {STABIL_S} s) passes: {lulus_pertama(ayun_ok & rr_tenang & (waktu >= STABIL_S))}")
 
     os.makedirs(FOLDER_KELUARAN, exist_ok=True)
     nama = os.path.splitext(os.path.basename(paths[0]))[0] + f"-sesi{len(paths)}"

@@ -58,7 +58,7 @@ def jendela_rekaman(segmen, fs):
 
 def main() -> None:
     os.makedirs(FOLDER_KELUARAN, exist_ok=True)
-    print(f"{'rekaman':<28} {'jendela':>7} {'aturan':>8} {'semua':>8} {'korelasi med/min':>17}")
+    print(f"{'recording':<28} {'windows':>7} {'rules':>8} {'all':>8} {'correlation med/min':>19}")
     for path in sys.argv[1:]:
         segmen, fs, _ = muat(path)
         hasil = jendela_rekaman(segmen, fs)

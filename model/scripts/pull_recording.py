@@ -14,15 +14,15 @@ def main() -> None:
     try:
         import serial
     except ImportError:
-        sys.exit("pyserial tidak ada. Pasang dengan:\n"
+        sys.exit("pyserial is missing. Install with:\n"
                  "  .venv/bin/pip install -r requirements.txt")
 
     try:
         s = serial.Serial(PORT, BAUD, timeout=2)
     except Exception as e:
-        sys.exit(f"Tidak bisa membuka {PORT}: {e}\n"
-                 "Board tercolok? Serial monitor lain masih terbuka? "
-                 "Cek dengan: lsof /dev/ttyACM0")
+        sys.exit(f"Cannot open {PORT}: {e}\n"
+                 "Is the board plugged in? Is another serial monitor still open? "
+                 "Check with: lsof /dev/ttyACM0")
 
     time.sleep(1.0)
     s.reset_input_buffer()
@@ -31,10 +31,10 @@ def main() -> None:
     s.flush()
     time.sleep(0.6)
     status = s.readline().decode(errors="replace").strip()
-    print(status or "(tidak ada balasan status)")
+    print(status or "(no status reply)")
 
     if "rekam=1" in status:
-        print("Board masih merekam — dihentikan & disimpan dulu.")
+        print("Board is still recording — stopping and saving first.")
         s.write(b"r")
         s.flush()
         batas = time.time() + 15
@@ -65,7 +65,7 @@ def main() -> None:
     s.close()
 
     if not isi:
-        sys.exit("Tidak ada rekaman di board. Tekan REC untuk merekam dulu.")
+        sys.exit("No recording on the board. Press REC to record first.")
 
     os.makedirs(TUJUAN, exist_ok=True)
     nama = datetime.datetime.now().strftime("%Y%m%d-%H%M")
@@ -75,8 +75,8 @@ def main() -> None:
     with open(path, "w") as f:
         f.write("\n".join(isi) + "\n")
 
-    print(f"\n{len(isi)} baris -> {path}")
-    print(f"{isi[0]}\n\nLanjut analisis:\n  .venv/bin/python scripts/analyze_recording.py {path} {nama}")
+    print(f"\n{len(isi)} lines -> {path}")
+    print(f"{isi[0]}\n\nContinue with analysis:\n  .venv/bin/python scripts/analyze_recording.py {path} {nama}")
 
 
 if __name__ == "__main__":

@@ -315,13 +315,13 @@ Port bukan `/dev/ttyACM0`? `ECG_PORT=/dev/ttyACM1 make pull`.
    coba (arsip) yang gagal, `make analisis FILE=data/arsip/rekaman-uji-coba/20260910-2019.csv`:
 
    ```
-   20260910-2019: 15877 sampel = 44.1 detik @ 360 Hz, 0 sampel terlewat
-     ADC          3363..3558   clipping 0 sampel (0.000%, ambang 0.1%) OK
-     dengung 50Hz   39.1% dari pita EKG   TERLALU BESAR
-     derau >60Hz   191.3% dari pita EKG   TERLALU BESAR
-     drift <0.5Hz    2.1% dari pita EKG
-     denyut       autokorelasi 0.14 @ 88 bpm   TIDAK ADA denyut jelas
-     R-peak       169 dalam 44.1 detik
+   20260910-2019: 15877 samples = 44.1 seconds @ 360 Hz, 0 samples missed
+     ADC          3363..3558   clipping 0 samples (0.000%, threshold 0.1%) OK
+     50Hz hum       39.1% of ECG band   TOO LARGE
+     noise >60Hz   191.3% of ECG band   TOO LARGE
+     drift <0.5Hz    2.1% of ECG band
+     pulse        autocorrelation 0.14 @ 88 bpm   NO clear pulse
+     R-peak       169 in 44.1 seconds
    ```
 
    Baris `BPM` (rerata, min, maks, persen masuk akal) ikut tercetak bila
