@@ -1073,3 +1073,7 @@ simpan	save_item
 akuisisi_dir	acquisition_dir
 filtered_penuh	filtered_full
 cetak	emit
+baca	read_file
+buka	opener
+tulis	write_file
+pesan	msg

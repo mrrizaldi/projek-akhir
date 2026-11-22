@@ -19,7 +19,7 @@ def rerata_rentang(nilai: list) -> tuple:
     return sum(nilai) / len(nilai), (max(nilai) - min(nilai)) / 2
 
 
-def baca(path: str) -> tuple:
+def read_file(path: str) -> tuple:
     per_key = {}
     with open(path, newline="") as f:
         r = csv.DictReader(f)
@@ -48,7 +48,7 @@ def main() -> None:
     ap.add_argument("--csv", default=os.path.join(METRICS_DIR, "ablasi", "ablasi.csv"))
     args = ap.parse_args()
 
-    per_tag, COLUMNS = baca(args.csv)
+    per_tag, COLUMNS = read_file(args.csv)
     tags = args.tag or list(per_tag)
     if args.vs and args.vs not in tags:
         tags = [args.vs] + tags

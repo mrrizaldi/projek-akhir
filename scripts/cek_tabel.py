@@ -30,8 +30,8 @@ class Report:
     def __init__(self):
         self.temuan = []
 
-    def catat(self, berkas, baris, kode, fault, pesan):
-        self.temuan.append((str(berkas), baris, kode, fault, pesan))
+    def catat(self, berkas, baris, kode, fault, msg):
+        self.temuan.append((str(berkas), baris, kode, fault, msg))
 
     def fault_count(self):
         return sum(1 for t in self.temuan if t[3])
@@ -40,11 +40,11 @@ class Report:
         return sum(1 for t in self.temuan if not t[3])
 
     def emit(self, hanya_galat):
-        for berkas, baris, kode, fault, pesan in self.temuan:
+        for berkas, baris, kode, fault, msg in self.temuan:
             if hanya_galat and not fault:
                 continue
             severity = "error" if fault else "suggestion"
-            print(f"{berkas}:{baris}: [{kode} {severity}] {pesan}")
+            print(f"{berkas}:{baris}: [{kode} {severity}] {msg}")
 
 
 def strip_comments(teks):
@@ -298,12 +298,12 @@ def check_explainers(table_report, berkas, explainers):
     berdasarkan = 0
     repeated_openers = []
     for baris, teks, table_numbers, label in explainers:
-        buka = opening(teks)
-        if buka.lower().startswith("berdasarkan tabel"):
+        opener = opening(teks)
+        if opener.lower().startswith("berdasarkan tabel"):
             berdasarkan += 1
-        if sebelumnya and buka.lower() == sebelumnya.lower():
+        if sebelumnya and opener.lower() == sebelumnya.lower():
             repeated_openers.append(str(baris))
-        sebelumnya = buka
+        sebelumnya = opener
         kata = word_count(teks)
         if kata > PARAGRAPH_MAX_WORDS:
             table_report.catat(berkas, baris, "N-PANJANG", False, f"explanatory paragraph {label} has {kata} words (max {PARAGRAPH_MAX_WORDS}), split it by function")
