@@ -1,12 +1,13 @@
-# dashboard/ — ThingsBoard CE dan pengukuran pipeline
+# dashboard/: ThingsBoard CE and pipeline measurement
 
-Broker MQTT, rule engine, dan dashboard web dipegang satu platform: **ThingsBoard
-Community Edition**. Tidak ada Mosquitto, tidak ada backend tambahan, tidak ada
-web app sendiri. Alasannya ada di `bab3.tex` §deduplikasi: klaim "dedup tanpa
-komponen tambahan" bergantung pada perilaku `ts_kv` ThingsBoard sehingga
-penggantian broker menggugurkan klaim tersebut.
+The MQTT broker, rule engine, and web dashboard are all handled by a single
+platform: **ThingsBoard Community Edition**. There is no Mosquitto, no extra
+backend, and no custom web app. The reasoning is in `bab3.tex` §deduplikasi
+(deduplication section): the claim "dedup without additional components"
+depends on the ThingsBoard `ts_kv` behavior, so replacing the broker
+invalidates that claim.
 
-## Jalankan
+## Run
 
 ```bash
 cd dashboard
@@ -16,153 +17,169 @@ python3 smoke_test.py           # bikin device + uji jalur telemetri
 python3 provision_dashboard.py  # bikin dashboard + tulis dashboard_ekg.json
 ```
 
-UI di <http://localhost:8080>, login `tenant@thingsboard.org` / `tenant`.
+The UI is at <http://localhost:8080>, login `tenant@thingsboard.org` / `tenant`.
 
-Berhenti: `docker compose stop` (data tetap). Hapus total: `docker compose down -v`.
+Stop: `docker compose stop` (data is kept). Remove everything: `docker compose down -v`.
 
-ThingsBoard di-self-host, bukan memakai `demo.thingsboard.io`, karena registrasi
-demo diarahkan ke ThingsBoard Cloud yang retensi telemetrinya dibatasi paket, dan
-uji resiliensi membutuhkan pemutusan broker secara terkendali tanpa memutus
-koneksi laptop. Pemindahan ke VPS hanya memerlukan penambahan entri broker di
-firmware ([network-settings](../docs/features/network-settings.md)).
+ThingsBoard is self-hosted instead of using `demo.thingsboard.io`, because
+demo registration is redirected to ThingsBoard Cloud, whose telemetry
+retention is limited by plan, and the resilience test needs a controlled
+broker disconnect without cutting the laptop's connection. Moving to a VPS
+only requires adding a broker entry in the firmware
+([network-settings](../docs/features/network-settings.md)).
 
-## Kontrak dengan firmware
+## Contract with the firmware
 
-| Hal | Nilai |
+| Item | Value |
 |---|---|
-| Host / port | Alamat IP laptop di jaringan WiFi yang sama dengan board, `1883` (plaintext); IP dan SSID laptop dicetak `make broker-info` di `model/` |
-| Username MQTT | access token device |
-| Password MQTT | kosong |
+| Host / port | IP address of the laptop on the same WiFi network as the board, `1883` (plaintext); the laptop IP and SSID are printed by `make broker-info` in `model/` |
+| MQTT username | device access token |
+| MQTT password | empty |
 | Topic | `v1/devices/me/telemetry` |
 | Real-time | `{"ts":…, "values":{…}}` |
 | Batch flush | `[{"ts":…,"values":{…}}, …]` |
-| QoS | 1, geser read pointer ring buffer hanya setelah PUBACK |
+| QoS | 1, ring buffer read pointer advances only after PUBACK |
 
-Field di dalam `values` ikut Tabel struktur payload di `bab3.tex`
-§\ref{subsubsec:payload-json} — `bpm`, `rr_interval_ms`, `label`, `label_str`,
-`confidence`, `signal_quality`, `ecg_snippet`.
+The fields inside `values` follow the payload structure table (Tabel struktur
+payload) in `bab3.tex` §\ref{subsubsec:payload-json}: `bpm`,
+`rr_interval_ms`, `label`, `label_str`, `confidence`, `signal_quality`,
+`ecg_snippet`.
 
-Catatan: dokumentasi ThingsBoard menyarankan camelCase untuk nama key
-(mempermudah skrip Rule Engine). Payload memakai snake_case sesuai Tabel payload
-Bab 3 dan berjalan normal; node skrip Rule Engine yang ditulis tangan harus
-memperhitungkan perbedaan ini.
+Note: the ThingsBoard documentation recommends camelCase for key names (it
+makes Rule Engine scripts easier). The payload uses snake_case, following the
+payload table in Chapter 3, and works normally; hand-written Rule Engine
+script nodes must account for this difference.
 
-## Mengukur target pengujian pipeline
+## Measuring the pipeline test targets
 
 ```bash
 python3 ukur_pipeline.py 150      # board tersambung, broker hidup
 ```
 
-Mengukur dua target `bab3.tex` Tabel *Rencana pengukuran pada pengujian pipeline*:
-**latensi end-to-end** (akuisisi → tersedia di API) dan **PDSR** (paket ber-PUBACK
-/ total paket, diambil dari pencacah firmware lewat serial — bukan ditebak dari
-data). Latensi dilaporkan sebagai batas bawah DAN batas atas, karena baris yang
-baru terlihat bisa sudah tersedia sebelum panggilan REST dikirim; selisih dua
-batas itu = ongkos alat ukurnya sendiri, dan ikut dicetak.
+Measures two targets from the `bab3.tex` table *Rencana pengukuran pada
+pengujian pipeline* (measurement plan for the pipeline test): **end-to-end
+latency** (acquisition → available in the API) and **PDSR** (packets with
+PUBACK / total packets, taken from the firmware counters over serial, not
+guessed from the data). Latency is reported as a lower bound AND an upper
+bound, because a row that has only just become visible may have been available
+before the REST call was sent; the difference between the two bounds is the
+cost of the measurement tool itself, and it is printed too.
 
-Skrip membaca status (`s`) lalu menyalakan replay (`y`) bila belum aktif; selama
-replay, syarat pemanasan dan RR tenang gerbang kalibrasi dilewati otomatis,
-jadi tidak butuh elektroda. Hasil terukur ada di
+The script reads the status (`s`) and then turns on replay (`y`) if it is not
+already active; during replay, the warm-up and quiet-RR conditions of the
+calibration gate are skipped automatically, so no electrodes are needed. The
+measured results are in
 [`mqtt-walkthrough.md`](../model/docs/mqtt-walkthrough.md) §7c.
 
-Rincian cara ukur `ukur_pipeline.py` (butuh `pyserial`, ada di
+Details of how `ukur_pipeline.py` measures (needs `pyserial`, which is in
 `model/requirements.txt`):
 
-- **Idempoten terhadap replay.** `y` adalah toggle, jadi status dibaca dulu dan
-  `y` hanya dikirim bila replay belum menyala. `k` (override gerbang) tidak
-  dikirim; replay sudah melewati gerbang kalibrasi di firmware.
-- **Selisih jam board vs laptop dikoreksi.** Skrip meminta status (`s`),
-  mencatat waktu laptop saat barisnya tiba, lalu membandingkannya dengan
-  `epoch_ms` yang dicetak board: `ts_laptop = ts_board - offset`. Tanpa koreksi
-  ini selisih jam terbaca sebagai latensi. Sisa galatnya ongkos serial (~ms).
-- **Dua batas latensi.** Sebuah baris terlihat di antara waktu `sebelum` dan
-  `sesudah` panggilan REST. `sesudah` membebankan lambatnya REST ke sistem
-  (batas atas, termasuk bias periode polling ~100 ms); `sebelum` memberi batas
-  bawah yang bebas dari itu. Latensi minimum juga dicetak sebagai batas bawah.
-- **PDSR dari baris status TERAKHIR saja.** Baris dari fase ukur-selisih-jam
-  masih 0 paket; mengambilnya membuat PDSR terbaca 0%.
+- **Idempotent with respect to replay.** `y` is a toggle, so the status is read
+  first and `y` is sent only if replay is not on. `k` (gate override) is not
+  sent; replay already bypasses the calibration gate in the firmware.
+- **The board vs laptop clock offset is corrected.** The script requests the
+  status (`s`), records the laptop time when the line arrives, then compares it
+  with the `epoch_ms` printed by the board: `ts_laptop = ts_board - offset`.
+  Without this correction the clock offset would be read as latency. The
+  residual error is the serial cost (~ms).
+- **Two latency bounds.** A row becomes visible between the `sebelum` (before)
+  and `sesudah` (after) times of the REST call. `sesudah` charges the REST
+  slowness to the system (upper bound, including the polling period bias of
+  ~100 ms); `sebelum` gives a lower bound free of that. The minimum latency is
+  also printed as a lower bound.
+- **PDSR from the LAST status line only.** Lines from the clock-offset
+  measurement phase still show 0 packets; taking them makes PDSR read 0%.
 
-`probe_rtt.py` memakai device terpisah supaya telemetri `esp32s3-ekg-01` tidak
-terkotori; tujuannya dan hasilnya di
+`probe_rtt.py` uses a separate device so that the `esp32s3-ekg-01` telemetry is
+not polluted; its purpose and results are in
 [`mqtt-walkthrough.md`](../model/docs/mqtt-walkthrough.md).
 
-`smoke_test.py` menguji jalur ESP32 → broker → `ts_kv` tanpa hardware dan tanpa
-dependency, berurutan:
+`smoke_test.py` tests the ESP32 → broker → `ts_kv` path without hardware and
+without dependencies, in order:
 
-1. Device dibuat lewat REST dan token-nya diambil (provisioning).
-2. MQTT CONNECT dengan username = access token, password kosong, diterima.
-3. Payload single record sampai di `ts_kv` dengan `ts` milik perangkat, bukan
-   waktu kedatangan di server.
-4. Payload batch (array multiple timestamped key-value) diterima node Save
-   Timeseries bawaan tanpa rule chain tambahan.
-5. Publikasi ulang dengan `ts` identik (nilai beda) meng-UPSERT baris, bukan
-   menambah. Ini yang terjadi saat PUBACK hilang dan batch QoS-1 dikirim ulang,
-   dan ini klaim paling rapuh: bila assert ini gagal, klaim dedup di Bab 3 tidak
-   berlaku. Skrip menunggu 2 detik sebelum membaca karena rule engine asinkron.
+1. The device is created through REST and its token is retrieved (provisioning).
+2. MQTT CONNECT with username = access token and empty password is accepted.
+3. A single-record payload arrives in `ts_kv` with the device's `ts`, not the
+   arrival time on the server.
+4. A batch payload (array of multiple timestamped key-value entries) is
+   accepted by the built-in Save Timeseries node without an additional rule
+   chain.
+5. Republishing with an identical `ts` (different values) UPSERTs the row
+   instead of adding one. This is what happens when a PUBACK is lost and a
+   QoS-1 batch is resent, and it is the most fragile claim: if this assert
+   fails, the dedup claim in Chapter 3 does not hold. The script waits 2
+   seconds before reading because the rule engine is asynchronous.
 
-MQTT 3.1.1 ditulis langsung di atas socket (CONNECT, PUBLISH QoS 1, PUBACK,
-DISCONNECT), bukan memakai `paho-mqtt`: 60 baris socket lebih murah daripada
-dependency baru untuk satu skrip uji, dan sekaligus menjadi referensi ringkas
-urutan paket yang ditiru firmware, terutama menunggu PUBACK sebelum menggeser
-read pointer ring buffer.
+MQTT 3.1.1 is written directly on top of a socket (CONNECT, PUBLISH QoS 1,
+PUBACK, DISCONNECT) instead of using `paho-mqtt`: 60 lines of socket code are
+cheaper than a new dependency for a single test script, and it also serves as
+a compact reference for the packet sequence the firmware imitates, especially
+waiting for PUBACK before advancing the ring buffer read pointer.
 
 ## Dashboard
 
-`provision_dashboard.py` membangun dashboard "Pemantauan EKG" lewat REST lalu
-mengekspor hasilnya ke `dashboard_ekg.json`. Dibangun dengan skrip, bukan diklik
-di UI, agar dapat diulang setelah `docker compose down -v` dan agar diff-nya
-terlihat di git. Skrip idempoten: dashboard dengan judul sama dihapus lebih dulu.
+`provision_dashboard.py` builds the dashboard "Pemantauan EKG" (ECG
+Monitoring) through REST and then exports the result to `dashboard_ekg.json`.
+It is built with a script, not by clicking in the UI, so that it can be
+repeated after `docker compose down -v` and so that the diff is visible in
+git. The script is idempotent: a dashboard with the same title is deleted
+first.
 
-Tujuh widget, semuanya bawaan ThingsBoard, tidak ada widget custom dan tidak ada
-JS yang ditulis tangan: kartu BPM, kartu klasifikasi, kartu kualitas sinyal,
-kartu confidence, chart BPM, chart interval R-R, dan tabel riwayat.
+Seven widgets, all built into ThingsBoard, with no custom widgets and no
+hand-written JS: BPM card, classification card, signal quality card,
+confidence card, BPM chart, R-R interval chart, and history table.
 
-Dua jebakan yang ditangani skrip:
+Two pitfalls handled by the script:
 
-- **`typeFullFqn` wajib di-prefix scope**, `"system.time_series_chart"`, bukan
-  `"time_series_chart"`. Tanpa prefix, REST tetap menyimpan dashboard dengan
-  status 200 dan tidak mengeluh apa pun — yang menolak cuma UI, dan tiap widget
-  tampil sebagai "Problem loading widget configuration". Karena itu skrip
-  memverifikasi tiap fqn lewat `/api/widgetType?fqn=...` setelah menyimpan;
-  itu assert yang menangkap kegagalan yang tidak kelihatan dari REST.
-- **`defaultConfig` widget bawaan berisi contoh suhu ruangan.** Kalau `units`,
-  `decimals`, dan `settings.icon` tidak ditimpa, BPM tampil sebagai "76 degC"
-  dengan ikon termostat. Semua override ada di tabel `WIDGETS`.
+- **`typeFullFqn` must be prefixed with the scope**, `"system.time_series_chart"`,
+  not `"time_series_chart"`. Without the prefix, REST still saves the dashboard
+  with status 200 and complains about nothing; only the UI rejects it, and each
+  widget shows "Problem loading widget configuration". For that reason the
+  script verifies each fqn through `/api/widgetType?fqn=...` after saving; that
+  assert catches a failure that is invisible from REST.
+- **The built-in widgets' `defaultConfig` contains a room temperature
+  example.** If `units`, `decimals`, and `settings.icon` are not overridden,
+  BPM is shown as "76 degC" with a thermostat icon. All overrides are in the
+  `WIDGETS` table.
 
-BPM dan interval R-R sengaja dipisah jadi dua chart. Digabung dalam satu chart,
-BPM (60-100) gepeng menempel di dasar karena RR (600-1000) mendominasi sumbu,
-dan konfigurasi sumbu-kanan (`yAxisId`) tidak menempel lewat REST. Dua chart
-melakukan auto-scale sendiri tanpa konfigurasi sumbu tambahan.
+BPM and the R-R interval are deliberately split into two charts. Combined in a
+single chart, BPM (60-100) is squashed against the bottom because RR (600-1000)
+dominates the axis, and the right-axis configuration (`yAxisId`) does not stick
+through REST. Two charts auto-scale on their own without extra axis
+configuration.
 
-Widget kartu (nilai terkini) memakai timewindow sendiri, tidak ikut timewindow
-dashboard; widget timeseries ikut. `defaultConfig` tiap widget disalin per
-widget (bukan dibagi), dan sumbu `yAxes` bawaan (`default`) tidak dibuang.
+The card widgets (latest value) use their own timewindow and do not follow the
+dashboard timewindow; the timeseries widgets do follow it. Each widget's
+`defaultConfig` is copied per widget (not shared), and the default `yAxes` axis
+(`default`) is not removed.
 
 ## Rule chain
 
-Tidak ada. Node **Save Timeseries** di Root Rule Chain bawaan sudah menerima
-format array multiple timestamped key-value apa adanya, memakai `ts` tiap
-rekaman sebagai event time. Export rule chain baru diperlukan bila ditambahkan
-alarm rule (notifikasi dini).
+None. The **Save Timeseries** node in the default Root Rule Chain already
+accepts the multiple timestamped key-value array format as is, using each
+record's `ts` as the event time. A new rule chain export is needed only if an
+alarm rule (early notification) is added.
 
-## Multi-pasien (di luar lingkup MVP)
+## Multi-patient (outside the MVP scope)
 
-MVP memakai satu device untuk satu pasien. Catatan desain untuk perluasan:
+The MVP uses one device for one patient. Design notes for an extension:
 
-ThingsBoard menyimpan tiap baris `ts_kv` milik **entity**, dan entity-nya adalah
-device. Jadi kalau satu alat dipakai bergantian oleh beberapa pasien, identitas
-pasien harus ikut pindah bersama datanya. Dua jalan, ongkosnya beda jauh:
+ThingsBoard stores each `ts_kv` row as owned by an **entity**, and the entity is
+the device. So if one device is used by several patients in turn, the patient
+identity must move together with the data. Two ways, with very different
+costs:
 
-- **Pasien = Customer, alat tetap satu device.** Identitas pasien ditulis sebagai
-  server-side attribute yang diganti tiap sesi. Nol perubahan firmware, tapi
-  histori lama ikut "berpindah" pasien saat attribute diganti — salah untuk
-  rekam medis.
-- **`patientId` jadi satu field di dalam `values`.** Tiap rekaman membawa
-  pemiliknya sendiri, histori tetap benar secara retroaktif, dan rule chain bisa
-  memakai node Change Originator untuk memecah ke Asset per pasien tanpa
-  menyentuh firmware lagi. Ongkosnya ±10 byte dari ±150 byte per rekaman, artinya
-  kapasitas ring buffer PSRAM turun sekitar 7% (±27.000 → ±25.000 rekaman) —
-  masih jauh di atas target 4 jam.
+- **Patient = Customer, the device stays a single device.** The patient identity
+  is written as a server-side attribute that is replaced each session. Zero
+  firmware changes, but old history "moves" to the new patient when the
+  attribute is replaced, which is wrong for medical records.
+- **`patientId` becomes one field inside `values`.** Each record carries its own
+  owner, history stays correct retroactively, and the rule chain can use the
+  Change Originator node to split into per-patient Assets without touching the
+  firmware again. The cost is ±10 bytes out of ±150 bytes per record, which
+  means the PSRAM ring buffer capacity drops by about 7% (±27,000 → ±25,000
+  records), still far above the 4-hour target.
 
-Jalan kedua yang dipilih untuk perluasan, dan cukup satu field. Field ini tidak
-ada pada MVP karena hanya ada satu pasien dan Tabel payload Bab 3 tidak memuatnya.
+The second way is the one chosen for the extension, and a single field is
+enough. This field is absent from the MVP because there is only one patient and
+the payload table in Chapter 3 does not include it.
