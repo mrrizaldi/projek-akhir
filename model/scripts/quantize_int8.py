@@ -21,8 +21,8 @@ from scripts.eval_fp32 import plot_confusion
 METRIC_NAMES = ("accuracy", "precision", "recall", "f1", "specificity")
 
 
-def _load(nama: str) -> dict:
-    path = os.path.join(PROCESSED_DIR, nama)
+def _load(name: str) -> dict:
+    path = os.path.join(PROCESSED_DIR, name)
     if not os.path.exists(path):
         raise FileNotFoundError(f"{path}: run `make split` first")
     with np.load(path) as z:
@@ -55,18 +55,18 @@ def main() -> None:
 
     fp32 = {}
     with open(os.path.join(METRICS_DIR, "fase6_metrics_fp32.csv")) as f:
-        kolom = f.readline().strip().split(",")
+        columns = f.readline().strip().split(",")
         values = f.readline().strip().split(",")
-    for k, v in zip(kolom, values):
+    for k, v in zip(columns, values):
         if k not in ("model",):
             fp32[k] = float(v)
 
     print(f"\n{'Metrik':<14} {'Float32':>10} {'INT8':>10} {'Delta':>10}")
-    baris = []
+    rows = []
     for k in METRIC_NAMES + ("auc",):
         d = int8[k] - fp32[k]
         print(f"{k:<14} {fp32[k]:>10.4f} {int8[k]:>10.4f} {d:>+10.4f}")
-        baris.append((k, fp32[k], int8[k], d))
+        rows.append((k, fp32[k], int8[k], d))
     print(f"{'TP/FN/FP/TN':<14} "
           f"{int(fp32['tp'])}/{int(fp32['fn'])}/{int(fp32['fp'])}/{int(fp32['tn'])}"
           f"   {int8['tp']}/{int8['fn']}/{int8['fp']}/{int8['tn']}")
@@ -74,7 +74,7 @@ def main() -> None:
 
     with open(os.path.join(METRICS_DIR, "fase7_delta.csv"), "w") as f:
         f.write("metrik,float32,int8,delta\n")
-        for k, a, b, d in baris:
+        for k, a, b, d in rows:
             f.write(f"{k},{a:.6f},{b:.6f},{d:+.6f}\n")
         f.write(f"ukuran_kb,,{ukuran_kb:.2f},\n")
         f.write(f"threshold,{THRESHOLD},{THRESHOLD},0\n")

@@ -24,28 +24,28 @@ OUTPUT_FOLDER = os.path.join(METRICS_DIR, "kualitas")
 
 
 def read_header(path):
-    kunci = {}
-    for baris in open(path):
-        if not baris.startswith("#"):
+    header_fields = {}
+    for line in open(path):
+        if not line.startswith("#"):
             break
-        if baris.strip() == "# jeda":
+        if line.strip() == "# jeda":
             sys.exit(f"{path}: contains '# jeda', a paused session cannot be scored per second")
-        for kata in baris.lstrip("# ").split():
-            k, _, v = kata.partition("=")
-            kunci[k] = v
-    return kunci
+        for word in line.lstrip("# ").split():
+            k, _, v = word.partition("=")
+            header_fields[k] = v
+    return header_fields
 
 
 def load_session(paths):
     excerpts = []
-    for urutan, path in enumerate(paths):
-        kunci = read_header(path)
-        if int(kunci.get("fs", FS)) != FS:
-            sys.exit(f"{path}: fs={kunci['fs']}, not {FS}")
-        if int(kunci.get("lewat", 0)):
-            print(f"WARNING {path}: lewat={kunci['lewat']}")
-        if urutan and int(kunci.get("celah", -1)) != 0:
-            print(f"WARNING {path}: not a gapless continuation (celah={kunci.get('celah')})")
+    for session_index, path in enumerate(paths):
+        header_fields = read_header(path)
+        if int(header_fields.get("fs", FS)) != FS:
+            sys.exit(f"{path}: fs={header_fields['fs']}, not {FS}")
+        if int(header_fields.get("lewat", 0)):
+            print(f"WARNING {path}: lewat={header_fields['lewat']}")
+        if session_index and int(header_fields.get("celah", -1)) != 0:
+            print(f"WARNING {path}: not a gapless continuation (celah={header_fields.get('celah')})")
         excerpts.append(np.loadtxt(path, comments="#", dtype=np.float64))
     return np.concatenate(excerpts)
 
@@ -80,11 +80,11 @@ def quiet_per_second(raw, n_seconds):
 
 
 def first_pass(conditions):
-    indeks = np.flatnonzero(conditions)
-    if not len(indeks):
+    indices = np.flatnonzero(conditions)
+    if not len(indices):
         return "never"
-    pertama = indeks.min()
-    return f"{pertama} s ({pertama / SECONDS_PER_MINUTE:.1f} minutes)"
+    first = indices.min()
+    return f"{first} s ({first / SECONDS_PER_MINUTE:.1f} minutes)"
 
 
 def main() -> None:
@@ -95,7 +95,7 @@ def main() -> None:
     ayun, hum50, ayun_bersih, clipping = scores_per_second(raw)
     n_seconds = len(ayun)
     beat, plausible, beat_seconds, quiet_run_s = quiet_per_second(raw, n_seconds)
-    waktu = np.arange(n_seconds)
+    seconds = np.arange(n_seconds)
 
     print(f"session {len(paths)} files, {n_seconds} seconds ({n_seconds / SECONDS_PER_MINUTE:.1f} minutes)\n")
     print("minute | clean_swing median p10 | hum50 median | clipping seconds | beat | RR plausible | quiet max")
@@ -112,15 +112,15 @@ def main() -> None:
     print(f"\nclean_swing >= {THRESHOLD_SWING} first        : {first_pass(swing_ok)}")
     print(f"quiet RR >= {QUIET_RR_S} s first          : {first_pass(rr_quiet)}")
     print(f"gate without {STABLE_S} s condition passes: {first_pass(swing_ok & rr_quiet)}")
-    print(f"firmware gate (with {STABLE_S} s) passes: {first_pass(swing_ok & rr_quiet & (waktu >= STABLE_S))}")
+    print(f"firmware gate (with {STABLE_S} s) passes: {first_pass(swing_ok & rr_quiet & (seconds >= STABLE_S))}")
 
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    nama = os.path.splitext(os.path.basename(paths[0]))[0] + f"-sesi{len(paths)}"
-    keluaran = os.path.join(OUTPUT_FOLDER, f"{nama}.csv")
-    np.savetxt(keluaran, np.column_stack([waktu, ayun, hum50, ayun_bersih, clipping, beat, quiet_run_s]),
+    name = os.path.splitext(os.path.basename(paths[0]))[0] + f"-sesi{len(paths)}"
+    out_path = os.path.join(OUTPUT_FOLDER, f"{name}.csv")
+    np.savetxt(out_path, np.column_stack([seconds, ayun, hum50, ayun_bersih, clipping, beat, quiet_run_s]),
                fmt="%d", delimiter=",", header="detik,ayun,dengung50,ayun_bersih,clipping,beat,tenang_s",
                comments="")
-    print(f"\n{keluaran}")
+    print(f"\n{out_path}")
 
 
 if __name__ == "__main__":

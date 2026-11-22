@@ -23,26 +23,26 @@ OUT_DIR = os.path.join(METRICS_DIR, "jitter")
 
 
 def record_residual(rec: str, sos, tolerance: int):
-    signal, r_anot, simbol, _ = load_record(rec)
+    signal, r_ref, symbols, _ = load_record(rec)
     filtered = apply_bandpass(signal, sos)
 
     r_used = refine_peaks(pan_tompkins_detect(filtered, FS) - PT_DETECTOR_OFFSET, filtered)
-    pasangan = pair_detected(r_used, r_anot, tolerance)
+    pairing = pair_detected(r_used, r_ref, tolerance)
 
-    cocok = pasangan >= 0
-    residu = r_used[cocok] - r_anot[pasangan[cocok]]
-    n_palsu = int((~cocok).sum())
-    n_lewat = len(r_anot) - int(cocok.sum())
+    matched = pairing >= 0
+    residu = r_used[matched] - r_ref[pairing[matched]]
+    n_palsu = int((~matched).sum())
+    n_lewat = len(r_ref) - int(matched.sum())
 
     class_missed = {}
-    terdeteksi = np.zeros(len(r_anot), dtype=bool)
-    terdeteksi[pasangan[cocok]] = True
-    for symbol_short, ok in zip(simbol, terdeteksi):
+    detected = np.zeros(len(r_ref), dtype=bool)
+    detected[pairing[matched]] = True
+    for symbol_short, ok in zip(symbols, detected):
         k = to_aami_class(symbol_short)
         a, b = class_missed.get(k, (0, 0))
         class_missed[k] = (a + 1, b + int(not ok))
 
-    return residu, n_palsu, n_lewat, len(r_anot), class_missed
+    return residu, n_palsu, n_lewat, len(r_ref), class_missed
 
 
 def digest(residu: np.ndarray) -> dict:
@@ -76,8 +76,8 @@ def plot(residu: np.ndarray, out_path: str, s: dict) -> None:
 
     a = np.sort(np.abs(residu))
     ax2.plot(a, np.arange(1, len(a) + 1) / len(a), color="#3b6ea5")
-    for p, gaya in ((s["abs_p95"], "--"), (s["abs_p99"], ":")):
-        ax2.axvline(p, ls=gaya, color="#c0392b")
+    for p, line_style in ((s["abs_p95"], "--"), (s["abs_p99"], ":")):
+        ax2.axvline(p, ls=line_style, color="#c0392b")
     ax2.set_xlim(0, max(4, s["abs_p99"] * 2))
     ax2.set_xlabel("|residu| (sampel)")
     ax2.set_ylabel("proporsi beat")
@@ -95,29 +95,29 @@ def main() -> None:
     sos = design_bandpass_sos()
     tolerance = round(TOLERANCE_WINDOW_MS / 1000 * FS)
 
-    semua, baris = [], []
+    all_residuals, rows = [], []
     total_false = total_missed = tot_beat = 0
-    kelas = {}
+    per_class = {}
 
     print(f"{'rec':>5} {'beat':>7} {'matched':>7} {'missed':>6} {'false':>6} "
           f"{'med':>5} {'std':>6} {'|p95|':>6}")
     for rec in DS1:
         residu, n_palsu, n_lewat, n_beat, kl = record_residual(str(rec), sos, tolerance)
-        semua.append(residu)
+        all_residuals.append(residu)
         total_false += n_palsu
         total_missed += n_lewat
         tot_beat += n_beat
         for k, (a, b) in kl.items():
-            x, y = kelas.get(k, (0, 0))
-            kelas[k] = (x + a, y + b)
+            x, y = per_class.get(k, (0, 0))
+            per_class[k] = (x + a, y + b)
 
         s = digest(residu)
-        baris.append((rec, n_beat, s["n"], n_lewat, n_palsu, s["median"], s["std"],
+        rows.append((rec, n_beat, s["n"], n_lewat, n_palsu, s["median"], s["std"],
                       s["abs_p95"]))
         print(f"{rec:>5} {n_beat:>7} {s['n']:>7} {n_lewat:>6} {n_palsu:>6} "
               f"{s['median']:>5.0f} {s['std']:>6.2f} {s['abs_p95']:>6.1f}")
 
-    residu = np.concatenate(semua)
+    residu = np.concatenate(all_residuals)
     s = digest(residu)
 
     print("-" * 60)
@@ -130,11 +130,11 @@ def main() -> None:
           f"max {s['abs_maks']:.0f} samples "
           f"({1000 * s['abs_p95'] / FS:.0f} / {1000 * s['abs_p99'] / FS:.0f} ms)")
     print("missed beats per AAMI class: " + "  ".join(
-        f"{k} {b}/{a} ({100 * b / a:.1f}%)" for k, (a, b) in sorted(kelas.items())))
+        f"{k} {b}/{a} ({100 * b / a:.1f}%)" for k, (a, b) in sorted(per_class.items())))
 
     with open(os.path.join(OUT_DIR, "jitter_residu.csv"), "w") as f:
         f.write("record,n_anotasi,n_cocok,n_lewat,n_palsu,median,std,abs_p95\n")
-        for r in baris:
+        for r in rows:
             f.write("%s,%d,%d,%d,%d,%.1f,%.3f,%.1f\n" % r)
         f.write("TOTAL,%d,%d,%d,%d,%.1f,%.3f,%.1f\n" % (
             tot_beat, s["n"], total_missed, total_false, s["median"], s["std"], s["abs_p95"]))

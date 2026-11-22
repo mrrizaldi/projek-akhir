@@ -27,11 +27,11 @@ def load_ds1() -> dict:
 def plot_history(history, out_path: str) -> None:
     h = history.history
     fig, axes = plt.subplots(1, 3, figsize=(15, 4))
-    for ax, key, judul in zip(axes, ("loss", "recall", "auc"),
+    for ax, key, title in zip(axes, ("loss", "recall", "auc"),
                               ("Loss", "Recall Aritmia", "AUC")):
         ax.plot(h[key], label="train")
         ax.plot(h[f"val_{key}"], label="val")
-        ax.set_title(judul)
+        ax.set_title(title)
         ax.set_xlabel("epoch")
         ax.grid(alpha=0.3)
         ax.legend()
