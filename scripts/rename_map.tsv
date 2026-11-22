@@ -1059,3 +1059,9 @@ cari	search_radius
 langkah	time_steps
 ambil	pull
 skala	input_scale
+_ekg	_synthetic_ecg
+_ekg_dengan_derau_otot	_ecg_with_muscle_noise
+DASAR	BASELINE
+JENDELA_S	WINDOW_S
+tiap	per_window
+tenang	quiet_run_s
