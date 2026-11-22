@@ -60,7 +60,7 @@ def check_skill_md(base_dir, problems):
     if not badan.strip():
         problems.append(f"{jalur}: body empty")
     elif len(badan.strip("\n").split("\n")) >= BODY_LINE_LIMIT:
-        problems.append(f"{jalur}: badan {len(badan.splitlines())} lines, must be below {BODY_LINE_LIMIT}")
+        problems.append(f"{jalur}: body {len(badan.splitlines())} lines, must be below {BODY_LINE_LIMIT}")
 
 
 def check_case(case_dir, problems):

@@ -7,7 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BIBS = sorted((ROOT / "laporan").glob("*/referensi.bib"))
 OUT = ROOT / "laporan" / "pustaka"
-UA = "Mozilla/5.0 (X11; Linux x86_64) unduh_pustaka/1.0"
+UA = "Mozilla/5.0 (X11; Linux x86_64) fetch_references/1.0"
 EXTRA_DOIS = {
     "verma_2024": "10.1016/j.heliyon.2024.e40266",
     "xiang_2026": "10.1016/j.engappai.2025.113603",
