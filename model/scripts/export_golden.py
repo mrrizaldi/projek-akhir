@@ -49,9 +49,9 @@ def main() -> None:
     sig, r, sym, fs = load_record(RECORD)
     sos = design_bandpass_sos()
 
-    potongan = sig[:N_SAMPLES]
+    excerpts = sig[:N_SAMPLES]
     filtered_penuh = apply_bandpass(sig, sos)
-    filtered = apply_bandpass(potongan, sos)
+    filtered = apply_bandpass(excerpts, sos)
     assert np.allclose(filtered, filtered_penuh[:N_SAMPLES], atol=1e-6), \
         "filter is not causal — the test vector cannot stand alone"
 
@@ -139,7 +139,7 @@ def main() -> None:
 #define GOLDEN_TOL_ZSCORE 1e-3f
 #define GOLDEN_TOL_PROB   2e-2f
 
-{_larik("golden_raw", potongan)}
+{_larik("golden_raw", excerpts)}
 {_larik("golden_filtered", filtered)}
 const int golden_r[GOLDEN_N_BEAT] = {{{", ".join(str(int(r[i])) for i in dipakai)}}};
 const char *golden_sym[GOLDEN_N_BEAT] = {{{", ".join(f'"{sym[i]}"' for i in dipakai)}}};

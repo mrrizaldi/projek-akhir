@@ -13,17 +13,17 @@ GAIN_50HZ = 0.342
 FREK_JALA_HZ = 50.0
 ADC_ATAS, ADC_BAWAH = 4090, 5
 RR_MIN_S, RR_MAKS_S, DRR_MAKS_S = 0.300, 1.500, 0.200
-RR_TENANG_S = 30
-STABIL_S = 600
-DETIK_PER_MENIT = 60
-SKALA_DETEKTOR = 1000.0
-PUNCAK_KE_PUNCAK = 2.0
-PERSENTIL_BAWAH = 10
-BEAT_PERTAMA_BER_RR = 1
-FOLDER_KELUARAN = os.path.join(METRICS_DIR, "kualitas")
+QUIET_RR_S = 30
+STABLE_S = 600
+SECONDS_PER_MINUTE = 60
+DETECTOR_SCALE = 1000.0
+PEAK_TO_PEAK = 2.0
+LOWER_PERCENTILE = 10
+FIRST_BEAT_WITH_RR = 1
+OUTPUT_FOLDER = os.path.join(METRICS_DIR, "kualitas")
 
 
-def baca_header(path):
+def read_header(path):
     kunci = {}
     for baris in open(path):
         if not baris.startswith("#"):
@@ -36,87 +36,87 @@ def baca_header(path):
     return kunci
 
 
-def muat_sesi(paths):
-    potongan = []
+def load_session(paths):
+    excerpts = []
     for urutan, path in enumerate(paths):
-        kunci = baca_header(path)
+        kunci = read_header(path)
         if int(kunci.get("fs", FS)) != FS:
             sys.exit(f"{path}: fs={kunci['fs']}, not {FS}")
         if int(kunci.get("lewat", 0)):
             print(f"WARNING {path}: lewat={kunci['lewat']}")
         if urutan and int(kunci.get("celah", -1)) != 0:
             print(f"WARNING {path}: not a gapless continuation (celah={kunci.get('celah')})")
-        potongan.append(np.loadtxt(path, comments="#", dtype=np.float64))
-    return np.concatenate(potongan)
+        excerpts.append(np.loadtxt(path, comments="#", dtype=np.float64))
+    return np.concatenate(excerpts)
 
 
-def nilai_per_detik(mentah):
-    n_detik = len(mentah) // FS
-    blok = mentah[: n_detik * FS].reshape(n_detik, FS)
-    tersaring = apply_bandpass(mentah, design_bandpass_sos())[: n_detik * FS].reshape(n_detik, FS)
-    ayun = tersaring.max(axis=1) - tersaring.min(axis=1)
-    bin_jala = int(np.argmin(np.abs(np.fft.rfftfreq(FS, 1.0 / FS) - FREK_JALA_HZ)))
-    amp50 = PUNCAK_KE_PUNCAK * np.abs(np.fft.rfft(blok, axis=1)[:, bin_jala]) / FS
-    hum50 = PUNCAK_KE_PUNCAK * amp50
+def scores_per_second(mentah):
+    n_seconds = len(mentah) // FS
+    blok = mentah[: n_seconds * FS].reshape(n_seconds, FS)
+    filtered_signal = apply_bandpass(mentah, design_bandpass_sos())[: n_seconds * FS].reshape(n_seconds, FS)
+    ayun = filtered_signal.max(axis=1) - filtered_signal.min(axis=1)
+    mains_bin = int(np.argmin(np.abs(np.fft.rfftfreq(FS, 1.0 / FS) - FREK_JALA_HZ)))
+    amp50 = PEAK_TO_PEAK * np.abs(np.fft.rfft(blok, axis=1)[:, mains_bin]) / FS
+    hum50 = PEAK_TO_PEAK * amp50
     ayun_bersih = np.maximum(ayun - GAIN_50HZ * hum50, 0.0)
     clipping = (blok.max(axis=1) >= ADC_ATAS) | (blok.min(axis=1) <= ADC_BAWAH)
     return ayun, hum50, ayun_bersih, clipping
 
 
-def tenang_per_detik(mentah, n_detik):
-    x = (mentah - mentah.mean()) / SKALA_DETEKTOR
+def quiet_per_second(mentah, n_seconds):
+    x = (mentah - mentah.mean()) / DETECTOR_SCALE
     r = pan_tompkins_detect(apply_bandpass(x, design_bandpass_sos()), FS)
     rr = np.diff(r) / FS
     drr = np.abs(np.ediff1d(rr, to_begin=0.0))
-    wajar = (rr >= RR_MIN_S) & (rr <= RR_MAKS_S) & (drr <= DRR_MAKS_S)
-    detik_beat = r[BEAT_PERTAMA_BER_RR:] // FS
-    langgar = np.zeros(n_detik, dtype=bool)
-    langgar[detik_beat[~wajar & (detik_beat < n_detik)]] = True
-    beat = np.bincount(detik_beat[detik_beat < n_detik], minlength=n_detik)
-    tenang = np.zeros(n_detik)
-    for t in range(1, n_detik):
-        tenang[t] = 0.0 if langgar[t] else tenang[t - 1] + 1.0
-    return beat, wajar, detik_beat, tenang
+    plausible = (rr >= RR_MIN_S) & (rr <= RR_MAKS_S) & (drr <= DRR_MAKS_S)
+    beat_seconds = r[FIRST_BEAT_WITH_RR:] // FS
+    violated = np.zeros(n_seconds, dtype=bool)
+    violated[beat_seconds[~plausible & (beat_seconds < n_seconds)]] = True
+    beat = np.bincount(beat_seconds[beat_seconds < n_seconds], minlength=n_seconds)
+    tenang = np.zeros(n_seconds)
+    for t in range(1, n_seconds):
+        tenang[t] = 0.0 if violated[t] else tenang[t - 1] + 1.0
+    return beat, plausible, beat_seconds, tenang
 
 
-def lulus_pertama(syarat):
-    indeks = np.flatnonzero(syarat)
+def first_pass(conditions):
+    indeks = np.flatnonzero(conditions)
     if not len(indeks):
         return "never"
     pertama = indeks.min()
-    return f"{pertama} s ({pertama / DETIK_PER_MENIT:.1f} minutes)"
+    return f"{pertama} s ({pertama / SECONDS_PER_MINUTE:.1f} minutes)"
 
 
 def main() -> None:
     paths = sys.argv[1:]
     if not paths:
         sys.exit("usage: python scripts/quality_trend.py <session-1-file.csv> [<continuation-file.csv> ...]")
-    mentah = muat_sesi(paths)
-    ayun, hum50, ayun_bersih, clipping = nilai_per_detik(mentah)
-    n_detik = len(ayun)
-    beat, wajar, detik_beat, tenang = tenang_per_detik(mentah, n_detik)
-    waktu = np.arange(n_detik)
+    mentah = load_session(paths)
+    ayun, hum50, ayun_bersih, clipping = scores_per_second(mentah)
+    n_seconds = len(ayun)
+    beat, plausible, beat_seconds, tenang = quiet_per_second(mentah, n_seconds)
+    waktu = np.arange(n_seconds)
 
-    print(f"session {len(paths)} files, {n_detik} seconds ({n_detik / DETIK_PER_MENIT:.1f} minutes)\n")
+    print(f"session {len(paths)} files, {n_seconds} seconds ({n_seconds / SECONDS_PER_MINUTE:.1f} minutes)\n")
     print("minute | clean_swing median p10 | hum50 median | clipping seconds | beat | RR plausible | quiet max")
-    for m in range(0, n_detik, DETIK_PER_MENIT):
-        s = slice(m, m + DETIK_PER_MENIT)
-        di_menit = (detik_beat >= m) & (detik_beat < m + DETIK_PER_MENIT)
-        persen_wajar = 100.0 * wajar[di_menit].mean() if di_menit.any() else float("nan")
-        print(f"{m // DETIK_PER_MENIT:5d} | {np.median(ayun_bersih[s]):11.0f} {np.percentile(ayun_bersih[s], PERSENTIL_BAWAH):4.0f}"
+    for m in range(0, n_seconds, SECONDS_PER_MINUTE):
+        s = slice(m, m + SECONDS_PER_MINUTE)
+        in_minute = (beat_seconds >= m) & (beat_seconds < m + SECONDS_PER_MINUTE)
+        percent_plausible = 100.0 * plausible[in_minute].mean() if in_minute.any() else float("nan")
+        print(f"{m // SECONDS_PER_MINUTE:5d} | {np.median(ayun_bersih[s]):11.0f} {np.percentile(ayun_bersih[s], LOWER_PERCENTILE):4.0f}"
               f" | {np.median(hum50[s]):16.0f} | {clipping[s].sum():14d} | {beat[s].sum():4d}"
-              f" | {persen_wajar:7.1f}% | {tenang[s].max():8.0f} s")
+              f" | {percent_plausible:7.1f}% | {tenang[s].max():8.0f} s")
 
-    ayun_ok = ayun_bersih >= AMBANG_AYUN
-    rr_tenang = tenang >= RR_TENANG_S
-    print(f"\nclean_swing >= {AMBANG_AYUN} first        : {lulus_pertama(ayun_ok)}")
-    print(f"quiet RR >= {RR_TENANG_S} s first          : {lulus_pertama(rr_tenang)}")
-    print(f"gate without {STABIL_S} s condition passes: {lulus_pertama(ayun_ok & rr_tenang)}")
-    print(f"firmware gate (with {STABIL_S} s) passes: {lulus_pertama(ayun_ok & rr_tenang & (waktu >= STABIL_S))}")
+    swing_ok = ayun_bersih >= AMBANG_AYUN
+    rr_tenang = tenang >= QUIET_RR_S
+    print(f"\nclean_swing >= {AMBANG_AYUN} first        : {first_pass(swing_ok)}")
+    print(f"quiet RR >= {QUIET_RR_S} s first          : {first_pass(rr_tenang)}")
+    print(f"gate without {STABLE_S} s condition passes: {first_pass(swing_ok & rr_tenang)}")
+    print(f"firmware gate (with {STABLE_S} s) passes: {first_pass(swing_ok & rr_tenang & (waktu >= STABLE_S))}")
 
-    os.makedirs(FOLDER_KELUARAN, exist_ok=True)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     nama = os.path.splitext(os.path.basename(paths[0]))[0] + f"-sesi{len(paths)}"
-    keluaran = os.path.join(FOLDER_KELUARAN, f"{nama}.csv")
+    keluaran = os.path.join(OUTPUT_FOLDER, f"{nama}.csv")
     np.savetxt(keluaran, np.column_stack([waktu, ayun, hum50, ayun_bersih, clipping, beat, tenang]),
                fmt="%d", delimiter=",", header="detik,ayun,dengung50,ayun_bersih,clipping,beat,tenang_s",
                comments="")

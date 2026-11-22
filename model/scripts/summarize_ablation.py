@@ -31,9 +31,9 @@ def baca(path: str) -> tuple:
     return per_kunci, kolom
 
 
-def ringkas(baris: list, KOLOM) -> dict:
+def ringkas(baris: list, COLUMNS) -> dict:
     out = {"n_seed": len(baris)}
-    for kolom, _ in KOLOM:
+    for kolom, _ in COLUMNS:
         nilai = [float(b[kolom]) for b in baris if b.get(kolom) not in (None, "")]
         out[kolom] = rerata_rentang(nilai) if nilai else None
     return out
@@ -48,7 +48,7 @@ def main() -> None:
     ap.add_argument("--csv", default=os.path.join(METRICS_DIR, "ablasi", "ablasi.csv"))
     args = ap.parse_args()
 
-    per_tag, KOLOM = baca(args.csv)
+    per_tag, COLUMNS = baca(args.csv)
     tags = args.tag or list(per_tag)
     if args.vs and args.vs not in tags:
         tags = [args.vs] + tags
@@ -57,14 +57,14 @@ def main() -> None:
     if hilang:
         raise SystemExit(f"tag not in {args.csv}: {', '.join(hilang)}")
 
-    judul = f"{'tag':<20}{'n':>3}  " + "  ".join(f"{n:>17}" for _, n in KOLOM)
+    judul = f"{'tag':<20}{'n':>3}  " + "  ".join(f"{n:>17}" for _, n in COLUMNS)
     print(judul)
     print("-" * len(judul))
     hasil = {}
     for t in tags:
-        s = hasil[t] = ringkas(per_tag[t], KOLOM)
+        s = hasil[t] = ringkas(per_tag[t], COLUMNS)
         sel = []
-        for kolom, _ in KOLOM:
+        for kolom, _ in COLUMNS:
             sel.append("        -        " if s[kolom] is None
                        else f"{s[kolom][0]:8.4f} +-{s[kolom][1]:6.4f}")
         tanda = "" if s["n_seed"] >= SEED_MINIMAL else "  <- seed < 3, NOT YET VALID"
@@ -77,14 +77,14 @@ def main() -> None:
     for t in tags:
         if t == args.vs:
             continue
-        k_f1 = KOLOM[0][0]
+        k_f1 = COLUMNS[0][0]
         d_f1 = hasil[t][k_f1][0] - dasar[k_f1][0]
         d_ren = hasil[t][k_f1][1] - dasar[k_f1][1]
         vonis = "SIGNAL" if abs(d_f1) >= AMBANG else "not a signal"
         arah = "narrows" if d_ren < 0 else "widens"
         print(f"  {t:<20} dF1 {d_f1:+.4f} ({vonis})   "
               f"range F1 {arah} {abs(d_ren):.4f}")
-        for kolom, nama in KOLOM[1:]:
+        for kolom, nama in COLUMNS[1:]:
             if hasil[t][kolom] and dasar[kolom]:
                 print(f"{'':>18} d{nama} {hasil[t][kolom][0] - dasar[kolom][0]:+.4f}   "
                       f"range {dasar[kolom][1]:.4f} -> {hasil[t][kolom][1]:.4f}")

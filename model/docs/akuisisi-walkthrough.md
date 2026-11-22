@@ -392,7 +392,7 @@ segmen secara terpisah, lalu menggabungkan hasilnya:
 | R-peak Pan-Tompkins | dideteksi per segmen | indeks digeser ke sumbu waktu gabungan |
 | RR dan BPM | `diff` R-peak di dalam segmen | disambung; **tidak ada RR yang melintasi jeda** |
 | Energi pita (dengung, derau, drift, pita EKG) | per segmen | dijumlahkan, lalu dirasiokan |
-| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati; segmen ≥ 60 detik dihitung per jendela 30 detik lalu diambil median (`JENDELA_AUTOKORELASI_S`) | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
+| Autokorelasi denyut | per segmen; segmen ≤ 1,5 detik dilewati; segmen ≥ 60 detik dihitung per jendela 30 detik lalu diambil median (`AUTOCORRELATION_WINDOW_S`) | rerata berbobot panjang segmen; jumlah puncak setara dibulatkan |
 | ADC min/maks, clipping | seluruh sampel | — |
 
 Alasannya: sinyal sebelum dan sesudah jeda tidak bersambung dalam waktu.

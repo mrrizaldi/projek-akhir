@@ -10,11 +10,11 @@ import time
 PORT = os.environ.get("ECG_PORT", "/dev/ttyACM0")
 TUJUAN = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                       "artifacts", "metrics", "daya")
-NAMA = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ CNN inference",
+MODE_NAMES = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ CNN inference",
         4: "+ UI (TFT, beep, LED)", 5: "+ WiFi/MQTT"}
 
 
-def baca_sampai(s, akhir, detik):
+def read_until(s, akhir, detik):
     isi, batas = [], time.time() + detik
     while time.time() < batas:
         b = s.readline().decode(errors="replace").rstrip()
@@ -25,7 +25,7 @@ def baca_sampai(s, akhir, detik):
     return None
 
 
-def validasi(baris):
+def validate_rings(baris):
     ring, gagal, lalu = {}, [], None
     for m in sorted({int(r["mode"]) for r in baris}):
         r = [x for x in baris if int(x["mode"]) == m]
@@ -74,7 +74,7 @@ def main() -> None:
         time.sleep(1.0)
         s.reset_input_buffer()
         s.write(b"v")
-        daftar = baca_sampai(s, "daya: akhir daftar", 3)
+        daftar = read_until(s, "daya: akhir daftar", 3)
         if daftar:
             break
     if not daftar:
@@ -87,7 +87,7 @@ def main() -> None:
 
     s.reset_input_buffer()
     s.write(f"v{n}".encode())
-    isi = baca_sampai(s, "---SELESAI---", 10)
+    isi = read_until(s, "---SELESAI---", 10)
     s.close()
     if not isi or "---MULAI---" not in isi:
         sys.exit(f"File {n:03d} could not be read: {isi[-1] if isi else 'no reply'}")
@@ -100,13 +100,13 @@ def main() -> None:
         f.write("\n".join(isi) + "\n")
     print(f"{len(isi) - 1} windows -> {path}\n")
 
-    ring, gagal = validasi(list(csv.DictReader(io.StringIO("\n".join(isi)))))
+    ring, gagal = validate_rings(list(csv.DictReader(io.StringIO("\n".join(isi)))))
     print(f"{'mode':<26}{'I (mA)':>16}{'V':>8}{'P (mW)':>9}{'delta I':>9}{'beat':>6}"
           f"{'missed':>6}  board")
     lalu = None
     for m, r in ring.items():
         d = "" if lalu is None else f"{r['I'] - ring[lalu]['I']:+.2f}"
-        print(f"p{m} {NAMA[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
+        print(f"p{m} {MODE_NAMES[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
               f"{d:>9}{r['beat']:>6}{r['lewat']:>6}  {'valid' if r['sah'] else 'INVALID'}")
         lalu = m
     print("\nCheck: " + ("PASS" if not gagal else "FAIL (INVALID)\n  " + "\n  ".join(gagal)))

@@ -10,10 +10,10 @@ import time
 import serial
 
 MODEL = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-POLA = re.compile(r"DAYA p(\d) n=(\d+) I=([-\d.]+) sd=([-\d.]+) mA V=([-\d.]+) "
+POWER_LINE_PATTERN = re.compile(r"DAYA p(\d) n=(\d+) I=([-\d.]+) sd=([-\d.]+) mA V=([-\d.]+) "
                   r"P=([-\d.]+) mW beat=(\d+) lewat=(\d+) replay=(\d)")
-KOLOM = ["waktu", "mode", "n", "I_mA", "sd_mA", "V", "P_mW", "beat", "lewat", "replay"]
-NAMA = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ CNN inference",
+COLUMNS = ["waktu", "mode", "n", "I_mA", "sd_mA", "V", "P_mW", "beat", "lewat", "replay"]
+MODE_NAMES = {0: "timer ISR off", 1: "+ ISR 360 Hz", 2: "+ DSP ecg_live", 3: "+ CNN inference",
         4: "+ UI (TFT, beep, LED)", 5: "+ WiFi/MQTT"}
 
 
@@ -64,7 +64,7 @@ def main():
             akhir = time.time() + (a.blocks + 3) * 10 + 5
             while dapat <= a.blocks and time.time() < akhir:
                 b = s.readline().decode("utf-8", "replace").rstrip()
-                g = POLA.search(b)
+                g = POWER_LINE_PATTERN.search(b)
                 if not g or int(g.group(1)) != m:
                     continue
                 print("  " + b)
@@ -90,7 +90,7 @@ def main():
     os.makedirs(a.output, exist_ok=True)
     berkas = os.path.join(a.output, datetime.datetime.now().strftime("%Y%m%d-%H%M") + ".csv")
     with open(berkas, "w", newline="") as f:
-        csv.writer(f).writerows([KOLOM] + baris)
+        csv.writer(f).writerows([COLUMNS] + baris)
     print(f"\nCSV: {berkas}\n")
 
     ring = {}
@@ -106,7 +106,7 @@ def main():
     lalu = None
     for m, r in ring.items():
         d = "" if lalu is None else f"{r['I'] - ring[lalu]['I']:+.2f}"
-        print(f"p{m} {NAMA[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
+        print(f"p{m} {MODE_NAMES[m]:<23}{r['I']:>9.2f} ± {r['sd']:<4.2f}{r['V']:>8.3f}{r['P']:>9.1f}"
               f"{d:>9}{r['beat']:>6}{r['lewat']:>6}")
         if m >= 1 and r["lewat"]:
             gagal.append(f"p{m}: {r['lewat']} samples lost, load not representative")

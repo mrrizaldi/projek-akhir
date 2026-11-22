@@ -47,10 +47,10 @@ def main() -> None:
     os.makedirs(METRICS_DIR, exist_ok=True)
 
     tr, va = split_train_val(load_ds1())
-    bobot = make_class_weights(tr["y"])
+    class_weights = make_class_weights(tr["y"])
     print(f"train {len(tr['y'])} beats ({int(tr['y'].sum())} arrhythmia)  "
           f"val {len(va['y'])} beats ({int(va['y'].sum())} arrhythmia)")
-    print(f"class_weight  Normal {bobot[0]:.3f}  Arrhythmia {bobot[1]:.3f}")
+    print(f"class_weight  Normal {class_weights[0]:.3f}  Arrhythmia {class_weights[1]:.3f}")
 
     model = build_hybrid_model()
     history = train(model, tr, va)
