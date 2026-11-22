@@ -268,3 +268,5 @@ scripts/serve.py	bagian	sections
 scripts/serve.py	daftar	entries
 scripts/serve.py	hasil	paths
 scripts/serve.py	isi	page_html
+dashboard/ukur_pipeline.py	isi	expected_text
+dashboard/ukur_pipeline.py	mulai	start_index
