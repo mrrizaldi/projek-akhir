@@ -50,9 +50,9 @@ def recording_windows(segmen, fs):
     for raw in segmen:
         h = analyze_segment(raw, fs)
         r = r_peaks(h)
-        for mulai in range(0, len(raw) - n + 1, n):
-            inside = r[(r >= mulai) & (r < mulai + n)] - mulai
-            scores.append(window_scores(h["filtered"][mulai:mulai + n], inside, fs))
+        for start in range(0, len(raw) - n + 1, n):
+            inside = r[(r >= start) & (r < start + n)] - start
+            scores.append(window_scores(h["filtered"][start:start + n], inside, fs))
     return scores
 
 
