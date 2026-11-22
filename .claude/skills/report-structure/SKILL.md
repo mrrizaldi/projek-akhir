@@ -5,7 +5,7 @@ description: Use when drafting, changing or reviewing the chapter and section sk
 
 # Report structure
 
-The official skeleton of Bab 1-3 is in `laporan/CLAUDE.md` under "Struktur Resmi Proposal PA", and Bab 1 of the book follows the proposal (skill `book-follows-proposal`). Paragraph style is governed by skill `tulis-tanpa-slop` together with the user skill `indonesian-antislop-writing`: load both when writing or editing paragraphs. Tables are governed by skill `report-tables`. The retired numbered paragraph-style rules live in `.claude/skills-arsip/narasi-pa/SKILL.md`; what is needed here is restated in rules 2 and 8.
+The official skeleton of Bab 1-3 is in `laporan/CLAUDE.md` under "Struktur Resmi Proposal PA", and Bab 1 of the book follows the proposal (skill `book-follows-proposal`). Paragraph style is governed by skill `report-antislop` together with the user skill `indonesian-antislop-writing`: load both when writing or editing paragraphs. Tables are governed by skill `report-tables`. The retired numbered paragraph-style rules live in `.claude/skills-arsip/narasi-pa/SKILL.md`; what is needed here is restated in rules 2 and 8.
 
 `laporan/` is read-only without user confirmation. When not authorized to edit, write the answer as a proposal, and keep it a proposal throughout the whole message.
 
@@ -94,7 +94,7 @@ All printed report text stays Indonesian. Quoted headings, example sentences and
 | Navigation | duplicate numbers, "Tabel X di atas" when it appears later, section title not matching content, typo in a fixed title | `\label`/`\ref`, the framing pattern (rule 8), titles copied from rule 1 |
 | Citations | manual numbers drifting, one number two sources, blog used for theory, literature number without `\cite` | BibTeX and `~\cite`, sources from journal/proceedings/datasheet/official documentation |
 | Content and logic | benefits exceeding limitations, text number differing from table, a metric that cannot fail, inverted verbs ("penurunan dari E ke A"), planned test missing in Bab 4 | rule 3, take text numbers from the table, reread number sentences |
-| Style | explanation repeating the caption, doubled paragraph, "uji coba"/"ujicoba" alternating, mixed decimals | rule 8, `tulis-tanpa-slop`, `laporan/CLAUDE.md` |
+| Style | explanation repeating the caption, doubled paragraph, "uji coba"/"ujicoba" alternating, mixed decimals | rule 8, `report-antislop`, `laporan/CLAUDE.md` |
 
 ## Pre-submission checklist
 

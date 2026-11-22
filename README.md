@@ -74,7 +74,7 @@ consumption, emergency WiFi OFF, recording to the server, PCB rev2) is listed wi
 | [`model/docs/README.md`](model/docs/README.md) | Map of the Phase 0-8 and HW walkthroughs, reference numbers, experiments that were not adopted |
 | [`firmware/README.md`](firmware/README.md) | PlatformIO envs, commands, tests, cross-feature pitfalls and limits, measurements |
 | [`dashboard/README.md`](dashboard/README.md) | ThingsBoard, payload contract, pipeline measurement |
-| [`.claude/skills/`](.claude/skills/) | Index of repo skills (laporan: `struktur-pa`, `tulis-tanpa-slop`, `tabel-pa`, `buku-ikut-proposal`, `deck-pa`; firmware: `batas-tidak-diam`; code: `tanpa-komentar-kode`; PCB: `kicad-pcb-pa`; `ingest-word`) and the user skills they load |
+| [`.claude/skills/`](.claude/skills/) | Index of repo skills (laporan: `report-structure`, `report-antislop`, `report-tables`, `book-follows-proposal`, `defense-deck`; firmware: `firmware-limits`; code: `no-code-comments`; PCB: `kicad-pcb`; `word-ingest`) and the user skills they load |
 | [`scripts/README.md`](scripts/README.md) | Cross-component automation (artifact sync) |
 | [`hardware/mainboard/README.md`](hardware/mainboard/README.md) | Mainboard PCB: pin map, power supply, circuit rationale of the modules, differences from the rev2 schematic, what is not yet verified |
 | `laporan/CLAUDE.md` | Report writing style rules |

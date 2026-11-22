@@ -35,7 +35,7 @@ External skills are not installed as is because they conflict with the rules in 
 ## Skill position decision
 
 The plan to distil into `narasi-pa` is not used: on 21 Nov 2026 the user decided that
-`tulis-tanpa-slop` replaces `narasi-pa`.
+`report-antislop` replaces `narasi-pa`.
 
 ## Order of work (user decision, 21 Nov 2026)
 
@@ -47,7 +47,7 @@ separately afterwards; the discussion of the candidates above continues later.
 
 The research catalog (74 patterns, source profiles and licenses, conflicts with house
 rules, gaps): `2026-11-21-skill-anti-slop/katalog.md`. By user decision, `narasi-pa`
-was ignored for this trial and a new skill `tulis-tanpa-slop` was created together with
+was ignored for this trial and a new skill `report-antislop` was created together with
 the checker `scripts/check_slop.py`. The trial covers only `laporan/progres-pa-1`
 Chapter 2 to Chapter 4; Chapter 1, the front matter, and Chapter 5 were not touched.
 Backup before the trial: git tag `backup/pra-antislop-20261121-1127` and archive
@@ -76,8 +76,8 @@ invariant safe, `cek_tabel` 0 errors, PDF 125 pages 0 undefined/Overfull):
 
 Skill eval (writer sonnet, grader haiku): 8, 9, 9, 9, 10 out of 10. Rounds 4 and 5 were
 run with the user's permission; what made it pass was a two-sentence example for "karena
-itu" that refers to the previous sentence. History in
-`.claude/skills/tulis-tanpa-slop/eval.md`.
+itu" that refers to the previous sentence. Score history is in the commit messages
+(`git log -- .claude/skills/report-antislop`).
 
 Content findings during editing, fixed in commit `39d0268`: progres-pa-1 Chapter 3 said
 "lima hal" for four items (now "empat hal"), and the sentence "TinyML memungkinkan ..."
@@ -100,9 +100,9 @@ and printed).
      teruji akurat".
 4. Rule gaps. `narasi-pa` was deactivated on 21 Nov 2026; the following rules
    have no equivalent yet and become material for the next tuning of
-   `tulis-tanpa-slop`.
+   `report-antislop`.
 
-   | narasi-pa rule | Summary (≤ 8 words) | Equivalent in tulis-tanpa-slop |
+   | narasi-pa rule | Summary (≤ 8 words) | Equivalent in report-antislop |
    |---|---|---|
    | 1 | Table explainer: finding, evidence, meaning | none |
    | 2 | Vary the openers of explanatory paragraphs | none |

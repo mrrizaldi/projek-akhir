@@ -32,7 +32,7 @@ python3 ../../scripts/check_slop.py bab/<berkas>.tex
 
   `cek_tabel` for all chapters, taking the findings on the lines the ingest produced. `check_slop` for each `.tex` that sync wrote, taking the `galat` findings. Without `--summary`, because only the full form prints `berkas:baris: KODE [galat]`; `--summary` gives only counts per code. The `cek_tabel` output after the fixes goes into the commit message.
 - **House rules join the format list.** Besides the generic list (colon, semicolon, em dash, terms not yet italicised), check for decimal points (this repo uses a decimal comma and a thousands dot) and for internal repo labels that must not be printed (HW-n, Fase n, file paths, script names, `PA_*`, "walkthrough"). The user's sentences are still not rewritten; only the fix is proposed.
-- **New tables, equations or figures that sync did not write** are made in LaTeX following the skill `tabel-pa` and `laporan/CLAUDE.md`; illustration figures stay placeholders, the user draws them.
+- **New tables, equations or figures that sync did not write** are made in LaTeX following the skill `report-tables` and `laporan/CLAUDE.md`; illustration figures stay placeholders, the user draws them.
 - **`skipped` items and `% KOMENTAR`** are handled as in the user skill; leftover comments are checked with `grep -n "% KOMENTAR" bab/*.tex` (expected empty).
 - **The confirmation screen** follows `templates/summary.md` of the user skill, written in Indonesian, with Sumber = `output/suntingan-<stempel>.docx`.
 - **Commit only the `.tex` in `laporan/<projek>/bab/`** through `git add bab/<berkas>.tex` from `laporan/<projek>`; `output/suntingan-*.docx` is ignored by git. No push.

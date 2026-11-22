@@ -98,17 +98,17 @@ or extracted.
 
 | Task | Load skill |
 |---|---|
-| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware with limits or slow operations | `batas-tidak-diam` (loads `firmware-bounded-limits`) |
-| "sunting buku-pa", "Bab 1", "tanya user soal isi buku", proposal sync | `buku-ikut-proposal` |
-| "bikin slide", "deck seminar", "slide bimbingan", "PPTX sidang" | `deck-pa` |
-| "ingest", "sync balik", "masukin suntingan Word ke tex" | `ingest-word` (loads `wordcraft-latex-ingest`) |
-| "PCB", "skematik KiCad", "routing", "Freerouting", KiCad files from a friend | `kicad-pcb-pa` (loads `kicad-mcp-pcb`) |
-| "tambah bab/subbab", "abstrak", "Bab 4/Bab 5", "pasang gambar", "QA sebelum kumpul" | `struktur-pa` |
-| "buat tabel", "rapikan tabel", Bab 4 result tables | `tabel-pa` |
+| "tambah buffer/antrean/durasi maksimum", "tulis berkas di loop", firmware with limits or slow operations | `firmware-limits` (loads `firmware-bounded-limits`) |
+| "sunting buku-pa", "Bab 1", "tanya user soal isi buku", proposal sync | `book-follows-proposal` |
+| "bikin slide", "deck seminar", "slide bimbingan", "PPTX sidang" | `defense-deck` |
+| "ingest", "sync balik", "masukin suntingan Word ke tex" | `word-ingest` (loads `wordcraft-latex-ingest`) |
+| "PCB", "skematik KiCad", "routing", "Freerouting", KiCad files from a friend | `kicad-pcb` (loads `kicad-mcp-pcb`) |
+| "tambah bab/subbab", "abstrak", "Bab 4/Bab 5", "pasang gambar", "QA sebelum kumpul" | `report-structure` |
+| "buat tabel", "rapikan tabel", Bab 4 result tables | `report-tables` |
 | "dokumentasikan fitur", "update docs", `docs/features` pages, after a firmware/model feature changes | `feature-docs` |
-| writing or editing code (C/C++, Python, shell, `platformio.ini`), prompts to code-writing subagents | `tanpa-komentar-kode` (loads `no-code-comments`) |
+| writing or editing code (C/C++, Python, shell, `platformio.ini`), prompts to code-writing subagents | `no-code-comments` (loads the user skill of the same name) |
 | "indeks rujukan", "daftar bukti", documents with links to local files | user skill `local-file-links` (PA: reference index in `laporan/pustaka/`, evidence list from `model/artifacts`) |
-| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `tulis-tanpa-slop` (loads `indonesian-antislop-writing`) |
+| "rapikan biar tidak AI slop", "humanize", "bersihkan gaya tulis" | `report-antislop` (loads `indonesian-antislop-writing`) |
 | `git stash`/`reset`/`checkout` path/`clean`, committing while another session or agent is working, `index.lock`, a dirty `git status` blocking | user skill `shared-worktree` |
 
 ## Working rules (non-negotiable)
@@ -287,7 +287,7 @@ tests on the N16R8 board, env `native` = tests on the PC). Run from `firmware/`.
   **placeholder** + a content spec card (type, message, required elements,
   reading flow, material in the repo); **the user draws it**. The caption, `\label`, `\ref`, and
   the intro/explanatory paragraph are still written in final form. Template: skill
-  `struktur-pa` rule 9.
+  `report-structure` rule 9.
   Remaining placeholders: `grep -rn "PLACEHOLDER-GAMBAR" laporan/`.
 - Experiment data plots (confusion matrix, curves, latency charts) produced by
   the repo pipeline are not illustrations: reference the already-exported file. If
@@ -297,10 +297,10 @@ tests on the N16R8 board, env `native` = tests on the PC). Run from `firmware/`.
 
 ## Writing the report (progress / PA book)
 
-Writing reference = four skills in `.claude/skills/`: `struktur-pa` (chapter
+Writing reference = four skills in `.claude/skills/`: `report-structure` (chapter
 skeleton, thread, register, figure placeholders, QA before submission),
-`tulis-tanpa-slop` (layer on top of the user skill `indonesian-antislop-writing`:
-paragraphs without AI-writing patterns, checked by `scripts/check_slop.py`), `tabel-pa` (tables), and `buku-ikut-proposal` (Bab 1
+`report-antislop` (layer on top of the user skill `indonesian-antislop-writing`:
+paragraphs without AI-writing patterns, checked by `scripts/check_slop.py`), `report-tables` (tables), and `book-follows-proposal` (Bab 1
 and proposal sync). `narasi-pa` is inactive and
 kept in `.claude/skills-arsip/narasi-pa/` as a reference. The dissection of 6
 PENS PA reports that rules come from is already distilled into the skills. The writing style rules remain in `laporan/CLAUDE.md`.
@@ -317,7 +317,7 @@ regeneration procedure in `laporan/CLAUDE.md`). **`laporan/proposal-pa` has been
 submitted and frozen (15 Oct 2026): no longer edited, including its
 `.bib`.** The book has no "changes from the proposal" table and does not
 give numbered "Tujuan N" labels in headings or sentences; style follows the
-AFIB book (user decision 19 Oct 2026, skill `struktur-pa` rule 2).
+AFIB book (user decision 19 Oct 2026, skill `report-structure` rule 2).
 
 - **Internal repo work labels MUST NOT appear in the official report text**
   (printed `laporan/**/*.tex`): HW-n, Fase n / Fase A–G, Task n, T-n/K-n,

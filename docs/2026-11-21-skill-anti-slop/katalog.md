@@ -985,7 +985,7 @@ forgotten and not replaced (WP).
 | 12 | Default APA citation style (Name, year) and the example "Menurut Nama (tahun)" | BS; NI; HI D9 | Numbered `~\cite{}` | Formulaic citation patterns are adapted to the numbered form |
 | 13 | Certain transitions at most once per text | BS L6 | Not a house rule, but NP rule 8 rotates "Selain itu" and "Dengan demikian" | NP wins, the density thresholds from HI or NI are used as a check |
 | 14 | Wikipedia: the newest models that avoid all alternative punctuation (only commas and periods) are now a new marker | WP (`{{cn}}`, not yet sourced) | No colon, semicolon, em dash | The house rule stays. Inference: variation in sentence structure (subordinate clauses, parentheses, conjunctions) must be maintained so that the punctuation ban does not produce a flat comma-period rhythm |
-| 15 | Abstract of 150 to 250 words, five elements, no citations | BS; NI | The abstract structure is governed by the `struktur-pa` skill | Not part of the new skill, refer to `struktur-pa` |
+| 15 | Abstract of 150 to 250 words, five elements, no citations | BS; NI | The abstract structure is governed by the `report-structure` skill | Not part of the new skill, refer to `report-structure` |
 
 ### D2. Items not suited to a technical PA book (excluded)
 
@@ -1029,7 +1029,7 @@ sources with the needs of the PA book.
    structure of a PENS PA book (Chapter 2 Supporting Theory and Related Work, Chapter 3
    design, Chapter 4 results and analysis). The distinction of Chapter 3 written as
    design and Chapter 4 written as achievement, and "belum diukur" for what has no data
-   yet, exists only in the house skills (`narasi-pa` rule 11, `struktur-pa`).
+   yet, exists only in the house skills (`narasi-pa` rule 11, `report-structure`).
 3. **Explanatory paragraphs for tables and figures.** The sources only say "do not
    repeat the whole table" and "refer by number". The Finding, Evidence, Meaning
    pattern, the five-number limit, and the requirement that numbers carry a comparison

@@ -23,14 +23,14 @@ The user-level source may suggest things that contradict `laporan/CLAUDE.md`; in
 4. No "kami", "kita" or "saya": `S-PERSONA` is treated as an error in PA reports, not merely a review item.
 5. No comma before "sehingga" (EYD V; error `S-KOMA-SEHINGGA`), because a main clause in front of a subordinate clause takes no comma.
 6. Internal repo labels are not printed in the report text: HW-n, Fase n, Task n, T-n/K-n, rev1/rev2, file paths, script names, env names (`PA_*`) and the word "walkthrough". Name the content with a general term. `% sumber:` comments are not printed, so they may contain paths.
-7. No meta openers ("Subbab ini membahas ...") and no numbered "Tujuan N" label in a heading or sentence; the chapter skeleton is in the skill `struktur-pa`.
+7. No meta openers ("Subbab ini membahas ...") and no numbered "Tujuan N" label in a heading or sentence; the chapter skeleton is in the skill `report-structure`.
 
 ## Paragraphs and the common thread
 
 This applies to all paragraphs, not only table explanations.
 
 1. **One paragraph, one function, 60 to 150 words.** Results (4.6), mechanism (4.7 or Bab 3), design decisions and limitations are not mixed; a paragraph over 180 words is split by function. The first sentence of each paragraph states the main claim for its function (a finding for results, a mechanism statement for mechanisms, a decision for decisions), not a detail or an introduction. Quick test: the paragraph must be nameable with a three to five word title without "dan".
-2. **Common thread.** Each 4.6 result item ends with a sentence saying whether the Bab 3 plan target is met; 4.7 answers why and what it means without repeating the 4.6 numbers except as a reference; Bab 5 carries no new numbers (`struktur-pa` rules 3 and 6).
+2. **Common thread.** Each 4.6 result item ends with a sentence saying whether the Bab 3 plan target is met; 4.7 answers why and what it means without repeating the 4.6 numbers except as a reference; Bab 5 carries no new numbers (`report-structure` rules 3 and 6).
 
 Example of splitting a 50-word sentence (a cause-effect chain) without losing the relation:
 
@@ -45,7 +45,7 @@ Akibatnya, penundaan di sisi perangkat berada di antara 356 dan 1.356~ms.
 This paragraph shape is specific to PA reports and is not caught by generic patterns.
 
 1. **Finding, evidence, meaning.** The first sentence is the main finding with a `Tabel~\ref{}` reference inside the sentence or in a closing parenthesis. The evidence holds at most five numbers in the whole paragraph, and every number in the paragraph counts, including targets, thresholds, differences and test-condition numbers (repeat count, sample count). A metric without a target (e.g. p95) stays in the table and does not enter the paragraph. Pick the table numbers that decide the point, and compare each one with a target, reference or other condition, or explain its cause; a number without a comparison is transcription ("F1 naik 0,0010" alone is wrong, "F1 naik 0,0010, jauh di bawah ambang 0,02" is right), and a number that cannot be given a comparison is dropped. Count the numbers before handing in and state the count correctly. The closing sentence ties the finding to the target or design decision. One or two sentences on an anomaly or limitation may follow; if longer, make them their own paragraph.
-2. **Do not re-read the table.** The paragraph repeats at most half of the table numbers. If the paragraph must walk every row to make sense, fix the table design through the skill `tabel-pa`.
+2. **Do not re-read the table.** The paragraph repeats at most half of the table numbers. If the paragraph must walk every row to make sense, fix the table design through the skill `report-tables`.
 3. **Varied openers.** "Berdasarkan Tabel" and "Tabel~\ref{..} memperlihatkan/menunjukkan" are counted together, at most three times per chapter and never in two consecutive explanations. Pick the opener from the content: a direct finding ("Seluruh target pengiriman terpenuhi pada kedua ulangan (Tabel~\ref{..})."), a comparison ("Dibandingkan {acuan}, {objek} naik {besaran}"), an exception ("Seluruh selisih berada di bawah ambang kecuali {metrik}"), or a continuation of the previous paragraph.
 4. **`% sumber:` lines** move together with their sentence when the sentence is moved or split.
 
@@ -58,7 +58,7 @@ The user skill flags absolute words and "signifikan"; in PA the strength of a cl
 3. Cause and effect only from a controlled ablation (one setting changed, at least three *seeds*); simultaneous observations are written "bertepatan dengan" or "diikuti", not "menyebabkan".
 4. The test condition sticks to the claim: replay or body signal source, repeat count, and test data (DS2). A claim about body signals must not rest on a replay test.
 5. A metric without a target (for example p95) is not positioned against another metric's threshold; if a reference number exists, call it a reference, not a target. Inside a table-explaining paragraph, a metric without a target stays in the table and is not reported in the paragraph (item 1 of the table explanation section).
-6. What has not been measured is written "belum diukur" or `\PlaceholderData{...}`, never in the past tense, because a past-tense claim about something that has not happened is a false claim. The design register (Bab 3) and the achievement register (Bab 4 and 5) are in `struktur-pa` rule 4.
+6. What has not been measured is written "belum diukur" or `\PlaceholderData{...}`, never in the past tense, because a past-tense claim about something that has not happened is a false claim. The design register (Bab 3) and the achievement register (Bab 4 and 5) are in `report-structure` rule 4.
 
 ## Terms and abbreviations
 

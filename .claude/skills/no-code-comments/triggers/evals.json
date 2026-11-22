@@ -17,6 +17,6 @@
   {"query": "commit perubahan docs/README.md dengan pesan singkat", "should_trigger": false},
   {"query": "write a React component for the ThingsBoard dashboard in another repo with normal JSDoc comments", "should_trigger": false},
   {"query": "berapa akurasi model INT8 di MIT-BIH menurut model/CLAUDE.md?", "should_trigger": false},
-  {"query": "update skill struktur-pa dengan aturan placeholder gambar baru", "should_trigger": false},
+  {"query": "update skill report-structure dengan aturan placeholder gambar baru", "should_trigger": false},
   {"query": "run pio test -e native dan laporkan hasilnya", "should_trigger": false}
 ]

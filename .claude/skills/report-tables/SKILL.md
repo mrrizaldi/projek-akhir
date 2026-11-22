@@ -72,7 +72,7 @@ Table content stays Indonesian (headers, status words, captions, decimal comma).
 
 12. **Every number is traceable.** Add a LaTeX comment `% sumber: path (nilai mentah)` after the table or per row (`.tex` comments are not printed). Numbers come only from repo artifacts (`model/artifacts/metrics/*`, the active walkthrough, code). A number that does not exist yet is written `\PlaceholderData{...}`, never guessed. Internal working labels (`HW-n`, `Fase n`, ablation tags, file names) must not appear in cells (`laporan/CLAUDE.md` §Larangan Label Kerja).
 
-13. **A table does not stand alone.** An intro paragraph refers to the table before it appears. The explanatory paragraph after it follows the "Paragraf penjelas" part of skill `tulis-tanpa-slop` (finding first, no re-reading of the table content). Do not change a `\label` that is referenced in another chapter; check with `grep -rn "ref{tab:" laporan/buku-pa/bab`.
+13. **A table does not stand alone.** An intro paragraph refers to the table before it appears. The explanatory paragraph after it follows the "Paragraf penjelas" part of skill `report-antislop` (finding first, no re-reading of the table content). Do not change a `\label` that is referenced in another chapter; check with `grep -rn "ref{tab:" laporan/buku-pa/bab`.
 
 14. **Authority limit.** `laporan/` is read-only without confirmation (root `CLAUDE.md`). For a general request such as "rapikan tabel Bab 4", first show a per-table plan (question answered, new columns, rows moved) and edit the `.tex` after the user agrees. When the user already named the table and the chapter that may change, do it directly.
 
@@ -81,7 +81,7 @@ Table content stays Indonesian (headers, status words, captions, decimal comma).
 1. Run `cd laporan/buku-pa && python3 ../../scripts/cek_tabel.py bab/*.tex` and note errors and suggestions per table. Or from the repo root: `python3 scripts/cek_tabel.py --tanpa-prosa`.
 2. For each table touched, write its question (rule 4), then pick a template from `references/templates.md`: A target vs result, B two-condition comparison, C *confusion matrix*, D ablation, E specification, F goal achievement, G related-work comparison.
 3. Rebuild with rules 5-11. Content that leaves a cell moves to the explanatory paragraph or Keterangan.
-4. Write or update the intro and explanatory paragraphs with skill `tulis-tanpa-slop`.
+4. Write or update the intro and explanatory paragraphs with skill `report-antislop`.
 5. Build and check:
    ```bash
    cd laporan/buku-pa && make pdf-bersih

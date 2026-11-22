@@ -29,7 +29,7 @@ Pengantar yang merujuk Tabel~\ref{tab:slug} sebelum tabel muncul.
 \end{table}
 % sumber: path artefak (nilai mentah)
 
-Paragraf penjelas (skill `tulis-tanpa-slop`): temuan dulu, lalu makna terhadap target.
+Paragraf penjelas (skill `report-antislop`): temuan dulu, lalu makna terhadap target.
 ```
 
 Notes:

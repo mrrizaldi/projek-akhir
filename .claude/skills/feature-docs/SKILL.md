@@ -5,7 +5,7 @@ description: Write and maintain the per-feature documentation pages in docs/feat
 
 # Feature docs
 
-The repo bans code comments (skill `tanpa-komentar-kode`), so the "why" behind code lives in a document. A page that is wrong or points at the wrong line is worse than no page, because agents and the user trust it to jump straight into the code. Everything below serves that: specific, current, verifiable.
+The repo bans code comments (skill `no-code-comments`), so the "why" behind code lives in a document. A page that is wrong or points at the wrong line is worse than no page, because agents and the user trust it to jump straight into the code. Everything below serves that: specific, current, verifiable.
 
 ## Where things live
 

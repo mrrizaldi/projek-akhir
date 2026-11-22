@@ -173,7 +173,7 @@ Aturan penulisan paragraf akademik untuk proposal dan buku:
 Penulis menyunting `output/main.docx` di WordCraft, lalu perubahan ditulis balik ke `.tex`
 dengan `make sync` sesudah `make sync-dry` ditinjau dan dikonfirmasi penulis. Sync tidak
 memasang penanda di `.tex` (`[sync] marker = ""` di `laporan/wordcraft.toml`). Riwayat
-suntingan penulis tercatat di commit ingest. Prosedur lengkap: skill `ingest-word`.
+suntingan penulis tercatat di commit ingest. Prosedur lengkap: skill `word-ingest`.
 
 - Paragraf hasil ingest boleh dirapikan formatnya (tanda baca, istilah miring, desimal)
   sesudah penulis mengonfirmasi daftar perbaikannya. Isi kalimat penulis tidak ditulis ulang.
@@ -242,7 +242,7 @@ grep -nE "HW-[0-9]|Fase [0-9A-G]|\.md|\.py|walkthrough|Task [0-9]" bab/*.tex | g
 ### Konvensi Tabel & Gambar
 
 Tabel:
-- **Gaya tiga garis di `buku-pa`** (keputusan user 19 Okt 2026, mengikuti tabel riset dan buku AFIB): `\toprule` di atas header, `\midrule` di bawah header, `\bottomrule` di akhir. Tanpa garis vertikal, tanpa `\hline`/`\cline`, tanpa `\rowcolor{headgray}`. Pemisah kelompok di badan cukup `\midrule`. Pengecualian: tabel Perbandingan Penelitian Terkait (`tab:perbandingan-penelitian`) memakai grid tertutup polos, yaitu garis vertikal dan `\hline` tanpa warna (keputusan user 20 Okt 2026, `TABEL_GRID_PENUH` di `scripts/cek_tabel.py`). Diperiksa `python3 scripts/cek_tabel.py` (kode T-GRID dan T-HEADER). Aturan lengkap: skill `tabel-pa`.
+- **Gaya tiga garis di `buku-pa`** (keputusan user 19 Okt 2026, mengikuti tabel riset dan buku AFIB): `\toprule` di atas header, `\midrule` di bawah header, `\bottomrule` di akhir. Tanpa garis vertikal, tanpa `\hline`/`\cline`, tanpa `\rowcolor{headgray}`. Pemisah kelompok di badan cukup `\midrule`. Pengecualian: tabel Perbandingan Penelitian Terkait (`tab:perbandingan-penelitian`) memakai grid tertutup polos, yaitu garis vertikal dan `\hline` tanpa warna (keputusan user 20 Okt 2026, `TABEL_GRID_PENUH` di `scripts/cek_tabel.py`). Diperiksa `python3 scripts/cek_tabel.py` (kode T-GRID dan T-HEADER). Aturan lengkap: skill `report-tables`.
 - Tabel panjang multi-halaman pakai `longtable` dengan header yang diulang (`\endfirsthead` + `\endhead`).
 - **Tanpa teks "Bersambung ke halaman berikutnya" / "Lanjutan Tabel X.Y"** di footer/header lanjutan — user tidak suka. Cukup `\bottomrule` di `\endfoot`.
 - Tabel perbandingan padat (banyak kolom) pakai `\scriptsize` + `\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}` untuk kolom rata-kiri yang membungkus. `\newcolumntype{L}` sudah didefinisikan di `shared/preamble.tex`.

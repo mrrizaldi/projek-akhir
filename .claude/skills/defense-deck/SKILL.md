@@ -17,7 +17,7 @@ This skill governs deck content. How to write the `.pptx` file (the `pptxgenjs` 
 
 One deck, one folder `presentasi/YYYY-MM-DD-<event>/`, holding `deck.js` (source, committed) and `output/` (`.pptx`, `.pdf`, `.png`; already ignored through `presentasi/*/output/`). The folder also holds a `README.md` with the rebuild steps for that deck. This follows the folders already in `presentasi/`.
 
-`deck.js` is code, so it is written without comments (skill `tanpa-komentar-kode`). Speaker notes are written through `addNotes`, not comments, so the explanation stays without breaking the code rule.
+`deck.js` is code, so it is written without comments (skill `no-code-comments`). Speaker notes are written through `addNotes`, not comments, so the explanation stays without breaking the code rule.
 
 ## Content derives from the book
 
@@ -62,7 +62,7 @@ Image file names (e.g. `fase7_confusion_int8.png`) appear only in `deck.js`, not
 
 The campus template, colors and presentation duration have never been decided in the repo. If the task needs them and the user has not said them, ask once with options and a recommendation before building, and do not silently use a default template.
 
-The slide count is not asked separately: derive it from the duration (about one slide per minute) and state it in the message as an assumption the user can change. Things already recorded in the repo or waiting for official data are not asked, following the skill `buku-ikut-proposal`.
+The slide count is not asked separately: derive it from the duration (about one slide per minute) and state it in the message as an assumption the user can change. Things already recorded in the repo or waiting for official data are not asked, following the skill `book-follows-proposal`.
 
 ## Verification before handing over
 

@@ -90,7 +90,7 @@ are not yet recognized by the C tokenizer.
 ## Report table and narrative checker
 
 `cek_tabel.py` checks LaTeX tables and their explanatory paragraphs in the PA
-report (skills `tabel-pa` and `tulis-tanpa-slop`). Errors exit with code 1,
+report (skills `report-tables` and `report-antislop`). Errors exit with code 1,
 while suggestions are only printed (`--ketat` makes suggestions fail as well).
 Output format: `berkas:baris: [KODE tingkat] pesan`.
 
@@ -230,8 +230,7 @@ python3 ../../scripts/check_slop.py --self-test
 - `triggers/evals.json`: a list of `{query, should_trigger}` with both true and
   false classes.
 - A skill without `evals/` or `triggers/`, or one that still has `eval.md`,
-  counts as an error. The option `--lewati-eval-lama` skips the eval checks for
-  skills that still use `eval.md` (transition period).
+  counts as an error.
 
 Exit code 1 if there are errors. CI runs `--self-test` and the check without
 options.

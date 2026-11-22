@@ -12,7 +12,7 @@ Bab 1 of the book follows the proposal because the proposal is approved and froz
 1. Make the skeleton of `laporan/buku-pa/bab/bab1.tex` equal to `laporan/proposal-pa/bab/bab1.tex`: Latar Belakang, Permasalahan (3 items "Bagaimana ...?"), Tujuan (3 items), Manfaat (3 items), Sistematika Penulisan. The number of Permasalahan and Tujuan items stays 3, so the thread to results and conclusion does not shift.
 2. End the Tujuan section at the goal list, with no sentence after it, because the proposal has none.
 3. Do not add Bab 1 sections that the proposal lacks (Batasan Masalah, Ruang Lingkup, Kontribusi and the like), even though the AFIB reference report has them. User decision: Bab 1 of the book follows the proposal.
-4. Update the content of Bab 1 sections (numbers, citations, terms) when the facts change. What is followed from the proposal is the outline, not the sentences: the three problems, the three goals, and what is tested (Rencana Pengujian in Bab 3). Write the book's sentences with skill `tulis-tanpa-slop`; they need not be identical to the proposal.
+4. Update the content of Bab 1 sections (numbers, citations, terms) when the facts change. What is followed from the proposal is the outline, not the sentences: the three problems, the three goals, and what is tested (Rencana Pengujian in Bab 3). Write the book's sentences with skill `report-antislop`; they need not be identical to the proposal.
 5. When correcting facts in Bab 1, use facts already proven in Bab 2 together with their source, not new claims, because Bab 1 must not carry claims that are not proven in later chapters (a Bab 1 correction approved by the user).
 
 ## The proposal is not edited

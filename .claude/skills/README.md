@@ -1,95 +1,95 @@
-# Skill repo PA
+# PA repo skills
 
-Skill di repo ini adalah lapisan tipis. Aturan umum tinggal sekali di skill
-user (`~/.claude/skills/`); skill repo menyebut skill user yang dimuat lebih
-dulu, lalu menambahkan hanya yang khusus PA (path, perintah, nama konstanta,
-jebakan). Muat lapisan user, lalu lapisan repo. Aturan keras 7–8 di
-`CLAUDE.md` root: setiap kegagalan yang ditangkap user menjadi skill hari itu
-juga, dan setiap skill punya eval yang dinilai model berbeda, maksimal 3
-putaran.
+The skills in this repo are thin layers. General rules live once in a user
+skill (`~/.claude/skills/`); a repo skill names the user skill to load first,
+then adds only what is specific to PA (paths, commands, constant names,
+traps). Load the user layer, then the repo layer. Strict rules 7–8 in the root
+`CLAUDE.md`: every failure the user catches becomes a skill the same day, and
+every skill has an eval graded by a different model, at most 3 rounds.
 
-## Skill repo
+## Repo skills
 
-| Skill | Kapan | Skill user yang dimuat |
+| Skill | When | User skill loaded |
 |---|---|---|
-| `batas-tidak-diam` | firmware dengan buffer, durasi, atau kapasitas terbatas, atau operasi lambat di `loop()` | `firmware-bounded-limits` |
-| `kicad-pcb-pa` | PCB atau skematik KiCad mainboard, DRC, rute, Gerber | `kicad-mcp-pcb` |
-| `ingest-word` | suntingan DOCX dari teman dimasukkan kembali ke LaTeX | `wordcraft-latex-ingest` |
-| `tanpa-komentar-kode` | menulis atau menyunting kode, prompt ke subagen penulis kode | `no-code-comments` |
-| `tulis-tanpa-slop` | paragraf laporan agar tidak terbaca ditulis AI | `indonesian-antislop-writing` |
-| `struktur-pa` | kerangka bab, benang merah, placeholder gambar, QA sebelum kumpul | tidak ada |
-| `tabel-pa` | tabel LaTeX laporan | tidak ada |
-| `buku-ikut-proposal` | Bab 1 buku mengikuti proposal, pertanyaan ke user soal isi buku | tidak ada |
-| `deck-pa` | deck presentasi PA (PPTX) | tidak ada |
+| `firmware-limits` | firmware with a bounded buffer, duration, or capacity, or a slow operation in `loop()` | `firmware-bounded-limits` |
+| `kicad-pcb` | mainboard KiCad PCB or schematic, DRC, routing, Gerber | `kicad-mcp-pcb` |
+| `word-ingest` | DOCX edits from a friend brought back into LaTeX | `wordcraft-latex-ingest` |
+| `no-code-comments` | writing or editing code, prompts to code-writing subagents | `no-code-comments` |
+| `report-antislop` | report paragraphs that must not read as AI-written | `indonesian-antislop-writing` |
+| `report-structure` | chapter skeleton, common thread, figure placeholders, QA before submission | none |
+| `report-tables` | LaTeX tables in the reports | none |
+| `book-follows-proposal` | Bab 1 of the book follows the proposal, questions to the user about book content | none |
+| `defense-deck` | PA presentation decks (PPTX) | none |
+| `feature-docs` | per-feature pages in `docs/features/` with verified `file:line` pointers | none |
 
-`narasi-pa` nonaktif dan disimpan di
-`.claude/skills-arsip/narasi-pa/` sebagai rujukan.
+`narasi-pa` is inactive and kept in
+`.claude/skills-arsip/narasi-pa/` as a reference.
 
-## Skill user
+## User skills
 
-Tiap skill user berupa repo lokal `~/dev/<nama>` dengan symlink
-`~/.claude/skills/<nama>`. Repo GitHub belum dibuat; saat ini hanya repo
-lokal. Setelah ada remote, pasang di mesin lain dengan
+Each user skill is a local repo `~/dev/<nama>` with a symlink
+`~/.claude/skills/<nama>`. The GitHub repos do not exist yet; for now they are
+local repos only. Once a remote exists, install on another machine with
 `git clone <url> ~/dev/<nama> && ln -s ~/dev/<nama> ~/.claude/skills/<nama>`.
 
-| Skill user | Repo lokal | Dipakai untuk |
+| User skill | Local repo | Used for |
 |---|---|---|
-| `local-file-links` | `~/dev/local-file-links` | dokumen yang menautkan berkas lokal (indeks rujukan di `laporan/pustaka/`, daftar bukti dari `model/artifacts`) |
-| `firmware-bounded-limits` | `~/dev/firmware-bounded-limits` | batas firmware tidak membuang data diam-diam |
-| `indonesian-antislop-writing` | `~/dev/indonesian-antislop-writing` | menyunting prosa Indonesia, dengan `check_slop.py` |
-| `kicad-mcp-pcb` | `~/dev/kicad-mcp-pcb` | PCB KiCad lewat MCP, pcbnew, kicad-cli, Freerouting |
-| `wordcraft-latex-ingest` | `~/dev/wordcraft-latex-ingest` | DOCX ke LaTeX |
-| `no-code-comments` | `~/dev/no-code-comments` | kode tanpa komentar, dengan `check_comments.py` |
-| `shared-worktree` | `~/dev/shared-worktree` | keamanan git saat beberapa sesi memakai satu klon |
+| `local-file-links` | `~/dev/local-file-links` | documents that link local files (reference index in `laporan/pustaka/`, evidence list from `model/artifacts`) |
+| `firmware-bounded-limits` | `~/dev/firmware-bounded-limits` | firmware limits never drop data silently |
+| `indonesian-antislop-writing` | `~/dev/indonesian-antislop-writing` | editing Indonesian prose, with `check_slop.py` |
+| `kicad-mcp-pcb` | `~/dev/kicad-mcp-pcb` | KiCad PCBs through MCP, pcbnew, kicad-cli, Freerouting |
+| `wordcraft-latex-ingest` | `~/dev/wordcraft-latex-ingest` | DOCX to LaTeX |
+| `no-code-comments` | `~/dev/no-code-comments` | comment-free code, with `check_comments.py` |
+| `shared-worktree` | `~/dev/shared-worktree` | git safety when several sessions share one clone |
 
-## Layout skill
+## Skill layout
 
 ```
 <skill>/
-  SKILL.md                  aturan, frontmatter name + description
+  SKILL.md                  rules, frontmatter name + description
   evals/<kasus>/
-    prompt.md               teks tugas uji
+    prompt.md               task text for the test
     case.yaml               schema_version: "1.1", name, expected_outcome
-    graders/NN-*.md         satu pernyataan yang dapat dinilai lulus/gagal
-  triggers/evals.json       daftar {query, should_trigger}, kelas true dan false
-  referensi/                opsional, detail yang dimuat bila perlu
+    graders/NN-*.md         one statement that can be graded pass/fail
+  triggers/evals.json       list of {query, should_trigger}, true and false classes
+  references/               optional, details loaded when needed
 ```
 
-Konvensi `SKILL.md` (format skill-creator):
+`SKILL.md` conventions (skill-creator format):
 
-- Frontmatter hanya `name` (sama dengan nama folder) dan `description`.
-- `description` satu baris, paling banyak 1.024 karakter, agak memaksa:
-  menyebut kapan dipakai dengan frasa yang diketik user, dan batasnya.
-- Tiap aturan disertai alasan satu kalimat.
-- Tanpa riwayat, tanpa catatan revisi, badan kurang dari 500 baris.
-- Detail yang hanya berlaku pada kondisi tertentu pindah ke `referensi/`.
+- Frontmatter only `name` (equal to the folder name) and `description`.
+- `description` on one line, at most 1,024 characters, slightly pushy:
+  it says when to use the skill with phrases the user types, and its limits.
+- Each rule comes with a one-sentence reason.
+- No history, no revision notes, body under 500 lines.
+- Details that apply only under certain conditions move to `references/`.
 
-## Prosedur eval
+## Eval procedure
 
-Dua agen terpisah per putaran, dari Agent tool atau sesi terpisah.
+Two separate agents per round, from the Agent tool or separate sessions.
 
-1. **Penulis** (model A) hanya diberi `SKILL.md` (lapisan user dan repo,
-   plus `referensi/`) dan `prompt.md` tiap kasus. Ia tidak membuka
-   `case.yaml` atau `graders/`, tidak menjalankan perintah, dan menulis satu
-   berkas jawaban dengan heading `## <kasus>` per kasus.
-2. **Penilai** (model B, berbeda dari A) diberi `SKILL.md`, `case.yaml` dan
-   `graders/` tiap kasus, dan berkas jawaban. Ia menilai tiap pernyataan
-   lulus atau gagal dengan kutipan bukti, dan menulis tabel
-   `Kasus | Penilai | Lulus | Bukti`, baris `Lulus: X/Y`, dan paling banyak
-   tiga pelanggaran `SKILL.md` di luar penilai.
-3. Belum semua lulus: perbaiki aturan yang ambigu di `SKILL.md` atau
-   penilai yang ambigu, lalu putaran berikutnya dengan penulis baru (bukan
-   melanjutkan agen lama).
-4. Berhenti saat semua lulus, pada putaran ke-3, atau bila hasil tidak naik
-   dua putaran berturut-turut; yang belum lulus ditanyakan ke user.
-5. Skor dan tabel lulus ditulis di pesan commit. Tidak ada berkas riwayat
-   skor; `git log` adalah riwayatnya. Setiap perubahan `SKILL.md` sesudah
-   lulus mewajibkan putaran baru.
+1. The **writer** (model A) gets only `SKILL.md` (user and repo layers,
+   plus `references/`) and each case's `prompt.md`. It does not open
+   `case.yaml` or `graders/`, does not run commands, and writes one answer
+   file with a `## <kasus>` heading per case.
+2. The **grader** (model B, different from A) gets `SKILL.md`, each case's
+   `case.yaml` and `graders/`, and the answer file. It grades each statement
+   pass or fail with a quoted piece of evidence, and writes a table
+   `Kasus | Penilai | Lulus | Bukti`, a line `Lulus: X/Y`, and at most
+   three `SKILL.md` violations outside the graders.
+3. Not everything passes: fix the ambiguous rule in `SKILL.md` or the
+   ambiguous grader, then run the next round with a new writer (not by
+   continuing the old agent).
+4. Stop when everything passes, at round 3, or when the score does not rise
+   for two rounds in a row; whatever still fails is put to the user.
+5. Scores and the pass table go in the commit message. There is no score
+   history file; `git log` is the history. Every `SKILL.md` change after a
+   pass requires a new round.
 
-## Pemeriksa
+## Checks
 
-- Struktur: `python3 scripts/check_skills.py` (tanpa opsi; `--self-test` untuk
-  swauji). Jalan di CI.
-- Pemicu: `scripts/trigger_eval.sh <folder skill>` mengukur apakah deskripsi
-  memicu pada kueri `triggers/evals.json` (`scripts/README.md`).
-- Laporan: `python3 scripts/cek_tabel.py`, `python3 scripts/check_slop.py`.
+- Structure: `python3 scripts/check_skills.py` (no options; `--self-test` for
+  the self-test). Runs in CI.
+- Triggering: `scripts/trigger_eval.sh <folder skill>` measures whether the
+  description triggers on the `triggers/evals.json` queries (`scripts/README.md`).
+- Reports: `python3 scripts/cek_tabel.py`, `python3 scripts/check_slop.py`.
