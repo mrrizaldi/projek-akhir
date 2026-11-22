@@ -27,16 +27,16 @@ MIT-BIH data to the C header for the ESP32-S3 firmware.
 ## Main commands
 
 ```bash
-make data && make check   # unduh & cek dataset
-make prep && make split   # Fase 2-3
-make train                # Fase 5
-make eval                 # Fase 6 (float32, DS2)
-make quantize             # Fase 7 (PTQ INT8)
-make poc                  # Fase 8 (checklist DoD)
+make data && make check   # download & check the dataset
+make prep && make split   # Phase 2-3
+make train                # Phase 5
+make eval                 # Phase 6 (float32, DS2)
+make quantize             # Phase 7 (PTQ INT8)
+make poc                  # Phase 8 (DoD checklist)
 make export               # model_int8.h -> firmware/include/
 make test                 # pytest
-make pull                 # tarik rekaman dari board -> data/recordings/
-make analyze FILE=data/recordings/<berkas>.csv
+make pull                 # pull a recording from the board -> data/recordings/
+make analyze FILE=data/recordings/<file>.csv
 ```
 
 Full list of targets: `make help`. Plot targets use `REC=<record>` (default
@@ -77,7 +77,7 @@ flow and the reasons is in the walkthrough named in the last column.
 | `pull_recording.py` | `make pull [N=n]` | Pull a recording from the board ([akuisisi](docs/acquisition-walkthrough.md)). If the board is still recording, the script stops & saves it first. Other port: `ECG_PORT=/dev/ttyACM1` |
 | `analyze_recording.py` | `make analyze FILE=... [TITLE="R1"]` | Rate recording quality with numbers, see below |
 | `quality_trend.py` | `.venv/bin/python scripts/quality_trend.py <berkas-1.csv> [<lanjutan>.csv ...]` | Per-second quality of one recording session (continuation files are joined in order, a `celah` other than 0 is warned about, files with `# jeda` are rejected) with the firmware gate formula: filtered swing, 50 Hz hum (1-second FFT bin = Goertzel bin of `gate.cpp`), `ayun_bersih`, clipping, plausible RR, duration of calm RR. Prints a per-minute summary and the first second each gate condition is met; per-second table → `artifacts/metrics/kualitas/<berkas-1>-sesi<k>.csv`. The basis of the 60 s warm-up duration of the calibration gate ([mqtt](docs/mqtt-walkthrough.md) §3.1) |
-| `plot_recording.py` | `make plot FILE=... [START=detik]` | ECG graph of the best 60 seconds (or starting at a given second) in 10-second rows + HR per beat ([akuisisi](docs/acquisition-walkthrough.md) §5) |
+| `plot_recording.py` | `make plot FILE=... [START=seconds]` | ECG graph of the best 60 seconds (or starting at a given second) in 10-second rows + HR per beat ([akuisisi](docs/acquisition-walkthrough.md) §5) |
 | `measure_power.py`, `pull_power.py` | `.venv/bin/python scripts/measure_power.py`, `make pull-power [N=n]` | Power ladder from the laptop and from the board ([firmware](docs/firmware-walkthrough.md) §5d) |
 | `broker_info.py` | `make broker-info` | Laptop WiFi SSID, LAN IPv4, port status, suggested `wifi_secrets.h` entry. The firmware does not resolve hostnames, so broker = an IP address and the board must be on the same SSID. Uses `ip -j` (iproute2, Linux only) and `nmcli -t` |
 
