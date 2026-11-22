@@ -93,7 +93,7 @@ void power_service(void)
 }
 
 struct window_t {
-    char time[24];
+    char timestamp[24];
     int8_t mode;
     uint16_t n;
     float i, sd, v;
@@ -150,9 +150,9 @@ static void sweep_record(int n, double i, double sd, double v, unsigned beat, un
         const time_t t = ep / 1000;
         struct tm tm;
         gmtime_r(&t, &tm);
-        strftime(j.time, sizeof j.time, "%Y-%m-%dT%H:%M:%SZ", &tm);
+        strftime(j.timestamp, sizeof j.timestamp, "%Y-%m-%dT%H:%M:%SZ", &tm);
     } else {
-        snprintf(j.time, sizeof j.time, "+%lus", (unsigned long)(millis() / 1000));
+        snprintf(j.timestamp, sizeof j.timestamp, "+%lus", (unsigned long)(millis() / 1000));
     }
     j.mode = step; j.n = n; j.i = i; j.sd = sd; j.v = v;
     j.beat = beat; j.missed = missed; j.replay = acquisition_replay();
@@ -237,7 +237,7 @@ static void finish(const char *cancel)
     f.println("waktu,mode,n,I_mA,sd_mA,V,P_mW,beat,lewat,replay,sah");
     for (int r = 0; r < windows_n; r++) {
         const window_t &j = windows[r];
-        f.printf("%s,%d,%u,%.2f,%.2f,%.3f,%.1f,%u,%u,%d,%d\n", j.time, j.mode, j.n, j.i,
+        f.printf("%s,%d,%u,%.2f,%.2f,%.3f,%.1f,%u,%u,%d,%d\n", j.timestamp, j.mode, j.n, j.i,
                  j.sd, j.v, j.i * j.v, (unsigned)j.beat, (unsigned)j.missed, (int)j.replay,
                  (int)valid[j.mode]);
     }

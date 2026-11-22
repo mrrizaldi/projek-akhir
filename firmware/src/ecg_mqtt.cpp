@@ -32,11 +32,11 @@ void ecg_mqtt_queue_fill(const ecg_mqtt_beat_t *b)
     queue_fill++;
 }
 
-size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *out, size_t max_count)
+size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *beats_out, size_t max_count)
 {
     const size_t n = queue_fill < max_count ? queue_fill : max_count;
     for (size_t i = 0; i < n; i++)
-        out[i] = queue[(queue_head + i) % queue_cap];
+        beats_out[i] = queue[(queue_head + i) % queue_cap];
     return n;
 }
 
@@ -101,7 +101,7 @@ static const char *w_ssid = "", *w_pass = "", *b_host = "", *b_token = "";
 static uint16_t b_port = 1883;
 
 static WiFiClient sock;
-static bool active = true, connected;
+static bool active = true, is_connected;
 static uint32_t t_try, t_ping, t_service, sent, failed;
 static uint32_t packet_send, packet_ack;
 static uint32_t rtt_max, rtt_slow;
@@ -127,9 +127,9 @@ static size_t varlen(uint8_t *out, size_t n)
 
 static void disconnect(const char *reason)
 {
-    if (connected) Serial.printf("mqtt putus (%s)\n", reason);
+    if (is_connected) Serial.printf("mqtt putus (%s)\n", reason);
     sock.stop();
-    connected = false;
+    is_connected = false;
     waiting_ack = waiting_connack = false;
     n_in_flight = 0;
 }
@@ -184,7 +184,7 @@ static void poll_connack()
             disconnect("CONNACK");
             return;
         }
-        connected = true;
+        is_connected = true;
         t_ping = millis();
         Serial.printf("mqtt tersambung, backlog %u beat\n", (unsigned)ecg_mqtt_queue_n());
         return;
@@ -301,7 +301,7 @@ void ecg_mqtt_service(void)
     sync_clock();
 
     if (!sock.connected()) {
-        connected = false;
+        is_connected = false;
         waiting_ack = waiting_connack = false;
         n_in_flight = 0;
         if (WiFi.status() != WL_CONNECTED) return;
@@ -319,7 +319,7 @@ void ecg_mqtt_service(void)
         return;
     }
 
-    if (!connected) { poll_connack(); return; }
+    if (!is_connected) { poll_connack(); return; }
 
     poll_incoming();
     if (waiting_ack) {
@@ -362,7 +362,7 @@ const char *ecg_mqtt_status(void)
 {
     if (!active) return "mati";
     if (WiFi.status() != WL_CONNECTED) return "no-wifi";
-    if (!connected) return "no-broker";
+    if (!is_connected) return "no-broker";
     if (!ts_base_ms) return "tunggu-jam";
     return "online";
 }

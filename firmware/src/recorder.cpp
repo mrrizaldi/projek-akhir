@@ -149,12 +149,12 @@ static bool open_part(int k)
 static void close_write(bool failed)
 {
     writer.f.close();
-    const size_t size = LittleFS.open(writer.path, "r").size();
+    const size_t file_size = LittleFS.open(writer.path, "r").size();
     const float percent = writer.n ? 100.0f * writer.leadoff / writer.n : 0.0f;
     if (failed) Serial.printf("GAGAL: LittleFS penuh setelah %u sampel, %s terpotong\n",
                              (unsigned)writer.i, writer.path);
-    if (size != writer.byte)
-        Serial.printf("PERINGATAN: %s berukuran %u B, tertulis %u B\n", writer.path, (unsigned)size,
+    if (file_size != writer.byte)
+        Serial.printf("PERINGATAN: %s berukuran %u B, tertulis %u B\n", writer.path, (unsigned)file_size,
                       (unsigned)writer.byte);
     Serial.printf("SIMPAN %u sampel (%.1f detik, %d segmen), %u terlewat, elektroda lepas %.0f%% -> %s\n",
                   (unsigned)writer.n, (float)writer.n / ECG_FS, writer.n_breaks + 1, writer.missed, percent,

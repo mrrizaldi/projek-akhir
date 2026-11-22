@@ -170,9 +170,9 @@ void test_lifecycle(void)
 
     for (int i = 0; i < GOLDEN_N; i++) {
         const uint32_t t0 = micros();
-        const int has_beat = ecg_live_push(golden_raw[i], &beat);
+        const int beat_ready = ecg_live_push(golden_raw[i], &beat);
         uint32_t dt = micros() - t0;
-        if (!has_beat) { if (dt > us_max) us_max = dt; continue; }
+        if (!beat_ready) { if (dt > us_max) us_max = dt; continue; }
         (void)dt;
 
         for (int k = 0; k < GOLDEN_WIN_LEN; k++)

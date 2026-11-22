@@ -19,7 +19,7 @@ constexpr int ROUNDS = 3;
 constexpr int ARENA_N = 24 * 1024;
 alignas(16) static uint8_t arena[ARENA_N];
 static tflite::MicroInterpreter *interp;
-static TfLiteTensor *in_morph, *in_rr, *output;
+static TfLiteTensor *in_morph, *in_rr, *output_tensor;
 
 constexpr size_t QUEUE_N = 256;
 static volatile uint16_t queue[QUEUE_N];
@@ -57,7 +57,7 @@ void test_model_loaded(void)
     TfLiteTensor *a = interp->input(0), *b = interp->input(1);
     in_rr = a->bytes < b->bytes ? a : b;
     in_morph = a->bytes < b->bytes ? b : a;
-    output = interp->output(0);
+    output_tensor = interp->output(0);
 }
 
 static int8_t to_int8(float x, float scale, int zero)
@@ -73,7 +73,7 @@ static float classifier(const ecg_beat_t &beat)
     for (int i = 0; i < ECG_N_RR; i++)
         in_rr->data.int8[i] = to_int8(beat.rr[i], ECG_IN_RR_SCALE, ECG_IN_RR_ZERO);
     interp->Invoke();
-    return (output->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
+    return (output_tensor->data.int8[0] - ECG_OUT_ZERO) * ECG_OUT_SCALE;
 }
 
 static void plot(float f)

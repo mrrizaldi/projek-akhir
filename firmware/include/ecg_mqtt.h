@@ -35,7 +35,7 @@ size_t ecg_mqtt_queue_capacity(void);
 size_t ecg_mqtt_queue_n(void);
 size_t ecg_mqtt_queue_lost(void);
 void ecg_mqtt_queue_fill(const ecg_mqtt_beat_t *b);
-size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *out, size_t max_count);
+size_t ecg_mqtt_queue_peek(ecg_mqtt_beat_t *beats_out, size_t max_count);
 void ecg_mqtt_queue_drop(size_t n);
 
 #ifdef ARDUINO
