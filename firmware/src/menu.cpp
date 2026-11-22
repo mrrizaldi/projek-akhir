@@ -9,7 +9,7 @@
 #include "gate.h"
 #include "ina219.h"
 #include "classifier.h"
-#include "konfig.h"
+#include "app_settings.h"
 #include "board.h"
 #include "recorder.h"
 #include "diagnostics.h"
@@ -180,26 +180,26 @@ static const item_t I_POWER[] = {
 };
 static const page_t H_POWER_MENU = LIST("Ukur daya", I_POWER);
 
-static int wifi_n() { return konfig_wifi_n(); }
+static int wifi_n() { return settings_wifi_n(); }
 static void wifi_text(int i, char *out, size_t n)
 {
-    snprintf(out, n, "%c %s", i == konfig_wifi() ? '*' : ' ', konfig_wifi_nama(i));
+    snprintf(out, n, "%c %s", i == settings_wifi() ? '*' : ' ', settings_wifi_name(i));
 }
-static void wifi_choose(int i) { konfig_pilih_wifi(i); }
-static int broker_n() { return konfig_broker_n(); }
+static void wifi_choose(int i) { settings_choose_wifi(i); }
+static int broker_n() { return settings_broker_n(); }
 static void broker_text(int i, char *out, size_t n)
 {
-    snprintf(out, n, "%c %s %s", i == konfig_broker() ? '*' : ' ', konfig_broker_nama(i),
-             konfig_broker_host(i));
+    snprintf(out, n, "%c %s %s", i == settings_broker() ? '*' : ' ', settings_broker_name(i),
+             settings_broker_host(i));
 }
-static void broker_choose(int i) { konfig_pilih_broker(i); }
+static void broker_choose(int i) { settings_choose_broker(i); }
 static const page_t H_WIFI = DYNAMIC("WiFi", wifi_n, wifi_text, wifi_choose);
 static const page_t H_BROKER = DYNAMIC("Broker", broker_n, broker_text, broker_choose);
 
-static void wifi_switch() { konfig_set_wifi_aktif(!konfig_wifi_aktif()); }
-static const char *n_wifi_active() { return on_off(konfig_wifi_aktif()); }
-static const char *n_wifi() { return konfig_wifi_nama(konfig_wifi()); }
-static const char *n_broker() { return konfig_broker_nama(konfig_broker()); }
+static void wifi_switch() { settings_set_wifi_active(!settings_wifi_active()); }
+static const char *n_wifi_active() { return on_off(settings_wifi_active()); }
+static const char *n_wifi() { return settings_wifi_name(settings_wifi()); }
+static const char *n_broker() { return settings_broker_name(settings_broker()); }
 static const char *ip_text()
 {
     static char t[16];
@@ -209,12 +209,12 @@ static const char *ip_text()
 }
 static void net_status(row_t *b)
 {
-    const int k = konfig_broker();
+    const int k = settings_broker();
     snprintf(b[0], sizeof *b, "MQTT %s (%s)", on_off(ecg_mqtt_active()), ecg_mqtt_status());
-    snprintf(b[1], sizeof *b, "WiFi %s", konfig_wifi_nama(konfig_wifi()));
+    snprintf(b[1], sizeof *b, "WiFi %s", settings_wifi_name(settings_wifi()));
     snprintf(b[2], sizeof *b, "IP %s", ip_text());
     snprintf(b[3], sizeof *b, "RSSI %d dBm", ecg_mqtt_rssi());
-    snprintf(b[4], sizeof *b, "%s:%d", konfig_broker_host(k), konfig_broker_port(k));
+    snprintf(b[4], sizeof *b, "%s:%d", settings_broker_host(k), settings_broker_port(k));
     snprintf(b[5], sizeof *b, "Kirim %u backlog %u", (unsigned)ecg_mqtt_sent(),
              (unsigned)ecg_mqtt_queue_n());
 }
@@ -229,9 +229,9 @@ static const page_t H_NETWORK = LIST("Jaringan", I_NETWORK);
 
 static void info_fill(row_t *b)
 {
-    const int k = konfig_broker();
+    const int k = settings_broker();
     snprintf(b[0], sizeof *b, "IP %s  %d dBm", ip_text(), ecg_mqtt_rssi());
-    snprintf(b[1], sizeof *b, "Broker %s %s", konfig_broker_nama(k), konfig_broker_host(k));
+    snprintf(b[1], sizeof *b, "Broker %s %s", settings_broker_name(k), settings_broker_host(k));
     float mA, V;
     if (power_ina_present() && ina219_read(R_SHUNT, &mA, &V))
         snprintf(b[2], sizeof *b, "INA %.2f V %.1f mA", V, mA);

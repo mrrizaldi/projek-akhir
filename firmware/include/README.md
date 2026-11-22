@@ -18,7 +18,7 @@
 | `diagnostics.h` | Tes perangkat `diag_*` untuk menu Tes perangkat dan `test_hw_*` | ditulis tangan |
 | `recorder.h` | Rekaman bernomor `/rekam/NNN.csv` di LittleFS | ditulis tangan |
 | `power.h` | INA219, tangga ukur daya `p0`–`p5`, tangga mandiri dengan hasil `/daya/NNN.csv` | ditulis tangan |
-| `konfig.h` | Daftar WiFi/broker; pilihan WiFi, broker, dan sumber sinyal di NVS | ditulis tangan |
+| `app_settings.h` | Daftar WiFi/broker; pilihan WiFi, broker, dan sumber sinyal di NVS | ditulis tangan |
 | `serial_cmd.h` | Perintah serial | ditulis tangan |
 | `wifi_secrets.example.h` | Templat kredensial; salin menjadi `wifi_secrets.h` (di-ignore git) | ditulis tangan |
 

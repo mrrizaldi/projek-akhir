@@ -8,7 +8,7 @@
 #include "gate.h"
 #include "ina219.h"
 #include "classifier.h"
-#include "konfig.h"
+#include "app_settings.h"
 #include "menu.h"
 #include "board.h"
 #include "recorder.h"
@@ -64,7 +64,7 @@ void setup()
 
     classifier_begin();
     gate_begin_session();
-    konfig_mulai();
+    settings_begin();
     setenv("TZ", "WIB-7", 1);
     tzset();
     acquisition_begin();

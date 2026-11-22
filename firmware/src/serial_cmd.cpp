@@ -9,7 +9,7 @@
 #include "ecg_mqtt.h"
 #include "gate.h"
 #include "classifier.h"
-#include "konfig.h"
+#include "app_settings.h"
 #include "menu.h"
 #include "board.h"
 #include "recorder.h"
@@ -68,15 +68,15 @@ static void status()
 
 static void list_wifi()
 {
-    for (int i = 0; i < konfig_wifi_n(); i++)
-        Serial.printf("wifi %c%d %s\n", i == konfig_wifi() ? '*' : ' ', i, konfig_wifi_nama(i));
+    for (int i = 0; i < settings_wifi_n(); i++)
+        Serial.printf("wifi %c%d %s\n", i == settings_wifi() ? '*' : ' ', i, settings_wifi_name(i));
 }
 
 static void list_brokers()
 {
-    for (int i = 0; i < konfig_broker_n(); i++)
-        Serial.printf("broker %c%d %s  %s:%d\n", i == konfig_broker() ? '*' : ' ', i,
-                      konfig_broker_nama(i), konfig_broker_host(i), konfig_broker_port(i));
+    for (int i = 0; i < settings_broker_n(); i++)
+        Serial.printf("broker %c%d %s  %s:%d\n", i == settings_broker() ? '*' : ' ', i,
+                      settings_broker_name(i), settings_broker_host(i), settings_broker_port(i));
 }
 
 void serial_cmd_service(void)
@@ -109,7 +109,7 @@ void serial_cmd_service(void)
                       "stabilisasi 10-15 menit + RR tenang 30 s)\n",
                       gate_skip() ? "ON" : "OFF");
     }
-    else if (c == 'm') konfig_set_wifi_aktif(!konfig_wifi_aktif());
+    else if (c == 'm') settings_set_wifi_active(!settings_wifi_active());
     else if (c == 'q') {
         gate_set_report(!gate_report());
         Serial.printf("laporan kualitas %s\n", gate_report() ? "ON" : "OFF");
@@ -124,7 +124,7 @@ void serial_cmd_service(void)
     else if (c == 'w') {
         const int n = read_number();
         if (n < 0) list_wifi();
-        else if (!konfig_pilih_wifi(n) && !recorder_active()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
+        else if (!settings_choose_wifi(n) && !recorder_active()) Serial.printf("wifi %d tidak ada, lihat 'w'\n", n);
     }
     else if (c == 't' || c == 'T') {
         const uint32_t t0 = millis();
@@ -136,7 +136,7 @@ void serial_cmd_service(void)
     else if (c == 'b') {
         const int n = read_number();
         if (n < 0) list_brokers();
-        else if (!konfig_pilih_broker(n) && !recorder_active()) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
+        else if (!settings_choose_broker(n) && !recorder_active()) Serial.printf("broker %d tidak ada, lihat 'b'\n", n);
     }
 }
 #endif

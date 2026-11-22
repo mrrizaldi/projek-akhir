@@ -9,7 +9,7 @@
 #include "acquisition.h"
 #include "ecg_mqtt.h"
 #include "ina219.h"
-#include "konfig.h"
+#include "app_settings.h"
 #include "board.h"
 #include "recorder.h"
 
@@ -56,7 +56,7 @@ void power_set_mode(int m)
         if (!wifi_off) { ecg_mqtt_set_active(0); esp_wifi_stop(); }
         wifi_off = true;
     } else if (wifi_off) {
-        if (konfig_wifi_aktif()) {
+        if (settings_wifi_active()) {
             esp_wifi_start();
             ecg_mqtt_begin();
             ecg_mqtt_set_active(1);

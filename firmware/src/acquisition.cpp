@@ -7,7 +7,7 @@
 
 #include "gate.h"
 #include "classifier.h"
-#include "konfig.h"
+#include "app_settings.h"
 #include "board.h"
 #include "recorder.h"
 #include "golden_ref.h"
@@ -66,7 +66,7 @@ void acquisition_begin(void)
     timer = timerBegin(0, 80, true);
     timerAttachInterrupt(timer, &on_timer, true);
     timerAlarmWrite(timer, 1000000 / ECG_FS, true);
-    if (!attach_source(konfig_sumber(), konfig_sumber_rekam())) attach_source(SOURCE_ADC, 0);
+    if (!attach_source(settings_source(), settings_source_recording())) attach_source(SOURCE_ADC, 0);
     cycles_per_sample = getCpuFrequencyMhz() * HZ_PER_MHZ / ECG_FS;
     cycles_previous = esp_cpu_get_ccount();
     timerAlarmEnable(timer);
@@ -126,7 +126,7 @@ bool acquisition_set_source(int s, int number, bool save)
     const bool ok = attach_source(s, number);
     acquisition_timer(true);
     if (!ok) return false;
-    if (save) konfig_set_sumber(source, source_recording);
+    if (save) settings_set_source(source, source_recording);
     gate_begin_session();
     classifier_reset();
     if (source == SOURCE_RECORDING)

@@ -38,7 +38,7 @@ ecg_pipeline.cpp	riwayat	history
 ecg_pipeline.cpp	skala	scale
 ina219.cpp	nilai	value
 ina219.cpp	tulis	write_register
-konfig.cpp	nama	name
+app_settings.cpp	nama	name
 main.cpp	sampel	sample
 menu.cpp	DAFTAR	LIST
 menu.cpp	atas	top
@@ -189,3 +189,9 @@ test_preproc.cpp	puncak	peak
 test_preproc.cpp	tahap	stage
 test_preproc.cpp	terburuk	worst
 diagnostics.cpp	kini	is_down
+app_settings.cpp	baca	read_stored
+app_settings.cpp	kunci	key
+app_settings.cpp	nomor	number
+app_settings.cpp	sumber	source
+app_settings.cpp	tulis	write_stored
+app_settings.h	nomor	number

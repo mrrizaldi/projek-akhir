@@ -107,7 +107,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integration` 5,
 | `src/diagnostics.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
 | `src/recorder.cpp` | Rekaman mentah: buffer PSRAM, jeda/lanjut (batas segmen jadi baris `# jeda`), berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
 | `src/power.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
-| `src/konfig.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
+| `src/app_settings.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
 | `src/serial_cmd.cpp` | Perintah serial (bagian Perintah serial) |
 | `src/board.cpp` | Pemasangan perangkat PCB: SPI dan TFT, buzzer LEDC, tombol, pin LO, ADC |
 | `src/ecg_pipeline.cpp` | Port preprocessing Python ke C (bandpass kausal, deteksi Pan-Tompkins, penyelarasan R, window + z-score, fitur RR) |
@@ -257,7 +257,7 @@ pengukuran ada di walkthrough yang dirujuk.
   `TCP_NODELAY`, `WiFi.setSleep(false)`, membaca PINGRESP, dan `gettimeofday()`
   (bukan `time()`) masing-masing menutup satu bug yang hanya muncul di board
   (mqtt-walkthrough §7b).
-- `Preferences::begin(NS, BUKAN_READ_ONLY)` dipakai juga untuk membaca, karena
+- `Preferences::begin(NS, NOT_READ_ONLY)` dipakai juga untuk membaca, karena
   mode read-only gagal bila namespace belum ada; mode tulis membuatnya.
 
 **LittleFS**
@@ -603,7 +603,7 @@ sinyal dan menu tidak dapat diubah:
 Pemeriksaan ada di satu fungsi, `recorder_reject()` (`recorder.h`), yang dipanggil di
 fungsi tujuan, bukan di tiap pemanggil: `menu_open`, `acquisition_set_source`,
 `power_set_mode`, `power_sweep_begin`, `gate_set_skip`,
-`konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu
+`settings_choose_wifi`, `settings_choose_broker`, dan `settings_set_wifi_active`. Jalur baru ke fungsi-fungsi itu
 otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,
 mengukur daya, atau mengganti jaringan, simpan rekaman lebih dulu.
 
@@ -645,13 +645,13 @@ ini (terukur 0).
 
 Board tersambung ke satu jaringan WiFi dan satu broker MQTT ThingsBoard pada
 satu waktu. Keduanya dipilih dari daftar yang ditulis di `include/wifi_secrets.h`
-saat build ([`src/konfig.cpp`](src/konfig.cpp)). Indeks pilihan aktif disimpan
+saat build ([`src/app_settings.cpp`](src/app_settings.cpp)). Indeks pilihan aktif disimpan
 di NVS (`Preferences`) sehingga tetap berlaku setelah board di-reset atau
 dicabut catunya. Entri 0 dipakai bila belum pernah ada pilihan.
 
 **WiFi aktif.** Sakelar menu **Jaringan → WiFi aktif** (serial `m`) mematikan
 radio WiFi dan MQTT tanpa build ulang. Nilainya disimpan di NVS (kunci
-`wifimati`, bawaan ON) dan dibaca `konfig_mulai()` sebelum radio dinyalakan
+`wifimati`, bawaan ON) dan dibaca `settings_begin()` sebelum radio dinyalakan
 sehingga bila OFF, `WiFi.begin()` tidak pernah dipanggil saat boot. Perekaman
 sinyal tubuh tidak membutuhkan WiFi karena rekaman disimpan ke LittleFS. Saat
 OFF, kembalinya tangga daya ke operasi normal dan pemilihan entri WiFi tidak
