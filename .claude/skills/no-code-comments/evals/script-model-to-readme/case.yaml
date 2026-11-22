@@ -1,0 +1,7 @@
+schema_version: "1.1"
+name: script-model-to-readme
+expected_outcome: |
+  A Python script skeleton with no docstring and no comments, importing values from config
+  (with a one-line sys.path.insert like the other scripts in model/scripts), the usage
+  explanation placed as a new row in model/README.md §Scripts (not in a docstring), and the checker
+  `cd /home/mrrizaldi/dev/projek-akhir && python3 scripts/check_comments.py model/scripts/count_wrong_runs.py`.
