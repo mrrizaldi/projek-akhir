@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "acquisition.h"
-#include "daya.h"
+#include "power.h"
 #include "gate.h"
 #include "ina219.h"
 #include "board.h"
@@ -157,7 +157,7 @@ static void perbarui_led()
     if (millis() - t_led < PERIODE_LED_MS) return;
     t_led = millis();
 
-    if (!daya_tahap(4))                    tampilan_led(0, 0, 0);
+    if (!power_stage(4))                    tampilan_led(0, 0, 0);
     else if (gate_phase() == PHASE_CALIBRATION) tampilan_led(0, 16, 64);
     else if (gate_phase() == PHASE_BAD) tampilan_led(64, 24, 0);
     else                                   tampilan_led(0, 48, 0);
@@ -198,7 +198,7 @@ static void gambar_tengah()
 
     if ((millis() / 3000) % 2 == 0) {
         float mA = 0, V = 0;
-        const bool ok = daya_ina_ada() && ina219_baca(R_SHUNT, &mA, &V);
+        const bool ok = power_ina_present() && ina219_baca(R_SHUNT, &mA, &V);
         w = ok ? ST77XX_CYAN : ST77XX_RED;
         if (ok) {
             snprintf(besar, sizeof besar, "%4.0fmA", mA);

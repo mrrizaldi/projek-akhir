@@ -6,7 +6,7 @@
 #include <sys/stat.h>
 
 #include "acquisition.h"
-#include "daya.h"
+#include "power.h"
 #include "ecg_pipeline.h"
 #include "menu.h"
 #include "board.h"
@@ -239,7 +239,7 @@ void recorder_toggle(void)
     part_max = (int)min<size_t>(RECORDER_PART_MAX, free_space() / FULL_FILE_SPACE);
     part_max = min(part_max, RECORDER_NUMBER_MAX - last_number);
     const char *reject = acquisition_source() != SOURCE_ADC ? "REKAM hanya dari sensor"
-                      : daya_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
+                      : power_mode() >= 0 ? "REKAM ditolak: mode daya pN aktif ('p' = normal)"
                       : menu_terbuka() ? "REKAM ditolak: tutup menu dulu"
                       : writing ? "REKAM ditolak: masih menyimpan sesi sebelumnya"
                       : !buf ? "REKAM ditolak: PSRAM tidak tersedia"
@@ -248,7 +248,7 @@ void recorder_toggle(void)
     if (reject) {
         Serial.println(reject);
         const bool waiting = writing;
-        tampilan_pesan(waiting ? "TUNGGU" : acquisition_source() != SOURCE_ADC || daya_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
+        tampilan_pesan(waiting ? "TUNGGU" : acquisition_source() != SOURCE_ADC || power_mode() >= 0 || menu_terbuka() ? "TOLAK" : "PENUH",
                        waiting ? "masih menyimpan" : acquisition_replay() ? "hanya sensor ADC" : "rekam ditolak");
         return;
     }

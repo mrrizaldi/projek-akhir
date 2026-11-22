@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 #include "acquisition.h"
-#include "daya.h"
+#include "power.h"
 #include "ecg_mqtt.h"
 #include "gate.h"
 #include "classifier.h"
@@ -13,7 +13,7 @@
 #include "menu.h"
 #include "board.h"
 #include "recorder.h"
-#include "daya.h"
+#include "power.h"
 #include "tampilan.h"
 #include "buttons.h"
 
@@ -59,8 +59,8 @@ static void status()
                   (unsigned)(h.latency_n ? h.latency_sum / h.latency_n : 0), (unsigned)h.latency_max,
                   (unsigned)ecg_mqtt_rtt_maks(), (unsigned)ecg_mqtt_rtt_lambat(),
                   ecg_mqtt_rssi(), (unsigned long long)ecg_mqtt_epoch_ms(),
-                  daya_ina_teks(), (int)tampilan_bisu(), (int)tampilan_beku(),
-                  (int)gate_skip(), daya_mode(),
+                  power_ina_text(), (int)tampilan_bisu(), (int)tampilan_beku(),
+                  (int)gate_skip(), power_mode(),
                   acquisition_source() == SOURCE_ADC ? "adc"
                   : acquisition_source() == SOURCE_REFERENCE ? "acuan" : "rekaman",
                   acquisition_source_recording(), (int)menu_terbuka(), (int)recorder_paused());
@@ -101,7 +101,7 @@ void serial_cmd_layani(void)
         const uint32_t t0 = millis();
         while (!Serial.available() && millis() - t0 < TUNGGU_DIGIT_MS) {}
         const char d = Serial.available() ? Serial.read() : 0;
-        daya_set_mode(d >= '0' && d <= '5' ? d - '0' : -1);
+        power_set_mode(d >= '0' && d <= '5' ? d - '0' : -1);
     }
     else if (c == 'k') {
         gate_set_skip(!gate_skip());
@@ -119,7 +119,7 @@ void serial_cmd_layani(void)
         char b[8];
         const int n = c == 'v' ? angka() : -1;
         snprintf(b, sizeof b, n < 0 ? "%c" : "%c%d", c, n);
-        daya_serial(b);
+        power_serial(b);
     }
     else if (c == 'w') {
         const int n = angka();

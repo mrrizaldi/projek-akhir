@@ -106,7 +106,7 @@ board 29 (`test_preproc` 11, `test_inference` 5, `test_hw_integrasi` 5,
 | `src/menu.cpp` | Pohon menu (array struct statis + pointer fungsi), navigasi tiga tombol, halaman teks diperbarui 1 Hz |
 | `src/diagnosa.cpp` | Tes perangkat (buzzer, layar, ADC & lead-off, INA219, tombol) untuk menu Tes perangkat dan `test_hw_*` |
 | `src/recorder.cpp` | Rekaman mentah: buffer PSRAM, jeda/lanjut (batas segmen jadi baris `# jeda`), berkas bernomor `/rekam/NNN.csv` di LittleFS, daftar, dump, hapus, muat untuk replay |
-| `src/daya.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
+| `src/power.cpp` | Pembacaan INA219, tangga ukur daya `p0`–`p5` (serial `p`), tangga mandiri dengan hasil `/daya/NNN.csv` (menu Ukur daya, serial `V`/`v`) |
 | `src/konfig.cpp` | Daftar WiFi dan broker dari `wifi_secrets.h`; pilihan WiFi, broker, dan sumber sinyal di NVS |
 | `src/serial_cmd.cpp` | Perintah serial (bagian Perintah serial) |
 | `src/board.cpp` | Pemasangan perangkat PCB: SPI dan TFT, buzzer LEDC, tombol, pin LO, ADC |
@@ -428,7 +428,7 @@ langkah itu ditandai tidak sah.
 
 Tangga yang sama dapat dimulai lewat serial `V`; berkas di board didaftar dengan
 `v` dan dicetak dengan `v<n>`. Uji singkat jalur ini tanpa menunggu 7 menit:
-`PLATFORMIO_BUILD_FLAGS="-DDAYA_JENDELA_MS=2000 -DDAYA_BLOK=2" pio run -t upload`.
+`PLATFORMIO_BUILD_FLAGS="-DPOWER_WINDOW_MS=2000 -DPOWER_BLOCK=2" pio run -t upload`.
 
 ## Antarmuka alat
 
@@ -602,7 +602,7 @@ sinyal dan menu tidak dapat diubah:
 
 Pemeriksaan ada di satu fungsi, `recorder_reject()` (`recorder.h`), yang dipanggil di
 fungsi tujuan, bukan di tiap pemanggil: `menu_buka`, `acquisition_set_source`,
-`daya_set_mode`, `daya_tangga_mulai`, `gate_set_skip`,
+`power_set_mode`, `power_sweep_begin`, `gate_set_skip`,
 `konfig_pilih_wifi`, `konfig_pilih_broker`, dan `konfig_set_wifi_aktif`. Jalur baru ke fungsi-fungsi itu
 otomatis ikut terkunci. Untuk mengganti sumber, menjalankan tes perangkat,
 mengukur daya, atau mengganti jaringan, simpan rekaman lebih dulu.

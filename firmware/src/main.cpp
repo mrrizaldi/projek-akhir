@@ -2,7 +2,7 @@
 #include <Arduino.h>
 
 #include "acquisition.h"
-#include "daya.h"
+#include "power.h"
 #include "ecg_live.h"
 #include "ecg_mqtt.h"
 #include "gate.h"
@@ -14,7 +14,7 @@
 #include "recorder.h"
 #include "serial_cmd.h"
 #include "diagnosa.h"
-#include "daya.h"
+#include "power.h"
 #include "tampilan.h"
 #include "buttons.h"
 
@@ -45,7 +45,7 @@ void setup()
     board_begin();
     Serial.begin(115200);
     delay(1500);
-    daya_mulai();
+    power_begin();
     tampilan_mulai();
 
     ecg_mqtt_beat_t *ring = (ecg_mqtt_beat_t *)ps_malloc(
@@ -76,7 +76,7 @@ void setup()
                   "INA219 (SDA %d, SCL %d, 0x%02X): %s  |  TFT ST7789 %dx%d  |  buzzer GPIO%d @%u Hz\n",
                   ECG_FS, (unsigned)QUEUE_N, (unsigned)classifier_arena(),
                   classifier_threshold(), PIN_BTN[0], PIN_BTN[1], PIN_BTN[2],
-                  I2C_SDA, I2C_SCL, INA219_ALAMAT, daya_ina_ada() ? "siap" : "TIDAK TERDETEKSI",
+                  I2C_SDA, I2C_SCL, INA219_ALAMAT, power_ina_present() ? "siap" : "TIDAK TERDETEKSI",
                   TFT_W, TFT_H, PIN_BUZZ, (unsigned)TONE_HZ);
 }
 
@@ -89,13 +89,13 @@ void loop()
         const float sampel = (float)s;
         recorder_sample(s);
 
-        const bool dsp = daya_tahap(2), cnn = daya_tahap(3), ui = daya_tahap(4);
+        const bool dsp = power_stage(2), cnn = power_stage(3), ui = power_stage(4);
         const int ada_beat = dsp ? ecg_live_push(sampel, &beat) : 0;
         if (dsp) gate_assess_quality(sampel);
 
         bool arrhythmia = false;
         if (ada_beat) {
-            daya_hitung_beat();
+            power_count_beat();
             gate_assess_phase(beat);
             if (gate_phase() == PHASE_CALIBRATION) gate_report_calibration(beat);
             else if (cnn) arrhythmia = classifier_process(beat);
@@ -106,8 +106,8 @@ void loop()
 
     recorder_service();
     ecg_mqtt_layani();
-    daya_layani();
-    daya_tangga_tick();
+    power_service();
+    power_sweep_tick();
     serial_cmd_layani();
     layani_tombol();
     menu_layani();

@@ -7,3 +7,8 @@ recorder.cpp	batas	breaks
 recorder.cpp	jeda	paused
 recorder.cpp	tulis	writer
 buttons.cpp	lama	long_held
+power.cpp	langkah	step
+power.cpp	selesai	finish
+power.cpp	daftar	list_files
+power.cpp	hasil	results
+power.cpp	teks	text

@@ -1,9 +1,9 @@
 # Crosscheck rencana ukur daya terhadap standar dan literatur
 
 Kondisi: rencana ukur di `firmware/README.md` §Catu daya, `model/docs/firmware-walkthrough.md` §5d,
-`firmware/src/daya.cpp`, `firmware/src/ina219.cpp`, `firmware/include/ina219.h` (dibaca 1 Nov 2026).
+`firmware/src/power.cpp`, `firmware/src/ina219.cpp`, `firmware/include/ina219.h` (dibaca 1 Nov 2026).
 Konfigurasi yang berlaku sekarang: `INA219_CONFIG = 0x3FFF`, pembacaan tiap 100 ms
-(`PERIODE_BACA_INA219_MS`) tanpa memeriksa bit CNVR, rata-rata per jendela 10 s, 1 jendela transien
+(`PERIOD_READ_INA219_MS`) tanpa memeriksa bit CNVR, rata-rata per jendela 10 s, 1 jendela transien
 dibuang, 6 jendela per tingkat, satu kali tangga.
 
 Penanda: **[TL]** = dibaca teks lengkap, **[A]** = hanya abstrak/metadata, **[INF]** = kesimpulan
@@ -35,7 +35,7 @@ saya dari sumber, bukan kalimat sumber.
    Power Register untuk menghapus CNVR, sehingga tiap hasil masuk tepat sekali. Alternatif: MODE 101
    (shunt saja, kontinu) = cakupan 100 %, dan tegangan bus dibaca sekali per jendela dengan pindah mode
    sesaat. Tegangan sel berubah lambat, jadi bus 532 µs cukup. Ini menyentuh `include/ina219.h` dan
-   `daya.cpp`, jadi `test_ina219` dan `test_hw_ina219` perlu dijalankan ulang.
+   `power.cpp`, jadi `test_ina219` dan `test_hw_ina219` perlu dijalankan ulang.
 5. **Arus WiFi ESP32-S3 (datasheet v2.2, Tabel 5-7 hlm. 66, pada 3,3 V, 25 °C):** TX puncak 340 mA
    (802.11b 1 Mbps @21 dBm), 283–291 mA (g/n), RX 88–91 mA. Arus modem-sleep 240 MHz WAITI = 32,9/47,6 mA
    (Tabel 5-9 hlm. 67). Panduan ESP-IDF "Low Power Mode in Wi-Fi Scenarios" (ESP32-S3, v6.1): 160 MHz,

@@ -13,7 +13,7 @@
 #include "board.h"
 #include "recorder.h"
 #include "diagnosa.h"
-#include "daya.h"
+#include "power.h"
 #include "tampilan.h"
 #include "buttons.h"
 
@@ -117,7 +117,7 @@ static void tes_jalan(const char *nama, diag_hasil_t (*f)(void))
     tes_nama = nama;
     acquisition_timer(false);
     tes_hasil = f();
-    acquisition_timer(daya_mode() != 0);
+    acquisition_timer(power_mode() != 0);
     int i;
     while (buttons_event(&i) != BUTTON_NONE) {}
     Serial.printf("tes %s: %s | %s\n", nama, tes_hasil.lulus ? "LULUS" : "GAGAL", tes_hasil.ringkas);
@@ -154,25 +154,25 @@ static const halaman_t H_TES = DAFTAR("Tes perangkat", I_TES);
 
 static void daya_isi(baris_t *b)
 {
-    if (daya_tangga_aktif()) {
+    if (power_sweep_active()) {
         snprintf(b[0], sizeof *b, "Mengukur, jangan disentuh");
-        snprintf(b[1], sizeof *b, "Langkah p%d (%d/6)", daya_tangga_langkah(), daya_tangga_langkah() + 1);
+        snprintf(b[1], sizeof *b, "Langkah p%d (%d/6)", power_sweep_step(), power_sweep_step() + 1);
         return;
     }
-    daya_baris_t h[TAMPILAN_BARIS];
-    const int n = daya_tangga_hasil(h, TAMPILAN_BARIS);
+    power_row_t h[TAMPILAN_BARIS];
+    const int n = power_sweep_result(h, TAMPILAN_BARIS);
     if (!n) { snprintf(b[0], sizeof *b, "Belum ada hasil"); return; }
     for (int k = 0; k < n; k++)
         snprintf(b[k], sizeof *b, "%-3s%6.1fmA %5.0fmW", h[k].mode, h[k].i_ma, h[k].p_mw);
     char *e = b[0] + strlen(b[0]);
-    snprintf(e, sizeof *b - (e - b[0]), " #%03d", daya_tangga_berkas());
+    snprintf(e, sizeof *b - (e - b[0]), " #%03d", power_sweep_file());
 }
 static const halaman_t H_DAYA = TEKS("Ukur daya", daya_isi);
 static void tutup();
 static void mulai_tangga()
 {
-    daya_tangga_mulai();
-    if (daya_tangga_aktif()) tutup();
+    power_sweep_begin();
+    if (power_sweep_active()) tutup();
 }
 static const item_t I_DAYA[] = {
     {"Mulai tangga p0-p5", nullptr, mulai_tangga, nullptr},
@@ -233,7 +233,7 @@ static void info_isi(baris_t *b)
     snprintf(b[0], sizeof *b, "IP %s  %d dBm", ip_teks(), ecg_mqtt_rssi());
     snprintf(b[1], sizeof *b, "Broker %s %s", konfig_broker_nama(k), konfig_broker_host(k));
     float mA, V;
-    if (daya_ina_ada() && ina219_baca(R_SHUNT, &mA, &V))
+    if (power_ina_present() && ina219_baca(R_SHUNT, &mA, &V))
         snprintf(b[2], sizeof *b, "INA %.2f V %.1f mA", V, mA);
     else
         snprintf(b[2], sizeof *b, "INA219 tidak menjawab");
@@ -386,7 +386,7 @@ void menu_tombol(int i, int e)
 void menu_layani(void)
 {
     static bool daya_lalu;
-    const bool d = daya_tangga_aktif();
+    const bool d = power_sweep_active();
     if (daya_lalu && !d && (dalam < 0 || tumpuk[dalam].h != &H_DAYA)) {
         if (dalam < 0) tampilan_set_monitor(false);
         masuk(&H_DAYA);

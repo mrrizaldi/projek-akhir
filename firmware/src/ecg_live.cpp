@@ -93,8 +93,8 @@ static void jalankan_deteksi(void)
     static float lurus[ECG_LIVE_RING];
     ambil(awal, n, lurus);
 
-    const int jml = ecg_detect_r(lurus, n, scratch, r_det, 64);
-    for (int i = 0; i < jml; i++) {
+    const int sum = ecg_detect_r(lurus, n, scratch, r_det, 64);
+    for (int i = 0; i < sum; i++) {
         const int r_sel = ecg_align_r(lurus, n, r_det[i]);
         const int r_abs = (int)awal + r_sel;
 

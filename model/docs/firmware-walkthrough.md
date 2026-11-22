@@ -1,7 +1,7 @@
 # Walkthrough `firmware/` — port ke ESP32-S3
 
 > **Ruang lingkup:** port preprocessing, deteksi R, dan inferensi INT8 ke ESP32-S3, beserta harness golden yang menjaga kesetaraan C↔Python.
-> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/acquisition.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/daya.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
+> **Kode terkait:** `firmware/src/ecg_pipeline.cpp`, `firmware/src/ecg_live.cpp`, `firmware/src/main.cpp`, `firmware/src/acquisition.cpp`, `firmware/src/buttons.cpp`, `firmware/src/menu.cpp`, `firmware/src/power.cpp`, `firmware/src/board.cpp`, `firmware/include/board.h`, `firmware/include/ecg_preproc.h`, `firmware/include/model_int8.h`, `firmware/test/golden_ref.h`, `firmware/platformio.ini`
 > **Prasyarat:** [`quantize-walkthrough.md`](quantize-walkthrough.md) (Fase 7)
 
 Dokumen belajar, bukan spesifikasi. Ini jalur hardware di Lampiran C PRD.
@@ -717,11 +717,11 @@ menjalankan `p0`–`p5` sendiri dari baterai, menyimpan hasilnya, lalu laptop
 menariknya setelah pengukuran selesai. Prosedur langkah demi langkah:
 [`firmware/README.md`](../../firmware/README.md) bagian Ukur daya tanpa laptop.
 
-Isinya sama dengan `measure_power.py`, dipindah ke `daya.cpp`:
+Isinya sama dengan `measure_power.py`, dipindah ke `power.cpp`:
 
 - Tiap langkah: buang 1 jendela transien, ambil 6 jendela 10 detik
-  (`DAYA_BLOK`, `DAYA_JENDELA_MS`), total ±7 menit. Jendela dicatat oleh
-  `daya_layani()` yang sama dengan baris `DAYA`; `daya_tangga_tick()` hanya
+  (`POWER_BLOCK`, `POWER_WINDOW_MS`), total ±7 menit. Jendela dicatat oleh
+  `power_service()` yang sama dengan baris `DAYA`; `power_sweep_tick()` hanya
   memindah langkah sehingga `loop()` tidak tertahan selain saat menulis CSV
   di akhir.
 - Sumber ADC dipindah ke replay acuan selama tangga dan dikembalikan sesudahnya,
